@@ -125,7 +125,7 @@ for (var i = 0; i < layers.length; i++) {
 	// restore settings
 	activeLayer.visible = metadata[activeLayer.name]["visible"]
 
-	if (!activeLayer.isBackgroundLayer) {
+	if (!activeLayer.isBackgroundLayer && activeLayer.kind == LayerKind.NORMAL) {
 		activeLayer.opacity = metadata[activeLayer.name]["opacity"]
 		activeLayer.blendMode = metadata[activeLayer.name]["blendMode"]
 	}

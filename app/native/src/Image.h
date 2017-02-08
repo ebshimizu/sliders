@@ -3,6 +3,10 @@ Image.h - Object containing a bitmap used in the compositor
 author: Evan Shimizu
 */
 
+#pragma once
+#ifndef _COMP_IMAGE_H_
+#define _COMP_IMAGE_H_
+
 #include <vector>
 #include <iostream>
 
@@ -45,3 +49,5 @@ namespace Comp {
     vector<unsigned char> _data;
   };
 }
+
+#endif

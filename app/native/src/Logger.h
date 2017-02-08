@@ -3,6 +3,10 @@ Logger.h - Logs information about the compositor to a file
 author: Evan Shimizu
 */
 
+#pragma once
+#ifndef _COMP_LOGGER_H_
+#define _COMP_LOGGER_H_
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -44,5 +48,14 @@ namespace Comp
   // program-wide access to logger. Access should be through getLogger,
   // which will initialize the logger if it doesn't exist.
   static shared_ptr<Logger> _logger = nullptr;
-  static shared_ptr<Logger> getLogger();
+  static shared_ptr<Logger> getLogger()
+  {
+    if (_logger == nullptr) {
+      _logger = shared_ptr<Logger>(new Logger());
+    }
+
+    return _logger;
+  }
 }
+
+#endif

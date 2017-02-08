@@ -1,5 +1,7 @@
 #include "Compositor.h"
 
-Compositor::Compositor()
-{
+namespace Comp {
+  Compositor::Compositor()
+  {
+  }
 }

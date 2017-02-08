@@ -10,6 +10,26 @@ namespace Comp {
     loadFromFile(filename);
   }
 
+  Image::~Image()
+  {
+  }
+
+  vector<unsigned char>& Image::getData()
+  {
+    return _data;
+  }
+
+  string Image::getBase64()
+  {
+    // convert raw pixels to png
+    vector<unsigned char> png;
+
+    unsigned int error = lodepng::encode(png, _data, _w, _h);
+
+    // convert to base64 string
+    return base64_encode(png.data(), png.size());
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

@@ -3,6 +3,11 @@ Compositor.h - An image compositing library
 author: Evan Shimizu
 */
 
+#pragma once
+
+#ifndef _COMP_COMPOSITOR_H_
+#define _COMP_COMPOSITOR_H_
+
 #include <vector>
 
 #include "Image.h"
@@ -19,3 +24,5 @@ namespace Comp {
     Image testLoadBase64();
   };
 }
+
+#endif

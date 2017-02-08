@@ -59,14 +59,5 @@ namespace Comp {
     case(FATAL): return "FATAL";
     default:     return "";
     }
-  }
-
-  shared_ptr<Logger> getLogger()
-  {
-    if (_logger == nullptr) {
-      _logger = shared_ptr<Logger>(new Logger());
-    }
-
-    return _logger;
-  }
+  } 
 }

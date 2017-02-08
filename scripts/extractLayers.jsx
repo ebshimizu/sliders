@@ -1,3 +1,22 @@
+/*********************************************************************
+extractLayers.jsx
+author: Evan Shimizu
+
+Exports layers as PNGs along with compositing information in JSON
+format.
+**********************************************************************/
+
+/*
+// BEGIN__HARVEST_EXCEPTION_ZSTRING
+
+<javascriptresource>
+<name>Export Layers To...</name>
+<menu>export</menu>
+</javascriptresource>
+
+// END__HARVEST_EXCEPTION_ZSTRING
+*/
+
 // returns a list of all the artLayers in the specified layerSet.
 function getAllArtLayers(layers) {
 	var ret = []
@@ -40,6 +59,7 @@ var layers = getAllArtLayers(doc)
 
 var metadata = {}
 
+// progress window setup
 var userCanceled = false
 var progressWindow = new Window("palette { text:'Exporting Layers', \
     statusText: StaticText { text: 'Exporting Layers...', preferredSize: [350,20] }, \
@@ -58,11 +78,16 @@ for (var i = 0; i < layers.length; i++) {
 		break;
 	}
 
+	// get current layer being exported
 	var activeLayer = layers[i]
 
 	statusText.text = "Exporting layer " + activeLayer.name + " (" + (i + 1) + "/" + layers.length + ")"
 	progress.value = (i / layers.length) * 100;
 
+	// save compositing information
+	// Note that if the layer is an adjustment layer, we don't currently have a
+	// way to extract the settings for that later in a script.
+	// TODO: Ask Photoshop team about accessing adjustment layer properties
 	metadata[activeLayer.name] = {}
 	metadata[activeLayer.name]["visible"] = activeLayer.visible
 	metadata[activeLayer.name]["opacity"] = activeLayer.opacity
@@ -70,15 +95,19 @@ for (var i = 0; i < layers.length; i++) {
 	metadata[activeLayer.name]["kind"] = activeLayer.kind
 	metadata[activeLayer.name]["parent"] = activeLayer.parent.name
 
+	// Toggle visibility for all other layers
 	turnOffAll(doc)
 
+	// Enable visibility for current layer
 	activeLayer.visible = true
 
+	// Background layers don't have these options editable
 	if (!activeLayer.isBackgroundLayer) {
 		activeLayer.opacity = 100
 		activeLayer.blendMode = BlendMode.NORMAL
 	}
 
+	// Ensure parent containers are also visible
 	turnOnParents(activeLayer)
 
 	// save layer
@@ -86,15 +115,18 @@ for (var i = 0; i < layers.length; i++) {
 	pngOpts.compression = 0
 	pngOpts.interlaced = false
 
+	// sanitize filename
 	var filename = activeLayer.name.replace(/\//, '-')
 	metadata[activeLayer.name]["filename"] = filename + ".png"
 
 	doc.saveAs(new File(outDir.absoluteURI + "/" + filename),
 		pngOpts, true, Extension.LOWERCASE)
 
+	// restore settings
+	activeLayer.visible = metadata[activeLayer.name]["visible"]
+
 	if (!activeLayer.isBackgroundLayer) {
 		activeLayer.opacity = metadata[activeLayer.name]["opacity"]
-		activeLayer.visible = metadata[activeLayer.name]["visible"]
 		activeLayer.blendMode = metadata[activeLayer.name]["blendMode"]
 	}
 }
@@ -124,6 +156,7 @@ for (var key in metadata) {
 str += jsonObjs.join(',\n')
 str += "\n}"
 
+// save JSON file
 var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".meta")
 metaFile.open('w')
 metaFile.write(str)

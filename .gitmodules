@@ -1,0 +1,6 @@
+[submodule "app/native/src/third_party/cpp-base64"]
+	path = app/native/src/third_party/cpp-base64
+	url = https://github.com/ReneNyffenegger/cpp-base64.git
+[submodule "app/native/src/third_party/lodepng"]
+	path = app/native/src/third_party/lodepng
+	url = https://github.com/lvandeve/lodepng.git

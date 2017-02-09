@@ -539,34 +539,7 @@ for (var i = 0; i < layers.length; i++) {
 statusText.text = "Exporting layer info"
 progress.value = 100
 
-// save metadata
-var str = "{\n"
-str += '\t"filename" : "' + doc.name + '",\n';
-var jsonObjs = []
-// we'll make our own JSON for this yay
-for (var key in metadata) {
-	var json = '\t"' + key + '" : {\n'
-
-	var dictEntries = []
-	for (var subKey in metadata[key]) {
-		if (subKey == "adjustment") {
-			dictEntries.push('\t\t"' + subKey + '" : ' + metadata[key][subKey])
-		}
-		else {
-			dictEntries.push('\t\t"' + subKey + '" : "' + metadata[key][subKey] + '"')
-		}
-	}
-
-	json += dictEntries.join(',\n')
-	json += "\n\t}"
-
-	jsonObjs.push(json)
-}
-
-str += jsonObjs.join(',\n')
-str += "\n}"
-
-// save JSON file
+// save metadata file
 var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".meta")
 metaFile.open('w')
 metaFile.write(JSON.stringify(metadata))

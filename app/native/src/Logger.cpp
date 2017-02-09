@@ -19,7 +19,7 @@ namespace Comp {
 
   void Logger::log(string msg, LogLevel level)
   {
-    if ((int)level > _level) {
+    if ((int)level >= _level) {
       if (_file.is_open()) {
         _file << "[" << logLevelToString(level) << "]\t" << printTime() << " " << msg << "\n";
       }

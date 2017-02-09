@@ -5,10 +5,8 @@ author: Evan Shimizu
 
 #pragma once
 
-#ifndef _COMP_COMPOSITOR_H_
-#define _COMP_COMPOSITOR_H_
-
 #include <vector>
+#include <map>
 
 #include "Image.h"
 
@@ -20,9 +18,11 @@ namespace Comp {
     Compositor();
     ~Compositor();
 
-    // debug function just for testing if node interop works
-    Image testLoadBase64();
+    void loadImage(string name, string filename);
+    Image* getImage(string name);
+
+  private:
+    // really this should be a list of layers but for testing we'll just do this
+    map<string, Image*> _images;
   };
 }
-
-#endif

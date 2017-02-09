@@ -10,7 +10,8 @@
 				"src/Image.cpp",
 				"src/Logger.h",
 				"src/Logger.cpp",
-				"src/third_party/lodepng/lodepng.cpp"
+				"src/third_party/lodepng/lodepng.cpp",
+				"src/third_party/cpp-base64/base64.cpp"
 			]
 		}
 	]

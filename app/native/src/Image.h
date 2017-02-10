@@ -29,7 +29,7 @@ namespace Comp {
     // destructor
     ~Image();
 
-    // gets the raw image data
+    // gets the raw image data (RGBA order)
     vector<unsigned char>& getData();
 
     // returns the image as a base64 encoded png

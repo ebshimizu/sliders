@@ -1,5 +1,70 @@
 #include "CompositorNode.h"
 
+// general bindings
+
+void log(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // expects two args: str, level
+  if (info.Length() < 2) {
+    Nan::ThrowError("log function expects two arguments: (string, int32)");
+  }
+
+  // check types
+  if (!info[0]->IsString() || !info[1]->IsInt32()) {
+    Nan::ThrowError("log function argument type error. Expected (string, int32).");
+  }
+
+  // do the thing
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string msg(*val0);
+
+  Comp::getLogger()->log(msg, (Comp::LogLevel)info[1]->Int32Value());
+
+  info.GetReturnValue().SetNull();
+}
+
+void setLogLocation(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // expects 1 arg: str
+  if (info.Length() < 1) {
+    Nan::ThrowError("setLogLocation function expects one argument: string");
+  }
+
+  // check types
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("setLogLocation function type error. Expected string.");
+  }
+
+  // do the thing
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string path(*val0);
+
+  Comp::getLogger()->setLogLocation(path);
+
+  info.GetReturnValue().SetNull();
+}
+
+void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // expects 1 arg: str
+  if (info.Length() < 1) {
+    Nan::ThrowError("setLogLevel function expects one argument: int");
+  }
+
+  // check types
+  if (!info[0]->IsInt32()) {
+    Nan::ThrowError("setLogLevel function type error. Expected int.");
+  }
+
+  // do the thing
+  Comp::getLogger()->setLogLevel((Comp::LogLevel)info[0]->Int32Value());
+
+  info.GetReturnValue().SetNull();
+}
+
+
+// object bindings
+
 Nan::Persistent<v8::Function> ImageWrapper::constructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)

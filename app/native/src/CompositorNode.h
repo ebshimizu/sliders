@@ -13,6 +13,10 @@ author: Evan Shimizu
 
 using namespace std;
 
+void log(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void setLogLocation(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info);
+
 class ImageWrapper : public Nan::ObjectWrap {
 public:
   static void Init(v8::Local<v8::Object> exports);

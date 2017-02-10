@@ -22,6 +22,7 @@ namespace Comp {
     if ((int)level >= _level) {
       if (_file.is_open()) {
         _file << "[" << logLevelToString(level) << "]\t" << printTime() << " " << msg << "\n";
+        _file.flush();
       }
     }
   }

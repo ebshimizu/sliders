@@ -50,3 +50,4 @@ Temporary Items
 app/native/build/*
 app/native/node_modules/*
 app/darkroom/npm-debug.log
+app/native/compositor.log

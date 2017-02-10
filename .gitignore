@@ -49,3 +49,4 @@ Temporary Items
 # project specific excludes
 app/native/build/*
 app/native/node_modules/*
+app/darkroom/npm-debug.log

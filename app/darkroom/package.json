@@ -1,0 +1,16 @@
+{
+  "name"    : "darkroom",
+  "version" : "0.1.0",
+  "main"    : "main.js",
+  "description": "An exporatory interface for developing designs from files with a large number of tunable paramters",
+  "homepage" : "http://evanshimizu.com",
+  "bugs" : "ebshimizu@gmail.com",
+  "author" : "Evan Shimizu",
+  "files" : [ "main.js", "darkroom.js", "darkroom.html"],
+  "devDependencies": {
+    "electron": "^1.4.1"
+  },
+  "dependencies": {
+    "compositor" : "file:../native/build/Release/compositor"
+  }
+}

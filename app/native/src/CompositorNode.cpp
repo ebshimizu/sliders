@@ -13,6 +13,8 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "getData", getData);
   Nan::SetPrototypeMethod(tpl, "getBase64", getBase64);
+  Nan::SetPrototypeMethod(tpl, "width", width);
+  Nan::SetPrototypeMethod(tpl, "height", height);
 
   constructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -67,4 +69,16 @@ void ImageWrapper::getBase64(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
   info.GetReturnValue().Set(Nan::New(image->_image->getBase64()).ToLocalChecked());
+}
+
+void ImageWrapper::width(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  info.GetReturnValue().Set(Nan::New(image->_image->getWidth()));
+}
+
+void ImageWrapper::height(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  info.GetReturnValue().Set(Nan::New(image->_image->getHeight()));
 }

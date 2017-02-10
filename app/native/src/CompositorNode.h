@@ -25,6 +25,8 @@ private:
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getData(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getBase64(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void width(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void height(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> constructor;
 
   Comp::Image* _image;

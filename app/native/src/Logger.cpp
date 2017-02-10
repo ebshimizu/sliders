@@ -28,7 +28,7 @@ namespace Comp {
 
   void Logger::setLogLevel(LogLevel level)
   {
-    _level = level;
+    _level = (int)level;
   }
 
   string Logger::printTime()

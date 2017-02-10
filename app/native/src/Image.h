@@ -35,6 +35,9 @@ namespace Comp {
     // returns the image as a base64 encoded png
     string getBase64();
 
+    unsigned int getWidth() { return _w;}
+    unsigned int getHeight() { return _h; }
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);

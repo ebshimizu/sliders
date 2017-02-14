@@ -89,6 +89,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "base64", getBase64);
   Nan::SetPrototypeMethod(tpl, "width", width);
   Nan::SetPrototypeMethod(tpl, "height", height);
+  Nan::SetPrototypeMethod(tpl, "save", save);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());

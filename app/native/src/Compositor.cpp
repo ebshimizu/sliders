@@ -154,18 +154,20 @@ namespace Comp {
     vector<unsigned char>& compPx = comp->getData();
 
     // blend the layers
-    for (auto l : c) {
+    for (auto id : _layerOrder) {
+      Layer l = c[id];
+
       // pre-process layer if necessary due to adjustments, requires creating
       // new image
-      vector<unsigned char>& layerPx = _imageData[l.first]->getData();
+      vector<unsigned char>& layerPx = _imageData[l._name]->getData();
 
       // blend the layer
       for (int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
-        if (l.second._mode == BlendMode::NORMAL) {
+        if (l._mode == BlendMode::NORMAL) {
           // layer alpha is combo of opacity and pixel alpha
-          float aa = (layerPx[i * 4 + 3] / 255.0f) * (l.second._opacity / 100.0f);
-
+          float aa = (layerPx[i * 4 + 3] / 255.0f) * (l._opacity / 100.0f);
+          
           // composite running alpha
           float ab = compPx[i * 4 + 3] / 255.0f;
 
@@ -175,7 +177,7 @@ namespace Comp {
           compPx[i * 4 + 2] = premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa);
 
           // alpha update
-          compPx[i * 4 + 3] = aa + ab * (1 - aa);
+          compPx[i * 4 + 3] = (unsigned char)((aa + ab * (1 - aa)) * 255);
         }
         else {
           // ???
@@ -184,8 +186,8 @@ namespace Comp {
     }
 
     return comp;
-  }
 
+  }
   string Compositor::renderToBase64()
   {
     Image* i = render();

@@ -139,19 +139,19 @@ namespace Comp {
     return _primary.size();
   }
 
-  Image Compositor::render()
+  Image* Compositor::render()
   {
     return render(getNewContext());
   }
 
-  Image Compositor::render(Context c)
+  Image* Compositor::render(Context c)
   {
     if (c.size() == 0) {
-      return Image();
+      return new Image();
     }
 
-    Image comp = Image(c.begin()->second.getWidth(), c.begin()->second.getHeight());
-    vector<unsigned char>& compPx = comp.getData();
+    Image* comp = new Image(c.begin()->second.getWidth(), c.begin()->second.getHeight());
+    vector<unsigned char>& compPx = comp->getData();
 
     // blend the layers
     for (auto l : c) {
@@ -160,7 +160,7 @@ namespace Comp {
       vector<unsigned char>& layerPx = _imageData[l.first]->getData();
 
       // blend the layer
-      for (int i = 0; i < comp.numPx(); i++) {
+      for (int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
         if (l.second._mode == BlendMode::NORMAL) {
           // layer alpha is combo of opacity and pixel alpha
@@ -188,12 +188,33 @@ namespace Comp {
 
   string Compositor::renderToBase64()
   {
-    return render().getBase64();
+    Image* i = render();
+    string ret = i->getBase64();
+    delete i;
+
+    return ret;
   }
 
   string Compositor::renderToBase64(Context c)
   {
-    return render(c).getBase64();
+    Image* i = render(c);
+    string ret = i->getBase64();
+    delete i;
+
+    return ret;
+  }
+
+  bool Compositor::setLayerOrder(vector<string> order)
+  {
+    for (auto id : order) {
+      if (_primary.count(id) == 0) {
+        getLogger()->log("Unable to set layer order. Missing Layer named " + id, LogLevel::WARN);
+        return false;
+      }
+    }
+
+    _layerOrder = order;
+    return true;
   }
 
   void Compositor::addLayer(string name)

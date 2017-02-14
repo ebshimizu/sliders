@@ -57,6 +57,15 @@ namespace Comp {
     return _w * _h;
   }
 
+  void Image::save(string path)
+  {
+    unsigned int error = lodepng::encode(path, _data, _w, _h);
+
+    if (error) {
+      getLogger()->log("Error writing image to file " + path + ". Error: " + lodepng_error_text(error), LogLevel::ERR);
+    }
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

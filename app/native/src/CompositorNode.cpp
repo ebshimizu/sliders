@@ -2,6 +2,13 @@
 
 // general bindings
 
+inline void nullcheck(void * ptr, string caller)
+{
+  if (ptr == nullptr) {
+    Nan::ThrowError(string("Null pointer exception in " + caller).c_str());
+  }
+}
+
 void log(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   // expects two args: str, level
@@ -78,8 +85,8 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   tpl->SetClassName(Nan::New("Image").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  Nan::SetPrototypeMethod(tpl, "getData", getData);
-  Nan::SetPrototypeMethod(tpl, "getBase64", getBase64);
+  Nan::SetPrototypeMethod(tpl, "data", getData);
+  Nan::SetPrototypeMethod(tpl, "base64", getBase64);
   Nan::SetPrototypeMethod(tpl, "width", width);
   Nan::SetPrototypeMethod(tpl, "height", height);
 
@@ -95,8 +102,15 @@ ImageWrapper::ImageWrapper(string filename) {
   _image = new Comp::Image(filename);
 }
 
+ImageWrapper::ImageWrapper(Comp::Image * img)
+{
+  _image = img;
+}
+
 ImageWrapper::~ImageWrapper() {
-  delete _image;
+  if (_deleteOnDestruct) {
+    delete _image;
+  }
 }
 
 void ImageWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -107,14 +121,22 @@ void ImageWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     unsigned int w = info[0]->Uint32Value();
     unsigned int h = info[1]->IsUndefined() ? 0 : info[1]->Uint32Value();
     img = new ImageWrapper(w, h);
+    img->_deleteOnDestruct = true;
   }
   else if (info[0]->IsString()) {
     v8::String::Utf8Value val0(info[0]->ToString());
     string path(*val0);
     img = new ImageWrapper(path);
+    img->_deleteOnDestruct = true;
+  }
+  else if (info[0]->IsExternal()) {
+    Comp::Image* i = static_cast<Comp::Image*>(info[0].As<v8::External>()->Value());
+    img = new ImageWrapper(i);
+    img->_deleteOnDestruct = info[1]->BooleanValue();
   }
   else {
     img = new ImageWrapper();
+    img->_deleteOnDestruct = true;
   }
 
   img->Wrap(info.This());
@@ -123,6 +145,7 @@ void ImageWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
 void ImageWrapper::getData(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  nullcheck(image->_image, "image.data");
 
   v8::Local<v8::Array> ret = Nan::New<v8::Array>();
   auto data = image->_image->getData();
@@ -135,19 +158,38 @@ void ImageWrapper::getData(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 void ImageWrapper::getBase64(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  nullcheck(image->_image, "image.base64");
+
   info.GetReturnValue().Set(Nan::New(image->_image->getBase64()).ToLocalChecked());
 }
 
 void ImageWrapper::width(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  nullcheck(image->_image, "image.width");
+
   info.GetReturnValue().Set(Nan::New(image->_image->getWidth()));
 }
 
 void ImageWrapper::height(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  nullcheck(image->_image, "image.height");
+
   info.GetReturnValue().Set(Nan::New(image->_image->getHeight()));
+}
+
+void ImageWrapper::save(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+  nullcheck(image->_image, "image.save");
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string file(*val0);
+
+  image->_image->save(file);
+  
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)
@@ -161,7 +203,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "width", width);
   Nan::SetPrototypeMethod(tpl, "height", height);
-  Nan::SetPrototypeMethod(tpl, "Image", Image);
+  Nan::SetPrototypeMethod(tpl, "Image", image);
   Nan::SetPrototypeMethod(tpl, "reset", reset);
   Nan::SetPrototypeMethod(tpl, "visible", visible);
   Nan::SetPrototypeMethod(tpl, "opacity", opacity);
@@ -197,25 +239,33 @@ void LayerRef::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void LayerRef::width(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.width");
+
   info.GetReturnValue().Set(Nan::New(layer->_layer->getWidth()));
 }
 
 void LayerRef::height(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.height");
+
   info.GetReturnValue().Set(Nan::New(layer->_layer->getHeight()));
 }
 
-void LayerRef::Image(const Nan::FunctionCallbackInfo<v8::Value>& info)
+void LayerRef::image(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   // right now this just returns the base64 string for the image
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.image");
+
   info.GetReturnValue().Set(Nan::New(layer->_layer->getImage()->getBase64()).ToLocalChecked());
 }
 
 void LayerRef::reset(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.reset");
+
   layer->_layer->reset();
   info.GetReturnValue().Set(Nan::Null());
 }
@@ -223,6 +273,7 @@ void LayerRef::reset(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void LayerRef::visible(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.visible");
   
   if (info[0]->IsBoolean()) {
     layer->_layer->_visible = info[0]->BooleanValue();
@@ -234,6 +285,7 @@ void LayerRef::visible(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void LayerRef::opacity(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.opacity");
 
   if (info[0]->IsNumber()) {
     layer->_layer->_opacity = info[0]->NumberValue();
@@ -245,6 +297,7 @@ void LayerRef::opacity(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void LayerRef::blendMode(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.blendMode");
 
   if (info[0]->IsInt32()) {
     layer->_layer->_mode = (Comp::BlendMode)(info[0]->Int32Value());
@@ -256,6 +309,8 @@ void LayerRef::blendMode(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void LayerRef::name(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.name");
+
   info.GetReturnValue().Set(Nan::New(layer->_layer->_name).ToLocalChecked());
 }
 
@@ -270,6 +325,13 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
   Nan::SetPrototypeMethod(tpl, "addLayer", addLayer);
+  Nan::SetPrototypeMethod(tpl, "copyLayer", copyLayer);
+  Nan::SetPrototypeMethod(tpl, "deleteLayer", deleteLayer);
+  Nan::SetPrototypeMethod(tpl, "getAllLayers", getAllLayers);
+  Nan::SetPrototypeMethod(tpl, "setLayerOrder", setLayerOrder);
+  Nan::SetPrototypeMethod(tpl, "getLayerNames", getLayerNames);
+  Nan::SetPrototypeMethod(tpl, "size", size);
+  Nan::SetPrototypeMethod(tpl, "render", render);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -304,6 +366,7 @@ void CompositorWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
 
   // expects a name
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getLayer");
 
   v8::String::Utf8Value val0(info[0]->ToString());
   string name(*val0);
@@ -324,6 +387,7 @@ void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
   }
 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addLayer");
 
   v8::String::Utf8Value val0(info[0]->ToString());
   string name(*val0);
@@ -334,4 +398,127 @@ void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
   bool result = c->_compositor->addLayer(name, path);
 
   info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::copyLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (!info[0]->IsString() || !info[1]->IsString()) {
+    Nan::ThrowError("copyLayer expects two layer names");
+  }
+
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.copyLayer");
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name(*val0);
+
+  v8::String::Utf8Value val1(info[1]->ToString());
+  string dest(*val1);
+
+  bool result = c->_compositor->copyLayer(name, dest);
+
+  info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::deleteLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("deleteLayer expects a layer name");
+  }
+
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.deleteLayer");
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name(*val0);
+
+  bool result = c->_compositor->deleteLayer(name);
+
+  info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getAllLayers");
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(LayerRef::layerConstructor);
+
+  // extract all layers into an array and return that
+  v8::Local<v8::Array> layers = Nan::New<v8::Array>();
+  for (int i = 0; i < c->_compositor->size(); i++) {
+    Comp::Layer& l = c->_compositor->getLayer(i);
+
+    // create v8 object
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
+    layers->Set(i, cons->NewInstance(argc, argv));
+  }
+
+  info.GetReturnValue().Set(layers);
+}
+
+void CompositorWrapper::setLayerOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.setLayerOrder");
+
+  // unpack the array
+  if (!info[0]->IsArray()) {
+    Nan::ThrowError("Set Layer Order expects an array");
+  }
+
+  vector<string> names;
+  v8::Local<v8::Array> args = info[0].As<v8::Array>();
+  for (unsigned int i = 0; i < args->Length(); i++) {
+    v8::String::Utf8Value val0(args->Get(i)->ToString());
+    string name(*val0);
+    names.push_back(name);
+  }
+
+  // the compositor does all the checks, we just report the result here
+  bool result = c->_compositor->setLayerOrder(names);
+
+  info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::getLayerNames(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getLayerNames");
+
+  // dump names into v8 array
+  v8::Local<v8::Array> layers = Nan::New<v8::Array>();
+  auto layerData = c->_compositor->getPrimaryContext();
+  int i = 0;
+  for (auto kvp : layerData) {
+    layers->Set(i, Nan::New(kvp.first).ToLocalChecked());
+    i++;
+  }
+
+  info.GetReturnValue().Set(layers);
+}
+
+void CompositorWrapper::size(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.size");
+
+  info.GetReturnValue().Set(Nan::New(c->_compositor->size()));
+}
+
+void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.render");
+
+  // returns an image
+  Comp::Image* img = c->_compositor->render();
+
+  // construct the image
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
+
+  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
 }

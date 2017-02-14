@@ -49,16 +49,22 @@ namespace Comp {
     int size();
 
     // Render the primary context
-    Image render();
+    // since the render functions do hit the js interface, images are allocated and 
+    // memory is explicity handled to prevent scope issues
+    Image* render();
 
     // render with a given context
-    Image render(Context c);
+    Image* render(Context c);
 
     // render directly to a string with the primary context
     string renderToBase64();
 
     // render directly to a string with a given context
     string renderToBase64(Context c);
+
+    // sets the layer order. True on success.
+    // checks to make sure all layers exist in the primary context before overwrite
+    bool setLayerOrder(vector<string> order);
 
   private:
     void addLayer(string name);

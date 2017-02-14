@@ -47,6 +47,9 @@ namespace Comp {
     // number of pixels in the image (convenience for w * h)
     unsigned int numPx();
 
+    // saves the image to a file
+    void save(string path);
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);

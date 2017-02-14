@@ -160,6 +160,9 @@ namespace Comp {
     for (auto id : _layerOrder) {
       Layer l = c[id];
 
+      if (!l._visible)
+        continue;
+
       // pre-process layer if necessary due to adjustments, requires creating
       // new image
       vector<unsigned char>& layerPx = _imageData[l.getName()]->getData();
@@ -174,10 +177,17 @@ namespace Comp {
           // composite running alpha
           float ab = compPx[i * 4 + 3] / 255.0f;
 
+          float ad = aa + ab * (1 - aa);
+
+          // photoshop doesn't do premult alpha, so we compute fully here
+          compPx[i * 4] = (unsigned char)((layerPx[i * 4] * aa + compPx[i * 4] * ab * (1 - aa)) / ad);
+          compPx[i * 4 + 1] = (unsigned char)((layerPx[i * 4 + 1] * aa + compPx[i * 4 + 1] * ab * (1 - aa)) / ad);
+          compPx[i * 4 + 2] = (unsigned char)((layerPx[i * 4 + 2] * aa + compPx[i * 4 + 2] * ab * (1 - aa)) / ad);
+
           // RGB
-          compPx[i * 4] = (unsigned char) (premult(layerPx[i * 4], aa) + premult(compPx[i * 4], ab) * (1 - aa));
-          compPx[i * 4 + 1] = (unsigned char) (premult(layerPx[i * 4 + 1], aa) + premult(compPx[i * 4 + 1], ab) * (1 - aa));
-          compPx[i * 4 + 2] = (unsigned char) (premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa));
+          //compPx[i * 4] = (unsigned char) (premult(layerPx[i * 4], aa) + premult(compPx[i * 4], ab) * (1 - aa));
+          //compPx[i * 4 + 1] = (unsigned char) (premult(layerPx[i * 4 + 1], aa) + premult(compPx[i * 4 + 1], ab) * (1 - aa));
+          //compPx[i * 4 + 2] = (unsigned char) (premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa));
 
           // alpha update
           compPx[i * 4 + 3] = (unsigned char)((aa + ab * (1 - aa)) * 255);

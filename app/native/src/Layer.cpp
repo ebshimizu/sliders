@@ -69,13 +69,9 @@ namespace Comp {
     return _name;
   }
 
-  BlendMode Layer::getBlendMode()
+  void Layer::setName(string name)
   {
-    return _mode;
-  }
-
-  void Layer::setBlendMode(BlendMode mode)
-  {
+    _name = name;
   }
 
   void Layer::reset()

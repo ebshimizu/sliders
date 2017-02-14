@@ -20,6 +20,7 @@ namespace Comp {
     // load image data
     _imageData[name] = shared_ptr<Image>(new Image(file));
     addLayer(name);
+    return true;
   }
 
   bool Compositor::addLayer(string name, Image & img)
@@ -45,7 +46,7 @@ namespace Comp {
     }
 
     _primary[dest] = Layer(_primary[src]);
-    _primary[dest]._name = dest;
+    _primary[dest].setName(dest);
 
     // save a ref to the image data
     _imageData[dest] = _primary[dest].getImage();
@@ -54,6 +55,7 @@ namespace Comp {
     _layerOrder.push_back(dest);
 
     getLogger()->log("Copied layer " + src + " to layer " + dest);
+    return true;
   }
 
   bool Compositor::deleteLayer(string name)
@@ -78,6 +80,7 @@ namespace Comp {
     _imageData.erase(name);
 
     getLogger()->log("Erased layer " + name);
+    return true;
   }
 
   void Compositor::reorderLayer(int from, int to)
@@ -159,22 +162,22 @@ namespace Comp {
 
       // pre-process layer if necessary due to adjustments, requires creating
       // new image
-      vector<unsigned char>& layerPx = _imageData[l._name]->getData();
+      vector<unsigned char>& layerPx = _imageData[l.getName()]->getData();
 
       // blend the layer
       for (int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
         if (l._mode == BlendMode::NORMAL) {
           // layer alpha is combo of opacity and pixel alpha
-          float aa = (layerPx[i * 4 + 3] / 255.0f) * (l._opacity / 100.0f);
+          float aa = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
           
           // composite running alpha
           float ab = compPx[i * 4 + 3] / 255.0f;
 
           // RGB
-          compPx[i * 4] = premult(layerPx[i * 4], aa) + premult(compPx[i * 4], ab) * (1 - aa);
-          compPx[i * 4 + 1] = premult(layerPx[i * 4 + 1], aa) + premult(compPx[i * 4 + 1], ab) * (1 - aa);
-          compPx[i * 4 + 2] = premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa);
+          compPx[i * 4] = (unsigned char) (premult(layerPx[i * 4], aa) + premult(compPx[i * 4], ab) * (1 - aa));
+          compPx[i * 4 + 1] = (unsigned char) (premult(layerPx[i * 4 + 1], aa) + premult(compPx[i * 4 + 1], ab) * (1 - aa));
+          compPx[i * 4 + 2] = (unsigned char) (premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa));
 
           // alpha update
           compPx[i * 4 + 3] = (unsigned char)((aa + ab * (1 - aa)) * 255);

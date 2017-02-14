@@ -445,15 +445,17 @@ void CompositorWrapper::getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>&
 
   v8::Local<v8::Function> cons = Nan::New<v8::Function>(LayerRef::layerConstructor);
 
-  // extract all layers into an array and return that
-  v8::Local<v8::Array> layers = Nan::New<v8::Array>();
+  // extract all layers into an object (map) and return that
+  v8::Local<v8::Object> layers = Nan::New<v8::Object>();
   for (int i = 0; i < c->_compositor->size(); i++) {
     Comp::Layer& l = c->_compositor->getLayer(i);
 
     // create v8 object
+    v8::Local<v8::Object> layer = Nan::New<v8::Object>();
     const int argc = 1;
     v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
-    layers->Set(i, cons->NewInstance(argc, argv));
+
+    layers->Set(Nan::New(l.getName()).ToLocalChecked(), cons->NewInstance(argc, argv));
   }
 
   info.GetReturnValue().Set(layers);

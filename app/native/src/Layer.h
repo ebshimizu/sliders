@@ -41,6 +41,9 @@ namespace Comp {
 
     string getName();
 
+    // set name for layers, should only really be called from compositor
+    void setName(string name);
+
     // blending mode
     BlendMode _mode;
 

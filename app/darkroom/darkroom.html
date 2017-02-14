@@ -1,16 +1,25 @@
 <html>
-	<head>
-		<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+    <head>
+        <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
 
-	    <script type="text/javascript" src="assets/js/jquery-3.1.1.min.js"></script>
-	    <script type="text/javascript" src="darkroom.js"></script>
+        <link rel="stylesheet" type="text/css" href="assets/semantic/dist/semantic.min.css">
+        <link rel="stylesheet" type="text/css" href="assets/semantic-ui-range/range.css">
+        <link rel="stylesheet" type="text/css" href="assets/css/darkroom.css">
 
-	    <script>$( document ).ready(function() { addListeners(); })</script>
+        <script type="text/javascript" src="assets/js/jquery-3.1.1.min.js"></script>
+        <script src="assets/semantic/dist/semantic.min.js"></script>
+        <script type="text/javascript" src="assets/semantic-ui-range/range.js"></script>
+        <script type="text/javascript" src="darkroom.js"></script>
 
-	    <script>if (window.module) module = window.module;</script>
-	</head>
-	<div id="test">
+        <script>$( document ).ready(function() { init(); })</script>
 
-	</div>
-	<a href="#" id="load">Load Image</a>
+        <script>if (window.module) module = window.module;</script>
+    </head>
+    <div id="test">
+
+    </div>
+    <button class="ui button inverted" id="render">
+        Render
+    </button>
+    <div class="ui range inverted" id="test-range"></div>
 </html>

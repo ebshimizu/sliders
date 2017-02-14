@@ -4,3 +4,6 @@
 [submodule "app/native/src/third_party/lodepng"]
 	path = app/native/src/third_party/lodepng
 	url = https://github.com/lvandeve/lodepng.git
+[submodule "app/darkroom/assets/semantic-ui-range"]
+	path = app/darkroom/assets/semantic-ui-range
+	url = https://github.com/tyleryasaka/semantic-ui-range.git

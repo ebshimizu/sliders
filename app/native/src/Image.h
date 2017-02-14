@@ -26,6 +26,12 @@ namespace Comp {
     // loads an image from a file
     Image(string filename);
 
+    // copy constructor
+    Image(const Image& other);
+
+    // assignment op
+    Image& operator=(const Image& other);
+
     // destructor
     ~Image();
 
@@ -37,6 +43,9 @@ namespace Comp {
 
     unsigned int getWidth() { return _w;}
     unsigned int getHeight() { return _h; }
+
+    // number of pixels in the image (convenience for w * h)
+    unsigned int numPx();
 
   private:
     // loads an image from a file

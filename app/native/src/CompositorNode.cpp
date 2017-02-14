@@ -289,10 +289,10 @@ void LayerRef::opacity(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(layer->_layer, "layer.opacity");
 
   if (info[0]->IsNumber()) {
-    layer->_layer->_opacity = info[0]->NumberValue();
+    layer->_layer->setOpacity(info[0]->NumberValue());
   }
 
-  info.GetReturnValue().Set(Nan::New(layer->_layer->_opacity));
+  info.GetReturnValue().Set(Nan::New(layer->_layer->getOpacity()));
 }
 
 void LayerRef::blendMode(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -312,7 +312,7 @@ void LayerRef::name(const Nan::FunctionCallbackInfo<v8::Value>& info)
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
   nullcheck(layer->_layer, "layer.name");
 
-  info.GetReturnValue().Set(Nan::New(layer->_layer->_name).ToLocalChecked());
+  info.GetReturnValue().Set(Nan::New(layer->_layer->getName()).ToLocalChecked());
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

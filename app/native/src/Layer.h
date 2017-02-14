@@ -35,24 +35,31 @@ namespace Comp {
 
     shared_ptr<Image> getImage();
 
+    // opacity controls
+    float getOpacity();
+    void setOpacity(float val);
+
+    string getName();
+
+    // blending mode
+    BlendMode _mode;
+
     // resets layer adjustments
     void reset();
 
     // visibility toggle of the layer
     bool _visible;
 
-    // layer transparency, [0-100]
-    float _opacity;
-    
-    // blending mode
-    BlendMode _mode;
-
-    // Layer name
-    string _name;
-
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
+
+    // layer transparency, [0-100]
+    float _opacity;
+
+    // Layer name.
+    // Immutable due to how layers are modified in the compositor
+    string _name;
 
     // layer adjustment options?
     // float _hue;

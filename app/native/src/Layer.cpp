@@ -54,6 +54,30 @@ namespace Comp {
     return _image;
   }
 
+  float Layer::getOpacity()
+  {
+    return _opacity;
+  }
+
+  void Layer::setOpacity(float val)
+  {
+    _opacity = (val > 100) ? 100 : ((val < 0) ? 0 : val);
+  }
+
+  string Layer::getName()
+  {
+    return _name;
+  }
+
+  BlendMode Layer::getBlendMode()
+  {
+    return _mode;
+  }
+
+  void Layer::setBlendMode(BlendMode mode)
+  {
+  }
+
   void Layer::reset()
   {
     _mode = BlendMode::NORMAL;

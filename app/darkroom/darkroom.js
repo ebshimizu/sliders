@@ -14,12 +14,14 @@ function init() {
 		renderImage()
 	})
 
-	$('#test-range').range({
+
+	$('#layerControls .range').range({
 		min: 0,
 		max: 100,
 		start: 100,
 		step: 1
 	})
+
 }
 
 // Test function that loads an image from the compositor module and

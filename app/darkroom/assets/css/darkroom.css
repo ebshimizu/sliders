@@ -1,4 +1,70 @@
 body {
 	margin: 0 0 0 0;
 	background-color: #333333;
+	color: #dcddde;
+}
+
+#layerContainer {
+	margin: 5px;
+	width: 35%;
+	height: 95%;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+#layerControls {
+	margin: 0 0 0 0;
+	position: relative;
+	right: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	max-height: 97%;
+	border: 1px solid #e8e8e8;
+	padding: 6px 0px 0px 0px;
+}
+
+#layerControls .layer {
+	border-bottom: 1px solid #e8e8e8;
+	padding: 5px;
+}
+
+#layerControls .layer button.visibleButton {
+	position: absolute;
+	right: 0px;
+	top: 6px;
+}
+
+#layerControls .layer .parameter {
+	height: 30px;
+	position: relative;
+	margin: 0 0 3px 0;
+}
+
+#layerControls .layer .parameter .paramLabel {
+	width: 15%;
+	text-align: center;
+	vertical-align: middle;
+	display: block;
+	position: absolute;
+	left: 0;
+	height: 100%;
+	padding: 2px 0;
+}
+
+#layerControls .layer .parameter .paramInput {
+	width: 15%;
+	display: inline-block;
+	position: absolute;
+	right: 0;
+	height: 100%;
+}
+
+#layerControls .layer .parameter .paramSlider {
+	width: 68%;
+	display: inline-block;
+	position: absolute;
+	left: 15%;
+	height: 100%;
+	padding: 2px 0;
 }

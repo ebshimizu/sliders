@@ -57,14 +57,21 @@ body {
 	display: inline-block;
 	position: absolute;
 	right: 0;
-	height: 100%;
 }
 
 #layerControls .layer .parameter .paramSlider {
-	width: 68%;
+	width: 65%;
 	display: inline-block;
 	position: absolute;
-	left: 15%;
-	height: 100%;
-	padding: 2px 0;
+	left: 17%;
+	height: 10px;
+	top: 10px;
+}
+
+#layerControls .layer .parameter .ui-slider-range {
+	background: #FFFFFF;
+}
+
+#layerControls .layer .parameter .ui-slider {
+	background: #000000;
 }

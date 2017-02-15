@@ -15,12 +15,12 @@ function init() {
 	})
 
 
-	$('#layerControls .range').range({
-		min: 0,
+	$('.paramSlider').slider({
+		orientation: "horizontal",
+		range: "min",
 		max: 100,
-		start: 100,
-		step: 1
-	})
+		min: 0
+	});
 
 }
 

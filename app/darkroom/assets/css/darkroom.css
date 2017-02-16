@@ -6,11 +6,12 @@ body {
 
 #layerContainer {
 	margin: 5px;
-	width: 35%;
+	width: 30%;
 	height: 95%;
 	position: absolute;
 	right: 0;
 	top: 0;
+	max-width: 600px;
 }
 
 #layerControls {
@@ -27,6 +28,7 @@ body {
 #layerControls .layer {
 	border-bottom: 1px solid #e8e8e8;
 	padding: 5px;
+	position: relative;
 }
 
 #layerControls .layer button.visibleButton {
@@ -53,10 +55,16 @@ body {
 }
 
 #layerControls .layer .parameter .paramInput {
-	width: 15%;
+	width: 13%;
 	display: inline-block;
 	position: absolute;
 	right: 0;
+	height: 30px;
+}
+
+#layerControls .layer .parameter .paramInput input {
+	height: 100%;
+	text-align: center;
 }
 
 #layerControls .layer .parameter .paramSlider {

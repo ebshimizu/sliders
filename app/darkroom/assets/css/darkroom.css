@@ -7,11 +7,11 @@ body {
 #layerContainer {
 	margin: 5px;
 	width: 30%;
-	height: 95%;
 	position: absolute;
 	right: 0;
 	top: 0;
 	max-width: 600px;
+	background: #1b1c1d;
 }
 
 #layerControls {
@@ -33,7 +33,7 @@ body {
 
 #layerControls .layer button.visibleButton {
 	position: absolute;
-	right: 0px;
+	right: 2px;
 	top: 6px;
 }
 
@@ -52,6 +52,8 @@ body {
 	left: 0;
 	height: 100%;
 	padding: 2px 0;
+	-webkit-user-select: none;
+	cursor: default;
 }
 
 #layerControls .layer .parameter .paramInput {

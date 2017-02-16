@@ -1,12 +1,14 @@
 body {
 	margin: 0 0 0 0;
-	background-color: #333333;
+	background-color: #1b1c1d;
 	color: #dcddde;
+	height: 99%;
 }
 
 #layerContainer {
-	margin: 5px;
-	width: 30%;
+	padding: 5px;
+	width: 25%;
+	min-width: 250px;
 	position: absolute;
 	right: 0;
 	top: 0;
@@ -23,6 +25,7 @@ body {
 	max-height: 97%;
 	border: 1px solid #e8e8e8;
 	padding: 6px 0px 0px 0px;
+	border-radius: 5px;
 }
 
 #layerControls .layer {
@@ -84,4 +87,46 @@ body {
 
 #layerControls .layer .parameter .ui-slider {
 	background: #000000;
+}
+
+#layerControls .layer .ui.dropdown {
+    position: absolute;
+    right: 40px;
+    top: 6px;
+    height: 26px;
+    min-height: 26px;
+    padding: 0.5em;
+    width: 100px;
+    min-width: 80px;
+}
+
+#layerControls .layer .ui.dropdown i {
+	top: 0.5em;
+}
+
+#imageContainer {
+	width: 75%;
+	min-width: 250px;
+	display: block;
+	position: relative;
+	top: 0;
+	left: 0;
+	height: 60%;
+	padding: 5px;
+	border: none;
+}
+
+#imageContainer img {
+	width: auto;
+	height: 100%;
+	margin: 0 auto;
+	display: block;
+}
+
+#imageContainer .segment {
+	border: none;
+}
+
+#imageContainer .header.item {
+	-webkit-app-region: drag;
 }

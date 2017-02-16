@@ -1044,7 +1044,7 @@ a.ui.basic.black.label:hover {
 .ui.basic.label {
   background: none #FFFFFF;
   border: 1px solid rgba(34, 36, 38, 0.15);
-  color: #FFFFFF;
+  color: rgba(0, 0, 0, 0.87);
   box-shadow: none;
 }
 

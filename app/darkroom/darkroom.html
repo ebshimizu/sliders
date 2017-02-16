@@ -15,31 +15,29 @@
 
         <script>if (window.module) module = window.module;</script>
     </head>
-    <div id="layerContainer">
-        <div class="ui top attached label">Layers</div>
-        <div id="layerControls">
-            <!-- <div class="layer">
-                <h3 class="ui grey inverted header">Layer Name</h3>
-                <button class="ui icon button mini black visibleButton">
-                    <i class="unhide icon"></i>
-                </button>
-                <div class="parameter">
-                    <div class="paramLabel">Opacity</div>
-                    <div class="paramSlider"></div>
-                    <div class="paramInput ui input mini"><input type="text"></div>
+    <div id="imageContainer">
+        <div class="ui grey top attached inverted menu">
+            <div class="header item">[file name]</div>
+            <div class="ui dropdown item">
+                File
+                <div class="menu">
+                    <a class="item" id="openCmd">Open...</a>
                 </div>
-                <div class="parameter">
-                    <div class="paramLabel">Opacity</div>
-                    <div class="ui range inverted paramSlider grey"></div>
-                    <div class="paramInput ui input mini"><input type="text"></div>
-                </div>
-            </div> -->
+            </div>
+            <div class="item">Edit</div>
+            <div class="right menu">
+                <a class="item" id="renderCmd">Render</a>
+            </div>
+        </div>
+        <div class="ui inverted attached segment">
+            <div id="render">
+
+            </div>
         </div>
     </div>
-    <div id="test">
-
+    <div id="layerContainer">
+        <div id="layerControls">
+            <div class="ui top attached label">Layers</div>
+        </div>
     </div>
-    <button class="ui button inverted" id="render">
-        Render
-    </button>
 </html>

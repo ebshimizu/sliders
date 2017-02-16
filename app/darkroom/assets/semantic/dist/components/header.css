@@ -23,7 +23,7 @@
   font-weight: bold;
   line-height: 1.2857em;
   text-transform: none;
-  color: #FFFFFF;
+  color: rgba(0, 0, 0, 0.87);
 }
 .ui.header:first-child {
   margin-top: -0.14285em;

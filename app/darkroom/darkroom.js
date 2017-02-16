@@ -10,9 +10,11 @@ c.addLayer("blue", "C:/Users/falindrith/Dropbox/Documents/research/sliders_proje
 
 // Initializes html element listeners on document load
 function init() {
-	$("#render").on("click", function() {
+	$("#renderCmd").on("click", function() {
 		renderImage()
 	})
+
+	$(".ui.dropdown").dropdown();
 
 
 	$('.paramSlider').slider({
@@ -25,11 +27,11 @@ function init() {
 	initUI()
 }
 
-// Test function that loads an image from the compositor module and
+// Renders an image from the compositor module and
 // then puts it in an image tag
 function renderImage() {
 	var dat = 'data:image/png;base64,' + c.render().base64()
-	$("#test").html('<img src="' + dat + '"" />')
+	$("#render").html('<img src="' + dat + '"" />')
 }
 
 function initUI() {
@@ -60,6 +62,9 @@ function createLayerControl(name) {
 
 	html += '</button>'
 
+	// blend mode options
+	html += genBlendModeMenu(name)
+
 	// generate parameters
 	if (layer.blendMode() == 0) {
 		// normal blending
@@ -89,7 +94,6 @@ function createLayerControl(name) {
 		renderImage();
 	});
 
-
 	// visibility
 	$('button[layerName="' + name + '"]').on('click', function() {
 		// check status of button
@@ -113,6 +117,17 @@ function createLayerControl(name) {
 		// trigger render after adjusting settings
 		renderImage()
 	})
+
+	// blend mode
+	$('.dropdown[layerName="' + name + '"]').dropdown({
+		action: 'activate',
+		onChange: function(value, text) {
+			layer.blendMode(parseInt(value));
+			renderImage();
+		},
+		'set selected': layer.blendMode()
+	});
+	$('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
 
 	// param events
 	$('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider({
@@ -153,4 +168,17 @@ function handleParamChange(layerName, ui) {
 		// find associated value box and dump the value there
 		$(ui.handle).parent().next().find("input").val(String(ui.value));
 	}
+}
+
+function genBlendModeMenu(name) {
+	var menu = '<div class="ui selection dropdown" layerName="' + name + '">'
+	menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
+	menu += '<i class="dropdown icon"></i>'
+	menu += '<div class="default text">Blend Mode</div>'
+	menu += '<div class="menu">'
+	menu += '<div class="item" data-value="0">Normal</div>'
+	menu += '</div>'
+	menu += '</div>'
+
+	return menu
 }

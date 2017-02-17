@@ -168,32 +168,41 @@ namespace Comp {
       vector<unsigned char>& layerPx = _imageData[l.getName()]->getData();
 
       // blend the layer
-      for (int i = 0; i < comp->numPx(); i++) {
+      for (unsigned int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
+        // a = background, b = new layer
+        // alphas
+        float ab = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
+        float aa = compPx[i * 4 + 3] / 255.0f;
+        float ad = aa + ab - aa * ab;
+
+        compPx[i * 4 + 3] = (unsigned char)(ad * 255);
+
+        // premult colors
+        float rb = premult(layerPx[i * 4], ab);
+        float gb = premult(layerPx[i * 4 + 1], ab);
+        float bb = premult(layerPx[i * 4 + 2], ab);
+
+        float ra = premult(compPx[i * 4], aa);
+        float ga = premult(compPx[i * 4 + 1], aa);
+        float ba = premult(compPx[i * 4 + 2], aa);
+
+        // blend modes
         if (l._mode == BlendMode::NORMAL) {
-          // layer alpha is combo of opacity and pixel alpha
-          float aa = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
-          
-          // composite running alpha
-          float ab = compPx[i * 4 + 3] / 255.0f;
-
-          float ad = aa + ab * (1 - aa);
-
-          // photoshop doesn't do premult alpha, so we compute fully here
-          compPx[i * 4] = (unsigned char)((layerPx[i * 4] * aa + compPx[i * 4] * ab * (1 - aa)) / ad);
-          compPx[i * 4 + 1] = (unsigned char)((layerPx[i * 4 + 1] * aa + compPx[i * 4 + 1] * ab * (1 - aa)) / ad);
-          compPx[i * 4 + 2] = (unsigned char)((layerPx[i * 4 + 2] * aa + compPx[i * 4 + 2] * ab * (1 - aa)) / ad);
-
-          // RGB
-          //compPx[i * 4] = (unsigned char) (premult(layerPx[i * 4], aa) + premult(compPx[i * 4], ab) * (1 - aa));
-          //compPx[i * 4 + 1] = (unsigned char) (premult(layerPx[i * 4 + 1], aa) + premult(compPx[i * 4 + 1], ab) * (1 - aa));
-          //compPx[i * 4 + 2] = (unsigned char) (premult(layerPx[i * 4 + 2], aa) + premult(compPx[i * 4 + 2], ab) * (1 - aa));
-
-          // alpha update
-          compPx[i * 4 + 3] = (unsigned char)((aa + ab * (1 - aa)) * 255);
+          // b over a, standard alpha blend
+          compPx[i * 4] = cvt(normal(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(normal(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(normal(ba, bb, aa, ab), ad);
         }
-        else {
-          // ???
+        else if (l._mode == BlendMode::MULTIPLY) {
+          compPx[i * 4] = cvt(multiply(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(multiply(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(multiply(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::SCREEN) {
+          compPx[i * 4] = cvt(screen(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(screen(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(screen(ba, bb, aa, ab), ad);
         }
       }
     }
@@ -242,9 +251,40 @@ namespace Comp {
     getLogger()->log("Added new layer named " + name);
   }
 
-  inline unsigned char Compositor::premult(unsigned char px, float a)
+  inline float Compositor::premult(unsigned char px, float a)
   {
-    return (unsigned char)(px * a);
+    return (float)((px / 255.0f) * a);
+  }
+
+  inline unsigned char Compositor::cvt(float px, float a)
+  {
+    float v = ((px / a) * 255);
+    return (unsigned char)((v > 255) ? 255 : (v < 0) ? 0 : v);
+  }
+
+  inline float Compositor::normal(float a, float b, float alpha1, float alpha2)
+  {
+    return b + a * (1 - alpha2);
+  }
+
+  inline float Compositor::multiply(float a, float b, float alpha1, float alpha2)
+  {
+    return b * a + b * (1 - alpha1) + a * (1 - alpha2);
+  }
+
+  inline float Compositor::screen(float a, float b, float alpha1, float alpha2)
+  {
+    return b + a - b * a;
+  }
+
+  inline float Compositor::overlay(float a, float b, float alpha1, float alpha2)
+  {
+    if (2 * alpha1 <= alpha1) {
+      return b * a * 2 + b * (1 - alpha1) + a * (1 - alpha2);
+    }
+    else {
+      return b * (1 - alpha1) + a * (1 - alpha2) - (alpha1 - a) * (alpha2 - b) + alpha2 * alpha1;
+    }
   }
 
 }

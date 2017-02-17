@@ -11,7 +11,10 @@ author: Evan Shimizu
 namespace Comp {
   // matches photoshop blend modes and should function the same way
   enum BlendMode {
-    NORMAL
+    NORMAL = 0,
+    MULTIPLY = 1,
+    SCREEN = 2,
+    OVERLAY = 3
   };
   
   class Layer {

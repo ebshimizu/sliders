@@ -524,12 +524,12 @@ for (var i = 0; i < layers.length; i++) {
 		pngOpts, true, Extension.LOWERCASE)
 
 	// restore settings
-	activeLayer.visible = metadata[activeLayer.name]["visible"]
+    if (!activeLayer.isBackgroundLayer && activeLayer.kind == LayerKind.NORMAL) {
+        activeLayer.opacity = metadata[activeLayer.name]["opacity"]
+        activeLayer.blendMode = metadata[activeLayer.name]["blendMode"]
+    }
 
-	if (!activeLayer.isBackgroundLayer && activeLayer.kind == LayerKind.NORMAL) {
-		activeLayer.opacity = metadata[activeLayer.name]["opacity"]
-		activeLayer.blendMode = metadata[activeLayer.name]["blendMode"]
-	}
+	activeLayer.visible = metadata[activeLayer.name]["visible"]
 
 	// stringify for later export
 	metadata[activeLayer.name]["blendMode"] = activeLayer.blendMode.toString()

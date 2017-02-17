@@ -177,6 +177,9 @@ function genBlendModeMenu(name) {
 	menu += '<div class="default text">Blend Mode</div>'
 	menu += '<div class="menu">'
 	menu += '<div class="item" data-value="0">Normal</div>'
+	menu += '<div class="item" data-value="1">Multiply</div>'
+	menu += '<div class="item" data-value="2">Screen</div>'
+	menu += '<div class="item" data-value="3">Overlay</div>'
 	menu += '</div>'
 	menu += '</div>'
 

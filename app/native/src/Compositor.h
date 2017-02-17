@@ -7,6 +7,7 @@ author: Evan Shimizu
 
 #include <vector>
 #include <map>
+#include <functional>
 
 #include "Image.h"
 #include "Layer.h"
@@ -69,7 +70,12 @@ namespace Comp {
   private:
     void addLayer(string name);
 
-    inline unsigned char premult(unsigned char px, float a);
+    inline float premult(unsigned char px, float a);
+    inline unsigned char cvt(float px, float a);
+    inline float normal(float a, float b, float alpha1, float alpha2);
+    inline float multiply(float a, float b, float alpha1, float alpha2);
+    inline float screen(float a, float b, float alpha1, float alpha2);
+    inline float overlay(float a, float b, float alpha1, float alpha2);
 
     // compositing order for layers
     vector<string> _layerOrder;

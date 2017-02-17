@@ -24,7 +24,7 @@ body {
 	overflow-x: hidden;
 	max-height: 97%;
 	border: 1px solid #e8e8e8;
-	padding: 6px 0px 0px 0px;
+	padding: 36px 0px 0px 0px;
 	border-radius: 5px;
 }
 
@@ -96,8 +96,12 @@ body {
     height: 26px;
     min-height: 26px;
     padding: 0.5em;
-    width: 100px;
+    width: 150px;
     min-width: 80px;
+}
+
+#layerControls .layer .ui.dropdown .menu {
+	max-height: 8em;
 }
 
 #layerControls .layer .ui.dropdown i {

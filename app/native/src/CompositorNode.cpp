@@ -492,10 +492,10 @@ void CompositorWrapper::getLayerNames(const Nan::FunctionCallbackInfo<v8::Value>
 
   // dump names into v8 array
   v8::Local<v8::Array> layers = Nan::New<v8::Array>();
-  auto layerData = c->_compositor->getPrimaryContext();
+  auto layerData = c->_compositor->getLayerOrder();
   int i = 0;
-  for (auto kvp : layerData) {
-    layers->Set(i, Nan::New(kvp.first).ToLocalChecked());
+  for (auto id : layerData) {
+    layers->Set(i, Nan::New(id).ToLocalChecked());
     i++;
   }
 

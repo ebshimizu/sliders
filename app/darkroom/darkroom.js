@@ -4,9 +4,9 @@ const comp = require('../native/build/Release/compositor')
 var c = new comp.Compositor()
 
 // for testing we load up three solid color test images
-c.addLayer("red", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/solid_red.png")
-c.addLayer("green", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/solid_green.png")
-c.addLayer("blue", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/solid_blue.png")
+c.addLayer("Elilipse 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 1.png")
+c.addLayer("Rectangle 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Rectangle 1.png")
+c.addLayer("Ellipse 2", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 2.png")
 
 // Initializes html element listeners on document load
 function init() {
@@ -73,7 +73,7 @@ function createLayerControl(name) {
 
 	html += '</div>'
 
-	controls.append(html)
+	controls.prepend(html)
 
 	// connect events
 	// update input
@@ -171,7 +171,7 @@ function handleParamChange(layerName, ui) {
 }
 
 function genBlendModeMenu(name) {
-	var menu = '<div class="ui selection dropdown" layerName="' + name + '">'
+	var menu = '<div class="ui scrolling selection dropdown" layerName="' + name + '">'
 	menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
 	menu += '<i class="dropdown icon"></i>'
 	menu += '<div class="default text">Blend Mode</div>'
@@ -180,6 +180,10 @@ function genBlendModeMenu(name) {
 	menu += '<div class="item" data-value="1">Multiply</div>'
 	menu += '<div class="item" data-value="2">Screen</div>'
 	menu += '<div class="item" data-value="3">Overlay</div>'
+	menu += '<div class="item" data-value="4">Hard Light</div>'
+	menu += '<div class="item" data-value="5">Soft Light</div>'
+	menu += '<div class="item" data-value="6">Linear Dodge (Add)</div>'
+	menu += '<div class="item" data-value="7">Color Dodge</div>'
 	menu += '</div>'
 	menu += '</div>'
 

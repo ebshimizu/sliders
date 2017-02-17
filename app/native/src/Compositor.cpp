@@ -204,6 +204,35 @@ namespace Comp {
           compPx[i * 4 + 1] = cvt(screen(ga, gb, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(screen(ba, bb, aa, ab), ad);
         }
+        else if (l._mode == BlendMode::OVERLAY) {
+          compPx[i * 4] = cvt(overlay(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(overlay(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(overlay(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::HARD_LIGHT) {
+          compPx[i * 4] = cvt(hardLight(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(hardLight(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(hardLight(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::SOFT_LIGHT) {
+          compPx[i * 4] = cvt(softLight(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(softLight(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(softLight(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::LINEAR_DODGE) {
+          // special override for alpha here
+          ad = (aa + ab > 1) ? 1 : (aa + ab);
+          compPx[i * 4 + 3] = (unsigned char)(ad * 255);
+
+          compPx[i * 4] = cvt(linearDodge(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearDodge(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearDodge(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::COLOR_DODGE) {
+          compPx[i * 4] = cvt(colorDodge(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(colorDodge(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(colorDodge(ba, bb, aa, ab), ad);
+        }
       }
     }
 
@@ -279,11 +308,58 @@ namespace Comp {
 
   inline float Compositor::overlay(float a, float b, float alpha1, float alpha2)
   {
-    if (2 * alpha1 <= alpha1) {
+    if (2 * a <= alpha1) {
       return b * a * 2 + b * (1 - alpha1) + a * (1 - alpha2);
     }
     else {
-      return b * (1 - alpha1) + a * (1 - alpha2) - (alpha1 - a) * (alpha2 - b) + alpha2 * alpha1;
+      return b * (1 + alpha1) + a * (1 + alpha2) - 2 * a * b - alpha1 * alpha2;
+    }
+  }
+
+  inline float Compositor::hardLight(float a, float b, float alpha1, float alpha2)
+  {
+    if (2 * b <= alpha2) {
+      return 2 * b * a + b * (1 - alpha1) + a * (1 - alpha2);
+    }
+    else {
+      return b * (1 + alpha1) + a * (1 + alpha2) - alpha1 * alpha2 - 2 * a * b;
+    }
+  }
+
+  inline float Compositor::softLight(float Dca, float Sca, float Da, float Sa)
+  {
+    float m = (Da == 0) ? 0 : Dca / Da;
+
+    if (2 * Sca <= Sa) {
+      return Dca * (Sa + (2 * Sca - Sa) * (1 - m)) + Sca * (1 - Da) + Dca * (1 - Sa);
+    }
+    else if (2 * Sca > Sa && 4 * Dca <= Da) {
+      return Da * (2 * Sca - Sa) * (16 * m * m * m - 12 * m * m - 3 * m) + Sca - Sca * Da + Dca;
+    }
+    else if (2 * Sca > Sa && 4 * Dca > Da){
+      return Da * (2 * Sca - Sa) * (sqrt(m) - m) + Sca - Sca * Da + Dca;
+    }
+    else {
+      return normal(Dca, Sca, Da, Sa);
+    }
+    
+  }
+
+  inline float Compositor::linearDodge(float Dca, float Sca, float Da, float Sa)
+  {
+    return Sca + Dca;
+  }
+
+  inline float Compositor::colorDodge(float Dca, float Sca, float Da, float Sa)
+  {
+    if (Sca == Sa && Dca == 0) {
+      return Sca * (1 - Da);
+    }
+    else if (Sca == Sa) {
+      return Sa * Da + Sca * (1 - Da) + Dca * (1 - Sa);
+    }
+    else if (Sca < Sa) {
+      return Sa * Da * min(1.0f, Dca / Da * Sa / (Sa - Sca)) + Sca * (1 - Da) + Dca * (1 - Sa);
     }
   }
 

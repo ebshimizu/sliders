@@ -8,6 +8,7 @@ author: Evan Shimizu
 #include <vector>
 #include <map>
 #include <functional>
+#include <algorithm>
 
 #include "Image.h"
 #include "Layer.h"
@@ -16,6 +17,18 @@ using namespace std;
 
 namespace Comp {
   typedef map<string, Layer> Context;
+
+  // matches photoshop blend modes and should function the same way
+  enum BlendMode {
+    NORMAL = 0,
+    MULTIPLY = 1,
+    SCREEN = 2,
+    OVERLAY = 3,
+    HARD_LIGHT = 4,
+    SOFT_LIGHT = 5,
+    LINEAR_DODGE = 6,
+    COLOR_DODGE = 7
+  };
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
@@ -76,6 +89,10 @@ namespace Comp {
     inline float multiply(float a, float b, float alpha1, float alpha2);
     inline float screen(float a, float b, float alpha1, float alpha2);
     inline float overlay(float a, float b, float alpha1, float alpha2);
+    inline float hardLight(float a, float b, float alpha1, float alpha2);
+    inline float softLight(float Dca, float Sca, float Da, float Sa);
+    inline float linearDodge(float Dca, float Sca, float Da, float Sa);
+    inline float colorDodge(float Dca, float Sca, float Da, float Sa);
 
     // compositing order for layers
     vector<string> _layerOrder;

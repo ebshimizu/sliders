@@ -542,7 +542,7 @@ progress.value = 100
 // save metadata file
 var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".meta")
 metaFile.open('w')
-metaFile.write(JSON.stringify(metadata))
+metaFile.write(JSON.stringify(metadata, null, 2))
 metaFile.close()
 
 progressWindow.hide()

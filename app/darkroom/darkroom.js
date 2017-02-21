@@ -1,191 +1,299 @@
 const comp = require('../native/build/Release/compositor')
+var {dialog} = require('electron').remote
+var fs = require('fs')
 
 // initializes a global compositor object to operate on
 var c = new comp.Compositor()
 
+const blendModes = {
+    "BlendMode.NORMAL" : 0,
+    "BlendMode.MULTIPLY" : 1,
+    "BlendMode.SCREEN" : 2,
+    "BlendMode.OVERLAY" : 3,
+    "BlendMode.SOFTLIGHT" : 5,
+    "BlendMode.LINEARLIGHT" : 9
+}
+
 // for testing we load up three solid color test images
-c.addLayer("Elilipse 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 1.png")
-c.addLayer("Rectangle 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Rectangle 1.png")
-c.addLayer("Ellipse 2", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 2.png")
+//c.addLayer("Elilipse 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 1.png")
+//c.addLayer("Rectangle 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Rectangle 1.png")
+//c.addLayer("Ellipse 2", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 2.png")
+
+/*===========================================================================*/
+/* Initialization                                                            */
+/*===========================================================================*/
 
 // Initializes html element listeners on document load
 function init() {
-	$("#renderCmd").on("click", function() {
-		renderImage()
-	})
+    $("#renderCmd").on("click", function() {
+        renderImage()
+    });
 
-	$(".ui.dropdown").dropdown();
+    $("#openCmd").click(function() {
+        loadFile();
+    })
+
+    $(".ui.dropdown").dropdown();
 
 
-	$('.paramSlider').slider({
-		orientation: "horizontal",
-		range: "min",
-		max: 100,
-		min: 0
-	});
+    $('.paramSlider').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 100,
+        min: 0
+    });
 
-	initUI()
+    initUI()
 }
 
 // Renders an image from the compositor module and
 // then puts it in an image tag
 function renderImage() {
-	var dat = 'data:image/png;base64,' + c.render().base64()
-	$("#render").html('<img src="' + dat + '"" />')
+    var dat = 'data:image/png;base64,' + c.render().base64()
+    $("#render").html('<img src="' + dat + '"" />')
 }
 
 function initUI() {
-	// for now we assume the compositor is already initialized for testing purposes
-	var layers = c.getLayerNames()
+    // for now we assume the compositor is already initialized for testing purposes
+    var layers = c.getLayerNames()
 
-	for (var layer in layers) {
-		createLayerControl(layers[layer])
-	}
+    for (var layer in layers) {
+        createLayerControl(layers[layer])
+    }
 }
 
-function createLayerControl(name) {
-	var controls = $('#layerControls')
-	var layer = c.getLayer(name)
+function createLayerControl(name, pre) {
+    var controls = $('#layerControls')
+    var layer = c.getLayer(name)
 
-	// create the html
-	var html = '<div class="layer" layerName="' + name + '">'
-	html += '<h3 class="ui grey inverted header">' + name + '</h3>'
+    // create the html
+    var html = '<div class="layer" layerName="' + name + '">'
+    html += '<h3 class="ui grey inverted header">' + name + '</h3>'
 
-	if (layer.visible()) {
-		html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">'
-		html += '<i class="unhide icon"></i>'
-	}
-	else {
-		html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">'
-		html += '<i class="hide icon"></i>'
-	}
+    if (layer.visible()) {
+        html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">'
+        html += '<i class="unhide icon"></i>'
+    }
+    else {
+        html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">'
+        html += '<i class="hide icon"></i>'
+    }
 
-	html += '</button>'
+    html += '</button>'
 
-	// blend mode options
-	html += genBlendModeMenu(name)
+    // blend mode options
+    html += genBlendModeMenu(name)
 
-	// generate parameters
-	if (layer.blendMode() == 0) {
-		// normal blending
-		html += createLayerParam(name, "opacity")
-	}
+    // generate parameters
+    if (layer.blendMode() == 0) {
+        // normal blending
+        html += createLayerParam(name, "opacity")
+    }
 
-	html += '</div>'
+    html += '</div>'
 
-	controls.prepend(html)
+    if (pre) {
+        controls.prepend(html)
+    }
+    else {
+        controls.append(html);
+    }
 
-	// connect events
-	// update input
-	$('.paramInput[layerName="' + name + '"][paramName="opacity"] input').val(String(layer.opacity()))
+    // connect events
+    // update input
+    $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').val(String(layer.opacity()))
 
-	// input box events
-	$('.paramInput[layerName="' + name + '"][paramName="opacity"] input').blur(function() {
-		var data = parseFloat($(this).val());
-		$('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider("value", data);
-		renderImage();
-	});
-	$('.paramInput[layerName="' + name + '"][paramName="opacity"] input').keydown(function(event) {
-		if (event.which != 13)
-			return;
+    // input box events
+    $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').blur(function() {
+        var data = parseFloat($(this).val());
+        $('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider("value", data);
+        renderImage();
+    });
+    $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').keydown(function(event) {
+        if (event.which != 13)
+            return;
 
-		var data = parseFloat($(this).val());
-		$('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider("value", data);
-		renderImage();
-	});
+        var data = parseFloat($(this).val());
+        $('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider("value", data);
+        renderImage();
+    });
 
-	// visibility
-	$('button[layerName="' + name + '"]').on('click', function() {
-		// check status of button
-		var visible = layer.visible()
+    // visibility
+    $('button[layerName="' + name + '"]').on('click', function() {
+        // check status of button
+        var visible = layer.visible()
 
-		layer.visible(!visible)
+        layer.visible(!visible)
 
-		var button = $('button[layerName="' + name + '"]')
-		
-		if (layer.visible()) {
-			button.html('<i class="unhide icon"></i>')
-			button.removeClass("black")
-			button.addClass("white")
-		}
-		else {
-			button.html('<i class="hide icon"></i>')
-			button.removeClass("white")
-			button.addClass("black")
-		}
+        var button = $('button[layerName="' + name + '"]')
+        
+        if (layer.visible()) {
+            button.html('<i class="unhide icon"></i>')
+            button.removeClass("black")
+            button.addClass("white")
+        }
+        else {
+            button.html('<i class="hide icon"></i>')
+            button.removeClass("white")
+            button.addClass("black")
+        }
 
-		// trigger render after adjusting settings
-		renderImage()
-	})
+        // trigger render after adjusting settings
+        renderImage()
+    })
 
-	// blend mode
-	$('.dropdown[layerName="' + name + '"]').dropdown({
-		action: 'activate',
-		onChange: function(value, text) {
-			layer.blendMode(parseInt(value));
-			renderImage();
-		},
-		'set selected': layer.blendMode()
-	});
-	$('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
+    // blend mode
+    $('.dropdown[layerName="' + name + '"]').dropdown({
+        action: 'activate',
+        onChange: function(value, text) {
+            layer.blendMode(parseInt(value));
+            renderImage();
+        },
+        'set selected': layer.blendMode()
+    });
+    $('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
 
-	// param events
-	$('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider({
-		orientation: "horizontal",
-		range: "min",
-		max: 100,
-		min: 0,
-		step: 0.1,
-		value: layer.opacity(),
-		stop: function(event, ui) {
-			handleParamChange(name, ui)
-			renderImage()
-		},
-		slide: function(event, ui) { handleParamChange(name, ui) },
-		change: function(event, ui) { handleParamChange(name, ui) },
-	});
+    // param events
+    $('.paramSlider[layerName="' + name + '"][paramName="opacity"]').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 100,
+        min: 0,
+        step: 0.1,
+        value: layer.opacity(),
+        stop: function(event, ui) {
+            handleParamChange(name, ui)
+            renderImage()
+        },
+        slide: function(event, ui) { handleParamChange(name, ui) },
+        change: function(event, ui) { handleParamChange(name, ui) },
+    });
 }
 
 function createLayerParam(layerName, param) {
-	var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">'
+    var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">'
 
-	html += '<div class="paramLabel">' + param + '</div>'
-	html += '<div class="paramSlider" layerName="' + layerName + '" paramName="' + param + '"></div>'
-	html += '<div class="paramInput ui inverted transparent input" layerName="' + layerName + '" paramName="' + param + '"><input type="text"></div>'
+    html += '<div class="paramLabel">' + param + '</div>'
+    html += '<div class="paramSlider" layerName="' + layerName + '" paramName="' + param + '"></div>'
+    html += '<div class="paramInput ui inverted transparent input" layerName="' + layerName + '" paramName="' + param + '"><input type="text"></div>'
 
-	html += '</div>'
+    html += '</div>'
 
-	return html
-}
-
-function handleParamChange(layerName, ui) {
-	// hopefully ui has the name of the param somewhere
-	var paramName = $(ui.handle).parent().attr("paramName")
-
-	if (paramName == "opacity") {
-		c.getLayer(layerName).opacity(ui.value);
-
-		// find associated value box and dump the value there
-		$(ui.handle).parent().next().find("input").val(String(ui.value));
-	}
+    return html
 }
 
 function genBlendModeMenu(name) {
-	var menu = '<div class="ui scrolling selection dropdown" layerName="' + name + '">'
-	menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
-	menu += '<i class="dropdown icon"></i>'
-	menu += '<div class="default text">Blend Mode</div>'
-	menu += '<div class="menu">'
-	menu += '<div class="item" data-value="0">Normal</div>'
-	menu += '<div class="item" data-value="1">Multiply</div>'
-	menu += '<div class="item" data-value="2">Screen</div>'
-	menu += '<div class="item" data-value="3">Overlay</div>'
-	menu += '<div class="item" data-value="4">Hard Light</div>'
-	menu += '<div class="item" data-value="5">Soft Light</div>'
-	menu += '<div class="item" data-value="6">Linear Dodge (Add)</div>'
-	menu += '<div class="item" data-value="7">Color Dodge</div>'
-	menu += '</div>'
-	menu += '</div>'
+    var menu = '<div class="ui scrolling selection dropdown" layerName="' + name + '">'
+    menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
+    menu += '<i class="dropdown icon"></i>'
+    menu += '<div class="default text">Blend Mode</div>'
+    menu += '<div class="menu">'
+    menu += '<div class="item" data-value="0">Normal</div>'
+    menu += '<div class="item" data-value="1">Multiply</div>'
+    menu += '<div class="item" data-value="2">Screen</div>'
+    menu += '<div class="item" data-value="3">Overlay</div>'
+    menu += '<div class="item" data-value="4">Hard Light</div>'
+    menu += '<div class="item" data-value="5">Soft Light</div>'
+    menu += '<div class="item" data-value="6">Linear Dodge (Add)</div>'
+    menu += '<div class="item" data-value="7">Color Dodge</div>'
+    menu += '<div class="item" data-value="8">Linear Burn</div>'
+    menu += '<div class="item" data-value="9">Linear Light</div>'
+    menu += '</div>'
+    menu += '</div>'
 
-	return menu
+    return menu
+}
+
+/*===========================================================================*/
+/* File System                                                               */
+/*===========================================================================*/
+
+function loadFile() {
+    dialog.showOpenDialog({
+        filters: [ { name: 'JSON Files', extensions: ['json'] } ],
+        title: "Load Layers"
+    }, function(filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
+        
+        var file = filePaths[0];
+
+        // need to split out the directory path from the file path
+        var splitChar = '/';
+
+        if (file.includes('\\')) {
+            splitChar = '\\'
+        }
+
+        var folder = file.split(splitChar).slice(0, -1).join('/');
+
+        var filename = file.split(splitChar);
+        filename = filename[filename.length - 1];
+        $('#fileNameText').html(filename);
+
+        fs.readFile(file, function(err, data) {
+            if (err) {
+                throw err;
+            }
+
+            // load the data
+            loadLayers(JSON.parse(data), folder);
+
+        });
+    });
+}
+
+function loadLayers(data, path) {
+    // create new compositor object
+    deleteAllControls();
+    c = new comp.Compositor();
+    var order = [];
+
+    for (var layerName in data) {
+        // top level
+        var layer = data[layerName];
+
+        if (layer["kind"] !== "LayerKind.NORMAL") {
+            continue;
+        }
+
+        // photoshop exports layers top-down, the compositor adds layers bottom-up
+        // track the actual order layers should be in here. order[0] is the bottom.
+        order.unshift(layerName);
+
+        c.addLayer(layerName, path + "/" + layer["filename"]);
+
+        // update properties
+        var cLayer = c.getLayer(layerName)
+        cLayer.blendMode(blendModes[layer["blendMode"]]);
+        cLayer.opacity(layer["opacity"]);
+        cLayer.visible(layer["visible"]);
+
+        createLayerControl(layerName, false);
+    }
+
+    c.setLayerOrder(order);
+    renderImage();
+}
+
+/*===========================================================================*/
+/* UI Callbacks                                                              */
+/*===========================================================================*/
+
+function handleParamChange(layerName, ui) {
+    // hopefully ui has the name of the param somewhere
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName == "opacity") {
+        c.getLayer(layerName).opacity(ui.value);
+
+        // find associated value box and dump the value there
+        $(ui.handle).parent().next().find("input").val(String(ui.value));
+    }
+}
+
+function deleteAllControls() {
+    // may need to unlink callbacks
+    $('#layerControls').html('<div class="ui top attached label">Layers</div>')
 }

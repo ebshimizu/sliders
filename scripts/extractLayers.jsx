@@ -496,6 +496,21 @@ for (var i = 0; i < layers.length; i++) {
 		metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name].toSource()
 	}
 
+    // check grouping status for adjustment layers
+    if (activeLayer.grouped) {
+        // grouped with the following layer, mark as such
+        // the last layer can't be grouped (?) because that wouldn't make sense...
+
+        // buuuut there's a complication in that there can be multiple clipping masks so
+        // we gotta go find the first ungrouped layer
+        for (var j = i + 1; j < layers.length; j++) {
+            if (!layers[j].grouped) {
+                metadata[activeLayer.name]["group"] = layers[i + 1].name;
+                break;
+            }
+        }
+    }
+
 	// Toggle visibility for all other layers
 	turnOffAll(doc)
 
@@ -524,7 +539,7 @@ for (var i = 0; i < layers.length; i++) {
 		pngOpts, true, Extension.LOWERCASE)
 
 	// restore settings
-    if (!activeLayer.isBackgroundLayer && activeLayer.kind == LayerKind.NORMAL) {
+    if (!activeLayer.isBackgroundLayer) {
         activeLayer.opacity = metadata[activeLayer.name]["opacity"]
         activeLayer.blendMode = metadata[activeLayer.name]["blendMode"]
     }
@@ -540,7 +555,7 @@ statusText.text = "Exporting layer info"
 progress.value = 100
 
 // save metadata file
-var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".meta")
+var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".json")
 metaFile.open('w')
 metaFile.write(JSON.stringify(metadata, null, 2))
 metaFile.close()

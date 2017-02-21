@@ -9,6 +9,20 @@ author: Evan Shimizu
 #include "Image.h"
 
 namespace Comp {
+  // matches photoshop blend modes and should function the same way
+  enum BlendMode {
+    NORMAL = 0,
+    MULTIPLY = 1,
+    SCREEN = 2,
+    OVERLAY = 3,
+    HARD_LIGHT = 4,
+    SOFT_LIGHT = 5,
+    LINEAR_DODGE = 6,
+    COLOR_DODGE = 7,
+    LINEAR_BURN = 8,
+    LINEAR_LIGHT = 9
+  };
+
   class Layer {
   public:
     // blank layer, doesn't refer to much really

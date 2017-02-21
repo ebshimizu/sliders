@@ -24,8 +24,9 @@ body {
 	overflow-x: hidden;
 	max-height: 97%;
 	border: 1px solid #e8e8e8;
-	padding: 36px 0px 0px 0px;
+	padding: 6px 0px 0px 0px;
 	border-radius: 5px;
+	min-height: 30px;
 }
 
 #layerControls .layer {

@@ -156,6 +156,14 @@ namespace Comp {
     Image* comp = new Image(c.begin()->second.getWidth(), c.begin()->second.getHeight());
     vector<unsigned char>& compPx = comp->getData();
 
+    // Photoshop appears to blend using an all white alpha 0 image
+    for (int i = 0; i < compPx.size(); i++) {
+      if (i % 4 == 3)
+        continue;
+
+      compPx[i] = 255;
+    }
+
     // blend the layers
     for (auto id : _layerOrder) {
       Layer l = c[id];
@@ -232,6 +240,18 @@ namespace Comp {
           compPx[i * 4] = cvt(colorDodge(ra, rb, aa, ab), ad);
           compPx[i * 4 + 1] = cvt(colorDodge(ga, gb, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(colorDodge(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::LINEAR_BURN) {
+          // need unmultiplied colors for this one
+
+          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::LINEAR_LIGHT) {
+          compPx[i * 4] = cvt(linearLight(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearLight(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearLight(ba, bb, aa, ab), ad);
         }
       }
     }
@@ -361,6 +381,22 @@ namespace Comp {
     else if (Sca < Sa) {
       return Sa * Da * min(1.0f, Dca / Da * Sa / (Sa - Sca)) + Sca * (1 - Da) + Dca * (1 - Sa);
     }
+  }
+
+  inline float Compositor::linearBurn(float Dc, float Sc, float Da, float Sa)
+  {
+    if (Da == 0)
+      return Sc;
+
+    float burn = Dc + Sc - 1;
+
+    // normal blend
+    return burn * Sa + Dc * (1 - Sa);
+  }
+
+  inline float Compositor::linearLight(float Dca, float Sca, float Da, float Sa)
+  {
+    return (Sca > 0.5) ? linearDodge(Dca, 2 * (Sca - .5), Da, Sa) : linearBurn(Dca, 2 * Sca, Da, Sa);
   }
 
 }

@@ -13,9 +13,10 @@
 				"src/Logger.cpp",
 				"src/third_party/lodepng/lodepng.cpp",
 				"src/third_party/cpp-base64/base64.cpp",
-        "src/addon.cpp",
-        "src/Layer.h",
-        "src/Layer.cpp"
+				"src/third_party/stb_image_resize.h",
+		        "src/addon.cpp",
+		        "src/Layer.h",
+		        "src/Layer.cpp"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

@@ -515,8 +515,16 @@ void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.render");
 
-  // returns an image
-  Comp::Image* img = c->_compositor->render();
+  Comp::Image* img;
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string size(*val0);
+    img = c->_compositor->render(size);
+  }
+  else {
+    img = c->_compositor->render();
+  }
 
   // construct the image
   v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);

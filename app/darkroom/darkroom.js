@@ -11,6 +11,7 @@ const blendModes = {
     "BlendMode.SCREEN" : 2,
     "BlendMode.OVERLAY" : 3,
     "BlendMode.SOFTLIGHT" : 5,
+    "BlendMode.LINEARDODGE" : 6,
     "BlendMode.LINEARLIGHT" : 9
 }
 
@@ -42,6 +43,9 @@ function init() {
         max: 100,
         min: 0
     });
+
+    // autoload
+    //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
 
     initUI()
 }
@@ -85,10 +89,7 @@ function createLayerControl(name, pre) {
     html += genBlendModeMenu(name)
 
     // generate parameters
-    if (layer.blendMode() == 0) {
-        // normal blending
-        html += createLayerParam(name, "opacity")
-    }
+    html += createLayerParam(name, "opacity")
 
     html += '</div>'
 
@@ -232,16 +233,19 @@ function loadFile() {
         filename = filename[filename.length - 1];
         $('#fileNameText').html(filename);
 
-        fs.readFile(file, function(err, data) {
-            if (err) {
-                throw err;
-            }
-
-            // load the data
-            loadLayers(JSON.parse(data), folder);
-
-        });
+        openLayers(file, folder)
     });
+}
+
+function openLayers(file, folder) {
+   fs.readFile(file, function(err, data) {
+        if (err) {
+            throw err;
+        }
+
+        // load the data
+        loadLayers(JSON.parse(data), folder);
+    }); 
 }
 
 function loadLayers(data, path) {
@@ -255,6 +259,8 @@ function loadLayers(data, path) {
         var layer = data[layerName];
 
         if (layer["kind"] !== "LayerKind.NORMAL") {
+            console.log("No handler for layer kind " + layer["kind"])
+            console.log(layer)
             continue;
         }
 
@@ -295,5 +301,5 @@ function handleParamChange(layerName, ui) {
 
 function deleteAllControls() {
     // may need to unlink callbacks
-    $('#layerControls').html('<div class="ui top attached label">Layers</div>')
+    $('#layerControls').html('')
 }

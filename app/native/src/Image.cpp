@@ -1,5 +1,8 @@
 #include "Image.h"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "third_party/stb_image_resize.h"
+
 namespace Comp {
   Image::Image(unsigned int w, unsigned int h) : _w(w), _h(h), _filename("")
   {
@@ -64,6 +67,19 @@ namespace Comp {
     if (error) {
       getLogger()->log("Error writing image to file " + path + ". Error: " + lodepng_error_text(error), LogLevel::ERR);
     }
+  }
+
+  shared_ptr<Image> Image::resize(unsigned int w, unsigned int h)
+  {
+    shared_ptr<Image> scaled = shared_ptr<Image>(new Image(w, h));
+    stbir_resize_uint8(_data.data(), _w, _h, 0, scaled->_data.data(), w, h, 0, 4);
+
+    return scaled;
+  }
+
+  shared_ptr<Image> Image::resize(float scale)
+  {
+    return resize((unsigned int)(_w * scale), (unsigned int)(_h * scale));
   }
 
   void Image::loadFromFile(string filename)

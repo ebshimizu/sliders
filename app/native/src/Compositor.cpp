@@ -20,6 +20,7 @@ namespace Comp {
     // load image data
     _imageData[name] = shared_ptr<Image>(new Image(file));
     addLayer(name);
+    cacheScaled(name);
     return true;
   }
 
@@ -34,6 +35,7 @@ namespace Comp {
     // load image data
     _imageData[name] = shared_ptr<Image>(new Image(img));
     addLayer(name);
+    cacheScaled(name);
     
     return true;
   }
@@ -50,6 +52,7 @@ namespace Comp {
 
     // save a ref to the image data
     _imageData[dest] = _primary[dest].getImage();
+    cacheScaled(dest);
 
     // place at end of order
     _layerOrder.push_back(dest);
@@ -78,6 +81,7 @@ namespace Comp {
 
     // erase from image data
     _imageData.erase(name);
+    _scaleImgCache.erase(name);
 
     getLogger()->log("Erased layer " + name);
     return true;
@@ -142,18 +146,39 @@ namespace Comp {
     return _primary.size();
   }
 
-  Image* Compositor::render()
+  Image* Compositor::render(string size)
   {
-    return render(getNewContext());
+    return render(getNewContext(), size);
   }
 
-  Image* Compositor::render(Context c)
+  Image* Compositor::render(Context c, string size)
   {
     if (c.size() == 0) {
       return new Image();
     }
 
-    Image* comp = new Image(c.begin()->second.getWidth(), c.begin()->second.getHeight());
+    // pick a size to use in the cache
+    int width, height;
+    bool useCache = false;
+
+    if (size == "") {
+      width = c.begin()->second.getWidth();
+      height = c.begin()->second.getHeight();
+    }
+    else {
+      if (_scaleImgCache[c.begin()->first].count(size) > 0) {
+        width = _scaleImgCache[c.begin()->first][size]->getWidth();
+        height = _scaleImgCache[c.begin()->first][size]->getHeight();
+        useCache = true;
+      }
+      else {
+        getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+        width = c.begin()->second.getWidth();
+        height = c.begin()->second.getHeight();
+      }
+    }
+
+    Image* comp = new Image(width, height);
     vector<unsigned char>& compPx = comp->getData();
 
     // Photoshop appears to blend using an all white alpha 0 image
@@ -174,6 +199,10 @@ namespace Comp {
       // pre-process layer if necessary due to adjustments, requires creating
       // new image
       vector<unsigned char>& layerPx = _imageData[l.getName()]->getData();
+
+      if (useCache) {
+        layerPx = _scaleImgCache[l.getName()][size]->getData();
+      }
 
       // blend the layer
       for (unsigned int i = 0; i < comp->numPx(); i++) {
@@ -243,15 +272,14 @@ namespace Comp {
         }
         else if (l._mode == BlendMode::LINEAR_BURN) {
           // need unmultiplied colors for this one
-
           compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
           compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
         else if (l._mode == BlendMode::LINEAR_LIGHT) {
-          compPx[i * 4] = cvt(linearLight(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearLight(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearLight(ba, bb, aa, ab), ad);
+          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
       }
     }
@@ -298,6 +326,13 @@ namespace Comp {
     _layerOrder.push_back(name);
 
     getLogger()->log("Added new layer named " + name);
+  }
+
+  void Compositor::cacheScaled(string name)
+  {
+    _scaleImgCache[name]["thumb"] = _imageData[name]->resize(0.15f);
+    _scaleImgCache[name]["small"] = _imageData[name]->resize(0.25f);
+    _scaleImgCache[name]["medium"] = _imageData[name]->resize(0.5f);
   }
 
   inline float Compositor::premult(unsigned char px, float a)
@@ -385,6 +420,7 @@ namespace Comp {
 
   inline float Compositor::linearBurn(float Dc, float Sc, float Da, float Sa)
   {
+    // special case for handling background with alpha 0
     if (Da == 0)
       return Sc;
 
@@ -394,9 +430,13 @@ namespace Comp {
     return burn * Sa + Dc * (1 - Sa);
   }
 
-  inline float Compositor::linearLight(float Dca, float Sca, float Da, float Sa)
+  inline float Compositor::linearLight(float Dc, float Sc, float Da, float Sa)
   {
-    return (Sca > 0.5) ? linearDodge(Dca, 2 * (Sca - .5), Da, Sa) : linearBurn(Dca, 2 * Sca, Da, Sa);
+    if (Da == 0)
+      return Sc;
+    
+    float light = Dc + 2 * Sc - 1;
+    return light * Sa + Dc * (1 - Sa);
   }
 
 }

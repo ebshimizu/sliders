@@ -470,31 +470,32 @@ var adjLayerParams = getAdjustmentLayerInfo(doc)
 
 var metadata = {}
 
+// Two iterations, one to gather data, one to actually save the layers
 for (var i = 0; i < layers.length; i++) {
-	if (userCanceled) {
-		break;
-	}
+    if (userCanceled) {
+        break;
+    }
 
-	// get current layer being exported
-	var activeLayer = layers[i]
+    // get current layer being exported
+    var activeLayer = layers[i]
 
-	statusText.text = "Exporting layer " + activeLayer.name + " (" + (i + 1) + "/" + layers.length + ")"
-	progress.value = (i / layers.length) * 100;
+    statusText.text = "Gathering info for layer " + activeLayer.name + " (" + (i + 1) + "/" + layers.length + ")"
+    progress.value = (i / layers.length) * 50;
 
-	// save compositing information
-	// Note that if the layer is an adjustment layer, we don't currently have a
-	// way to extract the settings for that later in a script.
-	metadata[activeLayer.name] = {}
-	metadata[activeLayer.name]["visible"] = activeLayer.visible
-	metadata[activeLayer.name]["opacity"] = activeLayer.opacity
-	metadata[activeLayer.name]["blendMode"] = activeLayer.blendMode
-	metadata[activeLayer.name]["kind"] = activeLayer.kind
-	metadata[activeLayer.name]["parent"] = activeLayer.parent.name
+    // save compositing information
+    // Note that if the layer is an adjustment layer, we don't currently have a
+    // way to extract the settings for that later in a script.
+    metadata[activeLayer.name] = {}
+    metadata[activeLayer.name]["visible"] = activeLayer.visible
+    metadata[activeLayer.name]["opacity"] = activeLayer.opacity
+    metadata[activeLayer.name]["blendMode"] = activeLayer.blendMode
+    metadata[activeLayer.name]["kind"] = activeLayer.kind
+    metadata[activeLayer.name]["parent"] = activeLayer.parent.name
 
-	if (activeLayer.name in adjLayerParams) {
-		// dump adjustment layer info
-		metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name].toSource()
-	}
+    if (activeLayer.name in adjLayerParams) {
+        // dump adjustment layer info
+        metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name].toSource()
+    }
 
     // check grouping status for adjustment layers
     if (activeLayer.grouped) {
@@ -510,6 +511,18 @@ for (var i = 0; i < layers.length; i++) {
             }
         }
     }
+}
+
+for (var i = 0; i < layers.length; i++) {
+	if (userCanceled) {
+		break;
+	}
+
+	// get current layer being exported
+	var activeLayer = layers[i]
+
+	statusText.text = "Exporting layer " + activeLayer.name + " (" + (i + 1) + "/" + layers.length + ")"
+	progress.value = (i / layers.length) * 50 + 50;
 
 	// Toggle visibility for all other layers
 	turnOffAll(doc)

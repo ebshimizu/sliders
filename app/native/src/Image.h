@@ -50,6 +50,9 @@ namespace Comp {
     // saves the image to a file
     void save(string path);
 
+    shared_ptr<Image> resize(unsigned int w, unsigned int h);
+    shared_ptr<Image> resize(float scale);
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);

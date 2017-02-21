@@ -53,10 +53,10 @@ namespace Comp {
     // Render the primary context
     // since the render functions do hit the js interface, images are allocated and 
     // memory is explicity handled to prevent scope issues
-    Image* render();
+    Image* render(string size = "");
 
     // render with a given context
-    Image* render(Context c);
+    Image* render(Context c, string size = "");
 
     // render directly to a string with the primary context
     string renderToBase64();
@@ -71,6 +71,10 @@ namespace Comp {
   private:
     void addLayer(string name);
 
+    // stores standard scales of the image in the cache
+    // standard sizes are: thumb - 15%, small - 25%, medium - 50%
+    void cacheScaled(string name);
+
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
     inline float normal(float a, float b, float alpha1, float alpha2);
@@ -81,7 +85,7 @@ namespace Comp {
     inline float softLight(float Dca, float Sca, float Da, float Sa);
     inline float linearDodge(float Dca, float Sca, float Da, float Sa);
     inline float colorDodge(float Dca, float Sca, float Da, float Sa);
-    inline float linearBurn(float Dca, float Sca, float Da, float Sa);
+    inline float linearBurn(float Dc, float Sc, float Da, float Sa);
     inline float linearLight(float Dc, float Sc, float Da, float Sa);
 
     // compositing order for layers
@@ -93,6 +97,9 @@ namespace Comp {
 
     // image data referenced by layers
     map<string, shared_ptr<Image> > _imageData;
+
+    // cached of scaled images for rendering at different sizes
+    map<string, map<string, shared_ptr<Image> > > _scaleImgCache;
 
     // eventually this class will need to render things in parallel
 

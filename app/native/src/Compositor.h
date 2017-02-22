@@ -68,6 +68,12 @@ namespace Comp {
     // checks to make sure all layers exist in the primary context before overwrite
     bool setLayerOrder(vector<string> order);
 
+    // cache status and manipulation
+    vector<string> getCacheSizes();
+    bool addCacheSize(string name, float scaleFactor);
+    bool deleteCacheSize(string name);
+    shared_ptr<Image> getCachedImage(string id, string size);
+
   private:
     void addLayer(string name);
 
@@ -95,11 +101,8 @@ namespace Comp {
     // Keyed by IDs in the context.
     Context _primary;
 
-    // image data referenced by layers
-    map<string, shared_ptr<Image> > _imageData;
-
     // cached of scaled images for rendering at different sizes
-    map<string, map<string, shared_ptr<Image> > > _scaleImgCache;
+    map<string, map<string, shared_ptr<Image> > > _imageData;
 
     // eventually this class will need to render things in parallel
 

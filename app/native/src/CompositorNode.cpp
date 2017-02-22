@@ -533,3 +533,78 @@ void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
   info.GetReturnValue().Set(cons->NewInstance(argc, argv));
 }
+
+void CompositorWrapper::getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getCacheSizes");
+
+  // dump names into v8 array
+  v8::Local<v8::Array> layers = Nan::New<v8::Array>();
+  auto cacheSizes = c->_compositor->getCacheSizes();
+  int i = 0;
+  for (auto id : cacheSizes) {
+    layers->Set(i, Nan::New(id).ToLocalChecked());
+    i++;
+  }
+
+  info.GetReturnValue().Set(layers);
+}
+
+void CompositorWrapper::addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addCacheSize");
+
+  if (!info[0]->IsString() || !info[1]->IsNumber()) {
+    Nan::ThrowError("addCacheSize expects (string, float)");
+  }
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string size(*val0);
+  float scale = info[1]->NumberValue();
+
+  info.GetReturnValue().Set(Nan::New(c->_compositor->addCacheSize(size, scale)));
+}
+
+void CompositorWrapper::deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.deleteCacheSize");
+
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("deleteCacheSize expects (string)");
+  }
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string size(*val0);
+
+  info.GetReturnValue().Set(Nan::New(c->_compositor->deleteCacheSize(size)));
+}
+
+void CompositorWrapper::getCachedImage(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getCachedImage");
+
+  if (!info[0]->IsString() || !info[1]->IsString()) {
+    Nan::ThrowError("getCachedImage expects (string, string)");
+  }
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string id(*val0);
+
+  v8::String::Utf8Value val1(info[1]->ToString());
+  string size(*val1);
+
+  shared_ptr<Comp::Image> img = c->_compositor->getCachedImage(id, size);
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+
+  // this is a shared ptr, so we really do not want to delete the data when the v8 image
+  // object goes bye bye
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img.get()), Nan::New(false) };
+
+  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+}

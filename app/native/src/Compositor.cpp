@@ -18,7 +18,7 @@ namespace Comp {
     }
 
     // load image data
-    _imageData[name] = shared_ptr<Image>(new Image(file));
+    _imageData[name]["full"] = shared_ptr<Image>(new Image(file));
     addLayer(name);
     cacheScaled(name);
     return true;
@@ -33,7 +33,7 @@ namespace Comp {
     }
 
     // load image data
-    _imageData[name] = shared_ptr<Image>(new Image(img));
+    _imageData[name]["full"] = shared_ptr<Image>(new Image(img));
     addLayer(name);
     cacheScaled(name);
     
@@ -51,7 +51,7 @@ namespace Comp {
     _primary[dest].setName(dest);
 
     // save a ref to the image data
-    _imageData[dest] = _primary[dest].getImage();
+    _imageData[dest]["full"] = _primary[dest].getImage();
     cacheScaled(dest);
 
     // place at end of order
@@ -81,7 +81,6 @@ namespace Comp {
 
     // erase from image data
     _imageData.erase(name);
-    _scaleImgCache.erase(name);
 
     getLogger()->log("Erased layer " + name);
     return true;
@@ -162,20 +161,18 @@ namespace Comp {
     bool useCache = false;
 
     if (size == "") {
-      width = c.begin()->second.getWidth();
-      height = c.begin()->second.getHeight();
+      size = "full";
+    }
+
+    if (_imageData[c.begin()->first].count(size) > 0) {
+      width = _imageData[c.begin()->first][size]->getWidth();
+      height = _imageData[c.begin()->first][size]->getHeight();
+      useCache = true;
     }
     else {
-      if (_scaleImgCache[c.begin()->first].count(size) > 0) {
-        width = _scaleImgCache[c.begin()->first][size]->getWidth();
-        height = _scaleImgCache[c.begin()->first][size]->getHeight();
-        useCache = true;
-      }
-      else {
-        getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
-        width = c.begin()->second.getWidth();
-        height = c.begin()->second.getHeight();
-      }
+      getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+      width = c.begin()->second.getWidth();
+      height = c.begin()->second.getHeight();
     }
 
     Image* comp = new Image(width, height);
@@ -198,11 +195,7 @@ namespace Comp {
 
       // pre-process layer if necessary due to adjustments, requires creating
       // new image
-      vector<unsigned char>& layerPx = _imageData[l.getName()]->getData();
-
-      if (useCache) {
-        layerPx = _scaleImgCache[l.getName()][size]->getData();
-      }
+      vector<unsigned char>& layerPx = _imageData[l.getName()][size]->getData();
 
       // blend the layer
       for (unsigned int i = 0; i < comp->numPx(); i++) {
@@ -318,9 +311,68 @@ namespace Comp {
     return true;
   }
 
+  vector<string> Compositor::getCacheSizes()
+  {
+    vector<string> sizes;
+
+    for (auto kvp : _imageData.begin()->second) {
+      sizes.push_back(kvp.first);
+    }
+
+    return sizes;
+  }
+
+  bool Compositor::addCacheSize(string name, float scaleFactor)
+  {
+    // not allowed to change default sizes
+    if (name == "thumb" || name == "small" || name == "medium" || name == "full") {
+      getLogger()->log("Changing default cache sizes is not allowed. Attempted to change " + name + ".", LogLevel::ERR);
+      return false;
+    }
+
+    // delete existing
+    for (auto kvp : _imageData) {
+      kvp.second.erase(name);
+    }
+
+    // recompute
+    for (auto i : _imageData) {
+      _imageData[i.first][name] = i.second["full"]->resize(scaleFactor);
+    }
+
+    return true;
+  }
+
+  bool Compositor::deleteCacheSize(string name)
+  {
+    // not allowed to change default sizes
+    if (name == "thumb" || name == "small" || name == "medium" || name == "full") {
+      getLogger()->log("Changing default cache sizes is not allowed. Attempted to change " + name + ".", LogLevel::ERR);
+      return false;
+    }
+
+    // delete existing
+    for (auto kvp : _imageData) {
+      kvp.second.erase(name);
+    }
+
+    return true;
+  }
+
+  shared_ptr<Image> Compositor::getCachedImage(string id, string size)
+  {
+    if (_imageData.count(id) > 0) {
+      if (_imageData[id].count(size) > 0) {
+        return _imageData[id][size];
+      }
+    }
+
+    return nullptr;
+  }
+
   void Compositor::addLayer(string name)
   {
-    _primary[name] = Layer(name, _imageData[name]);
+    _primary[name] = Layer(name, _imageData[name]["full"]);
 
     // place at end of order
     _layerOrder.push_back(name);
@@ -330,9 +382,9 @@ namespace Comp {
 
   void Compositor::cacheScaled(string name)
   {
-    _scaleImgCache[name]["thumb"] = _imageData[name]->resize(0.15f);
-    _scaleImgCache[name]["small"] = _imageData[name]->resize(0.25f);
-    _scaleImgCache[name]["medium"] = _imageData[name]->resize(0.5f);
+    _imageData[name]["thumb"] = _imageData[name]["full"]->resize(0.15f);
+    _imageData[name]["small"] = _imageData[name]["full"]->resize(0.25f);
+    _imageData[name]["medium"] = _imageData[name]["full"]->resize(0.5f);
   }
 
   inline float Compositor::premult(unsigned char px, float a)

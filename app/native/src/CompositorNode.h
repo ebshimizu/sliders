@@ -88,6 +88,10 @@ private:
   static void getLayerNames(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void size(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void render(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getCachedImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;

@@ -1,9 +1,12 @@
 const comp = require('../native/build/Release/compositor')
-var {dialog} = require('electron').remote
+var {dialog, app} = require('electron').remote
 var fs = require('fs')
 
 // initializes a global compositor object to operate on
 var c = new comp.Compositor()
+
+// global settings vars
+var g_renderSize;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -30,12 +33,10 @@ function init() {
         renderImage()
     });
 
-    $("#openCmd").click(function() {
-        loadFile();
-    })
+    $("#openCmd").click(function() { loadFile(); });
+    $("#exitCmd").click(function() { app.quit(); })
 
     $(".ui.dropdown").dropdown();
-
 
     $('.paramSlider').slider({
         orientation: "horizontal",
@@ -43,6 +44,19 @@ function init() {
         max: 100,
         min: 0
     });
+
+    $('#renderSize a.item').click(function() {
+        // reset icon status
+        var links = $('#renderSize a.item')
+        for (var i = 0; i < links.length; i++) {
+            $(links[i]).html($(links[i]).attr("name"));
+        }
+
+        // add icon to selected
+        $(this).prepend('<i class="checkmark icon"></i>');
+
+        g_renderSize = $(this).attr("internal")
+    })
 
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
@@ -53,7 +67,15 @@ function init() {
 // Renders an image from the compositor module and
 // then puts it in an image tag
 function renderImage() {
-    var dat = 'data:image/png;base64,' + c.render().base64()
+    var dat = 'data:image/png;base64,';
+
+    if (g_renderSize === "full") {
+        dat += c.render().base64();
+    }
+    else {
+        dat += c.render(g_renderSize).base64();
+    }
+
     $("#render").html('<img src="' + dat + '"" />')
 }
 
@@ -64,6 +86,13 @@ function initUI() {
     for (var layer in layers) {
         createLayerControl(layers[layer])
     }
+
+    initGlobals();
+}
+
+// default global variable settings
+function initGlobals() {
+    g_renderSize = "full";
 }
 
 function createLayerControl(name, pre) {

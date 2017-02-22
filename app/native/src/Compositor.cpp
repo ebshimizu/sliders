@@ -6,7 +6,7 @@ namespace Comp {
     HSLColor hsl;
 
     float cmax = max(r, max(g, b));
-    float cmin = min(r, max(g, b));
+    float cmin = min(r, min(g, b));
 
     hsl._l = (cmax + cmin) / 2;
 
@@ -19,13 +19,13 @@ namespace Comp {
       
       hsl._s = (hsl._l == 1) ? 0 : d / (1 - abs(2 * hsl._l - 1));
 
-      if (cmax >= r) {
-        hsl._h = (g - b) / d + (g < b ? 6 : 0);
+      if (cmax == r) {
+        hsl._h = fmod((g - b) / d, 6);
       }
-      else if (cmax >= b) {
+      else if (cmax == g) {
         hsl._h = (b - r) / d + 2;
       }
-      else if (cmax >= g) {
+      else if (cmax == b) {
         hsl._h = (r - g) / d + 4;
       }
 
@@ -57,30 +57,30 @@ namespace Comp {
       rgb._g = x;
       rgb._b = 0;
     }
-    if (1 <= hp && hp < 2) {
+    else if (1 <= hp && hp < 2) {
       rgb._r = x;
       rgb._g = c;
       rgb._b = 0;
     }
-    if (2 <= hp && hp < 3) {
+    else if (2 <= hp && hp < 3) {
       rgb._r = 0;
       rgb._g = c;
       rgb._b = x;
     }
-    if (3 <= hp && hp < 4) {
+    else if (3 <= hp && hp < 4) {
       rgb._r = 0;
       rgb._g = x;
       rgb._b = c;
     }
-    if (4 <= hp && hp < 5) {
+    else if (4 <= hp && hp < 5) {
       rgb._r = x;
       rgb._g = 0;
       rgb._b = c;
     }
-    if (5 <= hp && hp < 6) {
+    else if (5 <= hp && hp < 6) {
       rgb._r = c;
       rgb._g = 0;
-      rgb._g = x;
+      rgb._b = x;
     }
 
     float m = l - 0.5f * c;

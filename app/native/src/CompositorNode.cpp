@@ -210,6 +210,12 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "opacity", opacity);
   Nan::SetPrototypeMethod(tpl, "blendMode", blendMode);
   Nan::SetPrototypeMethod(tpl, "name", name);
+  Nan::SetPrototypeMethod(tpl, "getAdjustment", getAdjustment);
+  Nan::SetPrototypeMethod(tpl, "deleteAdjustment", deleteAdjustment);
+  Nan::SetPrototypeMethod(tpl, "deleteAllAdjustments", deleteAllAdjustments);
+  Nan::SetPrototypeMethod(tpl, "getAdjustments", getAdjustments);
+  Nan::SetPrototypeMethod(tpl, "addAdjustment", addAdjustment);
+  Nan::SetPrototypeMethod(tpl, "addHSLAdjustment", addHSLAdjustment);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -381,7 +387,29 @@ void LayerRef::addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
   nullcheck(layer->_layer, "layer.addAdjustment");
 
-  
+  if (!info[0]->IsInt32() || !info[1]->IsString() || !info[2]->IsNumber()) {
+    Nan::ThrowError("addAdjustment expects (int, string, float)");
+  }
+
+  Comp::AdjustmentType type = (Comp::AdjustmentType)info[0]->Int32Value();
+  v8::String::Utf8Value val1(info[1]->ToString());
+  string param(*val1);
+
+  layer->_layer->addAdjustment(type, param, info[2]->NumberValue());
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addHSLAdjustment");
+
+  if (!info[0]->IsNumber() || !info[1]->IsNumber() || !info[2]->IsNumber()) {
+    Nan::ThrowError("addHSLAdjustment expects (float, float, float)");
+  }
+
+  layer->_layer->addHSLAdjustment(info[0]->NumberValue(), info[1]->NumberValue(), info[2]->NumberValue());
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)
@@ -457,20 +485,27 @@ void CompositorWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
 
 void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
-  if (!info[0]->IsString() || !info[1]->IsString()) {
-    Nan::ThrowError("addLayer expects a layer name and a filepath");
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("addLayer expects (string, string [opt])");
   }
 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.addLayer");
 
+  bool result;
   v8::String::Utf8Value val0(info[0]->ToString());
   string name(*val0);
 
-  v8::String::Utf8Value val1(info[1]->ToString());
-  string path(*val1);
+  if (info.Length() == 2) {
+    v8::String::Utf8Value val1(info[1]->ToString());
+    string path(*val1);
 
-  bool result = c->_compositor->addLayer(name, path);
+    result = c->_compositor->addLayer(name, path);
+  }
+  else {
+    // adjustment layer
+    result = c->_compositor->addAdjustmentLayer(name);
+  }
 
   info.GetReturnValue().Set(Nan::New(result));
 }

@@ -204,7 +204,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "width", width);
   Nan::SetPrototypeMethod(tpl, "height", height);
-  Nan::SetPrototypeMethod(tpl, "Image", image);
+  Nan::SetPrototypeMethod(tpl, "image", image);
   Nan::SetPrototypeMethod(tpl, "reset", reset);
   Nan::SetPrototypeMethod(tpl, "visible", visible);
   Nan::SetPrototypeMethod(tpl, "opacity", opacity);
@@ -315,6 +315,75 @@ void LayerRef::name(const Nan::FunctionCallbackInfo<v8::Value>& info)
   info.GetReturnValue().Set(Nan::New(layer->_layer->getName()).ToLocalChecked());
 }
 
+void LayerRef::getAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getAdjustment");
+
+  if (!info[0]->IsInt32()) {
+    Nan::ThrowError("getAdjustment expects (int)");
+  }
+
+  map<string, float> adj = layer->_layer->getAdjustment((Comp::AdjustmentType)(info[0]->Int32Value()));
+
+  // extract all layers into an object (map) and return that
+  v8::Local<v8::Object> adjustment = Nan::New<v8::Object>();
+  int i = 0;
+
+  for (auto kvp : adj) {
+    // create v8 object
+    adjustment->Set(Nan::New(kvp.first).ToLocalChecked(), Nan::New(kvp.second));
+  }
+
+  info.GetReturnValue().Set(adjustment);
+}
+
+void LayerRef::deleteAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.deleteAdjustment");
+
+  if (!info[0]->IsInt32()) {
+    Nan::ThrowError("deleteAdjustment expects (int)");
+  }
+
+  layer->_layer->deleteAdjustment((Comp::AdjustmentType)(info[0]->Int32Value()));
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::deleteAllAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.deleteAllAdjustments");
+
+  layer->_layer->deleteAllAdjustments();
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::getAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getAdjustments");
+
+  vector<Comp::AdjustmentType> types = layer->_layer->getAdjustments();
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  int i = 0;
+  for (auto t : types) {
+    ret->Set(i, Nan::New((int)t));
+    i++;
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void LayerRef::addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addAdjustment");
+
+  
+}
+
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -333,6 +402,11 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getLayerNames", getLayerNames);
   Nan::SetPrototypeMethod(tpl, "size", size);
   Nan::SetPrototypeMethod(tpl, "render", render);
+  Nan::SetPrototypeMethod(tpl, "getCacheSizes", getCacheSizes);
+  Nan::SetPrototypeMethod(tpl, "addCacheSize", addCacheSize);
+  Nan::SetPrototypeMethod(tpl, "deleteCacheSize", deleteCacheSize);
+  Nan::SetPrototypeMethod(tpl, "getCachedImage", getCachedImage);
+  Nan::SetPrototypeMethod(tpl, "reorderLayer", reorderLayer);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -607,4 +681,17 @@ void CompositorWrapper::getCachedImage(const Nan::FunctionCallbackInfo<v8::Value
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img.get()), Nan::New(false) };
 
   info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+}
+
+void CompositorWrapper::reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.reorderLayer");
+
+  if (!info[0]->IsInt32() || !info[1]->IsInt32()) {
+    Nan::ThrowError("reorderLayer expects (int, int)");
+  }
+
+  c->_compositor->reorderLayer(info[0]->Int32Value(), info[1]->Int32Value());
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }

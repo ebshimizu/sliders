@@ -1,6 +1,103 @@
 #include "Compositor.h"
 
 namespace Comp {
+  HSLColor RGBToHSL(float r, float g, float b)
+  {
+    HSLColor hsl;
+
+    float cmax = max(r, max(g, b));
+    float cmin = min(r, max(g, b));
+
+    hsl._l = (cmax + cmin) / 2;
+
+    if (cmax == cmin) {
+      hsl._h = 0;
+      hsl._s = 0;
+    }
+    else {
+      float d = cmax - cmin;
+      
+      hsl._s = (hsl._l == 1) ? 0 : d / (1 - abs(2 * hsl._l - 1));
+
+      if (cmax >= r) {
+        hsl._h = (g - b) / d + (g < b ? 6 : 0);
+      }
+      else if (cmax >= b) {
+        hsl._h = (b - r) / d + 2;
+      }
+      else if (cmax >= g) {
+        hsl._h = (r - g) / d + 4;
+      }
+
+      hsl._h *= 60;
+    }
+
+    return hsl;
+  }
+
+  HSLColor RGBToHSL(RGBColor & c)
+  {
+    return RGBToHSL(c._r, c._g, c._b);
+  }
+
+  RGBColor HSLToRGB(float h, float s, float l)
+  {
+    RGBColor rgb;
+
+    h = fmod(h, 360);
+    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
+    l = (l > 1) ? 1 : (l < 0) ? 0 : l;
+
+    float c = (1 - abs(2 * l - 1)) * s;
+    float hp = h / 60;
+    float x = c * (1 - abs(fmod(hp, 2) - 1));
+
+    if (0 <= hp && hp < 1) {
+      rgb._r = c;
+      rgb._g = x;
+      rgb._b = 0;
+    }
+    if (1 <= hp && hp < 2) {
+      rgb._r = x;
+      rgb._g = c;
+      rgb._b = 0;
+    }
+    if (2 <= hp && hp < 3) {
+      rgb._r = 0;
+      rgb._g = c;
+      rgb._b = x;
+    }
+    if (3 <= hp && hp < 4) {
+      rgb._r = 0;
+      rgb._g = x;
+      rgb._b = c;
+    }
+    if (4 <= hp && hp < 5) {
+      rgb._r = x;
+      rgb._g = 0;
+      rgb._b = c;
+    }
+    if (5 <= hp && hp < 6) {
+      rgb._r = c;
+      rgb._g = 0;
+      rgb._g = x;
+    }
+
+    float m = l - 0.5f * c;
+
+    rgb._r += m;
+    rgb._g += m;
+    rgb._b += m;
+
+    return rgb;
+  }
+
+  RGBColor HSLToRGB(HSLColor & c)
+  {
+    return HSLToRGB(c._h, c._s, c._l);
+  }
+
+
   Compositor::Compositor()
   {
   }
@@ -37,6 +134,20 @@ namespace Comp {
     addLayer(name);
     cacheScaled(name);
     
+    return true;
+  }
+
+  bool Compositor::addAdjustmentLayer(string name)
+  {
+    if (_primary.count(name) > 0) {
+      getLogger()->log("Failed to add layer " + name + ". Layer already exists.");
+      return false;
+    }
+
+    // create the layer
+    _primary[name] = Layer(name);
+    _layerOrder.push_back(name);
+
     return true;
   }
 
@@ -193,25 +304,36 @@ namespace Comp {
       if (!l._visible)
         continue;
 
-      // pre-process layer if necessary due to adjustments, requires creating
-      // new image
-      vector<unsigned char>& layerPx = _imageData[l.getName()][size]->getData();
+      vector<unsigned char>* layerPx;
+      Image* adjLayer = nullptr;
+
+      // handle adjustment layers
+      if (l.isAdjustmentLayer()) {
+        // ok so here we adjust the current layer, then blend it as normal below
+        // create duplicate of current composite
+        adjLayer = new Image(*comp);
+        adjust(adjLayer, l);
+        layerPx = &adjLayer->getData();
+      }
+      else {
+        layerPx = &_imageData[l.getName()][size]->getData();
+      }
 
       // blend the layer
       for (unsigned int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
         // a = background, b = new layer
         // alphas
-        float ab = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
+        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
         float aa = compPx[i * 4 + 3] / 255.0f;
         float ad = aa + ab - aa * ab;
 
         compPx[i * 4 + 3] = (unsigned char)(ad * 255);
 
         // premult colors
-        float rb = premult(layerPx[i * 4], ab);
-        float gb = premult(layerPx[i * 4 + 1], ab);
-        float bb = premult(layerPx[i * 4 + 2], ab);
+        float rb = premult((*layerPx)[i * 4], ab);
+        float gb = premult((*layerPx)[i * 4 + 1], ab);
+        float bb = premult((*layerPx)[i * 4 + 2], ab);
 
         float ra = premult(compPx[i * 4], aa);
         float ga = premult(compPx[i * 4 + 1], aa);
@@ -265,15 +387,20 @@ namespace Comp {
         }
         else if (l._mode == BlendMode::LINEAR_BURN) {
           // need unmultiplied colors for this one
-          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
         else if (l._mode == BlendMode::LINEAR_LIGHT) {
-          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
+      }
+
+      // adjustment layer clean up, if applicable
+      if (adjLayer != nullptr) {
+        delete adjLayer;
       }
     }
 
@@ -489,6 +616,47 @@ namespace Comp {
     
     float light = Dc + 2 * Sc - 1;
     return light * Sa + Dc * (1 - Sa);
+  }
+
+  void Compositor::adjust(Image * adjLayer, Layer& l)
+  {
+    // only certain modes are recognized
+    for (auto type : l.getAdjustments()) {
+      if (type == AdjustmentType::HSL) {
+        hslAdjust(adjLayer, l.getAdjustment(type));
+      }
+    }
+  }
+
+  inline void Compositor::hslAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    // Right now the bare-bones hsl adjustment is here. PS has a lot of options for carefully
+    // crafting remappings, but we don't do that for now.
+    // basically we convert to hsl, add the proper adjustment, convert back to rgb8
+    vector<unsigned char>& img = adjLayer->getData();
+    float h = adj["hue"];
+    float s = adj["sat"];
+    float l = adj["light"];
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      // 4 pixel stride here, ignoring alpha
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      HSLColor c = RGBToHSL(r, g, b);
+
+      // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
+      c._h += h;
+      c._s += s / 100.0f;
+      c._l += l / 100.0f;
+
+      // convert back
+      RGBColor c2 = HSLToRGB(c);
+      img[i * 4] = (unsigned char) (c2._r * 255);
+      img[i * 4 + 1] = (unsigned char) (c2._g * 255);
+      img[i * 4 + 2] = (unsigned char) (c2._b * 255);
+    }
   }
 
 }

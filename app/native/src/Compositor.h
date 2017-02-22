@@ -18,6 +18,25 @@ using namespace std;
 namespace Comp {
   typedef map<string, Layer> Context;
 
+  // utility functions for converting between color spaces
+  struct RGBColor {
+    float _r;
+    float _g;
+    float _b;
+  };
+
+  struct HSLColor {
+    float _h;
+    float _s;
+    float _l;
+  };
+
+  HSLColor RGBToHSL(float r, float g, float b);
+  HSLColor RGBToHSL(RGBColor& c);
+
+  RGBColor HSLToRGB(float h, float s, float l);
+  RGBColor HSLToRGB(HSLColor& c);
+
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
   class Compositor {
@@ -28,6 +47,9 @@ namespace Comp {
     // adds a layer, true on success, false if layer already exists
     bool addLayer(string name, string file);
     bool addLayer(string name, Image& img);
+
+    // adds an adjustment layer
+    bool addAdjustmentLayer(string name);
     
     bool copyLayer(string src, string dest);
 
@@ -93,6 +115,10 @@ namespace Comp {
     inline float colorDodge(float Dca, float Sca, float Da, float Sa);
     inline float linearBurn(float Dc, float Sc, float Da, float Sa);
     inline float linearLight(float Dc, float Sc, float Da, float Sa);
+
+    void adjust(Image* adjLayer, Layer& l);
+
+    inline void hslAdjust(Image* adjLayer, map<string, float> adj);
 
     // compositing order for layers
     vector<string> _layerOrder;

@@ -66,6 +66,12 @@ private:
   static void opacity(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void blendMode(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void name(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteAllAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };
@@ -92,6 +98,7 @@ private:
   static void addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getCachedImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;

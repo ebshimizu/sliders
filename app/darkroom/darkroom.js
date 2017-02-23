@@ -134,6 +134,14 @@ function createLayerControl(name, pre, kind) {
         html += createLayerParam(name, "saturation");
         html += createLayerParam(name, "lightness");
     }
+    if (kind === "LayerKind.LEVELS") {
+        // TODO: Turn some of these into range sliders
+        html += createLayerParam(name, "inMin");
+        html += createLayerParam(name, "inMax");
+        html += createLayerParam(name, "gamma");
+        html += createLayerParam(name, "outMin");
+        html += createLayerParam(name, "outMax");
+    }
 
     html += '</div>'
 
@@ -150,6 +158,9 @@ function createLayerControl(name, pre, kind) {
     // param events
     if (kind === "LayerKind.HUESATURATION") {
         bindHSLEvents(name, layer);
+    }
+    else if (kind === "LayerKind.LEVELS") {
+        bindLevelsEvents(name, layer);
     }
 }
 
@@ -202,6 +213,23 @@ function bindHSLEvents(name, layer) {
 
     bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType["HSL"])["light"],
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
+}
+
+function bindLevelsEvents(name, layer) {
+    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType["LEVELS"])["inMin"],
+        { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
+
+    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType["LEVELS"])["inMax"],
+        { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
+
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["LEVELS"])["gamma"],
+        { "range" : false, "max" : 10, "min" : 0, "step" : 0.01, "uiHandler" : handleLevelsParamChange });
+
+    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType["LEVELS"])["outMin"],
+        { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
+
+    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"],
+        { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, settings = {}) {
@@ -359,19 +387,24 @@ function loadLayers(data, path) {
             // need to extract adjustment params here
             c.getLayer(layerName).addHSLAdjustment(hslData["hue"], hslData["saturation"], hslData["lightness"]);
         }
+        else if (layer["kind"] == "LayerKind.LEVELS") {
+            c.addLayer(layerName)
+
+            var adjustment = PSObjectToJSON(layer["adjustment"]);
+            var levelsData = adjustment["adjustment"][0];
+
+            var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
+            var inMax = ("input" in levelsData) ? levelsData["input"][1] : 255;
+            var gamma = ("gamma" in levelsData) ? levelsData["gamma"] : 1;
+            var outMin = ("output" in levelsData) ? levelsData["output"][0] : 0;
+            var outMax = ("output" in levelsData) ? levelsData["output"][1] : 255;
+
+            c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
+        }
         else {
             console.log("No handler for layer kind " + layer["kind"])
             console.log(layer)
             continue;
-        }
-
-        // photoshop exports layers top-down, the compositor adds layers bottom-up
-        // track the actual order layers should be in here. order[0] is the bottom.
-        if (layerName !== "Background") {
-            order.unshift(layerName);
-        }
-        else {
-            movebg = true;
         }
 
         // update properties
@@ -380,11 +413,20 @@ function loadLayers(data, path) {
         cLayer.opacity(layer["opacity"]);
         cLayer.visible(layer["visible"]);
 
-        createLayerControl(layerName, false, layer["kind"]);
+        // photoshop exports layers top-down, the compositor adds layers bottom-up
+        // track the actual order layers should be in here. order[0] is the bottom.
+        if (layerName !== "Background") {
+            order.unshift(layerName);
+            createLayerControl(layerName, false, layer["kind"]);
+        }
+        else {
+            movebg = true;
+        }
     }
 
     if (movebg) {
         order.unshift("Background");
+        createLayerControl("Background", false, "LayerKind.NORMAL");
     }
 
     c.setLayerOrder(order);
@@ -419,6 +461,29 @@ function handleHSLParamChange(layerName, ui) {
     else if (paramName == "lightness") {
         c.getLayer(layerName).addAdjustment(adjType["HSL"], "light", ui.value);
 
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleLevelsParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName == "inMin") {
+        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "inMin", ui.value);
+    }
+    else if (paramName == "inMax") {
+        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "inMax", ui.value);
+    }
+    else if (paramName == "gamma") {
+        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "gamma", ui.value);
+    }
+    else if (paramName == "outMin") {
+        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "outMin", ui.value);
+    }
+    else if (paramName == "outMax") {
+        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "outMax", ui.value);
     }
 
     // find associated value box and dump the value there

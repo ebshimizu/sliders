@@ -44,6 +44,12 @@ namespace Comp {
   {
     RGBColor rgb;
 
+    // h needs to be positive
+    while (h < 0) {
+      h += 360;
+    }
+
+    // but not greater than 360 so
     h = fmod(h, 360);
     s = (s > 1) ? 1 : (s < 0) ? 0 : s;
     l = (l > 1) ? 1 : (l < 0) ? 0 : l;

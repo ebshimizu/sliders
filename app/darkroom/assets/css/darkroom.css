@@ -65,6 +65,7 @@ body {
 	padding: 2px 0;
 	-webkit-user-select: none;
 	cursor: default;
+	text-transform: capitalize;
 }
 
 #layerControls .layer .parameter .paramInput {
@@ -141,4 +142,7 @@ body {
 
 #imageContainer .header.item {
 	-webkit-app-region: drag;
+	width: 200px;
+	overflow: hidden;
+	max-height: 3em;
 }

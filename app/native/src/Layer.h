@@ -22,7 +22,8 @@ namespace Comp {
     LINEAR_DODGE = 6,
     COLOR_DODGE = 7,
     LINEAR_BURN = 8,
-    LINEAR_LIGHT = 9
+    LINEAR_LIGHT = 9,
+    COLOR = 10
   };
 
   enum AdjustmentType {

@@ -97,6 +97,87 @@ namespace Comp {
     return HSLToRGB(c._h, c._s, c._l);
   }
 
+  RGBColor HSYToRGB(float h, float s, float y)
+  {
+    RGBColor rgb;
+
+    h = fmod(h, 360);
+    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
+    y = (y > 1) ? 1 : (y < 0) ? 0 : y;
+
+    float c = s;
+    float hp = h / 60;
+    float x = c * (1 - abs(fmod(hp, 2) - 1));
+
+    if (0 <= hp && hp < 1) {
+      rgb._r = c;
+      rgb._g = x;
+      rgb._b = 0;
+    }
+    else if (1 <= hp && hp < 2) {
+      rgb._r = x;
+      rgb._g = c;
+      rgb._b = 0;
+    }
+    else if (2 <= hp && hp < 3) {
+      rgb._r = 0;
+      rgb._g = c;
+      rgb._b = x;
+    }
+    else if (3 <= hp && hp < 4) {
+      rgb._r = 0;
+      rgb._g = x;
+      rgb._b = c;
+    }
+    else if (4 <= hp && hp < 5) {
+      rgb._r = x;
+      rgb._g = 0;
+      rgb._b = c;
+    }
+    else if (5 <= hp && hp < 6) {
+      rgb._r = c;
+      rgb._g = 0;
+      rgb._b = x;
+    }
+
+    float m = y - (.3 * rgb._r + .59 * rgb._g + 0.11 * rgb._b);
+
+    rgb._r += m;
+    rgb._g += m;
+    rgb._b += m;
+
+    return rgb;
+  }
+
+  RGBColor HSYToRGB(HSYColor & c)
+  {
+    return HSYToRGB(c._h, c._s, c._y);
+  }
+
+  HSYColor RGBToHSY(float r, float g, float b)
+  {
+    // basically this is the same as hsl except l is computed differently.
+    // because nothing depends on L for this computation, we just abuse the
+    // HSL conversion function and overwrite L
+    HSLColor c = RGBToHSL(r, g, b);
+    HSYColor c2;
+    c2._h = c._h;
+    c2._s = max(r, max(g, b)) - min(r, min(g, b));
+    c2._y = 0.30 * r + 0.59 * g + 0.11 * b;
+
+    return c2;
+  }
+
+  HSYColor RGBToHSY(RGBColor & c)
+  {
+    return RGBToHSY(c._r, c._g, c._b);
+  }
+
+  float clamp(float val, float mn, float mx)
+  {
+    return (val > mx) ? mx : ((val < mn) ? mn : val);
+  }
+
 
   Compositor::Compositor()
   {
@@ -396,6 +477,23 @@ namespace Comp {
           compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
+        else if (l._mode == BlendMode::COLOR) {
+          // also no premult colors
+          RGBColor dest;
+          dest._r = compPx[i * 4] / 255.0f;
+          dest._g = compPx[i * 4 + 1] / 255.0f;
+          dest._b = compPx[i * 4 + 2] / 255.0f;
+
+          RGBColor src;
+          src._r = (*layerPx)[i * 4] / 255.0f;
+          src._g = (*layerPx)[i * 4 + 1] / 255.0f;
+          src._b = (*layerPx)[i * 4 + 2] / 255.0f;
+
+          RGBColor res = color(dest, src, aa, ab);
+          compPx[i * 4] = cvt(res._r, ad);
+          compPx[i * 4 + 1] = cvt(res._g, ad);;
+          compPx[i * 4 + 2] = cvt(res._b, ad);;
+        }
       }
 
       // adjustment layer clean up, if applicable
@@ -616,6 +714,43 @@ namespace Comp {
     
     float light = Dc + 2 * Sc - 1;
     return light * Sa + Dc * (1 - Sa);
+  }
+
+  inline RGBColor Compositor::color(RGBColor & dest, RGBColor & src, float Da, float Sa)
+  {
+    // so it's unclear if this composition operation happens in the full LCH color space or
+    // if we can approximate it with a jank HSY color space so let's try it before doing the full
+    // implementation
+    if (Da == 0) {
+      src._r *= Sa;
+      src._g *= Sa;
+      src._b *= Sa;
+
+      return src;
+    }
+
+    if (Sa == 0) {
+      dest._r *= Da;
+      dest._g *= Da;
+      dest._b *= Da;
+
+      return dest;
+    }
+
+    // color keeps dest luma and keeps top hue and chroma
+    HSYColor dc = RGBToHSY(dest);
+    HSYColor sc = RGBToHSY(src);
+    dc._h = sc._h;
+    dc._s = sc._s;
+
+    RGBColor res = HSYToRGB(dc);
+
+    // actually have to blend here...
+    res._r = res._r * Sa + dest._r * Da * (1 - Sa);
+    res._g = res._g * Sa + dest._g * Da * (1 - Sa);
+    res._b = res._b * Sa + dest._b * Da * (1 - Sa);
+
+    return res;
   }
 
   void Compositor::adjust(Image * adjLayer, Layer& l)

@@ -228,6 +228,7 @@ function genBlendModeMenu(name) {
     menu += '<div class="item" data-value="7">Color Dodge</div>'
     menu += '<div class="item" data-value="8">Linear Burn</div>'
     menu += '<div class="item" data-value="9">Linear Light</div>'
+    menu += '<div class="item" data-value="10">Color</div>'
     menu += '</div>'
     menu += '</div>'
 

@@ -31,11 +31,24 @@ namespace Comp {
     float _l;
   };
 
-  HSLColor RGBToHSL(float r, float g, float b);
-  HSLColor RGBToHSL(RGBColor& c);
+  struct HSYColor {
+    float _h;
+    float _s;
+    float _y;
+  };
 
-  RGBColor HSLToRGB(float h, float s, float l);
-  RGBColor HSLToRGB(HSLColor& c);
+  inline HSLColor RGBToHSL(float r, float g, float b);
+  inline HSLColor RGBToHSL(RGBColor& c);
+
+  inline RGBColor HSLToRGB(float h, float s, float l);
+  inline RGBColor HSLToRGB(HSLColor& c);
+  inline RGBColor HSYToRGB(float h, float s, float y);
+  inline RGBColor HSYToRGB(HSYColor& c);
+
+  inline HSYColor RGBToHSY(float r, float g, float b);
+  inline HSYColor RGBToHSY(RGBColor& c);
+
+  inline float clamp(float val, float mn, float mx);
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
@@ -115,6 +128,7 @@ namespace Comp {
     inline float colorDodge(float Dca, float Sca, float Da, float Sa);
     inline float linearBurn(float Dc, float Sc, float Da, float Sa);
     inline float linearLight(float Dc, float Sc, float Da, float Sa);
+    inline RGBColor color(RGBColor& dest, RGBColor& src, float Da, float Sa);
 
     void adjust(Image* adjLayer, Layer& l);
 

@@ -771,6 +771,9 @@ namespace Comp {
       if (type == AdjustmentType::HSL) {
         hslAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::LEVELS) {
+        levelsAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -803,6 +806,38 @@ namespace Comp {
       img[i * 4 + 1] = (unsigned char) (c2._g * 255);
       img[i * 4 + 2] = (unsigned char) (c2._b * 255);
     }
+  }
+
+  inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    // so sometimes these values are missing and we should use defaults.
+    float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
+    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
+    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
+    float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
+    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+
+    for (int i = 0; i < img.size(); i++) {
+      if (i % 4 == 3)
+        continue;
+
+      img[i] = levels(img[i], inMin, inMax, gamma, outMin, outMax);
+    }
+  }
+
+  inline unsigned char Compositor::levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax)
+  {
+    // input remapping
+    float out = min(max(px - inMin, 0.0f) / (inMax - inMin), 1.0f);
+
+    // gamma correction
+    out = pow(out, 1 / gamma);
+
+    // output remapping
+    out = out * (outMax - outMin) + outMin;
+
+    return (unsigned char)out;
   }
 
 }

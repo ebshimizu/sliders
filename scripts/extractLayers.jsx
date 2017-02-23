@@ -564,6 +564,12 @@ for (var i = 0; i < layers.length; i++) {
 	metadata[activeLayer.name]["kind"] = activeLayer.kind.toString()
 }
 
+// restore original visibility
+for (var i = 0; i < layers.length; i++) {
+    var activeLayer = layers[i]
+    activeLayer.visible = metadata[activeLayer.name]["visible"]
+}
+
 statusText.text = "Exporting layer info"
 progress.value = 100
 

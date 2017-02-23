@@ -216,6 +216,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getAdjustments", getAdjustments);
   Nan::SetPrototypeMethod(tpl, "addAdjustment", addAdjustment);
   Nan::SetPrototypeMethod(tpl, "addHSLAdjustment", addHSLAdjustment);
+  Nan::SetPrototypeMethod(tpl, "addLevelsAdjustment", addLevelsAdjustment);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -409,6 +410,25 @@ void LayerRef::addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
 
   layer->_layer->addHSLAdjustment(info[0]->NumberValue(), info[1]->NumberValue(), info[2]->NumberValue());
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addHSLAdjustment");
+
+  if (!info[0]->IsNumber() || !info[1]->IsNumber()) {
+    Nan::ThrowError("addHSLAdjustment expects (float, float, [float, float, float])");
+  }
+
+  float inMin = info[0]->NumberValue();
+  float inMax = info[1]->NumberValue();
+  float gamma = (info[2]->IsNumber()) ? info[2]->NumberValue() : 1;
+  float outMin = (info[3]->IsNumber()) ? info[3]->NumberValue() : 0;
+  float outMax = (info[4]->IsNumber()) ? info[4]->NumberValue() : 255;
+
+  layer->_layer->addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
   info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 

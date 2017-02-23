@@ -54,3 +54,4 @@ app/native/compositor.log
 app/darkroom/node_modules/*
 app/darkroom/compositor.log
 app/native/test.js
+app/native/test.png

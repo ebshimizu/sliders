@@ -2,6 +2,8 @@ const comp = require('../native/build/Release/compositor')
 var {dialog, app} = require('electron').remote
 var fs = require('fs')
 
+comp.setLogLevel(1)
+
 // initializes a global compositor object to operate on
 var c = new comp.Compositor()
 
@@ -19,7 +21,8 @@ const blendModes = {
 }
 
 const adjType = {
-    "HSL" : 0
+    "HSL" : 0,
+    "LEVELS" : 1
 }
 
 // for testing we load up three solid color test images
@@ -338,6 +341,7 @@ function loadLayers(data, path) {
     deleteAllControls();
     c = new comp.Compositor();
     var order = [];
+    var movebg = false
 
     for (var layerName in data) {
         // top level
@@ -363,7 +367,12 @@ function loadLayers(data, path) {
 
         // photoshop exports layers top-down, the compositor adds layers bottom-up
         // track the actual order layers should be in here. order[0] is the bottom.
-        order.unshift(layerName);
+        if (layerName !== "Background") {
+            order.unshift(layerName);
+        }
+        else {
+            movebg = true;
+        }
 
         // update properties
         var cLayer = c.getLayer(layerName)
@@ -372,6 +381,10 @@ function loadLayers(data, path) {
         cLayer.visible(layer["visible"]);
 
         createLayerControl(layerName, false, layer["kind"]);
+    }
+
+    if (movebg) {
+        order.unshift("Background");
     }
 
     c.setLayerOrder(order);

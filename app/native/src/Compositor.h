@@ -133,6 +133,8 @@ namespace Comp {
     void adjust(Image* adjLayer, Layer& l);
 
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
+    inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
+    inline unsigned char levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax);
 
     // compositing order for layers
     vector<string> _layerOrder;

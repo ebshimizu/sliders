@@ -151,6 +151,15 @@ namespace Comp {
     _adjustments[AdjustmentType::HSL]["light"] = light;
   }
 
+  void Layer::addLevelsAdjustment(float inMin, float inMax, float gamma, float outMin, float outMax)
+  {
+    _adjustments[AdjustmentType::LEVELS]["inMin"] = inMin;
+    _adjustments[AdjustmentType::LEVELS]["inMax"] = inMax;
+    _adjustments[AdjustmentType::LEVELS]["gamma"] = gamma;
+    _adjustments[AdjustmentType::LEVELS]["outMin"] = outMin;
+    _adjustments[AdjustmentType::LEVELS]["outMax"] = outMax;
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

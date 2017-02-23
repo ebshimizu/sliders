@@ -27,7 +27,8 @@ namespace Comp {
   };
 
   enum AdjustmentType {
-    HSL = 0
+    HSL = 0,    // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
+    LEVELS = 1  // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
   };
 
   class Layer {
@@ -85,6 +86,7 @@ namespace Comp {
     // these functions overwrite existing values by default
     void addAdjustment(AdjustmentType type, string param, float val);
     void addHSLAdjustment(float hue, float sat, float light);
+    void addLevelsAdjustment(float inMin, float inMax, float gamma = 1, float outMin = 0, float outMax = 255);
 
   private:
     // initializes default layer settings

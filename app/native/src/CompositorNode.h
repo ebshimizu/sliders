@@ -72,6 +72,7 @@ private:
   static void getAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

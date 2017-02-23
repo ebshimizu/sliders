@@ -106,6 +106,11 @@ namespace Comp {
   RGBColor HSYToRGB(float h, float s, float y)
   {
     RGBColor rgb;
+    
+    // h needs to be positive
+    while (h < 0) {
+      h += 360;
+    }
 
     h = fmod(h, 360);
     s = (s > 1) ? 1 : (s < 0) ? 0 : s;

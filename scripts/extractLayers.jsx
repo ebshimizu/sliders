@@ -443,6 +443,51 @@ function GetLayerInfo(inOutArray, inFlatLayerCount) {
    }
 }
 
+function extractCurvesData(legacyData) {
+    // legacy data conversion to actual curves. Will return an object with data
+    // in a reasonable format.
+    // legacyData is an array
+    // looking first for a sequence of numbers: 67, 114, 118, 32
+    var i = 0;
+    for (i = 0; i < legacyData.length; i++) {
+        if (i >= legacyData.length - 4) {
+            return {}
+        }
+
+        if (legacyData[i] == 67 && legacyData[i + 1] == 114 && legacyData[i + 2] == 118 && legacyData[i + 3] == 32) {
+            // found the starting point. The next relevant data point is located at +9
+            i = i + 9;
+            break;
+        }
+    }
+
+    // check number of channels
+    var numChannels = legacyData[i];
+    var data = {};
+    var lookup = ['RGB', 'red', 'green', 'blue'];
+
+    for (var c = 0; c < numChannels; c++) {
+        // check channel number
+        i = i + 2;
+        var ch = legacyData[i];
+
+        // check number of points
+        i = i + 2;
+        var numPts = legacyData[i];
+
+        var pts = []
+        // get the points
+        for (var p = 0; p < numPts; p++) {
+            pts.push({ 'x' : legacyData[i + 4], 'y' : legacyData[i + 2] });
+            i = i + 4;
+        }
+
+        data[lookup[ch]] = pts;
+    }
+
+    return data;
+}
+
 var doc = app.activeDocument
 
 var outDir = Folder.selectDialog("Layer Export Location")
@@ -498,7 +543,12 @@ for (var i = 0; i < layers.length; i++) {
 
     if (activeLayer.name in adjLayerParams) {
         // dump adjustment layer info
-        metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name]
+        if (activeLayer.kind === LayerKind.CURVES) {
+            metadata[activeLayer.name]["adjustment"] = extractCurvesData(adjRaw[activeLayer.name][0]["legacyContentData"])
+        }
+        else {
+            metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name]
+        }
     }
 
     // check grouping status for adjustment layers
@@ -518,7 +568,6 @@ for (var i = 0; i < layers.length; i++) {
 }
 
 for (var i = 0; i < layers.length; i++) {
-    break;
 	if (userCanceled) {
 		break;
 	}

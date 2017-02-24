@@ -485,6 +485,7 @@ function extractCurvesData(legacyData) {
         data[lookup[ch]] = pts;
     }
 
+    data["class"] = "curves"
     return data;
 }
 

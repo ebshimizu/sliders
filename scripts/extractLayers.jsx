@@ -106,6 +106,7 @@ function getAdjustmentLayerInfo(doc) {
 
     // extract required data
     var adj = {}
+    var legacy = {}
     for (var i = 0; i < docData.flatLayers.length; i++) {
     	if (docData.flatLayers[i].objectName == "Photoshop Background Layer") {
     		continue;
@@ -120,9 +121,10 @@ function getAdjustmentLayerInfo(doc) {
     	// find layer with matching name, must be recursive, some layers have
     	// nested layers
 		findAdjProps(name, layers, adj);
+        legacy[name] = docData.flatLayers[i].adjustment
     }
 
-    return adj
+    return [adj, legacy];
 }
 
 function findAdjProps(name, layers, adj) {
@@ -466,7 +468,9 @@ var layers = getAllArtLayers(doc)
 
 // we need the adjustment layer data and the way to get that is pretty gross.
 // The function called here will return a map from layer name to adjustment properties
-var adjLayerParams = getAdjustmentLayerInfo(doc)
+var a = getAdjustmentLayerInfo(doc)
+var adjLayerParams = a[0]
+var adjRaw = a[1]
 
 var metadata = {}
 
@@ -494,7 +498,7 @@ for (var i = 0; i < layers.length; i++) {
 
     if (activeLayer.name in adjLayerParams) {
         // dump adjustment layer info
-        metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name].toSource()
+        metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name]
     }
 
     // check grouping status for adjustment layers
@@ -514,6 +518,7 @@ for (var i = 0; i < layers.length; i++) {
 }
 
 for (var i = 0; i < layers.length; i++) {
+    break;
 	if (userCanceled) {
 		break;
 	}

@@ -22,7 +22,8 @@ namespace Comp {
     _visible(other._visible),
     _image(other._image),
     _adjustment(other._adjustment),
-    _adjustments(other._adjustments)
+    _adjustments(other._adjustments),
+    _curves(other._curves)
   {
   }
 
@@ -35,6 +36,7 @@ namespace Comp {
     _image = other._image;
     _adjustment = other._adjustment;
     _adjustments = other._adjustments;
+    _curves = other._curves;
 
     return *this;
   }
@@ -122,11 +124,16 @@ namespace Comp {
   void Layer::deleteAdjustment(AdjustmentType type)
   {
     _adjustments.erase(type);
+
+    if (type == AdjustmentType::CURVES) {
+      _curves.clear();
+    }
   }
 
   void Layer::deleteAllAdjustments()
   {
     _adjustments.clear();
+    _curves.clear();
   }
 
   vector<AdjustmentType> Layer::getAdjustments()
@@ -158,6 +165,27 @@ namespace Comp {
     _adjustments[AdjustmentType::LEVELS]["gamma"] = gamma;
     _adjustments[AdjustmentType::LEVELS]["outMin"] = outMin;
     _adjustments[AdjustmentType::LEVELS]["outMax"] = outMax;
+  }
+
+  void Layer::addCurvesChannel(string channel, Curve curve)
+  {
+    _adjustments[AdjustmentType::CURVES][channel] = 1;
+    _curves[channel] = curve;
+  }
+
+  void Layer::deleteCurvesChannel(string channel)
+  {
+    _adjustments[AdjustmentType::CURVES].erase(channel);
+    _curves.erase(channel);
+  }
+
+  float Layer::evalCurve(string channel, float x)
+  {
+    if (_curves.count(channel) > 0) {
+      return _curves[channel].eval(x);
+    }
+
+    return x;
   }
 
   void Layer::init(shared_ptr<Image> source)

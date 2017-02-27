@@ -8,6 +8,7 @@ author: Evan Shimizu
 #include "Logger.h"
 #include "Image.h"
 #include "Compositor.h"
+#include "util.h"
 
 #include <nan.h>
 
@@ -73,6 +74,10 @@ private:
   static void addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  // static void addCurves(...
 
   Comp::Layer* _layer;
 };

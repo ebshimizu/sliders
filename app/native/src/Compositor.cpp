@@ -1,195 +1,6 @@
 #include "Compositor.h"
 
 namespace Comp {
-  HSLColor RGBToHSL(float r, float g, float b)
-  {
-    HSLColor hsl;
-
-    float cmax = max(r, max(g, b));
-    float cmin = min(r, min(g, b));
-
-    hsl._l = (cmax + cmin) / 2;
-
-    if (cmax == cmin) {
-      hsl._h = 0;
-      hsl._s = 0;
-    }
-    else {
-      float d = cmax - cmin;
-      
-      hsl._s = (hsl._l == 1) ? 0 : d / (1 - abs(2 * hsl._l - 1));
-
-      if (cmax == r) {
-        hsl._h = fmod((g - b) / d, 6);
-      }
-      else if (cmax == g) {
-        hsl._h = (b - r) / d + 2;
-      }
-      else if (cmax == b) {
-        hsl._h = (r - g) / d + 4;
-      }
-
-      hsl._h *= 60;
-    }
-
-    return hsl;
-  }
-
-  HSLColor RGBToHSL(RGBColor & c)
-  {
-    return RGBToHSL(c._r, c._g, c._b);
-  }
-
-  RGBColor HSLToRGB(float h, float s, float l)
-  {
-    RGBColor rgb;
-
-    // h needs to be positive
-    while (h < 0) {
-      h += 360;
-    }
-
-    // but not greater than 360 so
-    h = fmod(h, 360);
-    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
-    l = (l > 1) ? 1 : (l < 0) ? 0 : l;
-
-    float c = (1 - abs(2 * l - 1)) * s;
-    float hp = h / 60;
-    float x = c * (1 - abs(fmod(hp, 2) - 1));
-
-    if (0 <= hp && hp < 1) {
-      rgb._r = c;
-      rgb._g = x;
-      rgb._b = 0;
-    }
-    else if (1 <= hp && hp < 2) {
-      rgb._r = x;
-      rgb._g = c;
-      rgb._b = 0;
-    }
-    else if (2 <= hp && hp < 3) {
-      rgb._r = 0;
-      rgb._g = c;
-      rgb._b = x;
-    }
-    else if (3 <= hp && hp < 4) {
-      rgb._r = 0;
-      rgb._g = x;
-      rgb._b = c;
-    }
-    else if (4 <= hp && hp < 5) {
-      rgb._r = x;
-      rgb._g = 0;
-      rgb._b = c;
-    }
-    else if (5 <= hp && hp < 6) {
-      rgb._r = c;
-      rgb._g = 0;
-      rgb._b = x;
-    }
-
-    float m = l - 0.5f * c;
-
-    rgb._r += m;
-    rgb._g += m;
-    rgb._b += m;
-
-    return rgb;
-  }
-
-  RGBColor HSLToRGB(HSLColor & c)
-  {
-    return HSLToRGB(c._h, c._s, c._l);
-  }
-
-  RGBColor HSYToRGB(float h, float s, float y)
-  {
-    RGBColor rgb;
-    
-    // h needs to be positive
-    while (h < 0) {
-      h += 360;
-    }
-
-    h = fmod(h, 360);
-    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
-    y = (y > 1) ? 1 : (y < 0) ? 0 : y;
-
-    float c = s;
-    float hp = h / 60;
-    float x = c * (1 - abs(fmod(hp, 2) - 1));
-
-    if (0 <= hp && hp < 1) {
-      rgb._r = c;
-      rgb._g = x;
-      rgb._b = 0;
-    }
-    else if (1 <= hp && hp < 2) {
-      rgb._r = x;
-      rgb._g = c;
-      rgb._b = 0;
-    }
-    else if (2 <= hp && hp < 3) {
-      rgb._r = 0;
-      rgb._g = c;
-      rgb._b = x;
-    }
-    else if (3 <= hp && hp < 4) {
-      rgb._r = 0;
-      rgb._g = x;
-      rgb._b = c;
-    }
-    else if (4 <= hp && hp < 5) {
-      rgb._r = x;
-      rgb._g = 0;
-      rgb._b = c;
-    }
-    else if (5 <= hp && hp < 6) {
-      rgb._r = c;
-      rgb._g = 0;
-      rgb._b = x;
-    }
-
-    float m = y - (.3 * rgb._r + .59 * rgb._g + 0.11 * rgb._b);
-
-    rgb._r += m;
-    rgb._g += m;
-    rgb._b += m;
-
-    return rgb;
-  }
-
-  RGBColor HSYToRGB(HSYColor & c)
-  {
-    return HSYToRGB(c._h, c._s, c._y);
-  }
-
-  HSYColor RGBToHSY(float r, float g, float b)
-  {
-    // basically this is the same as hsl except l is computed differently.
-    // because nothing depends on L for this computation, we just abuse the
-    // HSL conversion function and overwrite L
-    HSLColor c = RGBToHSL(r, g, b);
-    HSYColor c2;
-    c2._h = c._h;
-    c2._s = max(r, max(g, b)) - min(r, min(g, b));
-    c2._y = 0.30 * r + 0.59 * g + 0.11 * b;
-
-    return c2;
-  }
-
-  HSYColor RGBToHSY(RGBColor & c)
-  {
-    return RGBToHSY(c._r, c._g, c._b);
-  }
-
-  float clamp(float val, float mn, float mx)
-  {
-    return (val > mx) ? mx : ((val < mn) ? mn : val);
-  }
-
-
   Compositor::Compositor()
   {
   }
@@ -367,15 +178,15 @@ namespace Comp {
       size = "full";
     }
 
-    if (_imageData[c.begin()->first].count(size) > 0) {
-      width = _imageData[c.begin()->first][size]->getWidth();
-      height = _imageData[c.begin()->first][size]->getHeight();
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
       useCache = true;
     }
     else {
       getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
-      width = c.begin()->second.getWidth();
-      height = c.begin()->second.getHeight();
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
     }
 
     Image* comp = new Image(width, height);
@@ -391,7 +202,7 @@ namespace Comp {
 
     // blend the layers
     for (auto id : _layerOrder) {
-      Layer l = c[id];
+      Layer& l = c[id];
 
       if (!l._visible)
         continue;
@@ -774,6 +585,9 @@ namespace Comp {
       else if (type == AdjustmentType::LEVELS) {
         levelsAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::CURVES) {
+        curvesAdjust(adjLayer, l.getAdjustment(type), l);
+      }
     }
   }
 
@@ -838,6 +652,33 @@ namespace Comp {
     out = out * (outMax - outMin) + outMin;
 
     return (unsigned char)out;
+  }
+
+  inline void Compositor::curvesAdjust(Image * adjLayer, map<string, float> adj, Layer & l)
+  {
+    // fairly simple adjustment
+    // take each channel, modify the pixel values by the specified curve
+    // after per-channel adjustments are done, then apply the RGB (brightness) curve which really
+    // should be labeled value because that's what that curve seems to affect
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = l.evalCurve("red", img[i * 4] / 255.0f);
+      float g = l.evalCurve("green", img[i * 4 + 1] / 255.0f);
+      float b = l.evalCurve("blue", img[i * 4 + 2] / 255.0f);
+
+      // short circuit this to avoid unnecessary conversion if the curve
+      // doesn't actually exist
+      if (adj.count("RGB") > 0) {
+        r = l.evalCurve("RGB", r);
+        g = l.evalCurve("RGB", g);
+        b = l.evalCurve("RGB", b);
+      }
+
+      img[i * 4] = (unsigned char)(clamp(r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(b, 0, 1) * 255);
+    }
   }
 
 }

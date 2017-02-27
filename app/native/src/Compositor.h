@@ -12,43 +12,12 @@ author: Evan Shimizu
 
 #include "Image.h"
 #include "Layer.h"
+#include "util.h"
 
 using namespace std;
 
 namespace Comp {
   typedef map<string, Layer> Context;
-
-  // utility functions for converting between color spaces
-  struct RGBColor {
-    float _r;
-    float _g;
-    float _b;
-  };
-
-  struct HSLColor {
-    float _h;
-    float _s;
-    float _l;
-  };
-
-  struct HSYColor {
-    float _h;
-    float _s;
-    float _y;
-  };
-
-  inline HSLColor RGBToHSL(float r, float g, float b);
-  inline HSLColor RGBToHSL(RGBColor& c);
-
-  inline RGBColor HSLToRGB(float h, float s, float l);
-  inline RGBColor HSLToRGB(HSLColor& c);
-  inline RGBColor HSYToRGB(float h, float s, float y);
-  inline RGBColor HSYToRGB(HSYColor& c);
-
-  inline HSYColor RGBToHSY(float r, float g, float b);
-  inline HSYColor RGBToHSY(RGBColor& c);
-
-  inline float clamp(float val, float mn, float mx);
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
@@ -135,6 +104,7 @@ namespace Comp {
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
     inline unsigned char levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax);
+    inline void curvesAdjust(Image* adjLayer, map<string, float> adj, Layer& l);
 
     // compositing order for layers
     vector<string> _layerOrder;

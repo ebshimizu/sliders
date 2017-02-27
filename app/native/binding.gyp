@@ -16,7 +16,9 @@
 				"src/third_party/stb_image_resize.h",
 		        "src/addon.cpp",
 		        "src/Layer.h",
-		        "src/Layer.cpp"
+		        "src/Layer.cpp",
+		        "src/util.h",
+		        "src/util.cpp"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

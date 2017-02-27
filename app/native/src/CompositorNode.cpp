@@ -217,6 +217,9 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addAdjustment", addAdjustment);
   Nan::SetPrototypeMethod(tpl, "addHSLAdjustment", addHSLAdjustment);
   Nan::SetPrototypeMethod(tpl, "addLevelsAdjustment", addLevelsAdjustment);
+  Nan::SetPrototypeMethod(tpl, "addCurve", addCurvesChannel);
+  Nan::SetPrototypeMethod(tpl, "deleteCurve", deleteCurvesChannel);
+  Nan::SetPrototypeMethod(tpl, "evalCurve", evalCurve);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -430,6 +433,64 @@ void LayerRef::addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& i
 
   layer->_layer->addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
   info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::addCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addCurvesChannel");
+
+  if (!info[0]->IsString() || !info[1]->IsArray()) {
+    Nan::ThrowError("addCurvesChannel(string, object[]) invalid arguments.");
+  }
+
+  // get channel name
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string channel(*val0);
+
+  // get points, should be an array of objects {x: ###, y: ###}
+  vector<Comp::Point> pts;
+  v8::Local<v8::Array> args = info[1].As<v8::Array>();
+  for (unsigned int i = 0; i < args->Length(); i++) {
+    v8::Local<v8::Object> pt = args->Get(i).As<v8::Object>();
+    pts.push_back(Comp::Point(pt->Get(Nan::New("x").ToLocalChecked())->NumberValue(), pt->Get(Nan::New("y").ToLocalChecked())->NumberValue()));
+  }
+
+  Comp::Curve c(pts);
+  layer->_layer->addCurvesChannel(channel, c);
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::deleteCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.deleteCurvesChannel");
+
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("deleteCurvesChannel(string) invalid arguments.");
+  }
+
+  // get channel name
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string channel(*val0);
+
+  layer->_layer->deleteCurvesChannel(channel);
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.evalCurve");
+
+  if (!info[0]->IsString() || !info[1]->IsNumber()) {
+    Nan::ThrowError("evalCurve(string, float) invalid arguments.");
+  }
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string channel(*val0);
+
+  info.GetReturnValue().Set(Nan::New(layer->_layer->evalCurve(channel, info[1]->NumberValue())));
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

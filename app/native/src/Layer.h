@@ -1,5 +1,5 @@
 /*
-Layer.h - Container for bitmap data representing an editable layer
+Layer.h - Container for compositing settings for each image in the composition 
 author: Evan Shimizu
 */
 
@@ -7,6 +7,7 @@ author: Evan Shimizu
 
 #include "Logger.h"
 #include "Image.h"
+#include "util.h"
 
 #include <map>
 
@@ -27,8 +28,9 @@ namespace Comp {
   };
 
   enum AdjustmentType {
-    HSL = 0,    // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
-    LEVELS = 1  // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
+    HSL = 0,      // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
+    LEVELS = 1,   // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
+    CURVES = 2    // Curves need more data, so the default map just contains a list of present channels
   };
 
   class Layer {
@@ -87,6 +89,11 @@ namespace Comp {
     void addAdjustment(AdjustmentType type, string param, float val);
     void addHSLAdjustment(float hue, float sat, float light);
     void addLevelsAdjustment(float inMin, float inMax, float gamma = 1, float outMin = 0, float outMax = 255);
+    void addCurvesChannel(string channel, Curve curve);
+    void deleteCurvesChannel(string channel);
+
+    // somewhat of a debug function
+    float evalCurve(string channel, float x);
 
   private:
     // initializes default layer settings
@@ -108,6 +115,9 @@ namespace Comp {
     // the current composition. If adjustment is false, this layer itself has adjustments
     // and the adjustments apply to only this layer.
     map<AdjustmentType, map<string, float> > _adjustments;
+
+    // curves yay
+    map<string, Curve> _curves;
 
     // pointer to image data, stored in compositor
     shared_ptr<Image> _image;

@@ -15,14 +15,19 @@ const blendModes = {
     "BlendMode.MULTIPLY" : 1,
     "BlendMode.SCREEN" : 2,
     "BlendMode.OVERLAY" : 3,
+    "BlendMode.HARDLIGHT" : 4,
     "BlendMode.SOFTLIGHT" : 5,
     "BlendMode.LINEARDODGE" : 6,
-    "BlendMode.LINEARLIGHT" : 9
+    "BlendMode.COLORDODGE" : 7,
+    "BlendMode.LINEARBURN" : 8,
+    "BlendMode.LINEARLIGHT" : 9,
+    "BlendMode.COLOR" : 10
 }
 
 const adjType = {
     "HSL" : 0,
-    "LEVELS" : 1
+    "LEVELS" : 1,
+    "CURVES" : 2
 }
 
 // for testing we load up three solid color test images
@@ -161,6 +166,10 @@ function createLayerControl(name, pre, kind) {
     }
     else if (kind === "LayerKind.LEVELS") {
         bindLevelsEvents(name, layer);
+    }
+    else if (kind === "LayerKind.CURVES") {
+        // ???
+        // basically have to initialize a special palette to view/edit this
     }
 }
 
@@ -375,13 +384,14 @@ function loadLayers(data, path) {
         // top level
         var layer = data[layerName];
 
-        if (layer["kind"] == "LayerKind.NORMAL") {
+        if (layer["kind"] === "LayerKind.NORMAL" || layer["kind"] === "LayerKind.SOLIDFILL" ||
+            layer["kind"] === "LayerKind.GRADIENTFILL") {
             c.addLayer(layerName, path + "/" + layer["filename"]);
         }
         else if (layer["kind"] == "LayerKind.HUESATURATION") {
             c.addLayer(layerName)
 
-            var adjustment = PSObjectToJSON(layer["adjustment"]);
+            var adjustment = layer["adjustment"];
             var hslData = adjustment["adjustment"][0];
 
             // need to extract adjustment params here
@@ -390,7 +400,7 @@ function loadLayers(data, path) {
         else if (layer["kind"] == "LayerKind.LEVELS") {
             c.addLayer(layerName)
 
-            var adjustment = PSObjectToJSON(layer["adjustment"]);
+            var adjustment = layer["adjustment"];
             var levelsData = adjustment["adjustment"][0];
 
             var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
@@ -400,6 +410,25 @@ function loadLayers(data, path) {
             var outMax = ("output" in levelsData) ? levelsData["output"][1] : 255;
 
             c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
+        }
+        else if (layer["kind"] === "LayerKind.CURVES") {
+            c.addLayer(layerName)
+
+            var adjustment = layer["adjustment"];
+            for (var channel in adjustment) {
+                if (channel === "class") {
+                    continue;
+                }
+
+                // normalize values, my system uses floats
+                var curve = adjustment[channel];
+                for (var i = 0; i < curve.length; i++) {
+                    curve[i]["x"] = curve[i]["x"] / 255;
+                    curve[i]["y"] = curve[i]["y"] / 255;
+                }
+
+                c.getLayer(layerName).addCurve(channel, curve);
+            }
         }
         else {
             console.log("No handler for layer kind " + layer["kind"])

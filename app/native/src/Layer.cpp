@@ -24,7 +24,8 @@ namespace Comp {
     _adjustment(other._adjustment),
     _adjustments(other._adjustments),
     _curves(other._curves),
-    _grad(other._grad)
+    _grad(other._grad),
+    _selectiveColor(other._selectiveColor)
   {
   }
 
@@ -39,6 +40,7 @@ namespace Comp {
     _adjustments = other._adjustments;
     _curves = other._curves;
     _grad = other._grad;
+    _selectiveColor = other._selectiveColor;
 
     return *this;
   }
@@ -134,6 +136,9 @@ namespace Comp {
       _grad._colors.clear();
       _grad._x.clear();
     }
+    if (type == AdjustmentType::SELECTIVE_COLOR) {
+      _selectiveColor.clear();
+    }
   }
 
   void Layer::deleteAllAdjustments()
@@ -142,6 +147,7 @@ namespace Comp {
     _curves.clear();
     _grad._colors.clear();
     _grad._x.clear();
+    _selectiveColor.clear();
   }
 
   vector<AdjustmentType> Layer::getAdjustments()
@@ -209,6 +215,12 @@ namespace Comp {
     _grad = grad;
   }
 
+  void Layer::addSelectiveColorAdjustment(bool relative, map<string, map<string, float>> data)
+  {
+    _adjustments[AdjustmentType::SELECTIVE_COLOR]["relative"] = relative ? 1 : 0;
+    _selectiveColor = data;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {
@@ -225,6 +237,11 @@ namespace Comp {
     }
 
     return RGBColor();
+  }
+
+  map<string, map<string, float>> Layer::getSelectiveColor()
+  {
+    return _selectiveColor;
   }
 
   void Layer::init(shared_ptr<Image> source)

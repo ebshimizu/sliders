@@ -594,6 +594,9 @@ namespace Comp {
       else if (type == AdjustmentType::GRADIENT) {
         gradientMap(adjLayer, l.getAdjustment(type), l);
       }
+      else if (type == AdjustmentType::SELECTIVE_COLOR) {
+        selectiveColor(adjLayer, l.getAdjustment(type), l);
+      }
     }
   }
 
@@ -721,6 +724,78 @@ namespace Comp {
       img[i * 4] = (unsigned char)(clamp(grad._r, 0, 1) * 255);
       img[i * 4 + 1] = (unsigned char)(clamp(grad._g, 0, 1) * 255);
       img[i * 4 + 2] = (unsigned char)(clamp(grad._b, 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::selectiveColor(Image * adjLayer, map<string, float> adj, Layer & l)
+  {
+    // as far as I can tell, selective color selects particular colors based on HSL and
+    // then adjusts their CMYK values. because why not use 3 different color spaces
+    vector<unsigned char>& img = adjLayer->getData();
+    map<string, map<string, float>> data = l.getSelectiveColor();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      // convert to hsl
+      HSLColor hslColor = RGBToHSL(r, g, b);
+
+      // determine which set of parameters we're using to adjust
+      // default is whites if for some reason we miss a case
+      string paramSet = "whites";
+
+      // use a color
+      if (hslColor._s > 0.05 && hslColor._l > 0.05) {
+        // determine color based on hue.
+        int hueID = (int)(hslColor._h / 60);
+
+        if (hueID == 0)
+          paramSet = "reds";
+        else if (hueID == 1)
+          paramSet = "yellows";
+        else if (hueID == 2)
+          paramSet = "greens";
+        else if (hueID == 3)
+          paramSet = "cyans";
+        else if (hueID == 4)
+          paramSet = "blues";
+        else if (hueID == 5)
+          paramSet = "magentas";
+      }
+      // use a neutral tone
+      else {
+        if (hslColor._l < 0.33)
+          paramSet = "blacks";
+        else if (0.33 <= hslColor._l && hslColor._l < 0.66)
+          paramSet = "midtones";
+        else
+          paramSet = "whites";
+      }
+
+      // do the adjustment
+      CMYKColor cmykColor = RGBToCMYK(r, g, b);
+
+      if (adj["relative"] > 0) {
+        // relative
+        cmykColor._c += cmykColor._c * data[paramSet]["cyan"];
+        cmykColor._m += cmykColor._m * data[paramSet]["magenta"];
+        cmykColor._y += cmykColor._y * data[paramSet]["yellow"];
+        cmykColor._k += cmykColor._k * data[paramSet]["black"];
+      }
+      else {
+        // absolute
+        cmykColor._c += data[paramSet]["cyan"];
+        cmykColor._m += data[paramSet]["magenta"];
+        cmykColor._y += data[paramSet]["yellow"];
+        cmykColor._k += data[paramSet]["black"];
+      }
+
+      RGBColor res = CMYKToRGB(cmykColor);
+      img[i * 4] = (unsigned char)(clamp(res._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(res._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(res._b, 0, 1) * 255);
     }
   }
 

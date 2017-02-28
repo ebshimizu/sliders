@@ -30,6 +30,13 @@ namespace Comp {
     float _y;
   };
 
+  struct CMYKColor {
+    float _c;
+    float _m;
+    float _y;
+    float _k;
+  };
+
   HSLColor RGBToHSL(float r, float g, float b);
   HSLColor RGBToHSL(RGBColor& c);
 
@@ -37,9 +44,14 @@ namespace Comp {
   RGBColor HSLToRGB(HSLColor& c);
   RGBColor HSYToRGB(float h, float s, float y);
   RGBColor HSYToRGB(HSYColor& c);
+  RGBColor CMYKToRGB(float c, float m, float y, float k);
+  RGBColor CMYKToRGB(CMYKColor& c);
 
   HSYColor RGBToHSY(float r, float g, float b);
   HSYColor RGBToHSY(RGBColor& c);
+
+  CMYKColor RGBToCMYK(float r, float g, float b);
+  CMYKColor RGBToCMYK(RGBColor& c);
 
   float clamp(float val, float mn, float mx);
 

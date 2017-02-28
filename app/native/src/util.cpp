@@ -165,6 +165,22 @@ namespace Comp {
     return HSYToRGB(c._h, c._s, c._y);
   }
 
+  RGBColor CMYKToRGB(float c, float m, float y, float k)
+  {
+    RGBColor rgb;
+
+    rgb._r = (1 - c) * (1 - k);
+    rgb._g = (1 - m) * (1 - k);
+    rgb._b = (1 - y) * (1 - k);
+
+    return rgb;
+  }
+
+  RGBColor CMYKToRGB(CMYKColor & c)
+  {
+    return CMYKToRGB(c._c, c._m, c._y, c._k);
+  }
+
   HSYColor RGBToHSY(float r, float g, float b)
   {
     // basically this is the same as hsl except l is computed differently.
@@ -182,6 +198,30 @@ namespace Comp {
   HSYColor RGBToHSY(RGBColor & c)
   {
     return RGBToHSY(c._r, c._g, c._b);
+  }
+
+  CMYKColor RGBToCMYK(float r, float g, float b)
+  {
+    CMYKColor c;
+    c._k = 1 - max(r, max(g, b));
+
+    if (c._k == 1) {
+      c._m = 0;
+      c._y = 0;
+      c._c = 0;
+      return c;
+    }
+
+    c._c = (1 - r - c._k) / (1 - c._k);
+    c._m = (1 - g - c._k) / (1 - c._k);
+    c._y = (1 - b - c._k) / (1 - c._k);
+
+    return c;
+  }
+
+  CMYKColor RGBToCMYK(RGBColor & c)
+  {
+    return RGBToCMYK(c._r, c._g, c._b);
   }
 
   float clamp(float val, float mn, float mx)

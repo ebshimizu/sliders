@@ -28,11 +28,12 @@ namespace Comp {
   };
 
   enum AdjustmentType {
-    HSL = 0,      // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
-    LEVELS = 1,   // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
-    CURVES = 2,   // Curves need more data, so the default map just contains a list of present channels
-    EXPOSURE = 3, // params: exposure [-20, 20], offset [-0.5, 0.5], gamma [0.01, 9.99]
-    GRADIENT = 4  // params: a gradient
+    HSL = 0,              // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
+    LEVELS = 1,           // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
+    CURVES = 2,           // Curves need more data, so the default map just contains a list of present channels
+    EXPOSURE = 3,         // params: exposure [-20, 20], offset [-0.5, 0.5], gamma [0.01, 9.99]
+    GRADIENT = 4,         // params: a gradient
+    SELECTIVE_COLOR = 5   // params: a lot 9 channels: RYGCBMLNK each with 4 params CMYK
   };
 
   class Layer {
@@ -96,10 +97,12 @@ namespace Comp {
     Curve getCurveChannel(string channel);
     void addExposureAdjustment(float exp, float offset, float gamma);
     void addGradientAdjustment(Gradient grad);
+    void addSelectiveColorAdjustment(bool relative, map<string, map<string, float > > data);
 
     // somewhat of a debug function
     float evalCurve(string channel, float x);
     RGBColor evalGradient(float x);
+    map<string, map<string, float>> getSelectiveColor();
 
   private:
     // initializes default layer settings
@@ -127,6 +130,9 @@ namespace Comp {
 
     // gradient yay
     Gradient _grad;
+
+    // selective color yay?
+    map<string, map<string, float> > _selectiveColor;
 
     // pointer to image data, stored in compositor
     shared_ptr<Image> _image;

@@ -219,6 +219,11 @@ namespace Comp {
   {
     int k = -1;
 
+    // sometimes there will be nothing at x = 0 so clamp to nearest
+    if (x < _pts[0]._x) {
+      return _pts[0]._y;
+    }
+
     // determine interval
     for (int i = 0; i < _pts.size() - 1; i++) {
       if (x >= _pts[i]._x && x < _pts[i + 1]._x) {
@@ -227,7 +232,7 @@ namespace Comp {
       }
     }
 
-    // if k wasn't ever assigned, clamp to max
+    // if k wasn't ever assigned, clamp to last seen y
     if (k == -1) {
       return _pts[_pts.size() - 1]._y;
     }

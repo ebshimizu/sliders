@@ -588,6 +588,9 @@ namespace Comp {
       else if (type == AdjustmentType::CURVES) {
         curvesAdjust(adjLayer, l.getAdjustment(type), l);
       }
+      else if (type == AdjustmentType::EXPOSURE) {
+        exposureAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -678,6 +681,22 @@ namespace Comp {
       img[i * 4] = (unsigned char)(clamp(r, 0, 1) * 255);
       img[i * 4 + 1] = (unsigned char)(clamp(g, 0, 1) * 255);
       img[i * 4 + 2] = (unsigned char)(clamp(b, 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::exposureAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    float exposure = adj["exposure"];
+    float offset = adj["offset"];
+    float gamma = adj["gamma"];
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size(); i++) {
+      if (i % 4 == 3)
+        continue;
+
+      float px = img[i] / 255.0f;
+      img[i] = (unsigned char) (clamp(pow((px * pow(2, exposure)) + offset, 1 / gamma), 0, 1) * 255);
     }
   }
 

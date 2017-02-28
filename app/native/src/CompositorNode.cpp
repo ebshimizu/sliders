@@ -220,6 +220,8 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addCurve", addCurvesChannel);
   Nan::SetPrototypeMethod(tpl, "deleteCurve", deleteCurvesChannel);
   Nan::SetPrototypeMethod(tpl, "evalCurve", evalCurve);
+  Nan::SetPrototypeMethod(tpl, "getCurve", getCurve);
+  Nan::SetPrototypeMethod(tpl, "addExposureAdjustment", addExposureAdjustment);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -491,6 +493,50 @@ void LayerRef::evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
   string channel(*val0);
 
   info.GetReturnValue().Set(Nan::New(layer->_layer->evalCurve(channel, info[1]->NumberValue())));
+}
+
+void LayerRef::getCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getCurve");
+
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("getCurve(string) invalid arguments.");
+  }
+
+  // get channel name
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string channel(*val0);
+
+  Comp::Curve c = layer->_layer->getCurveChannel(channel);
+
+  // create object
+  v8::Local<v8::Array> pts = Nan::New<v8::Array>();
+  for (int i = 0; i < c._pts.size(); i++) {
+    Comp::Point pt = c._pts[i];
+
+    // create v8 object
+    v8::Local<v8::Object> point = Nan::New<v8::Object>();
+    point->Set(Nan::New("x").ToLocalChecked(), Nan::New(pt._x));
+    point->Set(Nan::New("y").ToLocalChecked(), Nan::New(pt._y));
+
+    pts->Set(Nan::New(i), point);
+  }
+
+  info.GetReturnValue().Set(pts);
+}
+
+void LayerRef::addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getCurve");
+
+  if (!info[0]->IsNumber() || !info[1]->IsNumber() || !info[2]->IsNumber()) {
+    Nan::ThrowError("addExposureAdjustment(float, float, float) invalid arguments.");
+  }
+
+  layer->_layer->addExposureAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue());
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

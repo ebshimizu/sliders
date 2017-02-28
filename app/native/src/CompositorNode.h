@@ -77,7 +77,8 @@ private:
   static void addCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info);
-  // static void addCurves(...
+  static void getCurve(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

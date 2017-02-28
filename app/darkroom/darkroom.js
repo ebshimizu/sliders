@@ -27,7 +27,8 @@ const blendModes = {
 const adjType = {
     "HSL" : 0,
     "LEVELS" : 1,
-    "CURVES" : 2
+    "CURVES" : 2,
+    "EXPOSURE" : 3
 }
 
 // for testing we load up three solid color test images
@@ -139,13 +140,18 @@ function createLayerControl(name, pre, kind) {
         html += createLayerParam(name, "saturation");
         html += createLayerParam(name, "lightness");
     }
-    if (kind === "LayerKind.LEVELS") {
+    else if (kind === "LayerKind.LEVELS") {
         // TODO: Turn some of these into range sliders
         html += createLayerParam(name, "inMin");
         html += createLayerParam(name, "inMax");
         html += createLayerParam(name, "gamma");
         html += createLayerParam(name, "outMin");
         html += createLayerParam(name, "outMax");
+    }
+    else if (kind === "LayerKind.EXPOSURE") {
+        html += createLayerParam(name, "exposure");
+        html += createLayerParam(name, "offset");
+        html += createLayerParam(name, "gamma");
     }
 
     html += '</div>'
@@ -170,6 +176,9 @@ function createLayerControl(name, pre, kind) {
     else if (kind === "LayerKind.CURVES") {
         // ???
         // basically have to initialize a special palette to view/edit this
+    }
+    else if (kind ==="LayerKind.EXPOSURE") {
+        bindExposureEvents(name, layer);
     }
 }
 
@@ -239,6 +248,15 @@ function bindLevelsEvents(name, layer) {
 
     bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"],
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
+}
+
+function bindExposureEvents(name, layer) {
+    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType["EXPOSURE"])["exposure"],
+        { "range" : false, "max" : 20, "min" : -20, "step" : 0.1, "uiHandler" : handleExposureParamChange });
+    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType["EXPOSURE"])["offset"],
+        { "range" : false, "max" : 0.5, "min" : -0.5, "step" : 0.01, "uiHandler" : handleExposureParamChange });
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["EXPOSURE"])["gamma"],
+        { "range" : false, "max" : 9.99, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, settings = {}) {
@@ -401,7 +419,12 @@ function loadLayers(data, path) {
             c.addLayer(layerName)
 
             var adjustment = layer["adjustment"];
-            var levelsData = adjustment["adjustment"][0];
+
+            var levelsData = {};
+
+            if ("adjustment" in adjustment) {
+                levelsData = adjustment["adjustment"][0];
+            }
 
             var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
             var inMax = ("input" in levelsData) ? levelsData["input"][1] : 255;
@@ -429,6 +452,12 @@ function loadLayers(data, path) {
 
                 c.getLayer(layerName).addCurve(channel, curve);
             }
+        }
+        else if (layer["kind"] === "LayerKind.EXPOSURE") {
+            c.addLayer(layerName)
+
+            var adjustment = layer["adjustment"];
+            c.getLayer(layerName).addExposureAdjustment(adjustment["exposure"], adjustment["offset"], adjustment["gammaCorrection"]);
         }
         else {
             console.log("No handler for layer kind " + layer["kind"])
@@ -513,6 +542,23 @@ function handleLevelsParamChange(layerName, ui) {
     }
     else if (paramName == "outMax") {
         c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "outMax", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleExposureParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "exposure") {
+        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "exposure", ui.value);
+    }
+    else if (paramName === "offset") {
+        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "offset", ui.value);
+    }
+    else if (paramName === "gamma") {
+        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "gamma", ui.value);
     }
 
     // find associated value box and dump the value there

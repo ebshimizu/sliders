@@ -179,6 +179,22 @@ namespace Comp {
     _curves.erase(channel);
   }
 
+  Curve Layer::getCurveChannel(string channel)
+  {
+    if (_curves.count(channel) > 0) {
+      return _curves[channel];
+    }
+
+    return Curve();
+  }
+
+  void Layer::addExposureAdjustment(float exp, float offset, float gamma)
+  {
+    _adjustments[AdjustmentType::EXPOSURE]["exposure"] = exp;
+    _adjustments[AdjustmentType::EXPOSURE]["offset"] = offset;
+    _adjustments[AdjustmentType::EXPOSURE]["gamma"] = gamma;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {

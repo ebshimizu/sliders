@@ -30,7 +30,8 @@ namespace Comp {
   enum AdjustmentType {
     HSL = 0,      // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
     LEVELS = 1,   // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
-    CURVES = 2    // Curves need more data, so the default map just contains a list of present channels
+    CURVES = 2,   // Curves need more data, so the default map just contains a list of present channels
+    EXPOSURE = 3  // params: exposure [-20, 20], offset [-0.5, 0.5], gamma [0.01, 9.99]
   };
 
   class Layer {
@@ -91,6 +92,8 @@ namespace Comp {
     void addLevelsAdjustment(float inMin, float inMax, float gamma = 1, float outMin = 0, float outMax = 255);
     void addCurvesChannel(string channel, Curve curve);
     void deleteCurvesChannel(string channel);
+    Curve getCurveChannel(string channel);
+    void addExposureAdjustment(float exp, float offset, float gamma);
 
     // somewhat of a debug function
     float evalCurve(string channel, float x);

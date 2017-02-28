@@ -178,8 +178,11 @@ function createLayerControl(name, pre, kind) {
         // ???
         // basically have to initialize a special palette to view/edit this
     }
-    else if (kind ==="LayerKind.EXPOSURE") {
+    else if (kind === "LayerKind.EXPOSURE") {
         bindExposureEvents(name, layer);
+    }
+    else if (kind === "LayerKind.GRADIENTMAP") {
+        /// also need a custom editor to view/edit
     }
 }
 

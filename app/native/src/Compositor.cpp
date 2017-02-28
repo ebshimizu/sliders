@@ -591,6 +591,9 @@ namespace Comp {
       else if (type == AdjustmentType::EXPOSURE) {
         exposureAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::GRADIENT) {
+        gradientMap(adjLayer, l.getAdjustment(type), l);
+      }
     }
   }
 
@@ -697,6 +700,27 @@ namespace Comp {
 
       float px = img[i] / 255.0f;
       img[i] = (unsigned char) (clamp(pow((px * pow(2, exposure)) + offset, 1 / gamma), 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::gradientMap(Image * adjLayer, map<string, float> adj, Layer& l)
+  {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      // get the rgb color and convert to Y (grayscale)
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      float y = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      // map L to an rgb color. L is between 0 and 1.
+      RGBColor grad = l.evalGradient(y);
+
+      img[i * 4] = (unsigned char)(clamp(grad._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(grad._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(grad._b, 0, 1) * 255);
     }
   }
 

@@ -222,6 +222,8 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "evalCurve", evalCurve);
   Nan::SetPrototypeMethod(tpl, "getCurve", getCurve);
   Nan::SetPrototypeMethod(tpl, "addExposureAdjustment", addExposureAdjustment);
+  Nan::SetPrototypeMethod(tpl, "addGradient", addGradient);
+  Nan::SetPrototypeMethod(tpl, "evalGradient", evalGradient);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -537,6 +539,57 @@ void LayerRef::addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>&
 
   layer->_layer->addExposureAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue());
   info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addGradient");
+
+  if (!info[0]->IsArray() || !info[1]->IsArray()) {
+    Nan::ThrowError("addGradient(float[], object[]) invalid arguments.");
+  }
+
+  // get point locations, just a plain array
+  vector<float> pts;
+  v8::Local<v8::Array> args = info[0].As<v8::Array>();
+  for (unsigned int i = 0; i < args->Length(); i++) {
+    pts.push_back((float)args->Get(i)->NumberValue());
+  }
+
+  // get colors, an array of objects {r, g, b}
+  vector<Comp::RGBColor> colors;
+  v8::Local<v8::Array> c = info[1].As<v8::Array>();
+  for (unsigned int i = 0; i < c->Length(); i++) {
+    v8::Local<v8::Object> co = c->Get(i).As<v8::Object>();
+    Comp::RGBColor color;
+    color._r = (float)co->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+    color._g = (float)co->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+    color._b = (float)co->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+
+    colors.push_back(color);
+  }
+
+  layer->_layer->addGradientAdjustment(Comp::Gradient(pts, colors));
+  info.GetReturnValue().Set(Nan::New(Nan::Null));
+}
+
+void LayerRef::evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.evalGradient");
+
+  if (!info[0]->IsNumber()) {
+    Nan::ThrowError("evalGradient(float) invalid arguments.");
+  }
+
+  Comp::RGBColor res = layer->_layer->evalGradient(info[0]->NumberValue());
+  v8::Local<v8::Object> rgb = Nan::New<v8::Object>();
+  rgb->Set(Nan::New("r").ToLocalChecked(), Nan::New(res._r));
+  rgb->Set(Nan::New("g").ToLocalChecked(), Nan::New(res._g));
+  rgb->Set(Nan::New("b").ToLocalChecked(), Nan::New(res._b));
+
+  info.GetReturnValue().Set(rgb);
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

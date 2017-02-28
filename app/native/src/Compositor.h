@@ -106,6 +106,7 @@ namespace Comp {
     inline unsigned char levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax);
     inline void curvesAdjust(Image* adjLayer, map<string, float> adj, Layer& l);
     inline void exposureAdjust(Image* adjLayer, map<string, float> adj);
+    inline void gradientMap(Image* adjLayer, map<string, float> adj, Layer& l);
 
     // compositing order for layers
     vector<string> _layerOrder;

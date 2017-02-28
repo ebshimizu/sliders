@@ -252,4 +252,42 @@ namespace Comp {
 
     return p;
   }
+
+  RGBColor Gradient::eval(float x)
+  {
+    if (_x.size() == 0)
+      return RGBColor();
+
+    int k = -1;
+
+    // sometimes there will be nothing at x = 0 so clamp to nearest
+    if (x < _x[0]) {
+      return _colors[0];
+    }
+
+    // determine interval
+    for (int i = 0; i < _x.size() - 1; i++) {
+      if (x >= _x[i] && x < _x[i + 1]) {
+        k = i;
+        break;
+      }
+    }
+
+    // if k wasn't ever assigned, clamp to last seen y
+    if (k == -1) {
+      return _colors[_x.size() - 1];
+    }
+
+    // linear interpolation
+    float a = (x - _x[k]) / (_x[k + 1] - _x[k]);
+    RGBColor c1 = _colors[k];
+    RGBColor c2 = _colors[k + 1];
+
+    RGBColor c;
+    c._r = c1._r * (1 - a) + c2._r * a;
+    c._g = c1._g * (1 - a) + c2._g * a;
+    c._b = c1._b * (1 - a) + c2._b * a;
+
+    return c;
+  }
 }

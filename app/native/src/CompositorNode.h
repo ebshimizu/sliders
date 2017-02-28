@@ -79,6 +79,8 @@ private:
   static void evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getCurve(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

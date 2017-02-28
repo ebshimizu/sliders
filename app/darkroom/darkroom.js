@@ -28,7 +28,8 @@ const adjType = {
     "HSL" : 0,
     "LEVELS" : 1,
     "CURVES" : 2,
-    "EXPOSURE" : 3
+    "EXPOSURE" : 3,
+    "GRADIENTMAP" : 4
 }
 
 // for testing we load up three solid color test images
@@ -458,6 +459,21 @@ function loadLayers(data, path) {
 
             var adjustment = layer["adjustment"];
             c.getLayer(layerName).addExposureAdjustment(adjustment["exposure"], adjustment["offset"], adjustment["gammaCorrection"]);
+        }
+        else if (layer["kind"] === "LayerKind.GRADIENTMAP") {
+            c.addLayer(layerName)
+
+            var adjustment = layer["adjustment"]["gradient"];
+            var colors = adjustment["colors"];
+            var pts = []
+            var gc = []
+            var stops = adjustment["interfaceIconFrameDimmed"];
+
+            for (var i = 0; i < colors.length; i++) {
+                pts.push(colors[i]["location"] / stops);
+                gc.push({"r" : colors[i]["color"]["red"] / 255, "g" : colors[i]["color"]["green"] / 255, "b" : colors[i]["color"]["blue"] / 255 });
+            }
+            c.getLayer(layerName).addGradient(pts, gc);
         }
         else {
             console.log("No handler for layer kind " + layer["kind"])

@@ -23,7 +23,8 @@ namespace Comp {
     _image(other._image),
     _adjustment(other._adjustment),
     _adjustments(other._adjustments),
-    _curves(other._curves)
+    _curves(other._curves),
+    _grad(other._grad)
   {
   }
 
@@ -37,6 +38,7 @@ namespace Comp {
     _adjustment = other._adjustment;
     _adjustments = other._adjustments;
     _curves = other._curves;
+    _grad = other._grad;
 
     return *this;
   }
@@ -128,12 +130,18 @@ namespace Comp {
     if (type == AdjustmentType::CURVES) {
       _curves.clear();
     }
+    if (type == AdjustmentType::GRADIENT) {
+      _grad._colors.clear();
+      _grad._x.clear();
+    }
   }
 
   void Layer::deleteAllAdjustments()
   {
     _adjustments.clear();
     _curves.clear();
+    _grad._colors.clear();
+    _grad._x.clear();
   }
 
   vector<AdjustmentType> Layer::getAdjustments()
@@ -195,6 +203,12 @@ namespace Comp {
     _adjustments[AdjustmentType::EXPOSURE]["gamma"] = gamma;
   }
 
+  void Layer::addGradientAdjustment(Gradient grad)
+  {
+    _adjustments[AdjustmentType::GRADIENT]["on"] = 1;
+    _grad = grad;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {
@@ -202,6 +216,15 @@ namespace Comp {
     }
 
     return x;
+  }
+
+  RGBColor Layer::evalGradient(float x)
+  {
+    if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
+      return _grad.eval(x);
+    }
+
+    return RGBColor();
   }
 
   void Layer::init(shared_ptr<Image> source)

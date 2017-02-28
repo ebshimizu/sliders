@@ -63,4 +63,18 @@ namespace Comp {
     void computeTangents();
     float eval(float x);
   };
+
+  // very simple linear interpolation of gradients.
+  // does not handle the complicated parts of gradient creation in PS
+  // (like the midpoint)
+  class Gradient {
+  public:
+    Gradient() {}
+    Gradient(vector<float> x, vector<RGBColor> colors) : _x(x), _colors(colors) {}
+
+    vector<float> _x;
+    vector<RGBColor> _colors;
+
+    RGBColor eval(float x);
+  };
 }

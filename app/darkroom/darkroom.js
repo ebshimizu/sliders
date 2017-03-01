@@ -503,7 +503,7 @@ function loadLayers(data, path) {
                         adjust[id] = colors[i][id]["value"] / 100;
                     }
                 }
-                
+
                 sc[name] = adjust;
             }
 
@@ -531,6 +531,7 @@ function loadLayers(data, path) {
             movebg = true;
         }
     }
+
 
     if (movebg) {
         order.unshift("Background");

@@ -287,8 +287,8 @@ namespace Comp {
     float h11 = t * t * t - t * t;
 
     // compute p
-    float p = h00 * _pts[k]._y + h10 * _m[k] +
-              h01 * _pts[k + 1]._y + h11 * _m[k + 1];
+    float p = h00 * _pts[k]._y + h10 * _m[k] * (_pts[k + 1]._x - _pts[k]._x) +
+              h01 * _pts[k + 1]._y + h11 * _m[k + 1] * (_pts[k + 1]._x - _pts[k]._x);
 
     return p;
   }

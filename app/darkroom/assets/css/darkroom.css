@@ -146,3 +146,14 @@ body {
 	overflow: hidden;
 	max-height: 3em;
 }
+
+#status {
+	position: absolute;
+	width: 50%;
+	bottom: 10px;
+	left: 25%;
+	height: 75px;
+	padding: 10px;
+	background-color: #cdcdcd;
+	border-radius: 3px;
+}

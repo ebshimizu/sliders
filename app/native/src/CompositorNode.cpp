@@ -224,6 +224,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addExposureAdjustment", addExposureAdjustment);
   Nan::SetPrototypeMethod(tpl, "addGradient", addGradient);
   Nan::SetPrototypeMethod(tpl, "evalGradient", evalGradient);
+  Nan::SetPrototypeMethod(tpl, "selectiveColor", selectiveColor);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -590,6 +591,59 @@ void LayerRef::evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
   rgb->Set(Nan::New("b").ToLocalChecked(), Nan::New(res._b));
 
   info.GetReturnValue().Set(rgb);
+}
+
+void LayerRef::selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.selectiveColor");
+
+  if (info.Length() == 0) {
+    // if no args, get state
+    map<string, map<string, float> > sc = layer->_layer->getSelectiveColor();
+
+    // put into object
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+    for (auto c : sc) {
+      v8::Local<v8::Object> color = Nan::New<v8::Object>();
+      for (auto cp : c.second) {
+        color->Set(Nan::New(cp.first).ToLocalChecked(), Nan::New(cp.second));
+      }
+      ret->Set(Nan::New(c.first).ToLocalChecked(), color);
+    }
+
+    ret->Set(Nan::New("relative").ToLocalChecked(), Nan::New(layer->_layer->getAdjustment(Comp::AdjustmentType::SELECTIVE_COLOR)["relative"]));
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    // otherwise set the object passed in
+    map<string, map<string, float> > sc;
+
+    if (!info[0]->IsBoolean() || !info[1]->IsObject()) {
+      Nan::ThrowError("selectiveColor(bool, object) argument error");
+    }
+
+    v8::Local<v8::Object> ret = info[1].As<v8::Object>();
+    auto names = ret->GetOwnPropertyNames();
+    for (int i = 0; i < names->Length(); i++) {
+      v8::Local<v8::Object> color = ret->Get(names->Get(i)).As<v8::Object>();
+      v8::Local<v8::Array> colorNames = color->GetOwnPropertyNames();
+
+      v8::String::Utf8Value o1(names->Get(i)->ToString());
+      string group(*o1);
+
+      for (int j = 0; j < colorNames->Length(); j++) {
+        v8::Local<v8::Value> colorVal = color->Get(colorNames->Get(j));
+
+        v8::String::Utf8Value o2(colorNames->Get(j)->ToString());
+        string propName(*o2);
+
+        sc[group][propName] = (float)colorVal->NumberValue();
+      }
+    }
+
+    layer->_layer->addSelectiveColorAdjustment(info[0]->BooleanValue(), sc);
+  }
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

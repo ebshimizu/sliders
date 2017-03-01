@@ -81,6 +81,7 @@ private:
   static void addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

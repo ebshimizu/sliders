@@ -29,7 +29,8 @@ const adjType = {
     "LEVELS" : 1,
     "CURVES" : 2,
     "EXPOSURE" : 3,
-    "GRADIENTMAP" : 4
+    "GRADIENTMAP" : 4,
+    "SELECTIVE_COLOR" : 5
 }
 
 // for testing we load up three solid color test images
@@ -477,6 +478,36 @@ function loadLayers(data, path) {
                 gc.push({"r" : colors[i]["color"]["red"] / 255, "g" : colors[i]["color"]["green"] / 255, "b" : colors[i]["color"]["blue"] / 255 });
             }
             c.getLayer(layerName).addGradient(pts, gc);
+        }
+        else if (layer["kind"] === "LayerKind.SELECTIVECOLOR") {
+            c.addLayer(layerName)
+
+            // construct selective color object. Note that yellow is referred to as yellowColor.
+            var adjustment = layer["adjustment"];
+            var relative = (adjustment["method"] === "relative") ? true : false;
+            var colors = adjustment["colorCorrection"]
+            var sc = {}
+
+            for (var i = 0; i < colors.length; i++) {
+                var name;
+                var adjust = {}
+
+                for (var id in colors[i]) {
+                    if (id === "colors") {
+                        name = colors[i][id]
+                    }
+                    else if (id === "yellowColor") {
+                        adjust["yellow"] = colors[i][id]["value"] / 100;
+                    }
+                    else {
+                        adjust[id] = colors[i][id]["value"] / 100;
+                    }
+                }
+                
+                sc[name] = adjust;
+            }
+
+            c.getLayer(layerName).selectiveColor(relative, sc);
         }
         else {
             console.log("No handler for layer kind " + layer["kind"])

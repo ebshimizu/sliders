@@ -108,6 +108,8 @@ namespace Comp {
     inline void exposureAdjust(Image* adjLayer, map<string, float> adj);
     inline void gradientMap(Image* adjLayer, map<string, float> adj, Layer& l);
     inline void selectiveColor(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
+    inline float colorBalance(float px, float shadow, float mid, float high);
 
     // compositing order for layers
     vector<string> _layerOrder;

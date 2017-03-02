@@ -225,6 +225,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addGradient", addGradient);
   Nan::SetPrototypeMethod(tpl, "evalGradient", evalGradient);
   Nan::SetPrototypeMethod(tpl, "selectiveColor", selectiveColor);
+  Nan::SetPrototypeMethod(tpl, "colorBalance", colorBalance);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -634,6 +635,58 @@ void LayerRef::selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
     }
 
     layer->_layer->addSelectiveColorAdjustment(info[0]->BooleanValue(), sc);
+  }
+}
+
+void LayerRef::colorBalance(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.colorBalance");
+
+  if (info.Length() == 0) {
+    // return status
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    map<string, float> adj = layer->_layer->getAdjustment(Comp::AdjustmentType::COLOR_BALANCE);
+
+    v8::Local<v8::Object> shadow;
+    shadow->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["shadowR"]));
+    shadow->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["shadowG"]));
+    shadow->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["shadowB"]));
+    ret->Set(Nan::New("shadow").ToLocalChecked(), shadow);
+
+    v8::Local<v8::Object> mid;
+    mid->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["midR"]));
+    mid->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["midG"]));
+    mid->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["midB"]));
+    ret->Set(Nan::New("mid").ToLocalChecked(), mid);
+
+    v8::Local<v8::Object> high;
+    high->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["highR"]));
+    high->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["highG"]));
+    high->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["highB"]));
+    ret->Set(Nan::New("high").ToLocalChecked(), high);
+
+    ret->Set(Nan::New("preserveLuma").ToLocalChecked(), Nan::New(adj["preserveLuma"]));
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    // set object
+    // so there have to be 10 arguments and all numeric except for the first one
+    if (!info.Length() == 10 || !info[0]->IsBoolean()) {
+      Nan::ThrowError("colorBalance(bool, float...(x9)) argument error");
+    }
+
+    for (int i = 1; i < info.Length(); i++) {
+      if (!info[i]->IsNumber())
+      Nan::ThrowError("colorBalance(bool, float...(x9)) argument error");
+    }
+
+    // just call the function
+    layer->_layer->addColorBalanceAdjustment(info[0]->BooleanValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue(), (float)info[3]->NumberValue(),
+      (float)info[4]->NumberValue(), (float)info[5]->NumberValue(), (float)info[6]->NumberValue(),
+      (float)info[7]->NumberValue(), (float)info[8]->NumberValue(), (float)info[9]->NumberValue());
   }
 }
 

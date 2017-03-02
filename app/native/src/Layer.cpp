@@ -221,6 +221,22 @@ namespace Comp {
     _selectiveColor = data;
   }
 
+  void Layer::addColorBalanceAdjustment(bool preserveLuma, float shadowR, float shadowG, float shadowB,
+    float midR, float midG, float midB,
+    float highR, float highG, float highB)
+  {
+    _adjustments[AdjustmentType::COLOR_BALANCE]["preserveLuma"] = preserveLuma ? 1.0f : 0;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowR"] = shadowR;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowG"] = shadowG;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowB"] = shadowB;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midR"] = midR;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midG"] = midG;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midB"] = midB;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highR"] = highR;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highG"] = highG;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highB"] = highB;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {

@@ -600,6 +600,9 @@ namespace Comp {
       else if (type == AdjustmentType::SELECTIVE_COLOR) {
         selectiveColor(adjLayer, l.getAdjustment(type), l);
       }
+      else if (type == AdjustmentType::COLOR_BALANCE) {
+        colorBalanceAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -811,6 +814,50 @@ namespace Comp {
       img[i * 4 + 1] = (unsigned char)(clamp(res._g, 0, 1) * 255);
       img[i * 4 + 2] = (unsigned char)(clamp(res._b, 0, 1) * 255);
     }
+  }
+
+  inline void Compositor::colorBalanceAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    // the color balance adjustment is based on the GIMP implementation due to the
+    // complexities involved with reverse-engineering the photoshop balance adjustment
+    // from scratch (it appears non-linear? dunno)
+    // source: https://github.com/liovch/GPUImage/commit/fcc85db4fdafae1d4e41313c96bb1cac54dc93b4#diff-5acce76055236dedac2284353170c24aR117
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      RGBColor balanced;
+      balanced._r = colorBalance(r, adj["shadowR"], adj["midR"], adj["highR"]);
+      balanced._g = colorBalance(g, adj["shadowG"], adj["midG"], adj["highG"]);
+      balanced._b = colorBalance(b, adj["shadowB"], adj["midB"], adj["highB"]);
+
+      if (adj["preserveLuma"] > 0) {
+        HSLColor l = RGBToHSL(balanced);
+        float originalLuma = 0.5f * (max(r, max(g, b)) + min(r, min(g, b)));
+        balanced = HSLToRGB(l._h, l._s, originalLuma);
+      }
+
+      img[i * 4] = (unsigned char)(clamp(balanced._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(balanced._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(balanced._b, 0, 1) * 255);
+    }
+  }
+
+  inline float Compositor::colorBalance(float px, float shadow, float mid, float high)
+  {
+    // some arbitrary constants...?
+    float a = 0.25f;
+    float b = 0.333f;
+    float scale = 0.7f;
+
+    float s = shadow * (clamp((px - b) / -a + 0.5f, 0, 1.0f) * scale);
+    float m = mid * (clamp((px - b) / a + 0.5f, 0, 1.0f) * clamp((px + b - 1.0f) / -a + 0.5f, 0, 1.0f) * scale);
+    float h = high * (clamp((px + b - 1.0f) / a + 0.5f, 0, 1.0f) * scale);
+
+    return clamp(px + s + m + h, 0, 1.0f);
   }
 
 }

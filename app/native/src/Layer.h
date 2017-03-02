@@ -33,7 +33,8 @@ namespace Comp {
     CURVES = 2,           // Curves need more data, so the default map just contains a list of present channels
     EXPOSURE = 3,         // params: exposure [-20, 20], offset [-0.5, 0.5], gamma [0.01, 9.99]
     GRADIENT = 4,         // params: a gradient
-    SELECTIVE_COLOR = 5   // params: a lot 9 channels: RYGCBMLNK each with 4 params CMYK
+    SELECTIVE_COLOR = 5,  // params: a lot 9 channels: RYGCBMLNK each with 4 params CMYK
+    COLOR_BALANCE = 6     // params: RGB shift for dark, mid, light tones (9 total)
   };
 
   class Layer {
@@ -98,8 +99,10 @@ namespace Comp {
     void addExposureAdjustment(float exp, float offset, float gamma);
     void addGradientAdjustment(Gradient grad);
     void addSelectiveColorAdjustment(bool relative, map<string, map<string, float > > data);
+    void addColorBalanceAdjustment(bool preserveLuma, float shadowR, float shadowG, float shadowB,
+      float midR, float midG, float midB,
+      float highR, float highG, float highB);
 
-    // somewhat of a debug function
     float evalCurve(string channel, float x);
     RGBColor evalGradient(float x);
     map<string, map<string, float>> getSelectiveColor();

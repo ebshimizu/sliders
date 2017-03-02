@@ -30,7 +30,8 @@ const adjType = {
     "CURVES" : 2,
     "EXPOSURE" : 3,
     "GRADIENTMAP" : 4,
-    "SELECTIVE_COLOR" : 5
+    "SELECTIVE_COLOR" : 5,
+    "COLOR_BALANCE" : 6
 }
 
 // for testing we load up three solid color test images
@@ -155,6 +156,17 @@ function createLayerControl(name, pre, kind) {
         html += createLayerParam(name, "offset");
         html += createLayerParam(name, "gamma");
     }
+    else if (kind === "LayerKind.COLORBALANCE") {
+        html += createLayerParam(name, "shadow R");
+        html += createLayerParam(name, "shadow G");
+        html += createLayerParam(name, "shadow B");
+        html += createLayerParam(name, "mid R");
+        html += createLayerParam(name, "mid G");
+        html += createLayerParam(name, "mid B");
+        html += createLayerParam(name, "highlight R");
+        html += createLayerParam(name, "highlight G");
+        html += createLayerParam(name, "highlight B");
+    }
 
     html += '</div>'
 
@@ -184,6 +196,9 @@ function createLayerControl(name, pre, kind) {
     }
     else if (kind === "LayerKind.GRADIENTMAP") {
         /// also need a custom editor to view/edit
+    }
+    else if (kind === "LayerKind.COLORBALANCE") {
+        bindColorBalanceEvents(name, layer);
     }
 }
 
@@ -262,6 +277,28 @@ function bindExposureEvents(name, layer) {
         { "range" : false, "max" : 0.5, "min" : -0.5, "step" : 0.01, "uiHandler" : handleExposureParamChange });
     bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["EXPOSURE"])["gamma"],
         { "range" : false, "max" : 9.99, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
+}
+
+function bindColorBalanceEvents(name, layer) {
+    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowR"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowG"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowB"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType["COLOR_BALANCE"])["midR"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType["COLOR_BALANCE"])["midG"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType["COLOR_BALANCE"])["midB"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType["COLOR_BALANCE"])["highR"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType["COLOR_BALANCE"])["highG"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"],
+        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    // preserve luma?
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, settings = {}) {
@@ -509,6 +546,16 @@ function loadLayers(data, path) {
 
             c.getLayer(layerName).selectiveColor(relative, sc);
         }
+        else if (layer["kind"] === "LayerKind.COLORBALANCE") {
+            c.addLayer(layerName);
+
+            var adjustment = layer["adjustment"]
+
+            c.getLayer(layerName).colorBalance(adjustment["preserveLuminosity"], adjustment["shadowLevels"][0] / 100,
+                adjustment["shadowLevels"][1] / 100, adjustment["shadowLevels"][2] / 100,
+                adjustment["midtoneLevels"][0] / 100, adjustment["midtoneLevels"][1] / 100, adjustment["midtoneLevels"][2] / 100,
+                adjustment["highlightLevels"][0] / 100, adjustment["highlightLevels"][1] / 100, adjustment["highlightLevels"][2] / 100);
+        }
         else {
             console.log("No handler for layer kind " + layer["kind"])
             console.log(layer)
@@ -610,6 +657,41 @@ function handleExposureParamChange(layerName, ui) {
     }
     else if (paramName === "gamma") {
         c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "gamma", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleColorBalanceParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "shadow R") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowR", ui.value);
+    }
+    else if (paramName === "shadow G") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowG", ui.value);
+    }
+    else if (paramName === "shadow B") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowB", ui.value);
+    }
+    else if (paramName === "mid R") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midR", ui.value);
+    }
+    else if (paramName === "mid G") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midG", ui.value);
+    }
+    else if (paramName === "mid B") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midB", ui.value);
+    }
+    else if (paramName === "highlight R") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highR", ui.value);
+    }
+    else if (paramName === "highlight G") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highG", ui.value);
+    }
+    else if (paramName === "highlight B") {
+        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highB", ui.value);
     }
 
     // find associated value box and dump the value there

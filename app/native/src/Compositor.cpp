@@ -603,6 +603,9 @@ namespace Comp {
       else if (type == AdjustmentType::COLOR_BALANCE) {
         colorBalanceAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::PHOTO_FILTER) {
+        photoFilterAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -858,6 +861,41 @@ namespace Comp {
     float h = high * (clamp((px + b - 1.0f) / a + 0.5f, 0, 1.0f) * scale);
 
     return clamp(px + s + m + h, 0, 1.0f);
+  }
+
+  inline void Compositor::photoFilterAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    // so photoshop does some weird stuff here and I don't actually have any idea how
+    // it manages to add color by "simulating a color filter" for certain colors
+    // someone should explain to me how/why it actually adds things to specific colors but for now
+    // we'll do the simple version
+    vector<unsigned char>& img = adjLayer->getData();
+
+    float d = adj["density"];
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      float fr = r * adj["r"];
+      float fg = g * adj["g"];
+      float fb = b * adj["b"];
+
+      if (adj["preserveLuma"] > 0) {
+        HSLColor l = RGBToHSL(fr, fg, fb);
+        float originalLuma = 0.5f * (max(r, max(g, b)) + min(r, min(g, b)));
+        RGBColor rgb = HSLToRGB(l._h, l._s, originalLuma);
+        fr = rgb._r;
+        fg = rgb._g;
+        fb = rgb._b;
+      }
+
+      // weight by density
+      img[i * 4] = (unsigned char)(clamp(fr * d + r * (1 - d), 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(fg * d + g * (1 - d), 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(fb * d + b * (1 - d), 0, 1) * 255);
+    }
   }
 
 }

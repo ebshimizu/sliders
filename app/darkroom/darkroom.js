@@ -31,7 +31,8 @@ const adjType = {
     "EXPOSURE" : 3,
     "GRADIENTMAP" : 4,
     "SELECTIVE_COLOR" : 5,
-    "COLOR_BALANCE" : 6
+    "COLOR_BALANCE" : 6,
+    "PHOTO_FILTER" : 7
 }
 
 // for testing we load up three solid color test images
@@ -167,6 +168,13 @@ function createLayerControl(name, pre, kind) {
         html += createLayerParam(name, "highlight G");
         html += createLayerParam(name, "highlight B");
     }
+    else if (kind === "LayerKind.PHOTOFILTER") {
+        // should be a color picker really        
+        html += createLayerParam(name, "red");
+        html += createLayerParam(name, "green");
+        html += createLayerParam(name, "blue");
+        html += createLayerParam(name, "density");
+    }
 
     html += '</div>'
 
@@ -199,6 +207,9 @@ function createLayerControl(name, pre, kind) {
     }
     else if (kind === "LayerKind.COLORBALANCE") {
         bindColorBalanceEvents(name, layer);
+    }
+    else if (kind === "LayerKind.PHOTOFILTER") {
+        bindPhotoFilterEvents(name, layer);
     }
 }
 
@@ -298,6 +309,18 @@ function bindColorBalanceEvents(name, layer) {
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
     bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"],
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    // preserve luma?
+}
+
+function bindPhotoFilterEvents(name, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     // preserve luma?
 }
 
@@ -556,6 +579,27 @@ function loadLayers(data, path) {
                 adjustment["midtoneLevels"][0] / 100, adjustment["midtoneLevels"][1] / 100, adjustment["midtoneLevels"][2] / 100,
                 adjustment["highlightLevels"][0] / 100, adjustment["highlightLevels"][1] / 100, adjustment["highlightLevels"][2] / 100);
         }
+        else if (layer["kind"] === "LayerKind.PHOTOFILTER") {
+            c.addLayer(layerName);
+
+            var adjustment = layer["adjustment"];
+            var color = adjustment["color"];
+
+            var dat = { "preserveLuma" : adjustment["preserveLuminosity"], "density" : adjustment["density"] / 100 };
+
+            if ("luminance" in color) {
+                dat["luminance"] = color["luminance"];
+                dat["a"] = color["a"];
+                dat["b"] = color["b"];
+            }
+            else if ("hue" in color) {
+                dat["hue"] = color["hue"]["value"];
+                dat["saturation"] = color["saturation"];
+                dat["brightness"] = color["brightness"];
+            }
+
+            c.getLayer(layerName).photoFilter(dat);
+        }
         else {
             console.log("No handler for layer kind " + layer["kind"])
             console.log(layer)
@@ -692,6 +736,26 @@ function handleColorBalanceParamChange(layerName, ui) {
     }
     else if (paramName === "highlight B") {
         c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highB", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handlePhotoFilterParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "red") {
+        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "r", ui.value);
+    }
+    else if (paramName === "green") {
+        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "g", ui.value);
+    }
+    else if (paramName === "blue") {
+        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "b", ui.value);
+    }
+    else if (paramName === "density") {
+        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "density", ui.value);
     }
 
     // find associated value box and dump the value there

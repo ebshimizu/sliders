@@ -237,6 +237,15 @@ namespace Comp {
     _adjustments[AdjustmentType::COLOR_BALANCE]["highB"] = highB;
   }
 
+  void Layer::addPhotoFilterAdjustment(bool preserveLuma, float r, float g, float b, float d)
+  {
+    _adjustments[AdjustmentType::PHOTO_FILTER]["r"] = r;
+    _adjustments[AdjustmentType::PHOTO_FILTER]["g"] = g;
+    _adjustments[AdjustmentType::PHOTO_FILTER]["b"] = b;
+    _adjustments[AdjustmentType::PHOTO_FILTER]["density"] = d;
+    _adjustments[AdjustmentType::PHOTO_FILTER]["preserveLuma"] = preserveLuma ? 1.0f : 0;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {

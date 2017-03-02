@@ -226,6 +226,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "evalGradient", evalGradient);
   Nan::SetPrototypeMethod(tpl, "selectiveColor", selectiveColor);
   Nan::SetPrototypeMethod(tpl, "colorBalance", colorBalance);
+  Nan::SetPrototypeMethod(tpl, "photoFilter", addPhotoFilter);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -674,7 +675,7 @@ void LayerRef::colorBalance(const Nan::FunctionCallbackInfo<v8::Value>& info)
   else {
     // set object
     // so there have to be 10 arguments and all numeric except for the first one
-    if (!info.Length() == 10 || !info[0]->IsBoolean()) {
+    if (info.Length() != 10 || !info[0]->IsBoolean()) {
       Nan::ThrowError("colorBalance(bool, float...(x9)) argument error");
     }
 
@@ -687,6 +688,52 @@ void LayerRef::colorBalance(const Nan::FunctionCallbackInfo<v8::Value>& info)
     layer->_layer->addColorBalanceAdjustment(info[0]->BooleanValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue(), (float)info[3]->NumberValue(),
       (float)info[4]->NumberValue(), (float)info[5]->NumberValue(), (float)info[6]->NumberValue(),
       (float)info[7]->NumberValue(), (float)info[8]->NumberValue(), (float)info[9]->NumberValue());
+  }
+}
+
+void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // this one sucks a bit because photoshop is inconsistent with how it exports. We expect
+  // and object here and based on the existence of particular keys need to process color
+  // differently
+
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.addPhotoFilter");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("addPhotoFilter(object) argument error.");
+  }
+
+  v8::Local<v8::Object> color = info[0].As<v8::Object>();
+  bool preserveLuma = color->Get(Nan::New("preserveLuma").ToLocalChecked())->BooleanValue();
+  float density = (float)color->Get(Nan::New("density").ToLocalChecked())->NumberValue();
+  
+  if (color->Has(Nan::New("luminance").ToLocalChecked())) {
+    // convert from lab to rgb
+    Comp::RGBColor rgb = Comp::LabToRGB(color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
+      color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
+      color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
+
+    layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
+  }
+  else if (color->Has(Nan::New("hue").ToLocalChecked())) {
+    // convert from hsl to rgb
+    Comp::RGBColor rgb = Comp::HSLToRGB(color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
+      color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
+      color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
+
+    layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
+  }
+  else if (color->Has(Nan::New("r").ToLocalChecked())) {
+    // just do the thing
+
+    layer->_layer->addPhotoFilterAdjustment(preserveLuma, color->Get(Nan::New("r").ToLocalChecked())->NumberValue(), 
+      color->Get(Nan::New("g").ToLocalChecked())->NumberValue(),
+      color->Get(Nan::New("b").ToLocalChecked())->NumberValue(), 
+      density);
+  }
+  else {
+    Nan::ThrowError("addPhotoFilter object arg not in recognized color format");
   }
 }
 

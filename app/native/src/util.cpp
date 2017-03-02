@@ -181,6 +181,37 @@ namespace Comp {
     return CMYKToRGB(c._c, c._m, c._y, c._k);
   }
 
+  RGBColor LabToRGB(float L, float a, float b)
+  {
+    // convert to XYZ first, D50 is the Photoshop ref white
+    // D50 = 96.4212, 100.0, 82.5188
+    float e = 0.008856;
+    float k = 903.3;
+
+    float fy = (L + 16) / 116;
+    float fx = a / 500 + fy;
+    float fz = fy - b / 200;
+
+    float fx3 = pow(fx, 3);
+    float fz3 = pow(fz, 3);
+
+    float xr = (fx3 > e) ? fx3 : (116 * fx - 16) / k;
+    float yr = (L > k * e) ? pow((L + 16) / 116, 3) : L / k;
+    float zr = (fz3 > e) ? fz3 : (116 * fz - 16) / k;
+
+    float X = (xr * 96.4242) / 100.0f;
+    float Y = (yr * 100.0) / 100.0f;
+    float Z = (zr * 82.5188) / 100.0f;
+
+    RGBColor rgb;
+
+    rgb._r = clamp(rgbCompand(X *  3.2406 + Y * -1.5372 + Z * -0.4986), 0, 1);
+    rgb._g = clamp(rgbCompand(X * -0.9689 + Y *  1.8758 + Z *  0.0415), 0, 1);
+    rgb._b = clamp(rgbCompand(X *  0.0557 + Y * -0.2040 + Z *  1.0570), 0, 1);
+
+    return rgb;
+  }
+
   HSYColor RGBToHSY(float r, float g, float b)
   {
     // basically this is the same as hsl except l is computed differently.
@@ -222,6 +253,14 @@ namespace Comp {
   CMYKColor RGBToCMYK(RGBColor & c)
   {
     return RGBToCMYK(c._r, c._g, c._b);
+  }
+
+  float rgbCompand(float x)
+  {
+    if (x > 0.0031308)
+      return 1.055 * pow(x, 1.0f / 2.4f) - 0.055;
+    else
+      return 12.92 * x;
   }
 
   float clamp(float val, float mn, float mx)

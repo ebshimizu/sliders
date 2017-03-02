@@ -47,6 +47,7 @@ namespace Comp {
   RGBColor HSYToRGB(HSYColor& c);
   RGBColor CMYKToRGB(float c, float m, float y, float k);
   RGBColor CMYKToRGB(CMYKColor& c);
+  RGBColor LabToRGB(float L, float a, float b); // Lab isn't really used internally right now, so this is mostly one way
 
   HSYColor RGBToHSY(float r, float g, float b);
   HSYColor RGBToHSY(RGBColor& c);
@@ -54,6 +55,7 @@ namespace Comp {
   CMYKColor RGBToCMYK(float r, float g, float b);
   CMYKColor RGBToCMYK(RGBColor& c);
 
+  float rgbCompand(float x);
   float clamp(float val, float mn, float mx);
 
   static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };

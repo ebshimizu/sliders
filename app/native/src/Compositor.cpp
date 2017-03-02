@@ -156,7 +156,7 @@ namespace Comp {
 
   int Compositor::size()
   {
-    return _primary.size();
+    return (int)_primary.size();
   }
 
   Image* Compositor::render(string size)
@@ -515,6 +515,9 @@ namespace Comp {
     else if (Sca < Sa) {
       return Sa * Da * min(1.0f, Dca / Da * Sa / (Sa - Sca)) + Sca * (1 - Da) + Dca * (1 - Sa);
     }
+
+    // probably never get here but compiler is yelling at me
+    return 0;
   }
 
   inline float Compositor::linearBurn(float Dc, float Sc, float Da, float Sa)
@@ -702,7 +705,7 @@ namespace Comp {
         continue;
 
       float px = img[i] / 255.0f;
-      img[i] = (unsigned char) (clamp(pow((px * pow(2, exposure)) + offset, 1 / gamma), 0, 1) * 255);
+      img[i] = (unsigned char) (clamp((float)pow((px * pow(2, exposure)) + offset, 1 / gamma), 0, 1) * 255);
     }
   }
 
@@ -716,7 +719,7 @@ namespace Comp {
       float g = img[i * 4 + 1] / 255.0f;
       float b = img[i * 4 + 2] / 255.0f;
 
-      float y = 0.299 * r + 0.587 * g + 0.114 * b;
+      float y = 0.299f * r + 0.587f * g + 0.114f * b;
 
       // map L to an rgb color. L is between 0 and 1.
       RGBColor grad = l.evalGradient(y);
@@ -729,8 +732,12 @@ namespace Comp {
 
   inline void Compositor::selectiveColor(Image * adjLayer, map<string, float> adj, Layer & l)
   {
-    // as far as I can tell, selective color selects particular colors based on HSL and
-    // then adjusts their CMYK values. because why not use 3 different color spaces
+    // so according to the PS docs this will apply per-channel adjustments relative to
+    // "how close the color is to an option in the menu" which implies a barycentric weighting
+    // of the colors. Photoshop's internal color space is probably Lab so that seems like the right
+    // approach, however the conversion to Lab and computation of barycentric coords is really expensive.
+    // For now we'll approximate by using the HCL cone and some hacky interpolation because barycentric
+    // coordinates get rather odd in a cone
     vector<unsigned char>& img = adjLayer->getData();
     map<string, map<string, float>> data = l.getSelectiveColor();
 
@@ -741,55 +748,62 @@ namespace Comp {
 
       // convert to hsl
       HSLColor hslColor = RGBToHSL(r, g, b);
+      float chroma = max(r, max(g, b)) - min(r, min(g, b));
 
       // determine which set of parameters we're using to adjust
-      // default is whites if for some reason we miss a case
-      string paramSet = "whites";
+      // determine chroma interval
+      int interval = (int)(hslColor._h / 60);
+      string c1, c2, c3, c4;
+      c1 = intervalNames[interval];
 
-      // use a color
-      if (hslColor._s > 0.05 && hslColor._l > 0.05) {
-        // determine color based on hue.
-        int hueID = (int)(hslColor._h / 60);
-
-        if (hueID == 0)
-          paramSet = "reds";
-        else if (hueID == 1)
-          paramSet = "yellows";
-        else if (hueID == 2)
-          paramSet = "greens";
-        else if (hueID == 3)
-          paramSet = "cyans";
-        else if (hueID == 4)
-          paramSet = "blues";
-        else if (hueID == 5)
-          paramSet = "magentas";
+      if (interval == 5) {
+        // wrap around for magenta
+        c2 = intervalNames[0];
       }
-      // use a neutral tone
       else {
-        if (hslColor._l < 0.33)
-          paramSet = "blacks";
-        else if (0.33 <= hslColor._l && hslColor._l < 0.66)
-          paramSet = "midtones";
-        else
-          paramSet = "whites";
+        c2 = intervalNames[interval + 1];
       }
+
+      c3 = "neutrals";
+
+      // non-chromatic colors
+      if (hslColor._l < 0.5) {
+        c4 = "blacks";
+      }
+      else {
+        c4 = "whites";
+      }
+
+      // compute weights
+      float w1, w2, w3, w4, wc;
+
+      // chroma
+      wc = chroma / 1.0f;
+
+      // hue - always 60 deg intervals
+      w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
+      w2 = 1 - w1;
+
+      // luma - measure distance from midtones, w3 is always midtone
+      w3 = 1 - abs(hslColor._l - 0.5f);
+      w4 = w3 - 1;
 
       // do the adjustment
       CMYKColor cmykColor = RGBToCMYK(r, g, b);
 
       if (adj["relative"] > 0) {
         // relative
-        cmykColor._c += cmykColor._c * data[paramSet]["cyan"];
-        cmykColor._m += cmykColor._m * data[paramSet]["magenta"];
-        cmykColor._y += cmykColor._y * data[paramSet]["yellow"];
-        cmykColor._k += cmykColor._k * data[paramSet]["black"];
+        cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+        cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+        cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+        cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
       }
       else {
         // absolute
-        cmykColor._c += data[paramSet]["cyan"];
-        cmykColor._m += data[paramSet]["magenta"];
-        cmykColor._y += data[paramSet]["yellow"];
-        cmykColor._k += data[paramSet]["black"];
+        cmykColor._c += (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+        cmykColor._m += (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+        cmykColor._y += (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+        cmykColor._k += (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
       }
 
       RGBColor res = CMYKToRGB(cmykColor);

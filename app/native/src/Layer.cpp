@@ -217,7 +217,7 @@ namespace Comp {
 
   void Layer::addSelectiveColorAdjustment(bool relative, map<string, map<string, float>> data)
   {
-    _adjustments[AdjustmentType::SELECTIVE_COLOR]["relative"] = relative ? 1 : 0;
+    _adjustments[AdjustmentType::SELECTIVE_COLOR]["relative"] = relative ? 1.0f : 0;
     _selectiveColor = data;
   }
 

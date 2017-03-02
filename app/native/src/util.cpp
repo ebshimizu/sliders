@@ -20,7 +20,7 @@ namespace Comp {
       hsl._s = (hsl._l == 1) ? 0 : d / (1 - abs(2 * hsl._l - 1));
 
       if (cmax == r) {
-        hsl._h = fmod((g - b) / d, 6);
+        hsl._h = (float) fmod((g - b) / d, 6);
       }
       else if (cmax == g) {
         hsl._h = (b - r) / d + 2;
@@ -50,13 +50,13 @@ namespace Comp {
     }
 
     // but not greater than 360 so
-    h = fmod(h, 360);
+    h = (float) fmod(h, 360);
     s = (s > 1) ? 1 : (s < 0) ? 0 : s;
     l = (l > 1) ? 1 : (l < 0) ? 0 : l;
 
     float c = (1 - abs(2 * l - 1)) * s;
     float hp = h / 60;
-    float x = c * (1 - abs(fmod(hp, 2) - 1));
+    float x = c * (float)(1 - abs(fmod(hp, 2) - 1));
 
     if (0 <= hp && hp < 1) {
       rgb._r = c;
@@ -112,13 +112,13 @@ namespace Comp {
       h += 360;
     }
 
-    h = fmod(h, 360);
+    h = (float)fmod(h, 360);
     s = (s > 1) ? 1 : (s < 0) ? 0 : s;
     y = (y > 1) ? 1 : (y < 0) ? 0 : y;
 
     float c = s;
     float hp = h / 60;
-    float x = c * (1 - abs(fmod(hp, 2) - 1));
+    float x = c * (float)(1 - abs(fmod(hp, 2) - 1));
 
     if (0 <= hp && hp < 1) {
       rgb._r = c;
@@ -151,7 +151,7 @@ namespace Comp {
       rgb._b = x;
     }
 
-    float m = y - (.3 * rgb._r + .59 * rgb._g + 0.11 * rgb._b);
+    float m = y - (.3f * rgb._r + .59f * rgb._g + 0.11f * rgb._b);
 
     rgb._r += m;
     rgb._g += m;
@@ -190,7 +190,7 @@ namespace Comp {
     HSYColor c2;
     c2._h = c._h;
     c2._s = max(r, max(g, b)) - min(r, min(g, b));
-    c2._y = 0.30 * r + 0.59 * g + 0.11 * b;
+    c2._y = 0.30f * r + 0.59f * g + 0.11f * b;
 
     return c2;
   }

@@ -304,7 +304,7 @@ void LayerRef::opacity(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(layer->_layer, "layer.opacity");
 
   if (info[0]->IsNumber()) {
-    layer->_layer->setOpacity(info[0]->NumberValue());
+    layer->_layer->setOpacity((float)info[0]->NumberValue());
   }
 
   info.GetReturnValue().Set(Nan::New(layer->_layer->getOpacity()));
@@ -363,7 +363,6 @@ void LayerRef::deleteAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
 
   layer->_layer->deleteAdjustment((Comp::AdjustmentType)(info[0]->Int32Value()));
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::deleteAllAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -372,7 +371,6 @@ void LayerRef::deleteAllAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& 
   nullcheck(layer->_layer, "layer.deleteAllAdjustments");
 
   layer->_layer->deleteAllAdjustments();
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::getAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -404,8 +402,7 @@ void LayerRef::addAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
   v8::String::Utf8Value val1(info[1]->ToString());
   string param(*val1);
 
-  layer->_layer->addAdjustment(type, param, info[2]->NumberValue());
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
+  layer->_layer->addAdjustment(type, param, (float)info[2]->NumberValue());
 }
 
 void LayerRef::addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -417,8 +414,7 @@ void LayerRef::addHSLAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info
     Nan::ThrowError("addHSLAdjustment expects (float, float, float)");
   }
 
-  layer->_layer->addHSLAdjustment(info[0]->NumberValue(), info[1]->NumberValue(), info[2]->NumberValue());
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
+  layer->_layer->addHSLAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue());
 }
 
 void LayerRef::addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -430,14 +426,13 @@ void LayerRef::addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& i
     Nan::ThrowError("addHSLAdjustment expects (float, float, [float, float, float])");
   }
 
-  float inMin = info[0]->NumberValue();
-  float inMax = info[1]->NumberValue();
-  float gamma = (info[2]->IsNumber()) ? info[2]->NumberValue() : 1;
-  float outMin = (info[3]->IsNumber()) ? info[3]->NumberValue() : 0;
-  float outMax = (info[4]->IsNumber()) ? info[4]->NumberValue() : 255;
+  float inMin = (float)info[0]->NumberValue();
+  float inMax = (float)info[1]->NumberValue();
+  float gamma = (info[2]->IsNumber()) ? (float)info[2]->NumberValue() : 1.0f;
+  float outMin = (info[3]->IsNumber()) ? (float)info[3]->NumberValue() : 0;
+  float outMax = (info[4]->IsNumber()) ? (float)info[4]->NumberValue() : 255.0f;
 
   layer->_layer->addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::addCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -458,12 +453,11 @@ void LayerRef::addCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info
   v8::Local<v8::Array> args = info[1].As<v8::Array>();
   for (unsigned int i = 0; i < args->Length(); i++) {
     v8::Local<v8::Object> pt = args->Get(i).As<v8::Object>();
-    pts.push_back(Comp::Point(pt->Get(Nan::New("x").ToLocalChecked())->NumberValue(), pt->Get(Nan::New("y").ToLocalChecked())->NumberValue()));
+    pts.push_back(Comp::Point((float)pt->Get(Nan::New("x").ToLocalChecked())->NumberValue(), (float)pt->Get(Nan::New("y").ToLocalChecked())->NumberValue()));
   }
 
   Comp::Curve c(pts);
   layer->_layer->addCurvesChannel(channel, c);
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::deleteCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -480,7 +474,6 @@ void LayerRef::deleteCurvesChannel(const Nan::FunctionCallbackInfo<v8::Value>& i
   string channel(*val0);
 
   layer->_layer->deleteCurvesChannel(channel);
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -495,7 +488,7 @@ void LayerRef::evalCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
   v8::String::Utf8Value val0(info[0]->ToString());
   string channel(*val0);
 
-  info.GetReturnValue().Set(Nan::New(layer->_layer->evalCurve(channel, info[1]->NumberValue())));
+  info.GetReturnValue().Set(Nan::New(layer->_layer->evalCurve(channel, (float)info[1]->NumberValue())));
 }
 
 void LayerRef::getCurve(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -539,7 +532,6 @@ void LayerRef::addExposureAdjustment(const Nan::FunctionCallbackInfo<v8::Value>&
   }
 
   layer->_layer->addExposureAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(), (float)info[2]->NumberValue());
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -572,7 +564,6 @@ void LayerRef::addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 
   layer->_layer->addGradientAdjustment(Comp::Gradient(pts, colors));
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }
 
 void LayerRef::evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -584,7 +575,7 @@ void LayerRef::evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
     Nan::ThrowError("evalGradient(float) invalid arguments.");
   }
 
-  Comp::RGBColor res = layer->_layer->evalGradient(info[0]->NumberValue());
+  Comp::RGBColor res = layer->_layer->evalGradient((float)info[0]->NumberValue());
   v8::Local<v8::Object> rgb = Nan::New<v8::Object>();
   rgb->Set(Nan::New("r").ToLocalChecked(), Nan::New(res._r));
   rgb->Set(Nan::New("g").ToLocalChecked(), Nan::New(res._g));
@@ -625,14 +616,14 @@ void LayerRef::selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
     v8::Local<v8::Object> ret = info[1].As<v8::Object>();
     auto names = ret->GetOwnPropertyNames();
-    for (int i = 0; i < names->Length(); i++) {
+    for (unsigned int i = 0; i < names->Length(); i++) {
       v8::Local<v8::Object> color = ret->Get(names->Get(i)).As<v8::Object>();
       v8::Local<v8::Array> colorNames = color->GetOwnPropertyNames();
 
       v8::String::Utf8Value o1(names->Get(i)->ToString());
       string group(*o1);
 
-      for (int j = 0; j < colorNames->Length(); j++) {
+      for (unsigned int j = 0; j < colorNames->Length(); j++) {
         v8::Local<v8::Value> colorVal = color->Get(colorNames->Get(j));
 
         v8::String::Utf8Value o2(colorNames->Get(j)->ToString());
@@ -905,7 +896,7 @@ void CompositorWrapper::addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>&
 
   v8::String::Utf8Value val0(info[0]->ToString());
   string size(*val0);
-  float scale = info[1]->NumberValue();
+  float scale = (float)info[1]->NumberValue();
 
   info.GetReturnValue().Set(Nan::New(c->_compositor->addCacheSize(size, scale)));
 }
@@ -962,5 +953,4 @@ void CompositorWrapper::reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>&
   }
 
   c->_compositor->reorderLayer(info[0]->Int32Value(), info[1]->Int32Value());
-  info.GetReturnValue().Set(Nan::New(Nan::Null));
 }

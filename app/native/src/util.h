@@ -7,6 +7,7 @@ author: Evan Shimizu
 
 #include <algorithm>
 #include <vector>
+#include <map>
 
 using namespace std;
 
@@ -54,6 +55,8 @@ namespace Comp {
   CMYKColor RGBToCMYK(RGBColor& c);
 
   float clamp(float val, float mn, float mx);
+
+  static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };
 
   class Point {
   public:

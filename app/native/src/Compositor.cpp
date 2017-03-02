@@ -316,6 +316,11 @@ namespace Comp {
           compPx[i * 4 + 1] = cvt(res._g, ad);;
           compPx[i * 4 + 2] = cvt(res._b, ad);;
         }
+        else if (l._mode == BlendMode::LIGHTEN) {
+          compPx[i * 4] = cvt(lighten(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(lighten(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(lighten(ba, bb, aa, ab), ad);
+        }
       }
 
       // adjustment layer clean up, if applicable
@@ -576,6 +581,16 @@ namespace Comp {
     res._b = res._b * Sa + dest._b * Da * (1 - Sa);
 
     return res;
+  }
+
+  inline float Compositor::lighten(float Dca, float Sca, float Da, float Sa)
+  {
+    if (Sca > Dca) {
+      return Sca + Dca * (1 - Sa);
+    }
+    else {
+      return Dca + Sca * (1 - Da);
+    }
   }
 
   void Compositor::adjust(Image * adjLayer, Layer& l)

@@ -144,13 +144,15 @@ function createLayerControl(name, pre, kind) {
     var adjustments = layer.getAdjustments();
 
     for (var i = 0; i < adjustments.length; i++) {
-        if (i === 0) {
+        var type = adjustments[i];
+
+        if (type === 0) {
             // hue sat
             html += createLayerParam(name, "hue");
             html += createLayerParam(name, "saturation");
             html += createLayerParam(name, "lightness");
         }
-        else if (i === 1) {
+        else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
             html += createLayerParam(name, "inMin");
@@ -159,22 +161,22 @@ function createLayerControl(name, pre, kind) {
             html += createLayerParam(name, "outMin");
             html += createLayerParam(name, "outMax");
         }
-        else if (i === 2) {
+        else if (type === 2) {
             // curves
         }
-        else if (i === 3) {
+        else if (type === 3) {
             // exposure
             html += createLayerParam(name, "exposure");
             html += createLayerParam(name, "offset");
             html += createLayerParam(name, "gamma");
         }
-        else if (i === 4) {
+        else if (type === 4) {
             // gradient
         }
-        else if (i === 5) {
+        else if (type === 5) {
             // selective color
         }
-        else if (i === 6) {
+        else if (type === 6) {
             // color balance
             html += createLayerParam(name, "shadow R");
             html += createLayerParam(name, "shadow G");
@@ -186,21 +188,21 @@ function createLayerControl(name, pre, kind) {
             html += createLayerParam(name, "highlight G");
             html += createLayerParam(name, "highlight B");
         }
-        else if (i === 7) {
+        else if (type === 7) {
             // photo filter
             html += createLayerParam(name, "red");
             html += createLayerParam(name, "green");
             html += createLayerParam(name, "blue");
             html += createLayerParam(name, "density");
         }
-        else if (i === 8) {
+        else if (type === 8) {
             // colorize
             html += createLayerParam(name, "red");
             html += createLayerParam(name, "green");
             html += createLayerParam(name, "blue");
             html += createLayerParam(name, "alpha");
         }
-        else if (i === 9) {
+        else if (type === 9) {
             // lighter colorize
             // not name conflicts with previous params
             html += createLayerParam(name, "red");
@@ -224,44 +226,46 @@ function createLayerControl(name, pre, kind) {
 
     // param events
     for (var i = 0; i < adjustments.length; i++) {
-        if (i === 0) {
+        var type = adjustments[i];
+
+        if (type === 0) {
             // hue sat
             bindHSLEvents(name, layer);
         }
-        else if (i === 1) {
+        else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
             bindLevelsEvents(name, layer);
         }
-        else if (i === 2) {
+        else if (type === 2) {
             // curves
             // TODO: CONTROLS
         }
-        else if (i === 3) {
+        else if (type === 3) {
             // exposure
             bindExposureEvents(name, layer);
         }
-        else if (i === 4) {
+        else if (type === 4) {
             // gradient
             // TODO: CONTROLS
         }
-        else if (i === 5) {
+        else if (type === 5) {
             // selective color
             // TODO: CONTROLS
         }
-        else if (i === 6) {
+        else if (type === 6) {
             // color balance
             bindColorBalanceEvents(name, layer);
         }
-        else if (i === 7) {
+        else if (type === 7) {
             // photo filter
             bindPhotoFilterEvents(name, layer);
         }
-        else if (i === 8) {
+        else if (type === 8) {
             // colorize
             bindColorizeEvents(name, layer);
         }
-        else if (i === 9) {
+        else if (type === 9) {
             // lighter colorize
             // not name conflicts with previous params
             bindLighterColorizeEvents(name, layer);
@@ -312,10 +316,8 @@ function bindStandardEvents(name, layer) {
 function bindHSLEvents(name, layer) {
     bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType["HSL"])["hue"],
         { "range" : false, "max" : 180, "min" : -180, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-
     bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType["HSL"])["sat"],
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-
     bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType["HSL"])["light"],
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
 }
@@ -323,16 +325,12 @@ function bindHSLEvents(name, layer) {
 function bindLevelsEvents(name, layer) {
     bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType["LEVELS"])["inMin"],
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-
     bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType["LEVELS"])["inMax"],
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-
     bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["LEVELS"])["gamma"],
         { "range" : false, "max" : 10, "min" : 0, "step" : 0.01, "uiHandler" : handleLevelsParamChange });
-
     bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType["LEVELS"])["outMin"],
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-
     bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"],
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
 }
@@ -387,18 +385,18 @@ function bindColorizeEvents(name, layer) {
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
     bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "a", layer.getAdjustment(adjType["COLORIZE"])["a"],
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["COLORIZE"])["a"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
 }
 
 function bindLighterColorizeEvents(name, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"],
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["r"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"],
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["g"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"],
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["b"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "a", layer.getAdjustment(adjType["COLORIZE"])["a"],
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
 }
 
@@ -646,7 +644,9 @@ function loadLayers(data, path) {
 
         var adjustmentList = metadata[layerName]["adjustments"]
 
-        for (var type in adjustmentList) {
+        for (var i = 0; i < adjustmentList.length; i++) {
+            var type = adjustmentList[i];
+
             if (type === "HSL") {
                 var adjustment = metadata[layerName]["HSL"];
                 var hslData = {"hue" : 0, "saturation" : 0, "lightness" : 0}
@@ -766,6 +766,13 @@ function loadLayers(data, path) {
                 }
 
                 c.getLayer(layerName).photoFilter(dat);
+            }
+            else if (type === "COLORIZE") {
+                // currently no way to get info about this
+                c.getLayer(layerName).colorize(1, 1, 1, 0);
+            }
+            else if (type === "LIGHTER_COLORIZE") {
+                c.getLayer(layerName).lighterColorize(1, 1, 1, 0);
             }
         }
 

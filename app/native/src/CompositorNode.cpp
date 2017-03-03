@@ -227,6 +227,8 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "selectiveColor", selectiveColor);
   Nan::SetPrototypeMethod(tpl, "colorBalance", colorBalance);
   Nan::SetPrototypeMethod(tpl, "photoFilter", addPhotoFilter);
+  Nan::SetPrototypeMethod(tpl, "colorize", colorize);
+  Nan::SetPrototypeMethod(tpl, "lighterColorize", lighterColorize);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -734,6 +736,64 @@ void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
   else {
     Nan::ThrowError("addPhotoFilter object arg not in recognized color format");
+  }
+}
+
+void LayerRef::colorize(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // check if getting status or not
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.colorize");
+
+  if (info.Length() == 0) {
+    // status
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    map<string, float> adj = layer->_layer->getAdjustment(Comp::AdjustmentType::COLORIZE);
+    ret->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["r"]));
+    ret->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["g"]));
+    ret->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["b"]));
+    ret->Set(Nan::New("a").ToLocalChecked(), Nan::New(adj["a"]));
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    if (!info[0]->IsNumber() || !info[1]->IsNumber() || !info[2]->IsNumber() || !info[3]->IsNumber()) {
+      Nan::ThrowError("colorize(float, float, float, float) argument error.");
+    }
+
+    // set value
+    layer->_layer->addColorAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(),
+      (float)info[2]->NumberValue(), (float)info[3]->NumberValue());
+  }
+}
+
+void LayerRef::lighterColorize(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // check if getting status or not
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.lighterColorize");
+
+  if (info.Length() == 0) {
+    // status
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    map<string, float> adj = layer->_layer->getAdjustment(Comp::AdjustmentType::LIGHTER_COLORIZE);
+    ret->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["r"]));
+    ret->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["g"]));
+    ret->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["b"]));
+    ret->Set(Nan::New("a").ToLocalChecked(), Nan::New(adj["a"]));
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    if (!info[0]->IsNumber() || !info[1]->IsNumber() || !info[2]->IsNumber() || !info[3]->IsNumber()) {
+      Nan::ThrowError("lighterColorize(float, float, float, float) argument error.");
+    }
+
+    // set value
+    layer->_layer->addLighterColorAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(),
+      (float)info[2]->NumberValue(), (float)info[3]->NumberValue());
   }
 }
 

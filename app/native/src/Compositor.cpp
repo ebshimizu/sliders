@@ -221,7 +221,7 @@ namespace Comp {
       else if (l.getAdjustments().size() > 0) {
         // so a layer may have other things clipped to it, in which case we apply the
         // specified adjustment only to the source layer and the composite as normal
-        tmpLayer = new Image(*l.getImage().get());
+        tmpLayer = new Image(*_imageData[l.getName()][size].get());
         adjust(tmpLayer, l);
         layerPx = &tmpLayer->getData();
       }
@@ -999,15 +999,19 @@ namespace Comp {
     float sg = adj["g"];
     float sb = adj["b"];
     float a = adj["a"];
-    HSLColor sc = RGBToHSL(sr, sg, sb);
+    float y = 0.299f * sr + 0.587f * sg + 0.114f * sb;
 
     for (int i = 0; i < img.size() / 4; i++) {
       float r = img[i * 4] / 255.0f;
       float g = img[i * 4 + 1] / 255.0f;
       float b = img[i * 4 + 2] / 255.0f;
 
-      HSLColor dc = RGBToHSL(r, g, b);
-      RGBColor res = (dc._l > sc._l) ? HSLToRGB(dc) : HSLToRGB(sc);
+      float yp = 0.299f * r + 0.587f * g + 0.114f * b;
+
+      RGBColor res;
+      res._r = (yp > y) ? r : sr;
+      res._g = (yp > y) ? g : sg;
+      res._b = (yp > y) ? b : sb;
 
       // blend the resulting colors according to alpha
       img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);

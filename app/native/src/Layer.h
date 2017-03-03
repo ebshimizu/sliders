@@ -38,7 +38,9 @@ namespace Comp {
     GRADIENT = 4,         // params: a gradient
     SELECTIVE_COLOR = 5,  // params: a lot 9 channels: RYGCBMLNK each with 4 params CMYK
     COLOR_BALANCE = 6,    // params: RGB shift for dark, mid, light tones (9 total)
-    PHOTO_FILTER = 7      // params: Lab color, density
+    PHOTO_FILTER = 7,     // params: Lab color, density
+    COLORIZE = 8,         // special case of a particular action output. Colors a layer based on specified color and alpha like the COLOR blend mode
+    LIGHTER_COLORIZE = 9  // also a special case like colorize but this does the Lighter Color blend mode
   };
 
   class Layer {
@@ -107,6 +109,8 @@ namespace Comp {
       float midR, float midG, float midB,
       float highR, float highG, float highB);
     void addPhotoFilterAdjustment(bool preserveLuma, float r, float g, float b, float d);
+    void addColorAdjustment(float r, float g, float b, float a);
+    void addLighterColorAdjustment(float r, float g, float b, float a);
 
     float evalCurve(string channel, float x);
     RGBColor evalGradient(float x);

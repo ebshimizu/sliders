@@ -208,15 +208,22 @@ namespace Comp {
         continue;
 
       vector<unsigned char>* layerPx;
-      Image* adjLayer = nullptr;
+      Image* tmpLayer = nullptr;
 
       // handle adjustment layers
       if (l.isAdjustmentLayer()) {
-        // ok so here we adjust the current layer, then blend it as normal below
+        // ok so here we adjust the current composition, then blend it as normal below
         // create duplicate of current composite
-        adjLayer = new Image(*comp);
-        adjust(adjLayer, l);
-        layerPx = &adjLayer->getData();
+        tmpLayer = new Image(*comp);
+        adjust(tmpLayer, l);
+        layerPx = &tmpLayer->getData();
+      }
+      else if (l.getAdjustments().size() > 0) {
+        // so a layer may have other things clipped to it, in which case we apply the
+        // specified adjustment only to the source layer and the composite as normal
+        tmpLayer = new Image(*l.getImage().get());
+        adjust(tmpLayer, l);
+        layerPx = &tmpLayer->getData();
       }
       else {
         layerPx = &_imageData[l.getName()][size]->getData();
@@ -334,8 +341,8 @@ namespace Comp {
       }
 
       // adjustment layer clean up, if applicable
-      if (adjLayer != nullptr) {
-        delete adjLayer;
+      if (tmpLayer != nullptr) {
+        delete tmpLayer;
       }
     }
 
@@ -654,6 +661,12 @@ namespace Comp {
       else if (type == AdjustmentType::PHOTO_FILTER) {
         photoFilterAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::COLORIZE) {
+        colorizeAdjust(adjLayer, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::LIGHTER_COLORIZE) {
+        lighterColorizeAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -943,6 +956,63 @@ namespace Comp {
       img[i * 4] = (unsigned char)(clamp(fr * d + r * (1 - d), 0, 1) * 255);
       img[i * 4 + 1] = (unsigned char)(clamp(fg * d + g * (1 - d), 0, 1) * 255);
       img[i * 4 + 2] = (unsigned char)(clamp(fb * d + b * (1 - d), 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::colorizeAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    // identical to color layer blend mode, assuming a solid color input layer
+    vector<unsigned char>& img = adjLayer->getData();
+
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
+    HSYColor sc = RGBToHSY(sr, sg, sb);
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      // color keeps dest luma and keeps top hue and chroma
+      HSYColor dc = RGBToHSY(r, g, b);
+      dc._h = sc._h;
+      dc._s = sc._s;
+
+      RGBColor res = HSYToRGB(dc);
+
+      // blend the resulting colors according to alpha
+      img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(res._g * a + g * (1 - a), 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(res._b * a + b * (1 - a), 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::lighterColorizeAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    // identical to lighter color layer blend mode, assuming a solid color input layer
+    // I'm fairly sure this is literally just max(dest.L, src.L)
+    vector<unsigned char>& img = adjLayer->getData();
+
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
+    HSLColor sc = RGBToHSL(sr, sg, sb);
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      HSLColor dc = RGBToHSL(r, g, b);
+      RGBColor res = (dc._l > sc._l) ? HSLToRGB(dc) : HSLToRGB(sc);
+
+      // blend the resulting colors according to alpha
+      img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(res._g * a + g * (1 - a), 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(res._b * a + b * (1 - a), 0, 1) * 255);
     }
   }
 

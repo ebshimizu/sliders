@@ -246,6 +246,22 @@ namespace Comp {
     _adjustments[AdjustmentType::PHOTO_FILTER]["preserveLuma"] = preserveLuma ? 1.0f : 0;
   }
 
+  void Layer::addColorAdjustment(float r, float g, float b, float a)
+  {
+    _adjustments[AdjustmentType::COLORIZE]["r"] = r;
+    _adjustments[AdjustmentType::COLORIZE]["g"] = g;
+    _adjustments[AdjustmentType::COLORIZE]["b"] = b;
+    _adjustments[AdjustmentType::COLORIZE]["a"] = a;
+  }
+
+  void Layer::addLighterColorAdjustment(float r, float g, float b, float a)
+  {
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["r"] = r;
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["g"] = g;
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["b"] = b;
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["a"] = a;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {

@@ -114,6 +114,8 @@ namespace Comp {
     inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
     inline float colorBalance(float px, float shadow, float mid, float high);
     inline void photoFilterAdjust(Image* adjLayer, map<string, float> adj);
+    inline void colorizeAdjust(Image* adjLayer, map<string, float> adj);
+    inline void lighterColorizeAdjust(Image* adjLayer, map<string, float> adj);
 
     // compositing order for layers
     vector<string> _layerOrder;

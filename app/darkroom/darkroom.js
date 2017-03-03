@@ -35,13 +35,10 @@ const adjType = {
     "GRADIENTMAP" : 4,
     "SELECTIVE_COLOR" : 5,
     "COLOR_BALANCE" : 6,
-    "PHOTO_FILTER" : 7
+    "PHOTO_FILTER" : 7,
+    "COLORIZE" : 8,
+    "LIGHTER_COLORIZE" : 9
 }
-
-// for testing we load up three solid color test images
-//c.addLayer("Elilipse 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 1.png")
-//c.addLayer("Rectangle 1", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Rectangle 1.png")
-//c.addLayer("Ellipse 2", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/sliders/app/native/debug_images/Ellipse 2.png")
 
 /*===========================================================================*/
 /* Initialization                                                            */
@@ -120,6 +117,8 @@ function createLayerControl(name, pre, kind) {
     var controls = $('#layerControls')
     var layer = c.getLayer(name)
 
+    // controls are created based on what adjustments each layer has
+
     // create the html
     var html = '<div class="layer" layerName="' + name + '">'
     html += '<h3 class="ui grey inverted header">' + name + '</h3>'
@@ -142,41 +141,73 @@ function createLayerControl(name, pre, kind) {
     html += createLayerParam(name, "opacity")
 
     // separate handlers for each adjustment type
-    if (kind === "LayerKind.HUESATURATION") {
-        html += createLayerParam(name, "hue");
-        html += createLayerParam(name, "saturation");
-        html += createLayerParam(name, "lightness");
-    }
-    else if (kind === "LayerKind.LEVELS") {
-        // TODO: Turn some of these into range sliders
-        html += createLayerParam(name, "inMin");
-        html += createLayerParam(name, "inMax");
-        html += createLayerParam(name, "gamma");
-        html += createLayerParam(name, "outMin");
-        html += createLayerParam(name, "outMax");
-    }
-    else if (kind === "LayerKind.EXPOSURE") {
-        html += createLayerParam(name, "exposure");
-        html += createLayerParam(name, "offset");
-        html += createLayerParam(name, "gamma");
-    }
-    else if (kind === "LayerKind.COLORBALANCE") {
-        html += createLayerParam(name, "shadow R");
-        html += createLayerParam(name, "shadow G");
-        html += createLayerParam(name, "shadow B");
-        html += createLayerParam(name, "mid R");
-        html += createLayerParam(name, "mid G");
-        html += createLayerParam(name, "mid B");
-        html += createLayerParam(name, "highlight R");
-        html += createLayerParam(name, "highlight G");
-        html += createLayerParam(name, "highlight B");
-    }
-    else if (kind === "LayerKind.PHOTOFILTER") {
-        // should be a color picker really        
-        html += createLayerParam(name, "red");
-        html += createLayerParam(name, "green");
-        html += createLayerParam(name, "blue");
-        html += createLayerParam(name, "density");
+    var adjustments = layer.getAdjustments();
+
+    for (var i = 0; i < adjustments.length; i++) {
+        if (i === 0) {
+            // hue sat
+            html += createLayerParam(name, "hue");
+            html += createLayerParam(name, "saturation");
+            html += createLayerParam(name, "lightness");
+        }
+        else if (i === 1) {
+            // levels
+            // TODO: Turn some of these into range sliders
+            html += createLayerParam(name, "inMin");
+            html += createLayerParam(name, "inMax");
+            html += createLayerParam(name, "gamma");
+            html += createLayerParam(name, "outMin");
+            html += createLayerParam(name, "outMax");
+        }
+        else if (i === 2) {
+            // curves
+        }
+        else if (i === 3) {
+            // exposure
+            html += createLayerParam(name, "exposure");
+            html += createLayerParam(name, "offset");
+            html += createLayerParam(name, "gamma");
+        }
+        else if (i === 4) {
+            // gradient
+        }
+        else if (i === 5) {
+            // selective color
+        }
+        else if (i === 6) {
+            // color balance
+            html += createLayerParam(name, "shadow R");
+            html += createLayerParam(name, "shadow G");
+            html += createLayerParam(name, "shadow B");
+            html += createLayerParam(name, "mid R");
+            html += createLayerParam(name, "mid G");
+            html += createLayerParam(name, "mid B");
+            html += createLayerParam(name, "highlight R");
+            html += createLayerParam(name, "highlight G");
+            html += createLayerParam(name, "highlight B");
+        }
+        else if (i === 7) {
+            // photo filter
+            html += createLayerParam(name, "red");
+            html += createLayerParam(name, "green");
+            html += createLayerParam(name, "blue");
+            html += createLayerParam(name, "density");
+        }
+        else if (i === 8) {
+            // colorize
+            html += createLayerParam(name, "red");
+            html += createLayerParam(name, "green");
+            html += createLayerParam(name, "blue");
+            html += createLayerParam(name, "alpha");
+        }
+        else if (i === 9) {
+            // lighter colorize
+            // not name conflicts with previous params
+            html += createLayerParam(name, "red");
+            html += createLayerParam(name, "green");
+            html += createLayerParam(name, "blue");
+            html += createLayerParam(name, "alpha");
+        }
     }
 
     html += '</div>'
@@ -192,27 +223,49 @@ function createLayerControl(name, pre, kind) {
     bindStandardEvents(name, layer);
 
     // param events
-    if (kind === "LayerKind.HUESATURATION") {
-        bindHSLEvents(name, layer);
-    }
-    else if (kind === "LayerKind.LEVELS") {
-        bindLevelsEvents(name, layer);
-    }
-    else if (kind === "LayerKind.CURVES") {
-        // ???
-        // basically have to initialize a special palette to view/edit this
-    }
-    else if (kind === "LayerKind.EXPOSURE") {
-        bindExposureEvents(name, layer);
-    }
-    else if (kind === "LayerKind.GRADIENTMAP") {
-        /// also need a custom editor to view/edit
-    }
-    else if (kind === "LayerKind.COLORBALANCE") {
-        bindColorBalanceEvents(name, layer);
-    }
-    else if (kind === "LayerKind.PHOTOFILTER") {
-        bindPhotoFilterEvents(name, layer);
+    for (var i = 0; i < adjustments.length; i++) {
+        if (i === 0) {
+            // hue sat
+            bindHSLEvents(name, layer);
+        }
+        else if (i === 1) {
+            // levels
+            // TODO: Turn some of these into range sliders
+            bindLevelsEvents(name, layer);
+        }
+        else if (i === 2) {
+            // curves
+            // TODO: CONTROLS
+        }
+        else if (i === 3) {
+            // exposure
+            bindExposureEvents(name, layer);
+        }
+        else if (i === 4) {
+            // gradient
+            // TODO: CONTROLS
+        }
+        else if (i === 5) {
+            // selective color
+            // TODO: CONTROLS
+        }
+        else if (i === 6) {
+            // color balance
+            bindColorBalanceEvents(name, layer);
+        }
+        else if (i === 7) {
+            // photo filter
+            bindPhotoFilterEvents(name, layer);
+        }
+        else if (i === 8) {
+            // colorize
+            bindColorizeEvents(name, layer);
+        }
+        else if (i === 9) {
+            // lighter colorize
+            // not name conflicts with previous params
+            bindLighterColorizeEvents(name, layer);
+        }
     }
 }
 
@@ -325,6 +378,28 @@ function bindPhotoFilterEvents(name, layer) {
     bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"],
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     // preserve luma?
+}
+
+function bindColorizeEvents(name, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
+    bindLayerParamControl(name, layer, "a", layer.getAdjustment(adjType["COLORIZE"])["a"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
+}
+
+function bindLighterColorizeEvents(name, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
+    bindLayerParamControl(name, layer, "a", layer.getAdjustment(adjType["COLORIZE"])["a"],
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, settings = {}) {
@@ -469,147 +544,229 @@ function loadLayers(data, path) {
     var order = [];
     var movebg = false
 
+    // the import function should be rewritten as follows:
+    // - group information should be obtained in a first pass.
+
+    // gather data about adjustments and groups and add layers as needed
+    var metadata = {}
     for (var layerName in data) {
-        // top level
         var layer = data[layerName];
+        var group = layerName;
+        
+        // check groups
+        if ("group" in layer) {
+            // do not create a layer for this, layer is clipping mask
+            // clipping masks typically come before their target layer, so create metadata fields
+            // if they don't exist
+            group = layer["group"];
 
-        if (layer["kind"] === "LayerKind.NORMAL" || layer["kind"] === "LayerKind.SOLIDFILL" ||
-            layer["kind"] === "LayerKind.GRADIENTFILL") {
-            c.addLayer(layerName, path + "/" + layer["filename"]);
-        }
-        else if (layer["kind"] == "LayerKind.HUESATURATION") {
-            c.addLayer(layerName)
-
-            var adjustment = layer["adjustment"];
-            var hslData = adjustment["adjustment"][0];
-
-            // need to extract adjustment params here
-            c.getLayer(layerName).addHSLAdjustment(hslData["hue"], hslData["saturation"], hslData["lightness"]);
-        }
-        else if (layer["kind"] == "LayerKind.LEVELS") {
-            c.addLayer(layerName)
-
-            var adjustment = layer["adjustment"];
-
-            var levelsData = {};
-
-            if ("adjustment" in adjustment) {
-                levelsData = adjustment["adjustment"][0];
+            if (!(group in metadata)) {
+                metadata[group] ={}
+                metadata[group]["adjustments"] = []
             }
-
-            var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
-            var inMax = ("input" in levelsData) ? levelsData["input"][1] : 255;
-            var gamma = ("gamma" in levelsData) ? levelsData["gamma"] : 1;
-            var outMin = ("output" in levelsData) ? levelsData["output"][0] : 0;
-            var outMax = ("output" in levelsData) ? levelsData["output"][1] : 255;
-
-            c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
-        }
-        else if (layer["kind"] === "LayerKind.CURVES") {
-            c.addLayer(layerName)
-
-            var adjustment = layer["adjustment"];
-            for (var channel in adjustment) {
-                if (channel === "class") {
-                    continue;
-                }
-
-                // normalize values, my system uses floats
-                var curve = adjustment[channel];
-                for (var i = 0; i < curve.length; i++) {
-                    curve[i]["x"] = curve[i]["x"] / 255;
-                    curve[i]["y"] = curve[i]["y"] / 255;
-                }
-
-                c.getLayer(layerName).addCurve(channel, curve);
-            }
-        }
-        else if (layer["kind"] === "LayerKind.EXPOSURE") {
-            c.addLayer(layerName)
-
-            var adjustment = layer["adjustment"];
-            c.getLayer(layerName).addExposureAdjustment(adjustment["exposure"], adjustment["offset"], adjustment["gammaCorrection"]);
-        }
-        else if (layer["kind"] === "LayerKind.GRADIENTMAP") {
-            c.addLayer(layerName)
-
-            var adjustment = layer["adjustment"]["gradient"];
-            var colors = adjustment["colors"];
-            var pts = []
-            var gc = []
-            var stops = adjustment["interfaceIconFrameDimmed"];
-
-            for (var i = 0; i < colors.length; i++) {
-                pts.push(colors[i]["location"] / stops);
-                gc.push({"r" : colors[i]["color"]["red"] / 255, "g" : colors[i]["color"]["green"] / 255, "b" : colors[i]["color"]["blue"] / 255 });
-            }
-            c.getLayer(layerName).addGradient(pts, gc);
-        }
-        else if (layer["kind"] === "LayerKind.SELECTIVECOLOR") {
-            c.addLayer(layerName)
-
-            // construct selective color object. Note that yellow is referred to as yellowColor.
-            var adjustment = layer["adjustment"];
-            var relative = (adjustment["method"] === "relative") ? true : false;
-            var colors = adjustment["colorCorrection"]
-            var sc = {}
-
-            for (var i = 0; i < colors.length; i++) {
-                var name;
-                var adjust = {}
-
-                for (var id in colors[i]) {
-                    if (id === "colors") {
-                        name = colors[i][id]
-                    }
-                    else if (id === "yellowColor") {
-                        adjust["yellow"] = colors[i][id]["value"] / 100;
-                    }
-                    else {
-                        adjust[id] = colors[i][id]["value"] / 100;
-                    }
-                }
-
-                sc[name] = adjust;
-            }
-
-            c.getLayer(layerName).selectiveColor(relative, sc);
-        }
-        else if (layer["kind"] === "LayerKind.COLORBALANCE") {
-            c.addLayer(layerName);
-
-            var adjustment = layer["adjustment"]
-
-            c.getLayer(layerName).colorBalance(adjustment["preserveLuminosity"], adjustment["shadowLevels"][0] / 100,
-                adjustment["shadowLevels"][1] / 100, adjustment["shadowLevels"][2] / 100,
-                adjustment["midtoneLevels"][0] / 100, adjustment["midtoneLevels"][1] / 100, adjustment["midtoneLevels"][2] / 100,
-                adjustment["highlightLevels"][0] / 100, adjustment["highlightLevels"][1] / 100, adjustment["highlightLevels"][2] / 100);
-        }
-        else if (layer["kind"] === "LayerKind.PHOTOFILTER") {
-            c.addLayer(layerName);
-
-            var adjustment = layer["adjustment"];
-            var color = adjustment["color"];
-
-            var dat = { "preserveLuma" : adjustment["preserveLuminosity"], "density" : adjustment["density"] / 100 };
-
-            if ("luminance" in color) {
-                dat["luminance"] = color["luminance"];
-                dat["a"] = color["a"];
-                dat["b"] = color["b"];
-            }
-            else if ("hue" in color) {
-                dat["hue"] = color["hue"]["value"];
-                dat["saturation"] = color["saturation"];
-                dat["brightness"] = color["brightness"];
-            }
-
-            c.getLayer(layerName).photoFilter(dat);
         }
         else {
-            console.log("No handler for layer kind " + layer["kind"])
-            console.log(layer)
+            if (!(group in metadata)) {
+                metadata[layerName] ={}
+                metadata[layerName]["adjustments"] = []
+            }
+
+            metadata[layerName]["type"] = layer["kind"]
+
+            if ("filename" in layer) {
+                // standard layer, create layer
+                c.addLayer(layerName, path + "/" + layer["filename"]);
+            }
+            else {
+                // adjustment layer, create layer
+                c.addLayer(layerName);
+            }
+        }
+        
+        // adjustment layer information
+        // layer kind
+        var type = layer["kind"];
+        if (type === "LayerKind.HUESATURATION") {
+            metadata[group]["adjustments"].push("HSL");
+            metadata[group]["HSL"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.LEVELS") {
+            metadata[group]["adjustments"].push("LEVELS");
+            metadata[group]["LEVELS"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.CURVES") {
+            metadata[group]["adjustments"].push("CURVES");
+            metadata[group]["CURVES"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.EXPOSURE") {
+            metadata[group]["adjustments"].push("EXPOSURE");
+            metadata[group]["EXPOSURE"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.GRADIENTMAP") {
+            metadata[group]["adjustments"].push("GRADIENTMAP");
+            metadata[group]["GRADIENTMAP"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.SELECTIVECOLOR") {
+            metadata[group]["adjustments"].push("SELECTIVECOLOR");
+            metadata[group]["SELECTIVECOLOR"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.COLORBALANCE") {
+            metadata[group]["adjustments"].push("COLORBALANCE");
+            metadata[group]["COLORBALANCE"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.PHOTOFILTER") {
+            metadata[group]["adjustments"].push("PHOTOFILTER");
+            metadata[group]["PHOTOFILTER"] = layer["adjustment"];
+        }
+        else if (type === "LayerKind.SOLIDFILL" && ("group" in layer)) {
+            // special case, clipping mask that's using a color blend mode
+            if (layer["blendMode"] === "BlendMode.COLORBLEND") {
+                // unknown default color, will check if that data can be extracted
+                metadata[group]["adjustments"].push("COLORIZE");
+            }
+            else if (layer["blendMode"] === "BlendMode.LIGHTERCOLOR") {
+                metadata[group]["adjustments"].push("LIGHTER_COLORIZE");
+            }
+        }
+
+        console.log("Pre-processed layer " + layerName + " of type " + layer["kind"]);
+    }
+
+    // create controls and set initial values
+    for (var layerName in data) {
+        // if no metadata exists skip
+        if (!(layerName in metadata)) {
             continue;
+        }
+
+        var layer = data[layerName];
+
+        // at this point the proper layers have been added, we need to order
+        // and add adjustments to them
+
+        var adjustmentList = metadata[layerName]["adjustments"]
+
+        for (var type in adjustmentList) {
+            if (type === "HSL") {
+                var adjustment = metadata[layerName]["HSL"];
+                var hslData = {"hue" : 0, "saturation" : 0, "lightness" : 0}
+                
+                if ("adjustment" in adjustment) {
+                    hslData = adjustment["adjustment"][0];
+                }
+
+                // need to extract adjustment params here
+                c.getLayer(layerName).addHSLAdjustment(hslData["hue"], hslData["saturation"], hslData["lightness"]);
+            }
+            if (type === "LEVELS") {
+                var adjustment = metadata[layerName]["LEVELS"];
+
+                var levelsData = {};
+
+                if ("adjustment" in adjustment) {
+                    levelsData = adjustment["adjustment"][0];
+                }
+
+                var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
+                var inMax = ("input" in levelsData) ? levelsData["input"][1] : 255;
+                var gamma = ("gamma" in levelsData) ? levelsData["gamma"] : 1;
+                var outMin = ("output" in levelsData) ? levelsData["output"][0] : 0;
+                var outMax = ("output" in levelsData) ? levelsData["output"][1] : 255;
+
+                c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
+            }
+            else if (type === "CURVES") {
+                var adjustment = metadata[layerName]["CURVES"];
+
+                for (var channel in adjustment) {
+                    if (channel === "class") {
+                        continue;
+                    }
+
+                    // normalize values, my system uses floats
+                    var curve = adjustment[channel];
+                    for (var i = 0; i < curve.length; i++) {
+                        curve[i]["x"] = curve[i]["x"] / 255;
+                        curve[i]["y"] = curve[i]["y"] / 255;
+                    }
+
+                    c.getLayer(layerName).addCurve(channel, curve);
+                }
+            }
+            else if (type === "EXPOSURE") {
+                var adjustment = metadata[layerName]["EXPOSURE"];
+
+                c.getLayer(layerName).addExposureAdjustment(adjustment["exposure"], adjustment["offset"], adjustment["gammaCorrection"]);
+            }
+            else if (type === "GRADIENTMAP") {
+                var adjustment = metadata[layerName]["GRADIENTMAP"];
+
+                var colors = adjustment["colors"];
+                var pts = []
+                var gc = []
+                var stops = adjustment["interfaceIconFrameDimmed"];
+
+                for (var i = 0; i < colors.length; i++) {
+                    pts.push(colors[i]["location"] / stops);
+                    gc.push({"r" : colors[i]["color"]["red"] / 255, "g" : colors[i]["color"]["green"] / 255, "b" : colors[i]["color"]["blue"] / 255 });
+                }
+                c.getLayer(layerName).addGradient(pts, gc);
+            }
+            else if (type === "SELEVTIVECOLOR") {
+                var adjustment = metadata[layerName]["GRADIENTMAP"];
+ 
+                var relative = (adjustment["method"] === "relative") ? true : false;
+                var colors = adjustment["colorCorrection"]
+                var sc = {}
+
+                for (var i = 0; i < colors.length; i++) {
+                    var name;
+                    var adjust = {}
+
+                    for (var id in colors[i]) {
+                        if (id === "colors") {
+                            name = colors[i][id]
+                        }
+                        else if (id === "yellowColor") {
+                            adjust["yellow"] = colors[i][id]["value"] / 100;
+                        }
+                        else {
+                            adjust[id] = colors[i][id]["value"] / 100;
+                        }
+                    }
+
+                    sc[name] = adjust;
+                }
+
+                c.getLayer(layerName).selectiveColor(relative, sc);
+            }
+            else if (type === "COLORBALANCE") {
+                var adjustment = metadata[layerName]["COLORBALANCE"];
+
+                c.getLayer(layerName).colorBalance(adjustment["preserveLuminosity"], adjustment["shadowLevels"][0] / 100,
+                    adjustment["shadowLevels"][1] / 100, adjustment["shadowLevels"][2] / 100,
+                    adjustment["midtoneLevels"][0] / 100, adjustment["midtoneLevels"][1] / 100, adjustment["midtoneLevels"][2] / 100,
+                    adjustment["highlightLevels"][0] / 100, adjustment["highlightLevels"][1] / 100, adjustment["highlightLevels"][2] / 100);
+            }
+            else if (type === "PHOTOFILTER") {
+                var adjustment = metadata[layerName]["PHOTOFILTER"];
+                var color = adjustment["color"];
+
+                var dat = { "preserveLuma" : adjustment["preserveLuminosity"], "density" : adjustment["density"] / 100 };
+
+                if ("luminance" in color) {
+                    dat["luminance"] = color["luminance"];
+                    dat["a"] = color["a"];
+                    dat["b"] = color["b"];
+                }
+                else if ("hue" in color) {
+                    dat["hue"] = color["hue"]["value"];
+                    dat["saturation"] = color["saturation"];
+                    dat["brightness"] = color["brightness"];
+                }
+
+                c.getLayer(layerName).photoFilter(dat);
+            }
         }
 
         // update properties
@@ -627,8 +784,9 @@ function loadLayers(data, path) {
         else {
             movebg = true;
         }
-    }
 
+        console.log("Added layer " + layerName);
+    }
 
     if (movebg) {
         order.unshift("Background");
@@ -766,6 +924,46 @@ function handlePhotoFilterParamChange(layerName, ui) {
 
     // find associated value box and dump the value there
     $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleColorizeParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "red") {
+        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "r", ui.value);
+    }
+    else if (paramName === "green") {
+        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "g", ui.value);
+    }
+    else if (paramName === "blue") {
+        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "b", ui.value);
+    }
+    else if (paramName === "alpha") {
+        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "a", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleLighterColorizeParamChange(layerName, ui) {
+     var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "red") {
+        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "r", ui.value);
+    }
+    else if (paramName === "green") {
+        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "g", ui.value);
+    }
+    else if (paramName === "blue") {
+        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "b", ui.value);
+    }
+    else if (paramName === "alpha") {
+        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "a", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));   
 }
 
 function deleteAllControls() {

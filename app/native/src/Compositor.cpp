@@ -321,6 +321,16 @@ namespace Comp {
           compPx[i * 4 + 1] = cvt(lighten(ga, gb, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(lighten(ba, bb, aa, ab), ad);
         }
+        else if (l._mode == BlendMode::DARKEN) {
+          compPx[i * 4] = cvt(darken(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(darken(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(darken(ba, bb, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::PIN_LIGHT) {
+          compPx[i * 4] = cvt(pinLight(ra, rb, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(pinLight(ga, gb, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(pinLight(ba, bb, aa, ab), ad);
+        }
       }
 
       // adjustment layer clean up, if applicable
@@ -590,6 +600,29 @@ namespace Comp {
     }
     else {
       return Dca + Sca * (1 - Da);
+    }
+  }
+
+  inline float Compositor::darken(float Dca, float Sca, float Da, float Sa)
+  {
+    if (Sca > Dca) {
+      return Dca + Sca * (1 - Da);
+    }
+    else {
+      return Sca + Dca * (1 - Sa);
+    }
+  }
+
+  inline float Compositor::pinLight(float Dca, float Sca, float Da, float Sa)
+  {
+    if (Da == 0)
+      return Sca;
+
+    if (Sca < 0.5f) {
+      return darken(Dca, Sca * 2, Da, Sa);
+    }
+    else {
+      return lighten(Dca, 2 * (Sca - 0.5), Da, Sa);
     }
   }
 

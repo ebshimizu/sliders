@@ -99,6 +99,8 @@ namespace Comp {
     inline float linearLight(float Dc, float Sc, float Da, float Sa);
     inline RGBColor color(RGBColor& dest, RGBColor& src, float Da, float Sa);
     inline float lighten(float Dca, float Sca, float Da, float Sa);
+    inline float darken(float Dca, float Sca, float Da, float Sa);
+    inline float pinLight(float Dca, float Sca, float Da, float Sa);
 
     void adjust(Image* adjLayer, Layer& l);
 

@@ -22,7 +22,9 @@ const blendModes = {
     "BlendMode.LINEARBURN" : 8,
     "BlendMode.LINEARLIGHT" : 9,
     "BlendMode.COLOR" : 10,
-    "BlendMode.LIGHTEN" : 11
+    "BlendMode.LIGHTEN" : 11,
+    "BlendMode.DARKEN" : 12,
+    "BlendMode.PINLIGHT" : 13
 }
 
 const adjType = {
@@ -409,6 +411,8 @@ function genBlendModeMenu(name) {
     menu += '<div class="item" data-value="9">Linear Light</div>'
     menu += '<div class="item" data-value="10">Color</div>'
     menu += '<div class="item" data-value="11">Lighten</div>'
+    menu += '<div class="item" data-value="12">Darken</div>'
+    menu += '<div class="item" data-value="13">Pin Light</div>'
     menu += '</div>'
     menu += '</div>'
 

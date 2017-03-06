@@ -55,7 +55,7 @@ body {
 }
 
 #layerControls .layer .parameter .paramLabel {
-	width: 15%;
+	width: 20%;
 	text-align: center;
 	vertical-align: middle;
 	display: block;
@@ -82,10 +82,10 @@ body {
 }
 
 #layerControls .layer .parameter .paramSlider {
-	width: 65%;
+	width: 60%;
 	display: inline-block;
 	position: absolute;
-	left: 17%;
+	left: 24%;
 	height: 10px;
 	top: 10px;
 }
@@ -156,4 +156,8 @@ body {
 	padding: 10px;
 	background-color: #cdcdcd;
 	border-radius: 3px;
+}
+
+.layer .divider {
+	cursor: pointer;
 }

@@ -148,27 +148,19 @@ function createLayerControl(name, pre, kind) {
 
         if (type === 0) {
             // hue sat
-            html += createLayerParam(name, "hue");
-            html += createLayerParam(name, "saturation");
-            html += createLayerParam(name, "lightness");
+            html += createParamSection(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
         }
         else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
-            html += createLayerParam(name, "inMin");
-            html += createLayerParam(name, "inMax");
-            html += createLayerParam(name, "gamma");
-            html += createLayerParam(name, "outMin");
-            html += createLayerParam(name, "outMax");
+            html += createParamSection(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
         }
         else if (type === 2) {
             // curves
         }
         else if (type === 3) {
             // exposure
-            html += createLayerParam(name, "exposure");
-            html += createLayerParam(name, "offset");
-            html += createLayerParam(name, "gamma");
+            html += createParamSection(name, "Exposure", ["exposure", "offset", "gamma"]);
         }
         else if (type === 4) {
             // gradient
@@ -178,37 +170,21 @@ function createLayerControl(name, pre, kind) {
         }
         else if (type === 6) {
             // color balance
-            html += createLayerParam(name, "shadow R");
-            html += createLayerParam(name, "shadow G");
-            html += createLayerParam(name, "shadow B");
-            html += createLayerParam(name, "mid R");
-            html += createLayerParam(name, "mid G");
-            html += createLayerParam(name, "mid B");
-            html += createLayerParam(name, "highlight R");
-            html += createLayerParam(name, "highlight G");
-            html += createLayerParam(name, "highlight B");
+            html += createParamSection(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
         }
         else if (type === 7) {
             // photo filter
-            html += createLayerParam(name, "red");
-            html += createLayerParam(name, "green");
-            html += createLayerParam(name, "blue");
-            html += createLayerParam(name, "density");
+            html += createParamSection(name, "Photo Filter", ["red", "green", "blue", "density"]);
         }
         else if (type === 8) {
             // colorize
-            html += createLayerParam(name, "red");
-            html += createLayerParam(name, "green");
-            html += createLayerParam(name, "blue");
-            html += createLayerParam(name, "alpha");
+            html += createParamSection(name, "Colorize", ["red", "green", "blue", "alpha"]);
+
         }
         else if (type === 9) {
             // lighter colorize
-            // not name conflicts with previous params
-            html += createLayerParam(name, "red");
-            html += createLayerParam(name, "green");
-            html += createLayerParam(name, "blue");
-            html += createLayerParam(name, "alpha");
+            // note name conflicts with previous params
+            html += createParamSection(name, "Lighter Colorize", ["red", "green", "blue", "alpha"]);
         }
     }
 
@@ -223,6 +199,7 @@ function createLayerControl(name, pre, kind) {
 
     // connect events
     bindStandardEvents(name, layer);
+    bindSectionEvents(name, layer);
 
     // param events
     for (var i = 0; i < adjustments.length; i++) {
@@ -311,6 +288,14 @@ function bindStandardEvents(name, layer) {
     $('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
 
     bindLayerParamControl(name, layer, "opacity", layer.opacity(), { "uiHandler" : handleParamChange });
+}
+
+function bindSectionEvents(name, layer) {
+    // simple hide function for sections
+    $('.layer[layerName="' + name + '"] .divider').click(function() {
+        var section = $(this).html();
+        $(this).siblings('.paramSection[sectionName="' + section + '"]').transition('fade down');
+    });
 }
 
 function bindHSLEvents(name, layer) {
@@ -464,6 +449,19 @@ function createLayerParam(layerName, param) {
     html += '</div>'
 
     return html
+}
+
+function createParamSection(layerName, sectionName, params) {
+    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
+    html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+
+    for (var i = 0; i < params.length; i++) {
+        html += createLayerParam(layerName, params[i]);
+    }
+
+    html += '</div>';
+
+    return html;
 }
 
 function genBlendModeMenu(name) {

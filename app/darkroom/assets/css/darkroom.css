@@ -161,3 +161,29 @@ body {
 .layer .divider {
 	cursor: pointer;
 }
+
+#layerControls .layerSet {
+    border-left: 4px solid #e8e8e8;
+    position: relative;
+    padding-top: 28px;
+}
+
+#layerControls .layerSet .setName {
+    display: block;
+    height: 2em;
+    padding: 0.25em 0em;
+    background-color: #e8e8e8;
+    color: rgba(0,0,0,.6);
+    font-weight: 700;
+    margin-bottom: 3px;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 2px;
+    font-size: 10pt;
+    cursor: pointer;
+}
+
+#layerControls .layerSet .setName.ui.header .icon:only-child {
+	margin-right: 0;
+}

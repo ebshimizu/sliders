@@ -113,6 +113,190 @@ function initGlobals() {
     g_renderSize = "full";
 }
 
+// Inserts a layer into the hierarchy. Later, this hierarchy will be used
+// to create the proper groups and html elements for those groups in the interface
+function insertLayerElem(name, doc) {
+    var layer = c.getLayer(name)
+
+    // controls are created based on what adjustments each layer has
+    // create the html
+    var html = '<div class="layer" layerName="' + name + '">'
+    html += '<h3 class="ui grey inverted header">' + name + '</h3>'
+
+    if (layer.visible()) {
+        html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">'
+        html += '<i class="unhide icon"></i>'
+    }
+    else {
+        html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">'
+        html += '<i class="hide icon"></i>'
+    }
+
+    html += '</button>'
+
+    // blend mode options
+    html += genBlendModeMenu(name)
+
+    // generate parameters
+    html += createLayerParam(name, "opacity")
+
+    // separate handlers for each adjustment type
+    var adjustments = layer.getAdjustments();
+
+    for (var i = 0; i < adjustments.length; i++) {
+        var type = adjustments[i];
+
+        if (type === 0) {
+            // hue sat
+            html += createParamSection(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
+        }
+        else if (type === 1) {
+            // levels
+            // TODO: Turn some of these into range sliders
+            html += createParamSection(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
+        }
+        else if (type === 2) {
+            // curves
+        }
+        else if (type === 3) {
+            // exposure
+            html += createParamSection(name, "Exposure", ["exposure", "offset", "gamma"]);
+        }
+        else if (type === 4) {
+            // gradient
+        }
+        else if (type === 5) {
+            // selective color
+        }
+        else if (type === 6) {
+            // color balance
+            html += createParamSection(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
+        }
+        else if (type === 7) {
+            // photo filter
+            html += createParamSection(name, "Photo Filter", ["red", "green", "blue", "density"]);
+        }
+        else if (type === 8) {
+            // colorize
+            html += createParamSection(name, "Colorize", ["red", "green", "blue", "alpha"]);
+
+        }
+        else if (type === 9) {
+            // lighter colorize
+            // note name conflicts with previous params
+            html += createParamSection(name, "Lighter Colorize", ["red", "green", "blue", "alpha"]);
+        }
+    }
+
+    html += '</div>'
+
+    // place the html element in the proper location in the heirarchy.
+    // basically we actually have an element placeholder already in the heirarchy, and just need to insert the
+    // html in the proper position so that when we eventually iterate through it, we can just drop the html
+    // in the proper position.
+    placeLayer(name, html, doc);
+}
+
+function placeLayer(name, html, doc) {
+    if (typeof(doc) !== "object")
+        return;
+
+    for (var key in doc) {
+        if (key === name) {
+            doc[key]["html"] = html;
+            return;
+        }
+        else {
+            // everything in doc is an object, check it
+            placeLayer(name, html, doc[key]);
+        }
+    }
+}
+
+function generateControlHTML(doc, order, setName = "") {
+    // place the controls generated earlier. iterate through doc adding proper section dividers.
+    var html = '';
+
+    if (setName !== "") {
+        html += '<div class="layerSet">'
+        html += '<h4 class="setName ui header"><i class="caret down icon"></i>' + setName + "</h4>";
+    }
+
+    // place layers
+    for (var key in doc) {
+        if (!("html" in doc[key])) {
+            // element is a set
+            html += generateControlHTML(doc[key], order, key);
+        }
+        else {
+            html += doc[key]["html"]
+            order.unshift(key);
+        }
+    }
+
+    html += '</div>'
+    
+    return html;
+}
+
+function bindLayerEvents(name) {
+    var layer = c.getLayer(name);
+
+    // connect events
+    bindStandardEvents(name, layer);
+    bindSectionEvents(name, layer);
+
+    var adjustments = layer.getAdjustments();
+
+    // param events
+    for (var i = 0; i < adjustments.length; i++) {
+        var type = adjustments[i];
+
+        if (type === 0) {
+            // hue sat
+            bindHSLEvents(name, "Hue/Saturation", layer);
+        }
+        else if (type === 1) {
+            // levels
+            // TODO: Turn some of these into range sliders
+            bindLevelsEvents(name, "Levels", layer);
+        }
+        else if (type === 2) {
+            // curves
+            // TODO: CONTROLS
+        }
+        else if (type === 3) {
+            // exposure
+            bindExposureEvents(name, "Exposure", layer);
+        }
+        else if (type === 4) {
+            // gradient
+            // TODO: CONTROLS
+        }
+        else if (type === 5) {
+            // selective color
+            // TODO: CONTROLS
+        }
+        else if (type === 6) {
+            // color balance
+            bindColorBalanceEvents(name, "Color Balance", layer);
+        }
+        else if (type === 7) {
+            // photo filter
+            bindPhotoFilterEvents(name, "Photo Filter", layer);
+        }
+        else if (type === 8) {
+            // colorize
+            bindColorizeEvents(name, "Colorize", layer);
+        }
+        else if (type === 9) {
+            // lighter colorize
+            // not name conflicts with previous params
+            bindLighterColorizeEvents(name, "Lighter Colorize", layer);
+        }
+    }
+}
+
 function createLayerControl(name, pre, kind) {
     var controls = $('#layerControls')
     var layer = c.getLayer(name)
@@ -207,12 +391,12 @@ function createLayerControl(name, pre, kind) {
 
         if (type === 0) {
             // hue sat
-            bindHSLEvents(name, layer);
+            bindHSLEvents(name, "Hue/Saturation", layer);
         }
         else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
-            bindLevelsEvents(name, layer);
+            bindLevelsEvents(name, "Levels", layer);
         }
         else if (type === 2) {
             // curves
@@ -220,7 +404,7 @@ function createLayerControl(name, pre, kind) {
         }
         else if (type === 3) {
             // exposure
-            bindExposureEvents(name, layer);
+            bindExposureEvents(name, "Exposure", layer);
         }
         else if (type === 4) {
             // gradient
@@ -232,20 +416,20 @@ function createLayerControl(name, pre, kind) {
         }
         else if (type === 6) {
             // color balance
-            bindColorBalanceEvents(name, layer);
+            bindColorBalanceEvents(name, "Color Balance", layer);
         }
         else if (type === 7) {
             // photo filter
-            bindPhotoFilterEvents(name, layer);
+            bindPhotoFilterEvents(name, "Photo Filter", layer);
         }
         else if (type === 8) {
             // colorize
-            bindColorizeEvents(name, layer);
+            bindColorizeEvents(name, "Colorize", layer);
         }
         else if (type === 9) {
             // lighter colorize
             // not name conflicts with previous params
-            bindLighterColorizeEvents(name, layer);
+            bindLighterColorizeEvents(name, "Lighter Colorize", layer);
         }
     }
 }
@@ -287,7 +471,7 @@ function bindStandardEvents(name, layer) {
 
     $('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
 
-    bindLayerParamControl(name, layer, "opacity", layer.opacity(), { "uiHandler" : handleParamChange });
+    bindLayerParamControl(name, layer, "opacity", layer.opacity(), "", { "uiHandler" : handleParamChange });
 }
 
 function bindSectionEvents(name, layer) {
@@ -298,96 +482,105 @@ function bindSectionEvents(name, layer) {
     });
 }
 
-function bindHSLEvents(name, layer) {
-    bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType["HSL"])["hue"],
+function bindHSLEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType["HSL"])["hue"], sectionName,
         { "range" : false, "max" : 180, "min" : -180, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType["HSL"])["sat"],
+    bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType["HSL"])["sat"], sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType["HSL"])["light"],
+    bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType["HSL"])["light"], sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
 }
 
-function bindLevelsEvents(name, layer) {
-    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType["LEVELS"])["inMin"],
+function bindLevelsEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType["LEVELS"])["inMin"], sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType["LEVELS"])["inMax"],
+    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType["LEVELS"])["inMax"], sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["LEVELS"])["gamma"],
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["LEVELS"])["gamma"], sectionName,
         { "range" : false, "max" : 10, "min" : 0, "step" : 0.01, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType["LEVELS"])["outMin"],
+    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType["LEVELS"])["outMin"], sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"],
+    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"], sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
 }
 
-function bindExposureEvents(name, layer) {
-    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType["EXPOSURE"])["exposure"],
+function bindExposureEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType["EXPOSURE"])["exposure"], sectionName,
         { "range" : false, "max" : 20, "min" : -20, "step" : 0.1, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType["EXPOSURE"])["offset"],
+    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType["EXPOSURE"])["offset"], sectionName,
         { "range" : false, "max" : 0.5, "min" : -0.5, "step" : 0.01, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["EXPOSURE"])["gamma"],
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["EXPOSURE"])["gamma"], sectionName,
         { "range" : false, "max" : 9.99, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
 }
 
-function bindColorBalanceEvents(name, layer) {
-    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowR"],
+function bindColorBalanceEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowR"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowG"],
+    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowG"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowB"],
+    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowB"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType["COLOR_BALANCE"])["midR"],
+    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType["COLOR_BALANCE"])["midR"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType["COLOR_BALANCE"])["midG"],
+    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType["COLOR_BALANCE"])["midG"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType["COLOR_BALANCE"])["midB"],
+    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType["COLOR_BALANCE"])["midB"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType["COLOR_BALANCE"])["highR"],
+    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType["COLOR_BALANCE"])["highR"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType["COLOR_BALANCE"])["highG"],
+    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType["COLOR_BALANCE"])["highG"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"],
+    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
     // preserve luma?
 }
 
-function bindPhotoFilterEvents(name, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"],
+function bindPhotoFilterEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"],
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"],
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"],
+    bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     // preserve luma?
 }
 
-function bindColorizeEvents(name, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"],
+function bindColorizeEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"],
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"],
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["COLORIZE"])["a"],
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["COLORIZE"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
 }
 
-function bindLighterColorizeEvents(name, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["r"],
+function bindLighterColorizeEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["r"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["g"],
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["g"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["b"],
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["b"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"],
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
 }
 
-function bindLayerParamControl(name, layer, paramName, initVal, settings = {}) {
-    var s = '.paramSlider[layerName="' + name + '"][paramName="' + paramName +  '"]';
-    var i = '.paramInput[layerName="' + name + '"][paramName="' + paramName +  '"] input';
+function bindLayerParamControl(name, layer, paramName, initVal, sectionName, settings = {}) {
+    var s, i;
+
+    if (sectionName !== "") {
+        s = 'div[sectionName="' + sectionName +'"] .paramSlider[layerName="' + name + '"][paramName="' + paramName +  '"]';
+        i = 'div[sectionName="' + sectionName +'"] .paramInput[layerName="' + name + '"][paramName="' + paramName +  '"] input';
+    }
+    else {
+        s = '.paramSlider[layerName="' + name + '"][paramName="' + paramName +  '"]';
+        i = '.paramInput[layerName="' + name + '"][paramName="' + paramName +  '"] input';
+    }
+
 
     // defaults
     if (!("range" in settings)) {
@@ -533,12 +726,14 @@ function openLayers(file, folder) {
     }); 
 }
 
-function loadLayers(data, path) {
+function loadLayers(doc, path) {
     // create new compositor object
     deleteAllControls();
     c = new comp.Compositor();
     var order = [];
     var movebg = false
+    var data = doc["layers"]
+    var sets = doc["sets"]
 
     // the import function should be rewritten as follows:
     // - group information should be obtained in a first pass.
@@ -699,7 +894,7 @@ function loadLayers(data, path) {
             else if (type === "GRADIENTMAP") {
                 var adjustment = metadata[layerName]["GRADIENTMAP"];
 
-                var colors = adjustment["colors"];
+                var colors = adjustment["gradient"]["colors"];
                 var pts = []
                 var gc = []
                 var stops = adjustment["interfaceIconFrameDimmed"];
@@ -780,24 +975,22 @@ function loadLayers(data, path) {
         cLayer.opacity(layer["opacity"]);
         cLayer.visible(layer["visible"]);
 
-        // photoshop exports layers top-down, the compositor adds layers bottom-up
-        // track the actual order layers should be in here. order[0] is the bottom.
-        if (layerName !== "Background") {
-            order.unshift(layerName);
-            createLayerControl(layerName, false, layer["kind"]);
-        }
-        else {
-            movebg = true;
-        }
+        insertLayerElem(layerName, sets);
+        //createLayerControl(layerName, false, layer["kind"]);
 
         console.log("Added layer " + layerName);
     }
 
-    if (movebg) {
-        order.unshift("Background");
-        createLayerControl("Background", false, "LayerKind.NORMAL");
+    // render to page
+    var layerData = generateControlHTML(sets, order);
+    $('#layerControls').html(layerData);
+
+    // bind events
+    for (var i = 0; i < order.length; i++) {
+        bindLayerEvents(order[i]);
     }
 
+    // update internal structure
     c.setLayerOrder(order);
     renderImage();
 }

@@ -71,6 +71,20 @@ function getAllArtLayers(layers) {
     return ret
 }
 
+// returns the layer set heirarchy
+function getSetHeirarchy(layers) {
+    var ret = {};
+
+    if (layers.typename === "ArtLayer")
+        return ret;
+    
+    for (var i = 0; i < layers.layers.length; i++) {
+        ret[layers.layers[i].name] = getSetHeirarchy(layers.layers[i]);
+    }
+
+    return ret;
+}
+
 function turnOnParents(obj) {
 	if (obj.parent) {
 		obj.parent.visible = true
@@ -635,10 +649,12 @@ for (var i = 0; i < layers.length; i++) {
 statusText.text = "Exporting layer info"
 progress.value = 100
 
+var obj = { 'layers' : metadata, 'sets' : getSetHeirarchy(doc) }
+
 // save metadata file
 var metaFile = new File(outDir.absoluteURI + "/" + doc.name + ".json")
 metaFile.open('w')
-metaFile.write(JSON.stringify(metadata, null, 2))
+metaFile.write(JSON.stringify(obj, null, 2))
 metaFile.close()
 
 progressWindow.hide()

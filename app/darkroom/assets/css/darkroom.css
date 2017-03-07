@@ -165,7 +165,7 @@ body {
 #layerControls .layerSet {
     border-left: 4px solid #e8e8e8;
     position: relative;
-    padding-top: 28px;
+    padding-top: 26px;
 }
 
 #layerControls .layerSet .setName {
@@ -182,6 +182,7 @@ body {
     top: 2px;
     font-size: 10pt;
     cursor: pointer;
+    border-bottom: 2px solid #1b1c1d;
 }
 
 #layerControls .layerSet .setName.ui.header .icon:only-child {

@@ -220,6 +220,7 @@ function generateControlHTML(doc, order, setName = "") {
     if (setName !== "") {
         html += '<div class="layerSet">'
         html += '<h4 class="setName ui header"><i class="caret down icon"></i>' + setName + "</h4>";
+        html += '<div class="layerSetContainer">'
     }
 
     // place layers
@@ -234,9 +235,30 @@ function generateControlHTML(doc, order, setName = "") {
         }
     }
 
-    html += '</div>'
+    html += '</div></div>'
     
     return html;
+}
+
+function bindGlobalEvents() {
+    // group controls
+    $('.setName').click(function() {
+        // collapse first child
+        $(this).next('.layerSetContainer').toggle();
+
+        // change icon
+        var icon = $(this).find('i');
+        if (icon.hasClass("down")) {
+            // we are closing
+            icon.removeClass("down");
+            icon.addClass("right");
+        }
+        else {
+            // we are opening
+            icon.removeClass("right");
+            icon.addClass("down");
+        }
+    });
 }
 
 function bindLayerEvents(name) {
@@ -247,143 +269,6 @@ function bindLayerEvents(name) {
     bindSectionEvents(name, layer);
 
     var adjustments = layer.getAdjustments();
-
-    // param events
-    for (var i = 0; i < adjustments.length; i++) {
-        var type = adjustments[i];
-
-        if (type === 0) {
-            // hue sat
-            bindHSLEvents(name, "Hue/Saturation", layer);
-        }
-        else if (type === 1) {
-            // levels
-            // TODO: Turn some of these into range sliders
-            bindLevelsEvents(name, "Levels", layer);
-        }
-        else if (type === 2) {
-            // curves
-            // TODO: CONTROLS
-        }
-        else if (type === 3) {
-            // exposure
-            bindExposureEvents(name, "Exposure", layer);
-        }
-        else if (type === 4) {
-            // gradient
-            // TODO: CONTROLS
-        }
-        else if (type === 5) {
-            // selective color
-            // TODO: CONTROLS
-        }
-        else if (type === 6) {
-            // color balance
-            bindColorBalanceEvents(name, "Color Balance", layer);
-        }
-        else if (type === 7) {
-            // photo filter
-            bindPhotoFilterEvents(name, "Photo Filter", layer);
-        }
-        else if (type === 8) {
-            // colorize
-            bindColorizeEvents(name, "Colorize", layer);
-        }
-        else if (type === 9) {
-            // lighter colorize
-            // not name conflicts with previous params
-            bindLighterColorizeEvents(name, "Lighter Colorize", layer);
-        }
-    }
-}
-
-function createLayerControl(name, pre, kind) {
-    var controls = $('#layerControls')
-    var layer = c.getLayer(name)
-
-    // controls are created based on what adjustments each layer has
-
-    // create the html
-    var html = '<div class="layer" layerName="' + name + '">'
-    html += '<h3 class="ui grey inverted header">' + name + '</h3>'
-
-    if (layer.visible()) {
-        html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">'
-        html += '<i class="unhide icon"></i>'
-    }
-    else {
-        html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">'
-        html += '<i class="hide icon"></i>'
-    }
-
-    html += '</button>'
-
-    // blend mode options
-    html += genBlendModeMenu(name)
-
-    // generate parameters
-    html += createLayerParam(name, "opacity")
-
-    // separate handlers for each adjustment type
-    var adjustments = layer.getAdjustments();
-
-    for (var i = 0; i < adjustments.length; i++) {
-        var type = adjustments[i];
-
-        if (type === 0) {
-            // hue sat
-            html += createParamSection(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
-        }
-        else if (type === 1) {
-            // levels
-            // TODO: Turn some of these into range sliders
-            html += createParamSection(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
-        }
-        else if (type === 2) {
-            // curves
-        }
-        else if (type === 3) {
-            // exposure
-            html += createParamSection(name, "Exposure", ["exposure", "offset", "gamma"]);
-        }
-        else if (type === 4) {
-            // gradient
-        }
-        else if (type === 5) {
-            // selective color
-        }
-        else if (type === 6) {
-            // color balance
-            html += createParamSection(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
-        }
-        else if (type === 7) {
-            // photo filter
-            html += createParamSection(name, "Photo Filter", ["red", "green", "blue", "density"]);
-        }
-        else if (type === 8) {
-            // colorize
-            html += createParamSection(name, "Colorize", ["red", "green", "blue", "alpha"]);
-
-        }
-        else if (type === 9) {
-            // lighter colorize
-            // note name conflicts with previous params
-            html += createParamSection(name, "Lighter Colorize", ["red", "green", "blue", "alpha"]);
-        }
-    }
-
-    html += '</div>'
-
-    if (pre) {
-        controls.prepend(html)
-    }
-    else {
-        controls.append(html);
-    }
-
-    // connect events
-    bindStandardEvents(name, layer);
-    bindSectionEvents(name, layer);
 
     // param events
     for (var i = 0; i < adjustments.length; i++) {
@@ -989,6 +874,7 @@ function loadLayers(doc, path) {
     for (var i = 0; i < order.length; i++) {
         bindLayerEvents(order[i]);
     }
+    bindGlobalEvents();
 
     // update internal structure
     c.setLayerOrder(order);

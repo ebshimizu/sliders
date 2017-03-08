@@ -6,6 +6,7 @@ comp.setLogLevel(1)
 
 // initializes a global compositor object to operate on
 var c = new comp.Compositor()
+var docTree, modifiers;
 
 // global settings vars
 var g_renderSize;
@@ -219,8 +220,19 @@ function generateControlHTML(doc, order, setName = "") {
 
     if (setName !== "") {
         html += '<div class="layerSet">'
-        html += '<h4 class="setName ui header"><i class="caret down icon"></i>' + setName + "</h4>";
+        html += '<div class="setName ui header"><i class="caret down icon"></i>' + setName + "</div>";
+
+        html += '<button class="ui icon button mini white groupButton" setName="' + setName + '">'
+        html += '<i class="unhide icon"></i>'
+        html += '</button>'
+
         html += '<div class="layerSetContainer">'
+        html += '<div class="parameter" setName="' + setName + '" paramName="opacity">'
+
+        html += '<div class="paramLabel">Group Opacity</div>'
+        html += '<div class="paramSlider groupSlider" setName="' + setName + '" paramName="opacity"></div>'
+        html += '<div class="paramInput groupInput ui inverted transparent input" setName="' + setName + '" paramName="opacity"><input type="text"></div>'
+        html += '</div>'
     }
 
     // place layers
@@ -244,7 +256,7 @@ function bindGlobalEvents() {
     // group controls
     $('.setName').click(function() {
         // collapse first child
-        $(this).next('.layerSetContainer').toggle();
+        $(this).next().next('.layerSetContainer').toggle();
 
         // change icon
         var icon = $(this).find('i');
@@ -258,6 +270,63 @@ function bindGlobalEvents() {
             icon.removeClass("right");
             icon.addClass("down");
         }
+    });
+
+    // group visibility
+    $('.layerSet .groupButton').click(function() {
+        // get group name
+        var group = $(this).attr("setName");
+
+        // toggle shadow doc visibility
+        var visible = toggleGroupVisibility(group, docTree);
+
+        if (visible) {
+            $(this).html('<i class="unhide icon"></i>')
+            $(this).removeClass("black")
+            $(this).addClass("white")
+        }
+        else {
+            $(this).html('<i class="hide icon"></i>')
+            $(this).removeClass("white")
+            $(this).addClass("black")
+        }
+
+        renderImage();
+    });
+
+    // group opacity
+    $('.groupSlider').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 100,
+        min: 0,
+        step: 0.1,
+        value: 100,
+        stop: function(event, ui) {
+            groupOpacityChange($(this).attr("setName"), ui.value, docTree);
+            renderImage()
+        },
+        slide: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
+        change: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
+    });
+
+    $('.groupInput input').val("100");
+
+    // input box events
+    $('.groupInput input').blur(function() {
+        var data = parseFloat($(this).val());
+        var group = $(this).attr("setName");
+        $('.groupSlider[setName="' + group + '"]').slider("value", data);
+        renderImage();
+    });
+    $('.groupInput input').keydown(function(event) {
+        if (event.which != 13)
+            return;
+
+        var data = parseFloat($(this).val());
+        var group = $(this).attr("setName");
+        $('.groupSlider[setName="' + group + '"]').slider("value", data);
+        renderImage();
     });
 }
 
@@ -325,11 +394,12 @@ function bindStandardEvents(name, layer) {
         // check status of button
         var visible = layer.visible()
 
-        layer.visible(!visible)
+        layer.visible(!visible && modifiers[name]["groupVisible"]);
+        modifiers[name]["visible"] = !visible;
 
         var button = $('button[layerName="' + name + '"]')
         
-        if (layer.visible()) {
+        if (modifiers[name]["visible"]) {
             button.html('<i class="unhide icon"></i>')
             button.removeClass("black")
             button.addClass("white")
@@ -566,6 +636,19 @@ function genBlendModeMenu(name) {
     menu += '</div>'
 
     return menu
+}
+
+function createShadowState(tree, order) {
+    // just keep the entire loaded tree it's easier
+    // it will have html but eh who cares
+    docTree = tree;
+    modifiers = {};
+
+    // populate modifiers
+    for (var i = 0; i < order.length; i++) {
+        var layer = c.getLayer(order[i])
+        modifiers[order[i]] = { 'groupOpacity' : 1, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
+    }
 }
 
 /*===========================================================================*/
@@ -876,6 +959,9 @@ function loadLayers(doc, path) {
     }
     bindGlobalEvents();
 
+    // save group visibility info and individual layer transparency modifiers here
+    createShadowState(sets, order);
+
     // update internal structure
     c.setLayerOrder(order);
     renderImage();
@@ -890,7 +976,10 @@ function handleParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName")
 
     if (paramName == "opacity") {
-        c.getLayer(layerName).opacity(ui.value);
+        // update the modifiers and compute acutual value
+        modifiers[layerName]["opacity"] = ui.value;
+
+        c.getLayer(layerName).opacity(ui.value * (modifiers[layerName]["groupOpacity"] / 100));
 
         // find associated value box and dump the value there
         $(ui.handle).parent().next().find("input").val(String(ui.value));
@@ -1053,6 +1142,110 @@ function handleLighterColorizeParamChange(layerName, ui) {
 function deleteAllControls() {
     // may need to unlink callbacks
     $('#layerControls').html('')
+}
+
+function toggleGroupVisibility(group, doc) {
+    // find the group and then set children
+    if (typeof(doc) !== "object")
+        return;
+
+    if (group in doc) {
+        // if the visibility key doesn't exist, the group was previous visible, init to that state
+        if (!("visible" in doc[group])) {
+            doc[group]["visible"] = true;
+        }
+
+        doc[group]["visible"] = !doc[group]["visible"];
+        updateChildVisibility(doc[group], doc[group]["visible"]);
+
+        // groups are unique, once found we're done
+        return doc[group]["visible"];
+    }
+
+    var ret;
+    for (var key in doc) {
+        // still looking for the group
+        var val = toggleGroupVisibility(group, doc[key]);
+
+        if (typeof(val) === 'boolean') {
+            ret = val;
+        }
+    }
+    return ret;
+}
+
+function updateChildVisibility(doc, val) {
+    if (typeof(doc) !== "object")
+        return null;
+
+    for (var key in doc) {
+        if (typeof(doc[key]) !== "object") {
+            continue;
+        }
+
+        if (key in modifiers) {
+            // layer
+            // update group vis setting
+            modifiers[key]["groupVisible"] = val;
+
+            // update the layer state
+            c.getLayer(key).visible(modifiers[key]["groupVisible"] && modifiers[key]["visible"]);
+        }
+        else {
+            // not a layer
+            if (!("visible" in doc[key])) {
+                doc[key]["visible"] = true;
+            }
+
+            updateChildVisibility(doc[key], val && doc[key]["visible"]);
+        }
+    }
+}
+
+function groupOpacityChange(group, val, doc) {
+    // find the group and then set children
+    if (typeof(doc) !== "object")
+        return;
+
+    if (group in doc) {
+        doc[group]["opacity"] = val;
+
+        updateChildOpacity(doc[group], doc[group]["opacity"]);
+
+        // groups are unique, once found we're done
+        $('.groupInput[setName="' + group + '"] input').val(String(val));
+        return;
+    }
+
+    for (var key in doc) {
+        // still looking for the group
+        groupOpacityChange(group, val, doc[key]);
+    }
+}
+
+function updateChildOpacity(doc, val) {
+    for (var key in doc) {
+        if (typeof(doc[key]) !== "object") {
+            continue;
+        }
+
+        if (key in modifiers) {
+            // layer
+            // update group opacity setting
+            modifiers[key]["groupOpacity"] = val;
+
+            // update the layer state
+            c.getLayer(key).opacity((modifiers[key]["groupOpacity"] / 100) * modifiers[key]["opacity"]);
+        }
+        else {
+            // not a layer
+            if (!("opacity" in doc[key])) {
+                doc[key]["opacity"] = 100;
+            }
+
+            updateChildOpacity(doc[key], val * (doc[key]["opacity"] / 100));
+        }
+    }
 }
 
 /*===========================================================================*/

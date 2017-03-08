@@ -7,7 +7,7 @@ body {
 
 #layerContainer {
 	padding: 5px;
-	width: 25%;
+	width: 30%;
 	min-width: 250px;
 	position: absolute;
 	right: 0;
@@ -48,14 +48,14 @@ body {
 	top: 6px;
 }
 
-#layerControls .layer .parameter {
+#layerControls .parameter {
 	height: 30px;
 	position: relative;
 	margin: 0 0 3px 0;
 }
 
-#layerControls .layer .parameter .paramLabel {
-	width: 20%;
+#layerControls .parameter .paramLabel {
+	width: 25%;
 	text-align: center;
 	vertical-align: middle;
 	display: block;
@@ -68,7 +68,7 @@ body {
 	text-transform: capitalize;
 }
 
-#layerControls .layer .parameter .paramInput {
+#layerControls .parameter .paramInput {
 	width: 13%;
 	display: inline-block;
 	position: absolute;
@@ -76,25 +76,25 @@ body {
 	height: 30px;
 }
 
-#layerControls .layer .parameter .paramInput input {
+#layerControls .parameter .paramInput input {
 	height: 100%;
 	text-align: center;
 }
 
-#layerControls .layer .parameter .paramSlider {
-	width: 60%;
+#layerControls .parameter .paramSlider {
+	width: 55%;
 	display: inline-block;
 	position: absolute;
-	left: 24%;
+	left: 29%;
 	height: 10px;
 	top: 10px;
 }
 
-#layerControls .layer .parameter .ui-slider-range {
+#layerControls .parameter .ui-slider-range {
 	background: #FFFFFF;
 }
 
-#layerControls .layer .parameter .ui-slider {
+#layerControls .parameter .ui-slider {
 	background: #000000;
 }
 
@@ -118,7 +118,7 @@ body {
 }
 
 #imageContainer {
-	width: 75%;
+	width: 70%;
 	min-width: 250px;
 	display: block;
 	position: relative;
@@ -165,12 +165,12 @@ body {
 #layerControls .layerSet {
     border-left: 4px solid #e8e8e8;
     position: relative;
-    padding-top: 26px;
+    padding-top: 36px;
 }
 
 #layerControls .layerSet .setName {
     display: block;
-    height: 2em;
+    height: 36px;
     padding: 0.25em 0em;
     background-color: #e8e8e8;
     color: rgba(0,0,0,.6);
@@ -180,11 +180,17 @@ body {
     width: 100%;
     left: 0;
     top: 2px;
-    font-size: 10pt;
+    font-size: 12pt;
     cursor: pointer;
     border-bottom: 2px solid #1b1c1d;
 }
 
 #layerControls .layerSet .setName.ui.header .icon:only-child {
 	margin-right: 0;
+}
+
+.layerSet .ui.icon.button {
+	position: absolute;
+	top: 2px;
+	right: 2px;
 }

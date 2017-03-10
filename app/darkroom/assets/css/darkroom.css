@@ -12,7 +12,6 @@ body {
 	position: absolute;
 	right: 0;
 	top: 0;
-	max-width: 600px;
 	background: #1b1c1d;
 	height: 100%;
 }
@@ -117,10 +116,17 @@ body {
 	top: 0.5em;
 }
 
-#layerControls .layer canvas {
+#layerControls .layer .gradientDisplay canvas {
 	width: 100%;
     height: 45px;
     margin: 10px auto;
+}
+
+#layerControls .layer .curveDisplay canvas {
+    width: 15vw;
+    height: 15vw;
+    margin: 10px auto;
+    display: block;
 }
 
 #imageContainer {

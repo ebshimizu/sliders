@@ -158,6 +158,7 @@ function insertLayerElem(name, doc) {
         }
         else if (type === 2) {
             // curves
+            html += createParamSection(name, "Curves", []);
         }
         else if (type === 3) {
             // exposure
@@ -355,7 +356,7 @@ function bindLayerEvents(name) {
         }
         else if (type === 2) {
             // curves
-            // TODO: CONTROLS
+            updateCurve(name);
         }
         else if (type === 3) {
             // exposure
@@ -606,6 +607,75 @@ function updateGradient(layer) {
     ctx.fillRect(0, 0, canvas.width(), canvas.height());
 }
 
+function updateCurve(layer) {
+    var w = 400;
+    var h = 400;
+
+    var canvas = $('.curveDisplay[layerName="' + layer + '"] canvas');
+    canvas.attr({width:w, height:h});
+    var ctx = canvas[0].getContext("2d");
+    ctx.clearRect(0, 0, w, h);
+    ctx.lineWeight = w / 100;
+
+    // draw lines
+    ctx.strokeStyle = "rgba(255,255,255,0.6)"
+    ctx.strokeRect(0, 0, w, h);
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.25);
+    ctx.lineTo(w, h * 0.25);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.5);
+    ctx.lineTo(w, h * 0.5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.75);
+    ctx.lineTo(w, h * 0.75);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.25, 0);
+    ctx.lineTo(w * 0.25, h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, 0);
+    ctx.lineTo(w * 0.5, h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(w * 0.75, 0);
+    ctx.lineTo(w * 0.75, h);
+    ctx.stroke();
+
+    var l = c.getLayer(layer);
+    var types = ["green", "blue", "red", "RGB"];
+    for (var i = 0; i < types.length; i++) {
+        // set line style
+        strokeStyle = types[i];
+        if (strokeStyle == "RGB") {
+            strokeStyle = "black";
+        }
+        ctx.strokeStyle = strokeStyle;
+        ctx.fillStyle = strokeStyle;
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+
+        // sample the curves and stuff from 0 - 100
+        for (var x = 0; x <= w; x++) {
+            var y = l.evalCurve(types[i], x / w);
+            ctx.lineTo(x, h - y * h);
+        }
+
+        ctx.stroke();
+
+        // draw key points if there are any
+        var curve = l.getCurve(types[i]);
+        for (var j = 0; j < curve.length; j++) {
+            ctx.beginPath();
+            ctx.arc(curve[j]["x"] * w, h - curve[j]["y"] * h, 1.5*(w / 100), 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    }
+}
+
 function createLayerParam(layerName, param) {
     var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">'
 
@@ -628,6 +698,12 @@ function createParamSection(layerName, sectionName, params) {
 
     if (sectionName == "Gradient Map") {
         html += '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+        html += '<canvas></canvas>'
+        html += '</div>'
+    }
+
+    if (sectionName == "Curves") {
+        html += '<div class="curveDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
         html += '<canvas></canvas>'
         html += '</div>'
     }

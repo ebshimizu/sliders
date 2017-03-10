@@ -647,7 +647,7 @@ function createShadowState(tree, order) {
     // populate modifiers
     for (var i = 0; i < order.length; i++) {
         var layer = c.getLayer(order[i])
-        modifiers[order[i]] = { 'groupOpacity' : 1, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
+        modifiers[order[i]] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
     }
 }
 
@@ -865,7 +865,7 @@ function loadLayers(doc, path) {
                 var colors = adjustment["gradient"]["colors"];
                 var pts = []
                 var gc = []
-                var stops = adjustment["interfaceIconFrameDimmed"];
+                var stops = adjustment["gradient"]["interfaceIconFrameDimmed"];
 
                 for (var i = 0; i < colors.length; i++) {
                     pts.push(colors[i]["location"] / stops);

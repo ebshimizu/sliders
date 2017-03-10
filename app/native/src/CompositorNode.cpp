@@ -229,6 +229,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "photoFilter", addPhotoFilter);
   Nan::SetPrototypeMethod(tpl, "colorize", colorize);
   Nan::SetPrototypeMethod(tpl, "lighterColorize", lighterColorize);
+  Nan::SetPrototypeMethod(tpl, "getGradient", getGradient);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -586,6 +587,31 @@ void LayerRef::evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
   rgb->Set(Nan::New("b").ToLocalChecked(), Nan::New(res._b));
 
   info.GetReturnValue().Set(rgb);
+}
+
+void LayerRef::getGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getGradient");
+
+  // construct object. 
+  v8::Local<v8::Array> grad = Nan::New<v8::Array>();
+  Comp::Gradient& g = layer->_layer->getGradient();
+  for (int i = 0; i < g._x.size(); i++) {
+    // construct object
+    v8::Local<v8::Object> pt = Nan::New<v8::Object>();
+    pt->Set(Nan::New("x").ToLocalChecked(), Nan::New(g._x[i]));
+
+    v8::Local<v8::Object> color = Nan::New<v8::Object>();
+    color->Set(Nan::New("r").ToLocalChecked(), Nan::New(g._colors[i]._r));
+    color->Set(Nan::New("g").ToLocalChecked(), Nan::New(g._colors[i]._g));
+    color->Set(Nan::New("b").ToLocalChecked(), Nan::New(g._colors[i]._b));
+
+    pt->Set(Nan::New("color").ToLocalChecked(), color);
+    grad->Set(Nan::New(i), pt);
+  }
+
+  info.GetReturnValue().Set(grad);
 }
 
 void LayerRef::selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info)

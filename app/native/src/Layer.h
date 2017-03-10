@@ -115,6 +115,7 @@ namespace Comp {
     float evalCurve(string channel, float x);
     RGBColor evalGradient(float x);
     map<string, map<string, float>> getSelectiveColor();
+    Gradient& getGradient();
 
   private:
     // initializes default layer settings

@@ -285,6 +285,11 @@ namespace Comp {
     return _selectiveColor;
   }
 
+  Gradient& Layer::getGradient()
+  {
+    return _grad;
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

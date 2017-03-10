@@ -1096,6 +1096,31 @@ function loadLayers(doc, path) {
     renderImage();
 }
 
+// saves the document in an easier to load format
+function save() {
+    var out = {};
+
+    // save the document tree
+    // this will have the html attached to it but that's ok.
+    // can be directly loaded
+    out["docTree"] = docTree;
+    out["modifiers"] = modifiers;
+
+    // layer data
+    var layers = {};
+    var cl = c.getAllLayers();
+    for (var layerName in cl) {
+        var l = cl[layerName];
+        layers[layerName] = {};
+
+        layers[layerName]["opacity"] = l.opacity();
+        layers[layerName]["visible"] = l.visible();
+        layers[layerName]["blendMode"] = l.blendMode();
+        // need the filenames somewhere
+
+        
+    }
+}
 /*===========================================================================*/
 /* UI Callbacks                                                              */
 /*===========================================================================*/

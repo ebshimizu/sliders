@@ -165,6 +165,7 @@ function insertLayerElem(name, doc) {
         }
         else if (type === 4) {
             // gradient
+            html += createParamSection(name, "Gradient Map",[]);
         }
         else if (type === 5) {
             // selective color
@@ -362,7 +363,7 @@ function bindLayerEvents(name) {
         }
         else if (type === 4) {
             // gradient
-            // TODO: CONTROLS
+            updateGradient(name);
         }
         else if (type === 5) {
             // selective color
@@ -587,6 +588,24 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, set
     });  
 }
 
+function updateGradient(layer) {
+    var canvas = $('.gradientDisplay[layerName="' + layer + '"] canvas');
+    canvas.attr({width:canvas.width(),height:canvas.height()});
+    var ctx = canvas[0].getContext("2d");
+    var grad = ctx.createLinearGradient(0, 0, canvas.width(), canvas.height())
+    
+    // get gradient data
+    var g = c.getLayer(layer).getGradient();
+    for (var i = 0; i < g.length; i++) {
+        var color = 'rgb(' + g[i]["color"]["r"] * 255 + "," + g[i]["color"]["g"] * 255 + "," + g[i]["color"]["b"] * 255 + ")";
+
+        grad.addColorStop(g[i]["x"], color)
+    }
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width(), canvas.height());
+}
+
 function createLayerParam(layerName, param) {
     var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">'
 
@@ -605,6 +624,12 @@ function createParamSection(layerName, sectionName, params) {
 
     for (var i = 0; i < params.length; i++) {
         html += createLayerParam(layerName, params[i]);
+    }
+
+    if (sectionName == "Gradient Map") {
+        html += '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+        html += '<canvas></canvas>'
+        html += '</div>'
     }
 
     html += '</div>';

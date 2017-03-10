@@ -230,6 +230,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "colorize", colorize);
   Nan::SetPrototypeMethod(tpl, "lighterColorize", lighterColorize);
   Nan::SetPrototypeMethod(tpl, "getGradient", getGradient);
+  Nan::SetPrototypeMethod(tpl, "overwriteColor", overwriteColor);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -819,6 +820,35 @@ void LayerRef::lighterColorize(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
     // set value
     layer->_layer->addLighterColorAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(),
+      (float)info[2]->NumberValue(), (float)info[3]->NumberValue());
+  }
+}
+
+void LayerRef::overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // check if getting status or not
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.overwriteColor");
+
+  if (info.Length() == 0) {
+    // status
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    map<string, float> adj = layer->_layer->getAdjustment(Comp::AdjustmentType::OVERWRITE_COLOR);
+    ret->Set(Nan::New("r").ToLocalChecked(), Nan::New(adj["r"]));
+    ret->Set(Nan::New("g").ToLocalChecked(), Nan::New(adj["g"]));
+    ret->Set(Nan::New("b").ToLocalChecked(), Nan::New(adj["b"]));
+    ret->Set(Nan::New("a").ToLocalChecked(), Nan::New(adj["a"]));
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    if (!info[0]->IsNumber() || !info[1]->IsNumber() || !info[2]->IsNumber() || !info[3]->IsNumber()) {
+      Nan::ThrowError("overwriteColor(float, float, float, float) argument error.");
+    }
+
+    // set value
+    layer->_layer->addOverwriteColorAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(),
       (float)info[2]->NumberValue(), (float)info[3]->NumberValue());
   }
 }

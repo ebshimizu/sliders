@@ -262,6 +262,14 @@ namespace Comp {
     _adjustments[AdjustmentType::LIGHTER_COLORIZE]["a"] = a;
   }
 
+  void Layer::addOverwriteColorAdjustment(float r, float g, float b, float a)
+  {
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["r"] = r;
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["g"] = g;
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["b"] = b;
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = a;
+  }
+
   float Layer::evalCurve(string channel, float x)
   {
     if (_curves.count(channel) > 0) {

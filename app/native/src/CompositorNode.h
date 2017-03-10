@@ -87,6 +87,7 @@ private:
   static void addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void colorize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void lighterColorize(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

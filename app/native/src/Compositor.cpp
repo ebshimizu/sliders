@@ -667,6 +667,9 @@ namespace Comp {
       else if (type == AdjustmentType::LIGHTER_COLORIZE) {
         lighterColorizeAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::OVERWRITE_COLOR) {
+        overwriteColorAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -1017,6 +1020,27 @@ namespace Comp {
       img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);
       img[i * 4 + 1] = (unsigned char)(clamp(res._g * a + g * (1 - a), 0, 1) * 255);
       img[i * 4 + 2] = (unsigned char)(clamp(res._b * a + b * (1 - a), 0, 1) * 255);
+    }
+  }
+
+  inline void Compositor::overwriteColorAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      float r = img[i * 4] / 255.0f;
+      float g = img[i * 4 + 1] / 255.0f;
+      float b = img[i * 4 + 2] / 255.0f;
+
+      // blend the resulting colors according to alpha
+      img[i * 4] = (unsigned char)(clamp(sr * a + r * (1 - a), 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(sg * a + g * (1 - a), 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(sb * a + b * (1 - a), 0, 1) * 255);
     }
   }
 

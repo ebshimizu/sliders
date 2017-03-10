@@ -40,7 +40,8 @@ namespace Comp {
     COLOR_BALANCE = 6,    // params: RGB shift for dark, mid, light tones (9 total)
     PHOTO_FILTER = 7,     // params: Lab color, density
     COLORIZE = 8,         // special case of a particular action output. Colors a layer based on specified color and alpha like the COLOR blend mode
-    LIGHTER_COLORIZE = 9  // also a special case like colorize but this does the Lighter Color blend mode
+    LIGHTER_COLORIZE = 9, // also a special case like colorize but this does the Lighter Color blend mode
+    OVERWRITE_COLOR = 10  // also a special case. literally just replaces the layer with this solid color
   };
 
   class Layer {
@@ -111,6 +112,7 @@ namespace Comp {
     void addPhotoFilterAdjustment(bool preserveLuma, float r, float g, float b, float d);
     void addColorAdjustment(float r, float g, float b, float a);
     void addLighterColorAdjustment(float r, float g, float b, float a);
+    void addOverwriteColorAdjustment(float r, float g, float b, float a);
 
     float evalCurve(string channel, float x);
     RGBColor evalGradient(float x);

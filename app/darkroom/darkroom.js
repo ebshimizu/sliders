@@ -38,7 +38,8 @@ const adjType = {
     "COLOR_BALANCE" : 6,
     "PHOTO_FILTER" : 7,
     "COLORIZE" : 8,
-    "LIGHTER_COLORIZE" : 9
+    "LIGHTER_COLORIZE" : 9,
+    "OVERWRITE_COLOR" : 10
 }
 
 /*===========================================================================*/
@@ -189,6 +190,9 @@ function insertLayerElem(name, doc) {
             // note name conflicts with previous params
             html += createParamSection(name, "Lighter Colorize", ["red", "green", "blue", "alpha"]);
         }
+        else if (type === 10) {
+            html += createParamSection(name, "Overwrite Color", ["red", "green", "blue", "alpha"]);
+        }
     }
 
     html += '</div>'
@@ -217,6 +221,10 @@ function placeLayer(name, html, doc) {
 }
 
 function generateControlHTML(doc, order, setName = "") {
+    // if the document contains literally nothing skip, it's an empty group
+    if (Object.keys(doc).length === 0)
+        return '';
+
     // place the controls generated earlier. iterate through doc adding proper section dividers.
     var html = '';
 
@@ -387,6 +395,9 @@ function bindLayerEvents(name) {
             // not name conflicts with previous params
             bindLighterColorizeEvents(name, "Lighter Colorize", layer);
         }
+        else if (type === 10) {
+            bindOverwriteColorEvents(name, "Overwrite Color", layer);
+        }
     }
 }
 
@@ -524,6 +535,17 @@ function bindLighterColorizeEvents(name, sectionName, layer) {
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
     bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
+}
+
+function bindOverwriteColorEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["r"], sectionName,
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
+    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["g"], sectionName,
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
+    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["b"], sectionName,
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["a"], sectionName,
+        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, sectionName, settings = {}) {
@@ -887,6 +909,9 @@ function loadLayers(doc, path) {
             else if (layer["blendMode"] === "BlendMode.LIGHTERCOLOR") {
                 metadata[group]["adjustments"].push("LIGHTER_COLORIZE");
             }
+            else if (layer["blendMode"] === "BlendMode.NORMAL") {
+                metadata[group]["adjustments"].push("OVERWRITE_COLOR");
+            }
         }
 
         console.log("Pre-processed layer " + layerName + " of type " + layer["kind"]);
@@ -1035,6 +1060,9 @@ function loadLayers(doc, path) {
             }
             else if (type === "LIGHTER_COLORIZE") {
                 c.getLayer(layerName).lighterColorize(1, 1, 1, 0);
+            }
+            else if (type === "OVERWRITE_COLOR") {
+                c.getLayer(layerName).overwriteColor(1, 1, 1, 0);
             }
         }
 
@@ -1234,6 +1262,26 @@ function handleLighterColorizeParamChange(layerName, ui) {
     }
     else if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "a", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));   
+}
+
+function handleOverwriteColorizeParamChange(layerName, ui) {
+     var paramName = $(ui.handle).parent().attr("paramName")
+
+    if (paramName === "red") {
+        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "r", ui.value);
+    }
+    else if (paramName === "green") {
+        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "g", ui.value);
+    }
+    else if (paramName === "blue") {
+        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "b", ui.value);
+    }
+    else if (paramName === "alpha") {
+        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "a", ui.value);
     }
 
     // find associated value box and dump the value there

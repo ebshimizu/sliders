@@ -567,9 +567,11 @@ void LayerRef::addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
     for (unsigned int i = 0; i < args->Length(); i++) {
       v8::Local<v8::Object> co = args->Get(i).As<v8::Object>();
       Comp::RGBColor color;
-      color._r = (float)co->Get(Nan::New("r").ToLocalChecked())->NumberValue();
-      color._g = (float)co->Get(Nan::New("g").ToLocalChecked())->NumberValue();
-      color._b = (float)co->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+      v8::Local<v8::Object> clr = co->Get(Nan::New("color").ToLocalChecked()).As<v8::Object>();
+
+      color._r = (float)clr->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+      color._g = (float)clr->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+      color._b = (float)clr->Get(Nan::New("b").ToLocalChecked())->NumberValue();
 
       pts.push_back((float)co->Get(Nan::New("x").ToLocalChecked())->NumberValue());
       colors.push_back(color);

@@ -1162,7 +1162,9 @@ function loadLayers(doc, path) {
         }
 
         var cl = c.getLayer(layerName);
-        cl.opacity(layer["opactiy"]);
+        var o = layer["opacity"];
+
+        cl.opacity(o);
         cl.visible(layer["visible"]);
         cl.blendMode(layer["blendMode"]);
 

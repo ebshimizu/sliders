@@ -67,6 +67,7 @@ private:
   static void opacity(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void blendMode(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void name(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void isAdjustmentLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteAllAdjustments(const Nan::FunctionCallbackInfo<v8::Value>& info);

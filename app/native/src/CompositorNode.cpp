@@ -231,6 +231,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "lighterColorize", lighterColorize);
   Nan::SetPrototypeMethod(tpl, "getGradient", getGradient);
   Nan::SetPrototypeMethod(tpl, "overwriteColor", overwriteColor);
+  Nan::SetPrototypeMethod(tpl, "isAdjustmentLayer", isAdjustmentLayer);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -334,6 +335,14 @@ void LayerRef::name(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(layer->_layer, "layer.name");
 
   info.GetReturnValue().Set(Nan::New(layer->_layer->getName()).ToLocalChecked());
+}
+
+void LayerRef::isAdjustmentLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.isAdjustmentLayer");
+
+  info.GetReturnValue().Set(Nan::New(layer->_layer->isAdjustmentLayer()));
 }
 
 void LayerRef::getAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -545,28 +554,45 @@ void LayerRef::addGradient(const Nan::FunctionCallbackInfo<v8::Value>& info)
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
   nullcheck(layer->_layer, "layer.addGradient");
 
-  if (!info[0]->IsArray() || !info[1]->IsArray()) {
-    Nan::ThrowError("addGradient(float[], object[]) invalid arguments.");
+  if (!info[0]->IsArray()) {
+    Nan::ThrowError("addGradient(float[], object[]) or addGradient(object[]) invalid arguments.");
   }
 
-  // get point locations, just a plain array
-  vector<float> pts;
   v8::Local<v8::Array> args = info[0].As<v8::Array>();
-  for (unsigned int i = 0; i < args->Length(); i++) {
-    pts.push_back((float)args->Get(i)->NumberValue());
-  }
-
-  // get colors, an array of objects {r, g, b}
+  vector<float> pts;
   vector<Comp::RGBColor> colors;
-  v8::Local<v8::Array> c = info[1].As<v8::Array>();
-  for (unsigned int i = 0; i < c->Length(); i++) {
-    v8::Local<v8::Object> co = c->Get(i).As<v8::Object>();
-    Comp::RGBColor color;
-    color._r = (float)co->Get(Nan::New("r").ToLocalChecked())->NumberValue();
-    color._g = (float)co->Get(Nan::New("g").ToLocalChecked())->NumberValue();
-    color._b = (float)co->Get(Nan::New("b").ToLocalChecked())->NumberValue();
 
-    colors.push_back(color);
+  if (args->Get(0)->IsObject()) {
+    // object with {r, g, b, x} fields
+    for (unsigned int i = 0; i < args->Length(); i++) {
+      v8::Local<v8::Object> co = args->Get(i).As<v8::Object>();
+      Comp::RGBColor color;
+      color._r = (float)co->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+      color._g = (float)co->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+      color._b = (float)co->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+
+      pts.push_back((float)co->Get(Nan::New("x").ToLocalChecked())->NumberValue());
+      colors.push_back(color);
+    }
+  }
+  else {
+    // separate arrays
+    // get point locations, just a plain array
+    for (unsigned int i = 0; i < args->Length(); i++) {
+      pts.push_back((float)args->Get(i)->NumberValue());
+    }
+
+    // get colors, an array of objects {r, g, b}
+    v8::Local<v8::Array> c = info[1].As<v8::Array>();
+    for (unsigned int i = 0; i < c->Length(); i++) {
+      v8::Local<v8::Object> co = c->Get(i).As<v8::Object>();
+      Comp::RGBColor color;
+      color._r = (float)co->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+      color._g = (float)co->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+      color._b = (float)co->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+
+      colors.push_back(color);
+    }
   }
 
   layer->_layer->addGradientAdjustment(Comp::Gradient(pts, colors));

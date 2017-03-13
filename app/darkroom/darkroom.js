@@ -7,6 +7,7 @@ comp.setLogLevel(1)
 // initializes a global compositor object to operate on
 var c = new comp.Compositor()
 var docTree, modifiers;
+var currentFile = "";
 
 // global settings vars
 var g_renderSize;
@@ -52,8 +53,12 @@ function init() {
         renderImage()
     });
 
-    $("#openCmd").click(function() { loadFile(); });
-    $("#exitCmd").click(function() { app.quit(); })
+    $("#importCmd").click(function() { importFile(); });
+    $("#openCmd").click(function() { openFile(); });
+    $("#exitCmd").click(function() { app.quit(); });
+    $("#saveCmd").click(() => { saveCmd(); });
+    $("#saveAsCmd").click(() => { saveAsCmd(); });
+    $("#saveImgCmd").click(() => { saveImgCmd(); });
 
     $(".ui.dropdown").dropdown();
 
@@ -220,6 +225,7 @@ function placeLayer(name, html, doc) {
     }
 }
 
+// Order gets written to
 function generateControlHTML(doc, order, setName = "") {
     // if the document contains literally nothing skip, it's an empty group
     if (Object.keys(doc).length === 0)
@@ -778,7 +784,7 @@ function createShadowState(tree, order) {
 /* File System                                                               */
 /*===========================================================================*/
 
-function loadFile() {
+function importFile() {
     dialog.showOpenDialog({
         filters: [ { name: 'JSON Files', extensions: ['json'] } ],
         title: "Load Layers"
@@ -802,22 +808,54 @@ function loadFile() {
         filename = filename[filename.length - 1];
         $('#fileNameText').html(filename);
 
-        openLayers(file, folder)
+        fs.readFile(file, function(err, data) {
+            if (err) {
+                throw err;
+            }
+
+            // load the data
+            importLayers(JSON.parse(data), folder);
+        }); 
     });
 }
 
-function openLayers(file, folder) {
-   fs.readFile(file, function(err, data) {
-        if (err) {
-            throw err;
+function openFile() {
+    dialog.showOpenDialog({
+        filters: [ { name: 'Darkroom Files', extensions: ['dark'] } ],
+        title: "Open File"
+    }, function(filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
+        
+        var file = filePaths[0];
+
+        // need to split out the directory path from the file path
+        var splitChar = '/';
+
+        if (file.includes('\\')) {
+            splitChar = '\\'
         }
 
-        // load the data
-        loadLayers(JSON.parse(data), folder);
-    }); 
+        var folder = file.split(splitChar).slice(0, -1).join('/');
+
+        var filename = file.split(splitChar);
+        filename = filename[filename.length - 1];
+        $('#fileNameText').html(filename);
+        currentFile = file;
+
+        fs.readFile(file, function(err, data) {
+            if (err) {
+                throw err;
+            }
+
+            // load the data
+            loadLayers(JSON.parse(data), folder);
+        }); 
+    });
 }
 
-function loadLayers(doc, path) {
+function importLayers(doc, path) {
     // create new compositor object
     deleteAllControls();
     c = new comp.Compositor();
@@ -1096,8 +1134,79 @@ function loadLayers(doc, path) {
     renderImage();
 }
 
+function loadLayers(doc, path) {
+    // create new compositor object
+    deleteAllControls();
+    c = new comp.Compositor();
+    var order = [];
+    var movebg = false
+    var data = doc["layers"]
+
+    // when loading an existing darkroom file we have some things already filled in
+    // so we just load them from disk
+    modifiers = doc["modifiers"]
+    docTree = doc["docTree"]
+
+    // we can skip metadata creation
+    // and instead just load layers directly
+    // note that docTree has already been populated correctly here
+    for (var layerName in data) {
+        var layer = data[layerName];
+
+        // add the layer and relevant adjustments
+        if (layer["isAdjustment"]) {
+            c.addLayer(layerName);
+        }
+        else {
+            c.addLayer(layerName, path + "/" + layerName + ".png");
+        }
+
+        var cl = c.getLayer(layerName);
+        cl.opacity(layer["opactiy"]);
+        cl.visible(layer["visible"]);
+        cl.blendMode(layer["blendMode"]);
+
+        var adjustmentsList = layer["adjustments"];
+        for (var type in adjustmentsList) {
+            var adj = Number(type);
+            for (var key in adjustmentsList[type]) {
+                cl.addAdjustment(adj, key, adjustmentsList[type][key]);
+            }
+        }
+
+        // gradient
+        if ("gradient" in layer) {
+            // add the gradient
+            cl.addGradient(layer["gradient"])
+        }
+
+        // curves
+        if ("curves" in layer) {
+            for (var channel in layer["curves"]) {
+                cl.addCurve(channel, layer["curves"][channel]);
+            }
+        }
+
+        console.log("Added layer " + layerName);
+    }
+
+    // render to page
+    var layerData = generateControlHTML(docTree, order);
+    $('#layerControls').html(layerData);
+
+    // bind events
+    for (var i = 0; i < order.length; i++) {
+        bindLayerEvents(order[i]);
+    }
+    bindGlobalEvents();
+
+    // update internal structure
+    c.setLayerOrder(order);
+    renderImage();
+}
+
 // saves the document in an easier to load format
-function save() {
+function save(file) {
     var out = {};
 
     // save the document tree
@@ -1116,11 +1225,89 @@ function save() {
         layers[layerName]["opacity"] = l.opacity();
         layers[layerName]["visible"] = l.visible();
         layers[layerName]["blendMode"] = l.blendMode();
+        layers[layerName]["isAdjustment"] = l.isAdjustmentLayer();
+        layers[layerName]["adjustments"] = {}
         // need the filenames somewhere
 
+        // adjustments
+        var adjTypes = l.getAdjustments()
+        for (var i = 0; i < adjTypes.length; i++) {
+            layers[layerName]["adjustments"][adjTypes[i]] = l.getAdjustment(adjTypes[i]);
+
+            // extra data
+            if (adjTypes[i] === adjType["GRADIENTMAP"]) {
+                layers[layerName]["gradient"] = l.getGradient();
+            }
+
+            if (adjTypes[i] === adjType["CURVES"]) {
+                layers[layerName]["curves"] = {}
+
+                var channels = l.getAdjustment(adjTypes[i])
+                for (var chan in channels) {
+                    layers[layerName]["curves"][chan] = l.getCurve(chan);
+                }
+            }
+        }
+    }
+
+    out["layers"] = layers;
+
+    fs.writeFile(file, JSON.stringify(out, null, 2));
+}
+
+function saveAsCmd() {
+    dialog.showSaveDialog({
+        filters: [ { name: 'Darkroom Files', extensions: ['dark'] } ],
+        title: "Save"
+    }, function(filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
         
+        var file = filePaths;
+
+        // need to split out the directory path from the file path
+        var splitChar = '/';
+
+        if (file.includes('\\')) {
+            splitChar = '\\'
+        }
+
+        var folder = file.split(splitChar).slice(0, -1).join('/');
+
+        var filename = file.split(splitChar);
+        filename = filename[filename.length - 1];
+        $('#fileNameText').html(filename);
+        currentFile = file;
+
+        save(file);
+    });
+}
+
+function saveCmd() {
+    if (currentFile === "") {
+        saveAsCmd();
+    }
+    else {
+        save(currentFile);
     }
 }
+
+function saveImgCmd() {
+    dialog.showSaveDialog({
+        filters: [ { name: 'PNG', extensions: ['png'] } ],
+        title: "Save Render"
+    }, function(filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
+        
+        var file = filePaths;
+
+        c.render().save(file);
+    });
+}
+
 /*===========================================================================*/
 /* UI Callbacks                                                              */
 /*===========================================================================*/

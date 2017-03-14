@@ -8,6 +8,7 @@ comp.setLogLevel(1)
 var c = new comp.Compositor()
 var docTree, modifiers;
 var currentFile = "";
+var cp;
 
 // global settings vars
 var g_renderSize;
@@ -105,6 +106,16 @@ function renderImage() {
 }
 
 function initUI() {
+    cp = new ColorPicker({
+        noAlpha: true,
+        appendTo: document.getElementById('colorPicker')
+    });
+
+    $('.cp-exit').click(() => {
+        $('#colorPicker').addClass('hidden');
+        $('#colorPicker').removeClass('visible');
+    })
+
     // for now we assume the compositor is already initialized for testing purposes
     var layers = c.getLayerNames()
 
@@ -184,7 +195,7 @@ function insertLayerElem(name, doc) {
         }
         else if (type === 7) {
             // photo filter
-            html += createParamSection(name, "Photo Filter", ["red", "green", "blue", "density"]);
+            html += createParamSection(name, "Photo Filter", ["density"]);
         }
         else if (type === 8) {
             // colorize
@@ -511,12 +522,50 @@ function bindColorBalanceEvents(name, sectionName, layer) {
 }
 
 function bindPhotoFilterEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]').click(function() {
+        if ($('#colorPicker').hasClass('hidden')) {
+            // move color picker to spot
+            var thisElem = $('.paramColor[sectionName="' + sectionName + '"]');
+            var offset = thisElem.offset();
+
+            var adj = layer.getAdjustment(adjType["PHOTO_FILTER"])
+            cp.setColor({"r" : adj["r"] * 255, "g" : adj["g"] * 255, "b" : adj["b"] * 255}, 'rgb');
+            cp.startRender();
+
+            if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
+                $('#colorPicker').css({"right": "10px", top: offset.top - $('#colorPicker').height()});
+            } 
+            else {
+                $('#colorPicker').css({"right": "10px", top: offset.top + thisElem.height()});
+            }
+
+            // assign callbacks to update proper color
+            cp.color.options.actionCallback = function(e, action) {
+                var color = cp.color.colors.rgb
+                updateColor(layer, adjType["PHOTO_FILTER"], color);
+                $(thisElem).css({"background-color": "#" + cp.color.colors.HEX});
+                renderImage();
+            };
+
+            $('#colorPicker').addClass('visible');
+            $('#colorPicker').removeClass('hidden');
+        }
+        else {
+            $('#colorPicker').addClass('hidden');
+            $('#colorPicker').removeClass('visible');
+        }
+    });
+
+    var adj = layer.getAdjustment(adjType["PHOTO_FILTER"]);
+    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
+    $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]').css({"background-color" : colorStr });
+
+    //bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"], sectionName,
+    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    //bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"], sectionName,
+    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
+    //bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"], sectionName,
+    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     // preserve luma?
@@ -749,6 +798,16 @@ function createLayerParam(layerName, param) {
 function createParamSection(layerName, sectionName, params) {
     var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
     html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+
+    if (sectionName == "Photo Filter") {
+        // color picker instead
+        html += '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">'
+
+        html += '<div class="paramLabel">Color</div>'
+        html += '<div class="paramColor" layerName="' + layerName + '" sectionName="' + sectionName + '" paramName="colorPicker"></div>'
+
+        html += '</div>'
+    }
 
     for (var i = 0; i < params.length; i++) {
         html += createLayerParam(layerName, params[i]);
@@ -1571,6 +1630,12 @@ function handleSelectiveColorParamChange(layerName, ui) {
     c.getLayer(layerName).selectiveColorChannel(channel, paramName, ui.value / 100);
 
     $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function updateColor(layer, adjustment, color) {
+    layer.addAdjustment(adjustment, "r", color.r);
+    layer.addAdjustment(adjustment, "g", color.g);
+    layer.addAdjustment(adjustment, "b", color.b);
 }
 
 function deleteAllControls() {

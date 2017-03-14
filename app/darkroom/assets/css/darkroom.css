@@ -53,7 +53,8 @@ body {
 	margin: 0 0 3px 0;
 }
 
-#layerControls .parameter .paramLabel {
+#layerControls .parameter .paramLabel,
+#layerControls .tabLabel {
 	width: 25%;
 	text-align: center;
 	vertical-align: middle;
@@ -65,6 +66,18 @@ body {
 	-webkit-user-select: none;
 	cursor: default;
 	text-transform: capitalize;
+}
+
+#layerControls .tabMenu {
+	width: 70%;
+	display: inline-block;
+	position: absolute;
+	left: 30%;
+	height: 26px;
+	top: 2px;
+	min-height: 0;
+	min-width: 0;
+    padding: 3px 5px;
 }
 
 #layerControls .parameter .paramInput {
@@ -97,7 +110,7 @@ body {
 	background: #000000;
 }
 
-#layerControls .layer .ui.dropdown {
+#layerControls .layer .ui.dropdown.blendModeMenu {
     position: absolute;
     right: 40px;
     top: 6px;

@@ -221,6 +221,17 @@ namespace Comp {
     _selectiveColor = data;
   }
 
+  float Layer::getSelectiveColorChannel(string channel, string param)
+  {
+    // fairly sure it just creates defaults if the keys don't exist so should be fine
+    return _selectiveColor[channel][param];
+  }
+
+  void Layer::setSelectiveColorChannel(string channel, string param, float val)
+  {
+    _selectiveColor[channel][param] = val;
+  }
+
   void Layer::addColorBalanceAdjustment(bool preserveLuma, float shadowR, float shadowG, float shadowB,
     float midR, float midG, float midB,
     float highR, float highG, float highB)

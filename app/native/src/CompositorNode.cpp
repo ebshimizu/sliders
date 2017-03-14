@@ -232,6 +232,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getGradient", getGradient);
   Nan::SetPrototypeMethod(tpl, "overwriteColor", overwriteColor);
   Nan::SetPrototypeMethod(tpl, "isAdjustmentLayer", isAdjustmentLayer);
+  Nan::SetPrototypeMethod(tpl, "selectiveColorChannel", selectiveColorChannel);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -693,6 +694,42 @@ void LayerRef::selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
     }
 
     layer->_layer->addSelectiveColorAdjustment(info[0]->BooleanValue(), sc);
+  }
+}
+
+void LayerRef::selectiveColorChannel(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.selectiveColorChannel");
+
+  if (info.Length() == 2) {
+    if (!info[0]->IsString() || !info[1]->IsString()) {
+      Nan::ThrowError("selectiveColorChannel(string, string) invalid arguments");
+    }
+
+    v8::String::Utf8Value o1(info[0]->ToString());
+    string channel(*o1);
+
+    v8::String::Utf8Value o2(info[1]->ToString());
+    string param(*o2);
+
+    info.GetReturnValue().Set(Nan::New(layer->_layer->getSelectiveColorChannel(channel, param)));
+  }
+  else if (info.Length() == 3) {
+    if (!info[0]->IsString() || !info[1]->IsString() || !info[2]->IsNumber()) {
+      Nan::ThrowError("selectiveColorChannel(string, string, float) invalid arugments");
+    }
+
+    v8::String::Utf8Value o1(info[0]->ToString());
+    string channel(*o1);
+
+    v8::String::Utf8Value o2(info[1]->ToString());
+    string param(*o2);
+
+    layer->_layer->setSelectiveColorChannel(channel, param, (float)info[2]->NumberValue());
+  }
+  else {
+    Nan::ThrowError("selectiveColorChannel invalid number of arguments");
   }
 }
 

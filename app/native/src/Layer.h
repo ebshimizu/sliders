@@ -106,6 +106,8 @@ namespace Comp {
     void addExposureAdjustment(float exp, float offset, float gamma);
     void addGradientAdjustment(Gradient grad);
     void addSelectiveColorAdjustment(bool relative, map<string, map<string, float > > data);
+    float getSelectiveColorChannel(string channel, string param);
+    void setSelectiveColorChannel(string channel, string param, float val);
     void addColorBalanceAdjustment(bool preserveLuma, float shadowR, float shadowG, float shadowB,
       float midR, float midG, float midB,
       float highR, float highG, float highB);

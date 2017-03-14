@@ -176,6 +176,7 @@ function insertLayerElem(name, doc) {
         }
         else if (type === 5) {
             // selective color
+            html += createTabbedParamSection(name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
         }
         else if (type === 6) {
             // color balance
@@ -382,7 +383,7 @@ function bindLayerEvents(name) {
         }
         else if (type === 5) {
             // selective color
-            // TODO: CONTROLS
+            bindSelectiveColorEvents(name, "Selective Color", layer);
         }
         else if (type === 6) {
             // color balance
@@ -434,7 +435,7 @@ function bindStandardEvents(name, layer) {
     })
 
     // blend mode
-    $('.dropdown[layerName="' + name + '"]').dropdown({
+    $('.blendModeMenu[layerName="' + name + '"]').dropdown({
         action: 'activate',
         onChange: function(value, text) {
             layer.blendMode(parseInt(value));
@@ -443,7 +444,7 @@ function bindStandardEvents(name, layer) {
         'set selected': layer.blendMode()
     });
 
-    $('.dropdown[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
+    $('.blendModeMenu[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
 
     bindLayerParamControl(name, layer, "opacity", layer.opacity(), "", { "uiHandler" : handleParamChange });
 }
@@ -554,6 +555,35 @@ function bindOverwriteColorEvents(name, sectionName, layer) {
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
 }
 
+function bindSelectiveColorEvents(name, sectionName, layer) {
+    // parameter controls
+    bindLayerParamControl(name, layer, "cyan", layer.selectiveColorChannel("reds", "cyan"), sectionName,
+        { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
+    bindLayerParamControl(name, layer, "magenta", layer.selectiveColorChannel("reds", "magenta"), sectionName,
+        { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
+    bindLayerParamControl(name, layer, "yellow", layer.selectiveColorChannel("reds", "yellow"), sectionName,
+        { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
+    bindLayerParamControl(name, layer, "black", layer.selectiveColorChannel("reds", "black"), sectionName,
+        { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
+
+    $('.tabMenu[layerName="' + name + '"][sectionName="' + sectionName + '"]').dropdown('set selected', 0);
+    $('.tabMenu[layerName="' + name + '"][sectionName="' + sectionName + '"]').dropdown({
+        action: 'activate',
+        onChange: function(value, text) {
+            // update sliders
+            var params = ["cyan", "magenta", "yellow", "black"];
+            for (var j = 0; j < params.length; j++) {
+                s = 'div[sectionName="' + sectionName +'"] .paramSlider[layerName="' + name + '"][paramName="' + params[j] +  '"]';
+                i = 'div[sectionName="' + sectionName +'"] .paramInput[layerName="' + name + '"][paramName="' + params[j] +  '"] input';
+
+                var val = layer.selectiveColorChannel(text, params[j]) * 100;
+                $(s).slider({value: val })
+                $(i).val(String(val.toFixed(2)));
+            }
+        }
+    });
+}
+
 function bindLayerParamControl(name, layer, paramName, initVal, sectionName, settings = {}) {
     var s, i;
 
@@ -599,7 +629,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, set
         change: function(event, ui) { settings["uiHandler"](name, ui) },
     });
 
-    $(i).val(String(initVal.toFixed(1)));
+    $(i).val(String(initVal.toFixed(2)));
 
     // input box events
     $(i).blur(function() {
@@ -741,8 +771,40 @@ function createParamSection(layerName, sectionName, params) {
     return html;
 }
 
+function createTabbedParamSection(layerName, sectionName, tabName, tabs, params) {
+    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
+    html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+
+    html += '<div class="parameter" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    html += '<div class="tabLabel">' + tabName + '</div>'
+    html += '<div class="ui scrolling selection dropdown tabMenu" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    html += '<input type="hidden" name="' + tabName + '" value="0">'
+    html += '<i class="dropdown icon"></i>'
+    html += '<div class="default text"></div>'
+    html += '<div class="menu">'
+
+    for (var i = 0; i < tabs.length; i++) {
+        html += '<div class="item" data-value="' + i + '">' + tabs[i] + '</div>'
+    }
+    html += '</div>'
+    html += '</div>'
+    html += '</div>'
+
+    for (var i = 0; i < params.length; i++) {
+        html += createLayerParam(layerName, params[i]);
+    }
+
+    if (sectionName == "Selective Color") {
+
+    }
+
+    html += '</div>';
+
+    return html;
+}
+
 function genBlendModeMenu(name) {
-    var menu = '<div class="ui scrolling selection dropdown" layerName="' + name + '">'
+    var menu = '<div class="ui scrolling selection dropdown blendModeMenu" layerName="' + name + '">'
     menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
     menu += '<i class="dropdown icon"></i>'
     menu += '<div class="default text">Blend Mode</div>'
@@ -1037,8 +1099,8 @@ function importLayers(doc, path) {
                 }
                 c.getLayer(layerName).addGradient(pts, gc);
             }
-            else if (type === "SELEVTIVECOLOR") {
-                var adjustment = metadata[layerName]["GRADIENTMAP"];
+            else if (type === "SELECTIVECOLOR") {
+                var adjustment = metadata[layerName]["SELECTIVECOLOR"];
  
                 var relative = (adjustment["method"] === "relative") ? true : false;
                 var colors = adjustment["colorCorrection"]
@@ -1479,7 +1541,7 @@ function handleLighterColorizeParamChange(layerName, ui) {
     }
 
     // find associated value box and dump the value there
-    $(ui.handle).parent().next().find("input").val(String(ui.value));   
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
 }
 
 function handleOverwriteColorizeParamChange(layerName, ui) {
@@ -1499,7 +1561,16 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
     }
 
     // find associated value box and dump the value there
-    $(ui.handle).parent().next().find("input").val(String(ui.value));   
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleSelectiveColorParamChange(layerName, ui) {
+    var channel = $(ui.handle).parent().parent().parent().find('.text').html();
+    var paramName = $(ui.handle).parent().attr("paramName")
+
+    c.getLayer(layerName).selectiveColorChannel(channel, paramName, ui.value / 100);
+
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
 }
 
 function deleteAllControls() {

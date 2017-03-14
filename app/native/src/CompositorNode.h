@@ -84,6 +84,7 @@ private:
   static void evalGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getGradient(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void selectiveColor(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void selectiveColorChannel(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void colorBalance(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void colorize(const Nan::FunctionCallbackInfo<v8::Value>& info);

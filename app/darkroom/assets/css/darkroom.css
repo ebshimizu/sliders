@@ -109,6 +109,7 @@ body {
 	top: 2px;
 	position: absolute;
 	display: inline-block;
+	border-radius: 3px;
 }
 
 #layerControls .parameter .ui-slider-range {

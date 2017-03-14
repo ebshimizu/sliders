@@ -525,7 +525,7 @@ function bindPhotoFilterEvents(name, sectionName, layer) {
     $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]').click(function() {
         if ($('#colorPicker').hasClass('hidden')) {
             // move color picker to spot
-            var thisElem = $('.paramColor[sectionName="' + sectionName + '"]');
+            var thisElem = $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]');
             var offset = thisElem.offset();
 
             var adj = layer.getAdjustment(adjType["PHOTO_FILTER"])

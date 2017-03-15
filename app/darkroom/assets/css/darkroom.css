@@ -252,3 +252,10 @@ body {
 #colorPicker.hidden {
 	display: none;
 }
+
+#messageQueue {
+	position: absolute;
+	width: 50%;
+	bottom: 10px;
+	left: 25%;
+}

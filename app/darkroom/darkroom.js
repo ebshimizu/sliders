@@ -9,6 +9,7 @@ var c = new comp.Compositor()
 var docTree, modifiers;
 var currentFile = "";
 var cp;
+var msgId = 0;
 
 // global settings vars
 var g_renderSize;
@@ -60,6 +61,16 @@ function init() {
     $("#saveCmd").click(() => { saveCmd(); });
     $("#saveAsCmd").click(() => { saveAsCmd(); });
     $("#saveImgCmd").click(() => { saveImgCmd(); });
+    $("#expandAllCmd").click(() => {
+        $('.layerSetContainer').show();
+        $(".setName").find('i').removeClass("right");
+        $(".setName").find('i').addClass("down");
+    });
+    $("#collapseAllCmd").click(() => {
+        $(".layerSetContainer").hide();
+        $(".setName").find('i').removeClass("down");
+        $(".setName").find('i').addClass("right");
+    });
 
     $(".ui.dropdown").dropdown();
 
@@ -87,7 +98,7 @@ function init() {
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
 
-    initUI()
+    initUI();
 }
 
 // Renders an image from the compositor module and
@@ -473,6 +484,19 @@ function bindStandardEvents(name, layer) {
         // trigger render after adjusting settings
         renderImage()
     })
+
+    var button = $('button[layerName="' + name + '"]')
+    // set starting visibility
+    if (modifiers[name]["visible"]) {
+        button.html('<i class="unhide icon"></i>')
+        button.removeClass("black")
+        button.addClass("white")
+    }
+    else {
+        button.html('<i class="hide icon"></i>')
+        button.removeClass("white")
+        button.addClass("black")
+    }
 
     // blend mode
     $('.blendModeMenu[layerName="' + name + '"]').dropdown({
@@ -1443,7 +1467,12 @@ function save(file) {
     out["layers"] = layers;
 
     fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
-        console.log(err)
+        if (err) {
+            showStatusMsg(err.toString(), "ERROR", "Error Saving File");
+        }
+        else {
+            showStatusMsg(file, "OK", "File Saved");
+        }
     });
 }
 
@@ -1778,6 +1807,40 @@ function updateChildOpacity(doc, val) {
             updateChildOpacity(doc[key], val * (doc[key]["opacity"] / 100));
         }
     }
+}
+
+function showStatusMsg(msg, type, title) {
+    var msgArea = $("#messageQueue");
+    var html = ''
+
+    if (type === "OK") {
+        html += '<div class="ui positive message'
+    }
+    else if (type === "ERROR") {
+        html += '<div class="ui negative message'
+    }
+    else {
+        html += '<div class="ui info message'
+    }
+
+    html += ' transition hidden" messageId="' + msgId + '">';
+    html += '<div class="header">' + title + '</div>';
+    html += '<p>' + msg + '<p>'
+    html += '</div>'
+
+    msgArea.prepend(html);
+
+    var msgElem = $('div[messageId="' + msgId + '"]');
+
+    msgElem.transition({ animation: 'fade up', onComplete: function() {
+        setTimeout(function() {
+            msgElem.transition({ animation: 'fade up', onComplete: function () {
+                msgElem.remove();
+            }});
+        }, 5000);
+    }});
+
+    msgId += 1;
 }
 
 /*===========================================================================*/

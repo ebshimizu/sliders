@@ -1442,7 +1442,9 @@ function save(file) {
 
     out["layers"] = layers;
 
-    fs.writeFile(file, JSON.stringify(out, null, 2));
+    fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
+        console.log(err)
+    });
 }
 
 function saveAsCmd() {

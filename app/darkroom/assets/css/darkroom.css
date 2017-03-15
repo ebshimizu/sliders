@@ -165,7 +165,7 @@ body {
 	position: relative;
 	top: 0;
 	left: 0;
-	height: 60%;
+	height: 50%;
 	padding: 5px;
 	border: none;
 }
@@ -258,4 +258,23 @@ body {
 	width: 50%;
 	bottom: 10px;
 	left: 25%;
+}
+
+#imageContainer .segment {
+	height: calc(100% - 40px);
+}
+
+#sampleContainer {
+	width: 70%;
+	min-width: 250px;
+	display: block;
+	position: relative;
+	bottom: 0;
+	left: 0;
+	height: 50%;
+	padding: 5px;
+}
+
+#sampleContainer .segment {
+	height: 100%;
 }

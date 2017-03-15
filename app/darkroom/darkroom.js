@@ -1539,17 +1539,8 @@ function handleColorBalanceParamChange(layerName, ui) {
 
 function handlePhotoFilterParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName")
-
-    if (paramName === "red") {
-        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "r", ui.value);
-    }
-    else if (paramName === "green") {
-        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "g", ui.value);
-    }
-    else if (paramName === "blue") {
-        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "b", ui.value);
-    }
-    else if (paramName === "density") {
+    
+    if (paramName === "density") {
         c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "density", ui.value);
     }
 
@@ -1560,16 +1551,7 @@ function handlePhotoFilterParamChange(layerName, ui) {
 function handleColorizeParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName")
 
-    if (paramName === "red") {
-        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "r", ui.value);
-    }
-    else if (paramName === "green") {
-        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "g", ui.value);
-    }
-    else if (paramName === "blue") {
-        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "b", ui.value);
-    }
-    else if (paramName === "alpha") {
+    if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "a", ui.value);
     }
 
@@ -1580,16 +1562,7 @@ function handleColorizeParamChange(layerName, ui) {
 function handleLighterColorizeParamChange(layerName, ui) {
      var paramName = $(ui.handle).parent().attr("paramName")
 
-    if (paramName === "red") {
-        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "r", ui.value);
-    }
-    else if (paramName === "green") {
-        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "g", ui.value);
-    }
-    else if (paramName === "blue") {
-        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "b", ui.value);
-    }
-    else if (paramName === "alpha") {
+    if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "a", ui.value);
     }
 
@@ -1600,16 +1573,7 @@ function handleLighterColorizeParamChange(layerName, ui) {
 function handleOverwriteColorizeParamChange(layerName, ui) {
      var paramName = $(ui.handle).parent().attr("paramName")
 
-    if (paramName === "red") {
-        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "r", ui.value);
-    }
-    else if (paramName === "green") {
-        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "g", ui.value);
-    }
-    else if (paramName === "blue") {
-        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "b", ui.value);
-    }
-    else if (paramName === "alpha") {
+    if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "a", ui.value);
     }
 

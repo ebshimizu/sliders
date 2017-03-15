@@ -230,6 +230,10 @@ body {
 	right: 2px;
 }
 
+#layerControls .divider {
+	margin-bottom: 5px;
+}
+
 #colorPicker {
 	position: absolute;
 	z-index: 100;

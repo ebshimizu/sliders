@@ -199,16 +199,16 @@ function insertLayerElem(name, doc) {
         }
         else if (type === 8) {
             // colorize
-            html += createParamSection(name, "Colorize", ["red", "green", "blue", "alpha"]);
+            html += createParamSection(name, "Colorize", ["alpha"]);
 
         }
         else if (type === 9) {
             // lighter colorize
             // note name conflicts with previous params
-            html += createParamSection(name, "Lighter Colorize", ["red", "green", "blue", "alpha"]);
+            html += createParamSection(name, "Lighter Colorize", ["alpha"]);
         }
         else if (type === 10) {
-            html += createParamSection(name, "Overwrite Color", ["red", "green", "blue", "alpha"]);
+            html += createParamSection(name, "Overwrite Color", ["alpha"]);
         }
     }
 
@@ -522,84 +522,30 @@ function bindColorBalanceEvents(name, sectionName, layer) {
 }
 
 function bindPhotoFilterEvents(name, sectionName, layer) {
-    $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]').click(function() {
-        if ($('#colorPicker').hasClass('hidden')) {
-            // move color picker to spot
-            var thisElem = $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]');
-            var offset = thisElem.offset();
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "PHOTO_FILTER", layer);
 
-            var adj = layer.getAdjustment(adjType["PHOTO_FILTER"])
-            cp.setColor({"r" : adj["r"] * 255, "g" : adj["g"] * 255, "b" : adj["b"] * 255}, 'rgb');
-            cp.startRender();
-
-            if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
-                $('#colorPicker').css({"right": "10px", top: offset.top - $('#colorPicker').height()});
-            } 
-            else {
-                $('#colorPicker').css({"right": "10px", top: offset.top + thisElem.height()});
-            }
-
-            // assign callbacks to update proper color
-            cp.color.options.actionCallback = function(e, action) {
-                var color = cp.color.colors.rgb
-                updateColor(layer, adjType["PHOTO_FILTER"], color);
-                $(thisElem).css({"background-color": "#" + cp.color.colors.HEX});
-                renderImage();
-            };
-
-            $('#colorPicker').addClass('visible');
-            $('#colorPicker').removeClass('hidden');
-        }
-        else {
-            $('#colorPicker').addClass('hidden');
-            $('#colorPicker').removeClass('visible');
-        }
-    });
-
-    var adj = layer.getAdjustment(adjType["PHOTO_FILTER"]);
-    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
-    $('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]').css({"background-color" : colorStr });
-
-    //bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["PHOTO_FILTER"])["r"], sectionName,
-    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    //bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["PHOTO_FILTER"])["g"], sectionName,
-    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    //bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["PHOTO_FILTER"])["b"], sectionName,
-    //    { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     // preserve luma?
 }
 
 function bindColorizeEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["COLORIZE"])["r"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["COLORIZE"])["g"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["COLORIZE"])["b"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "COLORIZE", layer)
+
     bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["COLORIZE"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
 }
 
 function bindLighterColorizeEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["r"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["g"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["b"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "LIGHTER_COLORIZE", layer)
+
     bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
 }
 
 function bindOverwriteColorEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "red", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["r"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
-    bindLayerParamControl(name, layer, "green", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["g"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
-    bindLayerParamControl(name, layer, "blue", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["b"], sectionName,
-        { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "OVERWRITE_COLOR", layer)
+
     bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["a"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
 }
@@ -694,6 +640,53 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, set
         $(s).slider("value", data);
         renderImage();
     });  
+}
+
+function bindColorPickerControl(selector, adjustmentType, layer) {
+    $(selector).click(function() {
+        if ($('#colorPicker').hasClass('hidden')) {
+            // move color picker to spot
+            var thisElem = $(selector);
+            var offset = thisElem.offset();
+
+            var adj = layer.getAdjustment(adjType[adjustmentType])
+            cp.setColor({"r" : adj["r"] * 255, "g" : adj["g"] * 255, "b" : adj["b"] * 255}, 'rgb');
+            cp.startRender();
+
+            if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
+                $('#colorPicker').css({"right": "10px", top: offset.top - $('#colorPicker').height()});
+            } 
+            else {
+                $('#colorPicker').css({"right": "10px", top: offset.top + thisElem.height()});
+            }
+
+            // assign callbacks to update proper color
+            cp.color.options.actionCallback = function(e, action) {
+                console.log(action)
+                if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+                    var color = cp.color.colors.rgb
+                    updateColor(layer, adjType[adjustmentType], color);
+                    $(thisElem).css({"background-color": "#" + cp.color.colors.HEX});
+
+                    if (layer.visible()) {
+                        // no point rendering an invisible layer
+                        renderImage();
+                    }
+                }
+            };
+
+            $('#colorPicker').addClass('visible');
+            $('#colorPicker').removeClass('hidden');
+        }
+        else {
+            $('#colorPicker').addClass('hidden');
+            $('#colorPicker').removeClass('visible');
+        }
+    });
+
+    var adj = layer.getAdjustment(adjType[adjustmentType]);
+    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
+    $(selector).css({"background-color" : colorStr });
 }
 
 function updateGradient(layer) {
@@ -799,7 +792,8 @@ function createParamSection(layerName, sectionName, params) {
     var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
     html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
 
-    if (sectionName == "Photo Filter") {
+    if (sectionName == "Photo Filter" || sectionName === "Colorize" ||
+        sectionName === "Lighter Colorize" || sectionName === "Overwrite Color") {
         // color picker instead
         html += '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">'
 

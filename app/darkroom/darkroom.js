@@ -1332,14 +1332,14 @@ function importLayers(doc, path) {
     var layerData = generateControlHTML(sets, order);
     $('#layerControls').html(layerData);
 
+    // save group visibility info and individual layer transparency modifiers here
+    createShadowState(sets, order);
+
     // bind events
     for (var i = 0; i < order.length; i++) {
         bindLayerEvents(order[i]);
     }
     bindGlobalEvents();
-
-    // save group visibility info and individual layer transparency modifiers here
-    createShadowState(sets, order);
 
     // update internal structure
     c.setLayerOrder(order);

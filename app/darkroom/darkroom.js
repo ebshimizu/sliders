@@ -166,49 +166,78 @@ function insertLayerElem(name, doc) {
 
         if (type === 0) {
             // hue sat
-            html += createParamSection(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
+            html += startParamSection(name, "Hue/Saturation");
+            html += addSliders(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
+            html += endParamSection();
         }
         else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
-            html += createParamSection(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
+            html += startParamSection(name, "Levels");
+            html += addSliders(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
+            html += endParamSection();
         }
         else if (type === 2) {
             // curves
-            html += createParamSection(name, "Curves", []);
+            html += startParamSection(name, "Curves");
+            html += addCurves(name, "Curves");
+            html += endParamSection();
         }
         else if (type === 3) {
             // exposure
-            html += createParamSection(name, "Exposure", ["exposure", "offset", "gamma"]);
+            html += startParamSection(name, "Exposure");
+            html += addSliders(name, "Exposure", ["exposure", "offset", "gamma"]);
+            html += endParamSection();
         }
         else if (type === 4) {
             // gradient
-            html += createParamSection(name, "Gradient Map",[]);
+            html += startParamSection(name, "Gradient Map");
+            html += addGradient(name);
+            html += endParamSection();
         }
         else if (type === 5) {
             // selective color
-            html += createTabbedParamSection(name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
+            html += startParamSection(name, "Selective Color");
+            html += addTabbedParamSection(name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
+            html += addToggle(name, "Selective Color", "relative", "Relative");
+            html += endParamSection();
         }
         else if (type === 6) {
             // color balance
-            html += createParamSection(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
+            html += startParamSection(name, "Color Balance");
+            html += addSliders(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
+            html += addToggle(name, "Color Balance", "preserveLuma", "Preserve Luma");
+            html += endParamSection();
         }
         else if (type === 7) {
             // photo filter
-            html += createParamSection(name, "Photo Filter", ["density"]);
+            html += startParamSection(name, "Photo Filter");
+            html += addColorSelector(name, "Photo Filter");
+            html += addSliders(name, "Photo Filter", ["density"]);
+            html += addToggle(name, "Photo Filter", "preserveLuma", "Preserve Luma");
+            html += endParamSection();
         }
         else if (type === 8) {
             // colorize
-            html += createParamSection(name, "Colorize", ["alpha"]);
+            html += startParamSection(name, "Colorize");
+            html += addColorSelector(name, "Colorize");
+            html += addSliders(name, "Colorize", ["alpha"]);
+            html += endParamSection();
 
         }
         else if (type === 9) {
             // lighter colorize
             // note name conflicts with previous params
-            html += createParamSection(name, "Lighter Colorize", ["alpha"]);
+            html += startParamSection(name, "Lighter Colorize");
+            html += addColorSelector(name, "Lighter Colorize");
+            html += addSliders(name, "Lighter Colorize", ["alpha"]);
+            html += endParamSection();
         }
         else if (type === 10) {
-            html += createParamSection(name, "Overwrite Color", ["alpha"]);
+            html += startParamSection(name, "Overwrite Color");
+            html += addColorSelector(name, "Overwrite Color");
+            html += addSliders(name, "Overwrite Color", ["alpha"]);
+            html += endParamSection();
         }
     }
 
@@ -518,7 +547,8 @@ function bindColorBalanceEvents(name, sectionName, layer) {
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
     bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"], sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    // preserve luma?
+    
+    bindToggleControl(name, sectionName, layer, "preserveLuma", "COLOR_BALANCE");
 }
 
 function bindPhotoFilterEvents(name, sectionName, layer) {
@@ -526,7 +556,8 @@ function bindPhotoFilterEvents(name, sectionName, layer) {
 
     bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"], sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
-    // preserve luma?
+    
+    bindToggleControl(name, sectionName, layer, "preserveLuma", "PHOTO_FILTER");
 }
 
 function bindColorizeEvents(name, sectionName, layer) {
@@ -577,6 +608,8 @@ function bindSelectiveColorEvents(name, sectionName, layer) {
             }
         }
     });
+
+    bindToggleControl(name, sectionName, layer, "relative", "SELECTIVE_COLOR");
 }
 
 function bindLayerParamControl(name, layer, paramName, initVal, sectionName, settings = {}) {
@@ -689,6 +722,29 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
     $(selector).css({"background-color" : colorStr });
 }
 
+function bindToggleControl(name, sectionName, layer, param, adjustment) {
+    var elem = '.checkbox[paramName="' + param + '"][layerName="' + name + '"][sectionName="' + sectionName + '"]';
+    $(elem).checkbox({
+        onChecked: function() {
+            layer.addAdjustment(adjType[adjustment], param, 1);
+            if (layer.visible()) { renderImage(); }
+        },
+        onUnchecked: function() {
+            layer.addAdjustment(adjType[adjustment], param, 0);
+            if (layer.visible()) { renderImage(); }
+        }
+    });
+
+    // set initial state
+    var paramVal = layer.getAdjustment(adjType[adjustment], param);
+    if (paramVal === 0) {
+        $(elem).checkbox('set unchecked');
+    }
+    else {
+        $(elem).checkbox('set checked');
+    }
+}
+
 function updateGradient(layer) {
     var canvas = $('.gradientDisplay[layerName="' + layer + '"] canvas');
     canvas.attr({width:canvas.width(),height:canvas.height()});
@@ -788,47 +844,56 @@ function createLayerParam(layerName, param) {
     return html
 }
 
-function createParamSection(layerName, sectionName, params) {
-    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
-    html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-
-    if (sectionName == "Photo Filter" || sectionName === "Colorize" ||
-        sectionName === "Lighter Colorize" || sectionName === "Overwrite Color") {
-        // color picker instead
-        html += '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">'
-
-        html += '<div class="paramLabel">Color</div>'
-        html += '<div class="paramColor" layerName="' + layerName + '" sectionName="' + sectionName + '" paramName="colorPicker"></div>'
-
-        html += '</div>'
-    }
+function addSliders(layerName, sectionName, params) {
+    var html = '';
 
     for (var i = 0; i < params.length; i++) {
         html += createLayerParam(layerName, params[i]);
     }
 
-    if (sectionName == "Gradient Map") {
-        html += '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-        html += '<canvas></canvas>'
-        html += '</div>'
-    }
+    return html;
+}
 
-    if (sectionName == "Curves") {
-        html += '<div class="curveDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-        html += '<canvas></canvas>'
-        html += '</div>'
-    }
+function addColorSelector(layerName, sectionName) {
+    var html = '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">'
 
-    html += '</div>';
+    html += '<div class="paramLabel">Color</div>'
+    html += '<div class="paramColor" layerName="' + layerName + '" sectionName="' + sectionName + '" paramName="colorPicker"></div>'
+
+    html += '</div>'
 
     return html;
 }
 
-function createTabbedParamSection(layerName, sectionName, tabName, tabs, params) {
+function addGradient(layerName, sectionName) {
+    var html = '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    html += '<canvas></canvas>'
+    html += '</div>'
+
+    return html;
+}
+
+function addCurves(layerName, sectionName) {
+    var html = '<div class="curveDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    html += '<canvas></canvas>'
+    html += '</div>'
+
+    return html;
+}
+
+function startParamSection(layerName, sectionName) {
     var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
     html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
 
-    html += '<div class="parameter" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    return html;
+}
+
+function endParamSection() {
+    return '</div>'
+}
+
+function addTabbedParamSection(layerName, sectionName, tabName, tabs, params) {
+    var html = '<div class="parameter" layerName="' + layerName + '" sectionName="' + sectionName + '">'
     html += '<div class="tabLabel">' + tabName + '</div>'
     html += '<div class="ui scrolling selection dropdown tabMenu" layerName="' + layerName + '" sectionName="' + sectionName + '">'
     html += '<input type="hidden" name="' + tabName + '" value="0">'
@@ -851,7 +916,15 @@ function createTabbedParamSection(layerName, sectionName, tabName, tabs, params)
 
     }
 
-    html += '</div>';
+    return html;
+}
+
+function addToggle(layerName, section, param, displayName) {
+    html = '<div class="parameter" layerName="' + layerName + '" sectionName="' + section + '">';
+    html += '<div class="paramLabel">' + displayName + '</div>';
+    html += '<div class="ui fitted checkbox" paramName="' + param + '" layerName="' + layerName + '" sectionName="' + section + '">';
+    html += '<input type="checkbox">';
+    html += '</div></div>'
 
     return html;
 }

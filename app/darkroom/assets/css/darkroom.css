@@ -109,7 +109,13 @@ body {
 	top: 2px;
 	position: absolute;
 	display: inline-block;
-	border-radius: 3px;
+	border-radius: 5px;
+}
+
+#layerControls .parameter .checkbox {
+	position: absolute;
+	left: 30%;
+	top: 4px;
 }
 
 #layerControls .parameter .ui-slider-range {

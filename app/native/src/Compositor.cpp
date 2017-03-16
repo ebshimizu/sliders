@@ -439,6 +439,51 @@ namespace Comp {
     return nullptr;
   }
 
+  void Compositor::startSearch(searchCallback cb, int threads)
+  {
+    // for testing purposes this function just starts a thread that returns a render
+    // every 5 seconds.
+    if (_searchRunning) {
+      stopSearch();
+    }
+
+    _searchThreads.clear();
+    _searchThreads.resize(threads);
+
+    _activeCallback = cb;
+    _searchRunning = true;
+
+    // start threads
+    for (int i = 0; i < threads; i++) {
+      _searchThreads[i] = thread(&Compositor::runSearch, this);
+    }
+
+    return;
+  }
+
+  void Compositor::stopSearch()
+  {
+    _searchRunning = false;
+
+    // wait for threads to finish
+    for (auto& t : _searchThreads) {
+      t.join();
+    }
+
+    return;
+  }
+
+  void Compositor::runSearch()
+  {
+    while (_searchRunning) {
+      // do stuff
+      // debug: returns a render of the current context every time it runs
+      Image* r = render();
+      _activeCallback(r, Context(getPrimaryContext()));
+      this_thread::sleep_for(5s);
+    }
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

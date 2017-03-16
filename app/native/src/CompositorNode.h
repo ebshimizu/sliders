@@ -94,6 +94,9 @@ private:
   Comp::Layer* _layer;
 };
 
+void asyncSampleEvent(uv_work_t* req);
+void asyncNop(uv_work_t* req);
+
 class CompositorWrapper : public Nan::ObjectWrap {
 public:
   static void Init(v8::Local<v8::Object> exports);
@@ -117,7 +120,17 @@ private:
   static void deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getCachedImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void startSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;
+};
+
+struct asyncSampleEventData {
+  uv_work_t request;
+
+  Comp::Image* img;
+  Comp::Context ctx;
+  CompositorWrapper* c;
 };

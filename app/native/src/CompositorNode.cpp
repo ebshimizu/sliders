@@ -69,6 +69,31 @@ void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info)
   info.GetReturnValue().SetNull();
 }
 
+void asyncSampleEvent(uv_work_t * req)
+{
+  // construct the proper objects and do the callback
+  Nan::HandleScope scope;
+
+  // this is in the node thread
+  asyncSampleEventData* data = static_cast<asyncSampleEventData*>(req->data);
+
+  // create objects
+  // TODO: the context is a string  here because i am lazy and just testing async things right now
+  // image object
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(data->img), Nan::New(true) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  v8::Local<v8::Object> imgInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  // construct emitter objects
+  v8::Local<v8::Value> emitArgv[] = { Nan::New("sample").ToLocalChecked(), imgInst, Nan::New("CONTEXT").ToLocalChecked() };
+  Nan::MakeCallback(data->c->handle(), "emit", 3, emitArgv);
+}
+
+void asyncNop(uv_work_t * req)
+{
+  // yup it does a nop
+}
 
 // object bindings
 
@@ -941,6 +966,8 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteCacheSize", deleteCacheSize);
   Nan::SetPrototypeMethod(tpl, "getCachedImage", getCachedImage);
   Nan::SetPrototypeMethod(tpl, "reorderLayer", reorderLayer);
+  Nan::SetPrototypeMethod(tpl, "startSearch", startSearch);
+  Nan::SetPrototypeMethod(tpl, "stopSearch", stopSearch);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1234,4 +1261,41 @@ void CompositorWrapper::reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>&
   }
 
   c->_compositor->reorderLayer(info[0]->Int32Value(), info[1]->Int32Value());
+}
+
+void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.startSearch");
+
+  // ok so this part gets complicated. 
+  // hopefully what happens here is that we create a callback function for the c++ code to call
+  // in order to get the image data out of c++ into js. The compositor object itself will
+  // run the search loop and the node code is called through the anonymous function created here.
+  Comp::searchCallback cb = [c](Comp::Image* img, Comp::Context ctx) {
+    // create necessary data structures
+    asyncSampleEventData* asyncData = new asyncSampleEventData();
+    asyncData->request.data = (void*)asyncData;
+    asyncData->img = img;
+    asyncData->ctx = ctx;
+    asyncData->c = c;
+
+    uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
+  };
+
+  // TODO: running in single threaded mode for debugging
+  c->_compositor->startSearch(cb, 1);
+
+  info.GetReturnValue().SetUndefined();
+}
+
+void CompositorWrapper::stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "composior.stopSearch");
+
+  c->_compositor->stopSearch();
+
+  // probably want to return some indication of success
+  info.GetReturnValue().SetUndefined();
 }

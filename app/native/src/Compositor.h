@@ -9,6 +9,7 @@ author: Evan Shimizu
 #include <map>
 #include <functional>
 #include <algorithm>
+#include <thread>
 
 #include "Image.h"
 #include "Layer.h"
@@ -18,6 +19,7 @@ using namespace std;
 
 namespace Comp {
   typedef map<string, Layer> Context;
+  typedef function<void(Image*, Context)> searchCallback;
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
@@ -78,6 +80,11 @@ namespace Comp {
     bool deleteCacheSize(string name);
     shared_ptr<Image> getCachedImage(string id, string size);
 
+    // main entry point for starting the search process.
+    void startSearch(searchCallback cb, int threads = 1);
+    void stopSearch();
+    void runSearch();
+
   private:
     void addLayer(string name);
 
@@ -127,6 +134,10 @@ namespace Comp {
 
     // cached of scaled images for rendering at different sizes
     map<string, map<string, shared_ptr<Image> > > _imageData;
+
+    bool _searchRunning;
+    searchCallback _activeCallback;
+    vector<thread> _searchThreads;
 
     // eventually this class will need to render things in parallel
 

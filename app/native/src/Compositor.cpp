@@ -479,7 +479,7 @@ namespace Comp {
 
       _searchThreads[i].join();
 
-      ss.clear();
+      ss.str("");
       ss << "Thread " << i << " stopped";
       getLogger()->log(ss.str(), LogLevel::INFO);
     }
@@ -689,7 +689,7 @@ namespace Comp {
       return darken(Dca, Sca * 2, Da, Sa);
     }
     else {
-      return lighten(Dca, 2 * (Sca - 0.5), Da, Sa);
+      return lighten(Dca, 2 * (Sca - 0.5f), Da, Sa);
     }
   }
 

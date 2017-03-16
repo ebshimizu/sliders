@@ -13,8 +13,7 @@ inherits(comp.Compositor, events);
 comp.setLogLevel(1)
 
 // initializes a global compositor object to operate on
-var c = new comp.Compositor()
-var docTree, modifiers;
+var c, docTree, modifiers;
 var currentFile = "";
 var cp;
 var msgId = 0;
@@ -59,10 +58,10 @@ const adjType = {
 
 // Initializes html element listeners on document load
 function init() {
+    // menu commands
     $("#renderCmd").on("click", function() {
         renderImage()
     });
-
     $("#importCmd").click(function() { importFile(); });
     $("#openCmd").click(function() { openFile(); });
     $("#exitCmd").click(function() { app.quit(); });
@@ -79,16 +78,7 @@ function init() {
         $(".setName").find('i').removeClass("down");
         $(".setName").find('i').addClass("right");
     });
-
-    $(".ui.dropdown").dropdown();
-
-    $('.paramSlider').slider({
-        orientation: "horizontal",
-        range: "min",
-        max: 100,
-        min: 0
-    });
-
+    // render size options
     $('#renderSize a.item').click(function() {
         // reset icon status
         var links = $('#renderSize a.item')
@@ -101,12 +91,68 @@ function init() {
 
         g_renderSize = $(this).attr("internal");
         renderImage();
+    });
+
+    // dropdown components
+    $(".ui.dropdown").dropdown();
+
+    // debug: if any sliders exist on load, initialize them with no listeners
+    $('.paramSlider').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 100,
+        min: 0
+    });
+
+    // buttons
+    $("#runSearchBtn").click(function() {
+        if ($(this).hasClass("disabled")) {
+            // is disabled during stopping to prevent multiple stop commands
+            return;
+        }
+
+        if ($(this).hasClass("green")) {
+            // search is starting
+            $(this).removeClass("green");
+            $(this).addClass("red");
+            $(this).html("Stop Search");
+            c.startSearch();
+            console.log("Search started");
+        }
+        else {
+            // search is stopping
+            $(this).html("Stopping Search...");
+            showStatusMsg("", "", "Stopping Search");
+            $(this).addClass("disabled");
+
+            // this blocks, may want some indication that it is working, loading sign for instance
+            // in fact, this function should be async with a callback to indicate completion.
+            c.stopSearch(err => {
+                $(this).removeClass("red");
+                $(this).removeClass("disabled");
+                $(this).addClass("green");
+                $(this).html("Start Search");
+                showStatusMsg("", "OK", "Search Stopped");
+                console.log("Search stopped");
+            });
+        }
     })
 
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
 
+    initCompositor();
     initUI();
+}
+
+// initialize and rebind events for the compositor. Should always be called
+// instead of manually re-creating compositor object.
+function initCompositor() {
+    c = new comp.Compositor();
+
+    c.on('sample', function(img, ctx) {
+        processNewSample(img, ctx);
+    });
 }
 
 // Renders an image from the compositor module and
@@ -1073,7 +1119,7 @@ function openFile() {
 function importLayers(doc, path) {
     // create new compositor object
     deleteAllControls();
-    c = new comp.Compositor();
+    initCompositor();
     var order = [];
     var movebg = false
     var data = doc["layers"]
@@ -1352,7 +1398,7 @@ function importLayers(doc, path) {
 function loadLayers(doc, path) {
     // create new compositor object
     deleteAllControls();
-    c = new comp.Compositor();
+    initCompositor();
     var order = [];
     var movebg = false
     var data = doc["layers"]
@@ -1840,10 +1886,18 @@ function showStatusMsg(msg, type, title) {
             msgElem.transition({ animation: 'fade up', onComplete: function () {
                 msgElem.remove();
             }});
-        }, 5000);
+        }, 2500);
     }});
 
     msgId += 1;
+}
+
+function processNewSample(img, ctx) {
+    // eventually we will need references to each context element in order
+    // to render the images at full size
+    // CURRENT STATUS: Images returned are full sizes of the exact same render
+    // of the exact same scene delivered at 5s intervals
+    console.log(img);
 }
 
 /*===========================================================================*/

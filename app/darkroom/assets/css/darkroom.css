@@ -13,7 +13,7 @@ body {
 	right: 0;
 	top: 0;
 	background: #1b1c1d;
-	height: 100%;
+	height: calc(100% - 250px);
 }
 
 #layerContainer .layerWrapper {
@@ -268,7 +268,7 @@ body {
 	width: 70%;
 	min-width: 250px;
 	display: block;
-	position: relative;
+	position: absolute;
 	bottom: 0;
 	left: 0;
 	height: 50%;
@@ -276,5 +276,19 @@ body {
 }
 
 #sampleContainer .segment {
+	height: 100%;
+}
+
+#sampleControls {
+	width: 30%;
+	height: 250px;
+	display: block;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	padding: 5px;
+}
+
+#sampleControls .segment {
 	height: 100%;
 }

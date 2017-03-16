@@ -166,6 +166,18 @@ private:
   Comp::Context _ctx;
 };
 
+class StopSearchWorker : public Nan::AsyncWorker {
+public:
+  StopSearchWorker(Nan::Callback* callback, Comp::Compositor* c);
+  void Execute() override;
+
+protected:
+  void HandleOKCallback() override;
+
+private:
+  Comp::Compositor* _c;
+};
+
 struct asyncSampleEventData {
   uv_work_t request;
 

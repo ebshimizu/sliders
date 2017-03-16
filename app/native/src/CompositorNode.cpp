@@ -1395,9 +1395,11 @@ void CompositorWrapper::stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& i
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "composior.stopSearch");
 
-  c->_compositor->stopSearch();
+  Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
 
-  // probably want to return some indication of success
+  // async this, it blocks
+  Nan::AsyncQueueWorker(new StopSearchWorker(callback, c->_compositor));
+
   info.GetReturnValue().SetUndefined();
 }
 
@@ -1432,4 +1434,23 @@ void RenderWorker::HandleOKCallback()
 
   v8::Local<v8::Value> cb[] = { Nan::Null(), imgInst };
   callback->Call(2, cb);
+}
+
+StopSearchWorker::StopSearchWorker(Nan::Callback * callback, Comp::Compositor * c):
+  Nan::AsyncWorker(callback), _c(c)
+{
+}
+
+void StopSearchWorker::Execute()
+{
+  // this could take a while
+  _c->stopSearch();
+}
+
+void StopSearchWorker::HandleOKCallback()
+{
+  Nan::HandleScope scope;
+
+  v8::Local<v8::Value> cb[] = { Nan::Null() };
+  callback->Call(1, cb);
 }

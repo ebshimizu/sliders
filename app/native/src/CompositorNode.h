@@ -94,6 +94,21 @@ private:
   Comp::Layer* _layer;
 };
 
+class ContextWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> contextConstructor;
+
+private:
+  explicit ContextWrapper(Comp::Context ctx);
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+
+  // it's not a complicated object, we just have a reference here
+  Comp::Context _context;
+};
+
 void asyncSampleEvent(uv_work_t* req);
 void asyncNop(uv_work_t* req);
 
@@ -115,6 +130,7 @@ private:
   static void getLayerNames(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void size(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void render(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
@@ -125,6 +141,29 @@ private:
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;
+};
+
+class RenderWorker : public Nan::AsyncWorker {
+public:
+  RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c);
+
+  // render a specific context async
+  RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx);
+
+  ~RenderWorker() {}
+
+  void Execute() override;
+
+protected:
+  void HandleOKCallback() override;
+
+private:
+  Comp::Compositor* _c;
+  string _size;
+  Comp::Image* _img;
+
+  bool _customContext;
+  Comp::Context _ctx;
 };
 
 struct asyncSampleEventData {

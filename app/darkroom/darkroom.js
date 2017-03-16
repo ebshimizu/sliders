@@ -1,6 +1,14 @@
 const comp = require('../native/build/Release/compositor')
+var events = require('events')
 var {dialog, app} = require('electron').remote
 var fs = require('fs')
+
+function inherits(target, source) {
+  for (var k in source.prototype)
+    target.prototype[k] = source.prototype[k];
+}
+
+inherits(comp.Compositor, events);
 
 comp.setLogLevel(1)
 
@@ -104,16 +112,11 @@ function init() {
 // Renders an image from the compositor module and
 // then puts it in an image tag
 function renderImage() {
-    var dat = 'data:image/png;base64,';
-
-    if (g_renderSize === "full") {
-        dat += c.render().base64();
-    }
-    else {
-        dat += c.render(g_renderSize).base64();
-    }
-
-    $("#render").html('<img src="' + dat + '"" />')
+    c.asyncRender(g_renderSize, function(err, img) {
+        var dat = 'data:image/png;base64,';
+        dat += img.base64();
+        $("#render").html('<img src="' + dat + '"" />')
+    });
 }
 
 function initUI() {

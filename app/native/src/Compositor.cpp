@@ -453,23 +453,38 @@ namespace Comp {
     _activeCallback = cb;
     _searchRunning = true;
 
+    stringstream ss;
+    ss << "Starting search with " << threads << " threads";
+    getLogger()->log(ss.str(), LogLevel::INFO);
+
     // start threads
     for (int i = 0; i < threads; i++) {
       _searchThreads[i] = thread(&Compositor::runSearch, this);
     }
 
+    getLogger()->log("Search threads launched.", LogLevel::INFO);
     return;
   }
 
   void Compositor::stopSearch()
   {
     _searchRunning = false;
+    getLogger()->log("Waiting for all threads to finish...", LogLevel::INFO);
 
     // wait for threads to finish
-    for (auto& t : _searchThreads) {
-      t.join();
+    for (int i = 0; i < _searchThreads.size(); i++) {
+      stringstream ss;
+      ss << "Waiting for thread " << i << "...";
+      getLogger()->log(ss.str(), LogLevel::INFO);
+
+      _searchThreads[i].join();
+
+      ss.clear();
+      ss << "Thread " << i << " stopped";
+      getLogger()->log(ss.str(), LogLevel::INFO);
     }
 
+    getLogger()->log("Search stopped");
     return;
   }
 

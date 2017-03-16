@@ -78,15 +78,20 @@ void asyncSampleEvent(uv_work_t * req)
   asyncSampleEventData* data = static_cast<asyncSampleEventData*>(req->data);
 
   // create objects
-  // TODO: the context is a string  here because i am lazy and just testing async things right now
   // image object
   const int argc = 2;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(data->img), Nan::New(true) };
   v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
   v8::Local<v8::Object> imgInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
 
+  // context object
+  const int argc2 = 1;
+  v8::Local<v8::Value> argv2[argc2] = { Nan::New<v8::External>(&(data->ctx)) };
+  v8::Local<v8::Function> cons2 = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+  v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons2, argc2, argv2).ToLocalChecked();
+
   // construct emitter objects
-  v8::Local<v8::Value> emitArgv[] = { Nan::New("sample").ToLocalChecked(), imgInst, Nan::New("CONTEXT").ToLocalChecked() };
+  v8::Local<v8::Value> emitArgv[] = { Nan::New("sample").ToLocalChecked(), imgInst, ctxInst };
   Nan::MakeCallback(data->c->handle(), "emit", 3, emitArgv);
 }
 
@@ -96,10 +101,10 @@ void asyncNop(uv_work_t * req)
 }
 
 // object bindings
-
 Nan::Persistent<v8::Function> ImageWrapper::imageConstructor;
 Nan::Persistent<v8::Function> LayerRef::layerConstructor;
 Nan::Persistent<v8::Function> CompositorWrapper::compositorConstructor;
+Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -943,6 +948,63 @@ void LayerRef::overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 }
 
+void ContextWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("Context").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
+
+  contextConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("Context").ToLocalChecked(), tpl->GetFunction());
+}
+
+ContextWrapper::ContextWrapper(Comp::Context ctx) : _context(ctx)
+{
+}
+
+void ContextWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (!info[0]->IsExternal()) {
+    Nan::ThrowError("Internal Error: Context pointer not found as first argument of ContextWrapper constructor.");
+  }
+
+  Comp::Context* c = static_cast<Comp::Context*>(info[0].As<v8::External>()->Value());
+
+  ContextWrapper* ctx = new ContextWrapper(*c);
+  ctx->Wrap(info.This());
+  info.GetReturnValue().Set(info.This());
+}
+
+void ContextWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // this function is identical to the same function for compositors
+  Nan::HandleScope scope;
+
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("getLayer expects a layer name");
+  }
+
+  // expects a name
+  ContextWrapper* c = ObjectWrap::Unwrap<ContextWrapper>(info.Holder());
+  nullcheck(c, "ContextWrapper.getLayer");
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name(*val0);
+
+  Comp::Layer& l = c->_context[name];
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(LayerRef::layerConstructor);
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
+
+  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+}
+
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -961,6 +1023,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getLayerNames", getLayerNames);
   Nan::SetPrototypeMethod(tpl, "size", size);
   Nan::SetPrototypeMethod(tpl, "render", render);
+  Nan::SetPrototypeMethod(tpl, "asyncRender", asyncRender);
   Nan::SetPrototypeMethod(tpl, "getCacheSizes", getCacheSizes);
   Nan::SetPrototypeMethod(tpl, "addCacheSize", addCacheSize);
   Nan::SetPrototypeMethod(tpl, "deleteCacheSize", deleteCacheSize);
@@ -1176,6 +1239,35 @@ void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
   info.GetReturnValue().Set(cons->NewInstance(argc, argv));
 }
 
+void CompositorWrapper::asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // does a render, async style
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.render");
+
+  Comp::Image* img;
+
+  string size = "";
+  Nan::Callback* callback;
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    size = string(*val0);
+
+    callback = new Nan::Callback(info[1].As<v8::Function>());
+  }
+  else if (info[0]->IsFunction()) {
+    callback = new Nan::Callback(info[0].As<v8::Function>());
+  }
+  else {
+    Nan::ThrowError("asyncRender should either have a callback or a size string and a callback.");
+  }
+
+  Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor));
+
+  info.GetReturnValue().SetUndefined();
+}
+
 void CompositorWrapper::getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
@@ -1268,6 +1360,16 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.startSearch");
 
+  int threads = 1;
+
+  if (info[0]->IsNumber()) {
+    threads = info[0]->Int32Value();
+  }
+
+  if (threads > thread::hardware_concurrency()) {
+    threads = thread::hardware_concurrency();
+  }
+
   // ok so this part gets complicated. 
   // hopefully what happens here is that we create a callback function for the c++ code to call
   // in order to get the image data out of c++ into js. The compositor object itself will
@@ -1283,8 +1385,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
     uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
   };
 
-  // TODO: running in single threaded mode for debugging
-  c->_compositor->startSearch(cb, 1);
+  c->_compositor->startSearch(cb, threads);
 
   info.GetReturnValue().SetUndefined();
 }
@@ -1298,4 +1399,37 @@ void CompositorWrapper::stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& i
 
   // probably want to return some indication of success
   info.GetReturnValue().SetUndefined();
+}
+
+RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :
+  Nan::AsyncWorker(callback), _size(size), _c(c)
+{
+  _customContext = false;
+}
+
+RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c, Comp::Context ctx):
+  Nan::AsyncWorker(callback), _size(size), _c(c), _ctx(ctx)
+{
+  _customContext = true;
+}
+
+void RenderWorker::Execute()
+{
+  if (_customContext)
+    _img = _c->render(_ctx, _size);
+  else
+    _img = _c->render(_size);
+}
+
+void RenderWorker::HandleOKCallback()
+{
+  Nan::HandleScope scope;
+
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(_img), Nan::New(true) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  v8::Local<v8::Object> imgInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  v8::Local<v8::Value> cb[] = { Nan::Null(), imgInst };
+  callback->Call(2, cb);
 }

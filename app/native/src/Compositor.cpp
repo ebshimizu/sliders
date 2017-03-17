@@ -494,7 +494,7 @@ namespace Comp {
       // do stuff
       // debug: returns a render of the current context every time it runs
       Image* r = render();
-      _activeCallback(r, Context(getPrimaryContext()));
+      _activeCallback(r, Context(getPrimaryContext()), map<string, float>());
       this_thread::sleep_for(5s);
     }
   }

@@ -16,7 +16,11 @@ comp.setLogLevel(1)
 var c, docTree, modifiers;
 var currentFile = "";
 var cp;
-var msgId = 0;
+var msgId = 0, sampleId = 0;
+var sampleIndex = {}
+var settings = {
+    "showSampleId" : true
+}
 
 // global settings vars
 var g_renderSize;
@@ -96,6 +100,18 @@ function init() {
     // dropdown components
     $(".ui.dropdown").dropdown();
 
+    // popup components
+    $("#sampleContainer .settings").popup({
+        inline: true,
+        hoverable: true
+    });
+
+    // settings
+    $("#showSampleId").checkbox({
+        onChecked: () => { settings["showSampleId"] = true; $("#sampleContainer").removeClass("noIds"); },
+        onUnchecked: () => { settings["showSampleId"] = false; $("#sampleContainer").addClass("noIds"); }
+    });
+
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
         orientation: "horizontal",
@@ -116,6 +132,7 @@ function init() {
             $(this).removeClass("green");
             $(this).addClass("red");
             $(this).html("Stop Search");
+            initSearch();
             c.startSearch();
             console.log("Search started");
         }
@@ -143,6 +160,7 @@ function init() {
 
     initCompositor();
     initUI();
+    loadSettings();
 }
 
 // initialize and rebind events for the compositor. Should always be called
@@ -150,8 +168,8 @@ function init() {
 function initCompositor() {
     c = new comp.Compositor();
 
-    c.on('sample', function(img, ctx) {
-        processNewSample(img, ctx);
+    c.on('sample', function(img, ctx, meta) {
+        processNewSample(img, ctx, meta);
     });
 }
 
@@ -184,6 +202,17 @@ function initUI() {
     }
 
     initGlobals();
+}
+
+function loadSettings() {
+    if (settings["showSampleId"]) {
+        $("#showSampleId").checkbox('check');
+        $("#sampleContainer").removeClass("noIds");
+    }
+    else {
+        $("#showSampleId").checkbox('unchecked');
+        $("#sampleContainer").addClass("noIds");
+    }
 }
 
 // default global variable settings
@@ -1892,12 +1921,39 @@ function showStatusMsg(msg, type, title) {
     msgId += 1;
 }
 
-function processNewSample(img, ctx) {
+/*===========================================================================*/
+/* Search                                                                    */
+/*===========================================================================*/
+
+function initSearch() {
+    sampleIndex = {}
+    sampleId = 0;
+    $('#sampleContainer .sampleWrapper').empty();
+}
+
+function processNewSample(img, ctx, meta) {
     // eventually we will need references to each context element in order
     // to render the images at full size
     // CURRENT STATUS: Images returned are full sizes of the exact same render
     // of the exact same scene delivered at 5s intervals
-    console.log(img);
+    sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta }
+    $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
+    sampleId += 1;
+}
+
+function createSampleContainer(img, id) {
+    var html = '<div class="ui card" sampleId="' + id + '">';
+    html += '<div class="ui image">';
+
+    // metadata display
+    //html += '<div class="ui black left ribbon label"></div>'
+    
+    // id display
+    html += '<div class="ui black small floating circular label sampleId">' + id + '</div>';
+
+    html += '<img src="data:image/png;base64,' + img.base64() + '">'
+    html += '</div></div>';
+    return html;
 }
 
 /*===========================================================================*/

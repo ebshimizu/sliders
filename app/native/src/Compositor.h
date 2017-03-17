@@ -19,7 +19,7 @@ using namespace std;
 
 namespace Comp {
   typedef map<string, Layer> Context;
-  typedef function<void(Image*, Context)> searchCallback;
+  typedef function<void(Image*, Context, map<string, float> metadata)> searchCallback;
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior

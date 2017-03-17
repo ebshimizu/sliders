@@ -275,8 +275,16 @@ body {
 	padding: 5px;
 }
 
+#sampleContainer #samples .sampleWrapper {
+    overflow-y: auto;
+    max-height: calc(100% - 2px);
+    margin-top: 16px!important;
+}
+
 #sampleContainer .segment {
 	height: 100%;
+	padding-right: 11px;
+	margin-top: 0;
 }
 
 #sampleControls {
@@ -291,4 +299,23 @@ body {
 
 #sampleControls .segment {
 	height: 100%;
+}
+
+#sampleContainer .card {
+	background-color: #1b1c1d;
+}
+
+#sampleContainer.noIds .sampleId {
+	display: none;
+}
+
+#sampleContainer .button.settings {
+    position: absolute;
+    right: 4px;
+    top: 8px;
+    z-index: 100;
+}
+
+#sampleContainer .popup {
+	width: 300px;
 }

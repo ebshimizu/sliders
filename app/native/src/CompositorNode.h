@@ -183,5 +183,6 @@ struct asyncSampleEventData {
 
   Comp::Image* img;
   Comp::Context ctx;
+  map<string, float> meta;
   CompositorWrapper* c;
 };

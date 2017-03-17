@@ -9,6 +9,7 @@ void InitAll(v8::Local<v8::Object> exports) {
   exports->Set(Nan::New("log").ToLocalChecked(), Nan::New<v8::Function>(log));
   exports->Set(Nan::New("setLogLocation").ToLocalChecked(), Nan::New<v8::Function>(setLogLocation));
   exports->Set(Nan::New("setLogLevel").ToLocalChecked(), Nan::New<v8::Function>(setLogLevel));
+  exports->Set(Nan::New("hardware_concurrency").ToLocalChecked(), Nan::New<v8::Function>(hardware_concurrency));
 }
 
 NODE_MODULE(Compositor, InitAll)

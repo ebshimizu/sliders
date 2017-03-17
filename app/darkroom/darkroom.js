@@ -18,8 +18,11 @@ var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
 var sampleIndex = {}
+var maxThreads = comp.hardware_concurrency();
 var settings = {
-    "showSampleId" : true
+    "showSampleId" : true,
+    "sampleRows" : 6,
+    "sampleThreads" : parseInt(maxThreads / 2)
 }
 
 // global settings vars
@@ -56,6 +59,19 @@ const adjType = {
     "OVERWRITE_COLOR" : 10
 }
 
+const num2Str = {
+    1 : "one",
+    2 : "two",
+    3 : "three",
+    4 : "four",
+    5 : "five",
+    6 : "six",
+    7 : "seven",
+    8 : "eight",
+    9 : "nine",
+    10 : "ten"
+}
+
 /*===========================================================================*/
 /* Initialization                                                            */
 /*===========================================================================*/
@@ -82,6 +98,7 @@ function init() {
         $(".setName").find('i').removeClass("down");
         $(".setName").find('i').addClass("right");
     });
+
     // render size options
     $('#renderSize a.item').click(function() {
         // reset icon status
@@ -95,6 +112,26 @@ function init() {
 
         g_renderSize = $(this).attr("internal");
         renderImage();
+    });
+
+    // threading options
+    // add additional options.
+    for (var i = 0; i < maxThreads; i++) {
+        var str = '<a class="item" name="' + (i + 1) + '">' + (i + 1) + '</a>';
+        $("#sampleThreads").append(str);
+    }
+
+    $('#sampleThreads a.item').click(function() {
+        // reset icon status
+        var links = $('#sampleThreads a.item')
+        for (var i = 0; i < links.length; i++) {
+            $(links[i]).html($(links[i]).attr("name"));
+        }
+
+        // add icon to selected
+        $(this).prepend('<i class="checkmark icon"></i>');
+
+        settings["sampleThreads"] = parseInt($(this).attr("name"));
     });
 
     // dropdown components
@@ -112,6 +149,16 @@ function init() {
         onUnchecked: () => { settings["showSampleId"] = false; $("#sampleContainer").addClass("noIds"); }
     });
 
+    $('#sampleRows').dropdown({
+        action: 'activate',
+        onChange: function(value, text) {
+            settings["sampleRows"] = parseInt(text);
+            $('#sampleContainer .sampleWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sampleContainer .sampleWrapper').addClass(value);
+        }
+    });
+
+
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
         orientation: "horizontal",
@@ -122,37 +169,7 @@ function init() {
 
     // buttons
     $("#runSearchBtn").click(function() {
-        if ($(this).hasClass("disabled")) {
-            // is disabled during stopping to prevent multiple stop commands
-            return;
-        }
-
-        if ($(this).hasClass("green")) {
-            // search is starting
-            $(this).removeClass("green");
-            $(this).addClass("red");
-            $(this).html("Stop Search");
-            initSearch();
-            c.startSearch();
-            console.log("Search started");
-        }
-        else {
-            // search is stopping
-            $(this).html("Stopping Search...");
-            showStatusMsg("", "", "Stopping Search");
-            $(this).addClass("disabled");
-
-            // this blocks, may want some indication that it is working, loading sign for instance
-            // in fact, this function should be async with a callback to indicate completion.
-            c.stopSearch(err => {
-                $(this).removeClass("red");
-                $(this).removeClass("disabled");
-                $(this).addClass("green");
-                $(this).html("Start Search");
-                showStatusMsg("", "OK", "Search Stopped");
-                console.log("Search stopped");
-            });
-        }
+        runSearch(this);
     })
 
     // autoload
@@ -213,6 +230,13 @@ function loadSettings() {
         $("#showSampleId").checkbox('unchecked');
         $("#sampleContainer").addClass("noIds");
     }
+
+    $("#sampleRows").dropdown('set selected', num2Str[settings["sampleRows"]]);
+
+    // select max threads / 2
+    $("#sampleThreads a.item").removeClass("selected");
+    $('#sampleThreads a.item[name="' + settings["sampleThreads"] + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
+
 }
 
 // default global variable settings
@@ -1929,6 +1953,40 @@ function initSearch() {
     sampleIndex = {}
     sampleId = 0;
     $('#sampleContainer .sampleWrapper').empty();
+}
+
+function runSearch(elem) {
+    if ($(elem).hasClass("disabled")) {
+            // is disabled during stopping to prevent multiple stop commands
+        return;
+    }
+
+    if ($(elem).hasClass("green")) {
+        // search is starting
+        $(elem).removeClass("green");
+        $(elem).addClass("red");
+        $(elem).html("Stop Search");
+        initSearch();
+        c.startSearch(settings["sampleThreads"]);
+        console.log("Search started");
+    }
+    else {
+        // search is stopping
+        $(elem).html("Stopping Search...");
+        showStatusMsg("", "", "Stopping Search");
+        $(elem).addClass("disabled");
+
+        // this blocks, may want some indication that it is working, loading sign for instance
+        // in fact, this function should be async with a callback to indicate completion.
+        c.stopSearch(err => {
+            $(elem).removeClass("red");
+            $(elem).removeClass("disabled");
+            $(elem).addClass("green");
+            $(elem).html("Start Search");
+            showStatusMsg("", "OK", "Search Stopped");
+            console.log("Search stopped");
+        });
+    }
 }
 
 function processNewSample(img, ctx, meta) {

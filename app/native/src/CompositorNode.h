@@ -20,6 +20,7 @@ inline void nullcheck(void* ptr, string caller);
 void log(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void setLogLocation(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void hardware_concurrency(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
 class ImageWrapper : public Nan::ObjectWrap {
 public:

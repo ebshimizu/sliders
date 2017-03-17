@@ -69,6 +69,11 @@ void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info)
   info.GetReturnValue().SetNull();
 }
 
+void hardware_concurrency(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  info.GetReturnValue().Set(Nan::New(thread::hardware_concurrency()));
+}
+
 void asyncSampleEvent(uv_work_t * req)
 {
   // construct the proper objects and do the callback

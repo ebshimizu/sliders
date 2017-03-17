@@ -81,7 +81,7 @@ namespace Comp {
     shared_ptr<Image> getCachedImage(string id, string size);
 
     // main entry point for starting the search process.
-    void startSearch(searchCallback cb, int threads = 1);
+    void startSearch(searchCallback cb, int threads = 1, string searchRenderSize = "");
     void stopSearch();
     void runSearch();
 
@@ -138,6 +138,7 @@ namespace Comp {
     bool _searchRunning;
     searchCallback _activeCallback;
     vector<thread> _searchThreads;
+    string _searchRenderSize;
 
     // eventually this class will need to render things in parallel
 

@@ -1459,9 +1459,15 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
   nullcheck(c->_compositor, "compositor.startSearch");
 
   int threads = 1;
+  string renderSize = "";
 
   if (info[0]->IsNumber()) {
     threads = info[0]->Int32Value();
+  }
+
+  if (info[1]->IsString()) {
+    v8::String::Utf8Value val(info[1]->ToString());
+    renderSize = string(*val);
   }
 
   if (threads > thread::hardware_concurrency()) {
@@ -1484,7 +1490,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
     uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
   };
 
-  c->_compositor->startSearch(cb, threads);
+  c->_compositor->startSearch(cb, threads, renderSize);
 
   info.GetReturnValue().SetUndefined();
 }

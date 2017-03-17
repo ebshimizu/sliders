@@ -22,7 +22,8 @@ var maxThreads = comp.hardware_concurrency();
 var settings = {
     "showSampleId" : true,
     "sampleRows" : 6,
-    "sampleThreads" : parseInt(maxThreads / 2)
+    "sampleThreads" : parseInt(maxThreads / 2),
+    "sampleRenderSize" : "thumb"
 }
 
 // global settings vars
@@ -112,6 +113,19 @@ function init() {
 
         g_renderSize = $(this).attr("internal");
         renderImage();
+    });
+
+    $('#sampleRenderSize a.item').click(function() {
+        // reset icon status
+        var links = $('#sampleRenderSize a.item')
+        for (var i = 0; i < links.length; i++) {
+            $(links[i]).html($(links[i]).attr("name"));
+        }
+
+        // add icon to selected
+        $(this).prepend('<i class="checkmark icon"></i>');
+
+        settings["sampleRenderSize"] = $(this).attr("internal");
     });
 
     // threading options
@@ -236,7 +250,6 @@ function loadSettings() {
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
     $('#sampleThreads a.item[name="' + settings["sampleThreads"] + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
-
 }
 
 // default global variable settings
@@ -1967,7 +1980,7 @@ function runSearch(elem) {
         $(elem).addClass("red");
         $(elem).html("Stop Search");
         initSearch();
-        c.startSearch(settings["sampleThreads"]);
+        c.startSearch(settings["sampleThreads"], settings["sampleRenderSize"]);
         console.log("Search started");
     }
     else {

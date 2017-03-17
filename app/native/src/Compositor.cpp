@@ -439,7 +439,7 @@ namespace Comp {
     return nullptr;
   }
 
-  void Compositor::startSearch(searchCallback cb, int threads)
+  void Compositor::startSearch(searchCallback cb, int threads, string searchRenderSize)
   {
     // for testing purposes this function just starts a thread that returns a render
     // every 5 seconds.
@@ -452,6 +452,7 @@ namespace Comp {
 
     _activeCallback = cb;
     _searchRunning = true;
+    _searchRenderSize = searchRenderSize;
 
     stringstream ss;
     ss << "Starting search with " << threads << " threads";
@@ -493,7 +494,7 @@ namespace Comp {
     while (_searchRunning) {
       // do stuff
       // debug: returns a render of the current context every time it runs
-      Image* r = render();
+      Image* r = render(_searchRenderSize);
       _activeCallback(r, Context(getPrimaryContext()), map<string, float>());
       this_thread::sleep_for(5s);
     }

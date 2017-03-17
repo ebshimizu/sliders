@@ -1037,6 +1037,9 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "reorderLayer", reorderLayer);
   Nan::SetPrototypeMethod(tpl, "startSearch", startSearch);
   Nan::SetPrototypeMethod(tpl, "stopSearch", stopSearch);
+  Nan::SetPrototypeMethod(tpl, "renderContext", renderContext);
+  Nan::SetPrototypeMethod(tpl, "asyncRenderContext", asyncRenderContext);
+  Nan::SetPrototypeMethod(tpl, "getContext", getContext);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1242,7 +1245,7 @@ void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
   const int argc = 2;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1272,6 +1275,90 @@ void CompositorWrapper::asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& 
   Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor));
 
   info.GetReturnValue().SetUndefined();
+}
+
+void CompositorWrapper::renderContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.renderContext");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("renderContext requires a context to render");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  string size = "";
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    size = string(*val0);
+  }
+
+  Comp::Image* img = c->_compositor->render(ctx->_context, size);
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
+
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void CompositorWrapper::asyncRenderContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // does a render, async style
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.asyncRenderContext");
+
+  Comp::Image* img;
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("renderContext requires a context to render");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  string size = "";
+  Nan::Callback* callback;
+
+  if (info[1]->IsString()) {
+    v8::String::Utf8Value val0(info[1]->ToString());
+    size = string(*val0);
+
+    callback = new Nan::Callback(info[2].As<v8::Function>());
+  }
+  else if (info[1]->IsFunction()) {
+    callback = new Nan::Callback(info[1].As<v8::Function>());
+  }
+  else {
+    Nan::ThrowError("asyncRenderContext should either have a callback or a size string and a callback.");
+  }
+
+  Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor, ctx->_context));
+
+  info.GetReturnValue().SetUndefined();
+}
+
+void CompositorWrapper::getContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getContext");
+
+  Comp::Context ctx = c->_compositor->getNewContext();
+
+  // context object
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info)

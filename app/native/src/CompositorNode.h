@@ -99,14 +99,13 @@ public:
   static void Init(v8::Local<v8::Object> exports);
   static Nan::Persistent<v8::Function> contextConstructor;
 
+  // it's not a complicated object, we just have a reference here
+  Comp::Context _context;
 private:
   explicit ContextWrapper(Comp::Context ctx);
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
-
-  // it's not a complicated object, we just have a reference here
-  Comp::Context _context;
 };
 
 void asyncSampleEvent(uv_work_t* req);
@@ -131,6 +130,9 @@ private:
   static void size(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void render(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void renderContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void asyncRenderContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getCacheSizes(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteCacheSize(const Nan::FunctionCallbackInfo<v8::Value>& info);

@@ -291,7 +291,7 @@ body {
 }
 
 #sampleContainer #samples .sampleWrapper {
-    overflow-y: auto;
+    overflow-y: visible;
     max-height: calc(100% - 2px);
     margin-top: 16px!important;
 }
@@ -333,4 +333,8 @@ body {
 
 #sampleContainer .popup {
 	width: 300px;
+}
+
+#sampleContainer .sample .dimmable.image {
+	overflow: visible;
 }

@@ -1982,6 +1982,9 @@ function showPreview(sample) {
         // we want to render this sample now at high quality, async
         c.asyncRenderContext(sampleIndex[sampleId]["context"], "", function(err, img) {
             // replace the relevant image tags
+            // because this is single threaded, if at the time of render completion, the user has
+            // previewed a sample, this will also update the sample image (we copied it so the selector
+            // will also apply to the preview).
             sampleIndex[sampleId]["img"] = img;
             var src = 'data:image/png;base64,' + img.base64();
             $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('newSample');
@@ -2045,12 +2048,30 @@ function processNewSample(img, ctx, meta) {
     // of the exact same scene delivered at 5s intervals
     sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta }
     $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
+
+    // bind the dimmer
+    $('#sampleContainer .sample[sampleId="' + sampleId + '"] .image').dimmer({
+        on: 'hover',
+        duration: {
+            show: 100,
+            hide: 100
+        }
+    });
+
+    // start the menu
+    $('#sampleContainer .sample[sampleId="' + sampleId + '"] .dropdown').dropdown({
+        action: 'hide'
+    });
+
     sampleId += 1;
 }
 
 function createSampleContainer(img, id) {
     var html = '<div class="ui card sample" sampleId="' + id + '">';
-    html += '<div class="ui image">';
+    html += '<div class="ui blurring dimmable image">';
+
+    // dimmer - other controls
+    html += createSampleControls(id);
 
     // metadata display
     //html += '<div class="ui black left ribbon label"></div>'
@@ -2060,6 +2081,26 @@ function createSampleContainer(img, id) {
 
     html += '<img class="newSample" sampleId="' + id + '" src="data:image/png;base64,' + img.base64() + '">'
     html += '</div></div>';
+    return html;
+}
+
+function createSampleControls(id) {
+    var html = '<div class="ui dimmer">'
+    html += '<div class="content">'
+    html += '<div class="center">'
+    html += '<div class="ui inverted header">ID: ' + id + '</div>'
+    html += '<div class="ui buttons">'
+    html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>'
+    html += '<div class="ui compact inverted icon top left pointing dropdown button"><i class="ui options icon"></i>'
+
+    // dropdown menu creation
+    html += '<div class="menu">'
+    html += '<div class="header">Sample Actions</div>'
+    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>'
+    html += '</div></div>'
+    
+    html += '</div></div></div></div>'
+
     return html;
 }
 

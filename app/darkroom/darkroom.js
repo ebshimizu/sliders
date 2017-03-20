@@ -154,7 +154,11 @@ function init() {
     // popup components
     $("#sampleContainer .settings").popup({
         inline: true,
-        hoverable: true
+        hoverable: true,
+        delay: {
+            show: 50,
+            hide: 500
+        }
     });
 
     // settings
@@ -172,6 +176,14 @@ function init() {
         }
     });
 
+    // sample event bindings
+    $('#samples').on('mouseover', '.sample', function() {
+        showPreview(this);
+    });
+
+    $('#samples').on('mouseout', '.sample', function() {
+        hidePreview();
+    })
 
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
@@ -201,16 +213,6 @@ function initCompositor() {
 
     c.on('sample', function(img, ctx, meta) {
         processNewSample(img, ctx, meta);
-    });
-}
-
-// Renders an image from the compositor module and
-// then puts it in an image tag
-function renderImage() {
-    c.asyncRender(g_renderSize, function(err, img) {
-        var dat = 'data:image/png;base64,';
-        dat += img.base64();
-        $("#render").html('<img src="' + dat + '"" />')
     });
 }
 
@@ -1929,13 +1931,13 @@ function showStatusMsg(msg, type, title) {
     var html = ''
 
     if (type === "OK") {
-        html += '<div class="ui positive message'
+        html += '<div class="ui positive small message'
     }
     else if (type === "ERROR") {
-        html += '<div class="ui negative message'
+        html += '<div class="ui negative small message'
     }
     else {
-        html += '<div class="ui info message'
+        html += '<div class="ui info small message'
     }
 
     html += ' transition hidden" messageId="' + msgId + '">';
@@ -1956,6 +1958,40 @@ function showStatusMsg(msg, type, title) {
     }});
 
     msgId += 1;
+}
+
+// Renders an image from the compositor module and
+// then puts it in an image tag
+function renderImage() {
+    c.asyncRender(g_renderSize, function(err, img) {
+        var dat = 'data:image/png;base64,';
+        dat += img.base64();
+        $("#render").html('<img src="' + dat + '"" />')
+    });
+}
+
+function showPreview(sample) {
+    var img = $(sample).find('img');
+    $('#preview').html(img.clone());
+    $('#preview').show();
+    $('#render').hide();
+
+    if (img.hasClass("newSample")) {
+        var sampleId = parseInt(img.attr("sampleId"));
+
+        // we want to render this sample now at high quality, async
+        c.asyncRenderContext(sampleIndex[sampleId]["context"], "", function(err, img) {
+            // replace the relevant image tags
+            sampleIndex[sampleId]["img"] = img;
+            var src = 'data:image/png;base64,' + img.base64();
+            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('newSample');
+        });
+    }
+}
+
+function hidePreview() {
+    $('#render').show();
+    $('#preview').hide();
 }
 
 /*===========================================================================*/
@@ -2013,7 +2049,7 @@ function processNewSample(img, ctx, meta) {
 }
 
 function createSampleContainer(img, id) {
-    var html = '<div class="ui card" sampleId="' + id + '">';
+    var html = '<div class="ui card sample" sampleId="' + id + '">';
     html += '<div class="ui image">';
 
     // metadata display
@@ -2022,7 +2058,7 @@ function createSampleContainer(img, id) {
     // id display
     html += '<div class="ui black small floating circular label sampleId">' + id + '</div>';
 
-    html += '<img src="data:image/png;base64,' + img.base64() + '">'
+    html += '<img class="newSample" sampleId="' + id + '" src="data:image/png;base64,' + img.base64() + '">'
     html += '</div></div>';
     return html;
 }

@@ -23,11 +23,11 @@ var settings = {
     "showSampleId" : true,
     "sampleRows" : 6,
     "sampleThreads" : parseInt(maxThreads / 2),
-    "sampleRenderSize" : "thumb"
+    "sampleRenderSize" : "thumb",
 }
 
 // global settings vars
-var g_renderSize;
+var g_renderSize, g_renderPause = false;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -1967,11 +1967,13 @@ function showStatusMsg(msg, type, title) {
 // Renders an image from the compositor module and
 // then puts it in an image tag
 function renderImage() {
-    c.asyncRender(g_renderSize, function(err, img) {
-        var dat = 'data:image/png;base64,';
-        dat += img.base64();
-        $("#render").html('<img src="' + dat + '"" />')
-    });
+    if (g_renderPause !== true) {
+        c.asyncRender(g_renderSize, function(err, img) {
+            var dat = 'data:image/png;base64,';
+            dat += img.base64();
+            $("#render").html('<img src="' + dat + '"" />')
+        });
+    }
 }
 
 function showPreview(sample) {
@@ -2003,7 +2005,75 @@ function hidePreview() {
 
 // replaces the current compositor context with the sample's context
 function pickSample(elem) {
+    // get the sample
+    var sampleId = parseInt($(elem).attr('sampleId'));
+    c.setContext(sampleIndex[sampleId]["context"]);
 
+    // the model changed, update the ui elements
+    updateLayerControls();
+}
+
+function updateLayerControls() {
+    // a few things have to happen in this function:
+    // - Reset the shadow state (the full state is contained in the context)
+    // - Get a list of all the layers in the compositor
+    // - Iterate through them and grab the relevant controls, and update them
+    // - Control updates should not trigger callbacks (otherwise we will be rendering forever)
+    //   or this function should disable rendering until the end
+    // - Render at the end
+    
+    resetShadowState();
+    // update group ui settings
+    g_renderPause = true;
+
+    var layers = c.getAllLayers();
+    for (var layerName in layers) {
+        var layer = layers[layerName];
+
+        // general controls
+        updateSliderControl(layerName, "opacity", "", layer.opacity() * 100);
+        
+        // visibility
+        var button = $('button[layerName="' + layerName + '"]')
+        if (modifiers[layerName]["visible"]) {
+            button.html('<i class="unhide icon"></i>')
+            button.removeClass("black")
+            button.addClass("white")
+        }
+        else {
+            button.html('<i class="hide icon"></i>')
+            button.removeClass("white")
+            button.addClass("black")
+        }
+
+        // blend mode
+        $('.blendModeMenu[layerName="' + layerName + '"]').dropdown('set selected', layer.blendMode());
+
+        // adjustment controls
+
+    }
+
+    g_renderPause = false;
+    renderImage();
+}
+
+function updateSliderControl(name, param, section, val) {
+    if (section === "") {
+        $('.paramSlider[layerName="' + name + '"][paramName="' + param + '"]').value(val);
+        $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').val(String(val).toFixed(2));
+    }
+    else {
+        $('div[sectionName="' + section +'"] .paramSlider[layerName="' + name + '"][paramName="' + param +  '"]').value(val);
+        $('div[sectionName="' + section +'"] .paramInput[layerName="' + name + '"][paramName="' + param +  '"] input').val(String(val).toFixed(2));
+    }
+}
+
+function resetShadowState() {
+    for (var name in modifiers) {
+        modifiers[name] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
+    }
+
+    // probably want to propagate this to the group ui
 }
 
 /*===========================================================================*/

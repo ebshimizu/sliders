@@ -185,6 +185,10 @@ function init() {
         hidePreview();
     })
 
+    $('#samples').on('click', '.pickSampleCmd', function() {
+        pickSample(this);
+    });
+
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
         orientation: "horizontal",
@@ -1995,6 +1999,11 @@ function showPreview(sample) {
 function hidePreview() {
     $('#render').show();
     $('#preview').hide();
+}
+
+// replaces the current compositor context with the sample's context
+function pickSample(elem) {
+
 }
 
 /*===========================================================================*/

@@ -141,6 +141,7 @@ private:
   static void reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void startSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void setContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;

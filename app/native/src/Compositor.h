@@ -48,6 +48,10 @@ namespace Comp {
     // Returns a copy of the current context
     Context getNewContext();
 
+    // Sets the primary context to the specified context.
+    // Will only copy over layers that are in the primary to avoid problems with rendering
+    void setContext(Context c);
+
     // returns a ref to the primary context
     Context& getPrimaryContext();
 

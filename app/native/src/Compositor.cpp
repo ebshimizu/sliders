@@ -144,6 +144,15 @@ namespace Comp {
     return Context(_primary);
   }
 
+  void Compositor::setContext(Context c)
+  {
+    // copy all layers that exist in primary
+    for (auto l : c) {
+      if (_primary.count(l.first) > 0)
+        _primary[l.first] = l.second;
+    }
+  }
+
   Context & Compositor::getPrimaryContext()
   {
     return _primary;

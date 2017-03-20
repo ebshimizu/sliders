@@ -1045,6 +1045,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "renderContext", renderContext);
   Nan::SetPrototypeMethod(tpl, "asyncRenderContext", asyncRenderContext);
   Nan::SetPrototypeMethod(tpl, "getContext", getContext);
+  Nan::SetPrototypeMethod(tpl, "setContext", setContext);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1506,6 +1507,24 @@ void CompositorWrapper::stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& i
   Nan::AsyncQueueWorker(new StopSearchWorker(callback, c->_compositor));
 
   info.GetReturnValue().SetUndefined();
+}
+
+void CompositorWrapper::setContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.setContext");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("setContext(Context) argument error");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  c->_compositor->setContext(ctx->_context);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

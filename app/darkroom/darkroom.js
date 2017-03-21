@@ -1,7 +1,7 @@
-const comp = require('../native/build/Release/compositor')
-var events = require('events')
-var {dialog, app} = require('electron').remote
-var fs = require('fs')
+const comp = require('../native/build/Release/compositor');
+var events = require('events');
+var {dialog, app} = require('electron').remote;
+var fs = require('fs');
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -10,21 +10,21 @@ function inherits(target, source) {
 
 inherits(comp.Compositor, events);
 
-comp.setLogLevel(1)
+comp.setLogLevel(1);
 
 // initializes a global compositor object to operate on
 var c, docTree, modifiers;
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
-var sampleIndex = {}
+var sampleIndex = {};
 var maxThreads = comp.hardware_concurrency();
 var settings = {
     "showSampleId" : true,
     "sampleRows" : 6,
     "sampleThreads" : parseInt(maxThreads / 2),
     "sampleRenderSize" : "thumb",
-}
+};
 
 // global settings vars
 var g_renderSize, g_renderPause = false;
@@ -44,7 +44,7 @@ const blendModes = {
     "BlendMode.LIGHTEN" : 11,
     "BlendMode.DARKEN" : 12,
     "BlendMode.PINLIGHT" : 13
-}
+};
 
 const adjType = {
     "HSL" : 0,
@@ -58,7 +58,7 @@ const adjType = {
     "COLORIZE" : 8,
     "LIGHTER_COLORIZE" : 9,
     "OVERWRITE_COLOR" : 10
-}
+};
 
 const num2Str = {
     1 : "one",
@@ -71,7 +71,7 @@ const num2Str = {
     8 : "eight",
     9 : "nine",
     10 : "ten"
-}
+};
 
 /*===========================================================================*/
 /* Initialization                                                            */
@@ -183,7 +183,7 @@ function init() {
 
     $('#samples').on('mouseout', '.sample', function() {
         hidePreview();
-    })
+    });
 
     $('#samples').on('click', '.pickSampleCmd', function() {
         pickSample(this);
@@ -408,35 +408,40 @@ function generateControlHTML(doc, order, setName = "") {
     var html = '';
 
     if (setName !== "") {
-        html += '<div class="layerSet">'
+        html += '<div class="layerSet">';
         html += '<div class="setName ui header"><i class="caret down icon"></i>' + setName + "</div>";
 
-        html += '<button class="ui icon button mini white groupButton" setName="' + setName + '">'
-        html += '<i class="unhide icon"></i>'
-        html += '</button>'
+        html += '<button class="ui icon button mini white groupButton" setName="' + setName + '">';
+        html += '<i class="unhide icon"></i>';
+        html += '</button>';
 
-        html += '<div class="layerSetContainer">'
-        html += '<div class="parameter" setName="' + setName + '" paramName="opacity">'
+        html += '<div class="layerSetContainer">';
+        html += '<div class="parameter" setName="' + setName + '" paramName="opacity">';
 
-        html += '<div class="paramLabel">Group Opacity</div>'
-        html += '<div class="paramSlider groupSlider" setName="' + setName + '" paramName="opacity"></div>'
-        html += '<div class="paramInput groupInput ui inverted transparent input" setName="' + setName + '" paramName="opacity"><input type="text"></div>'
-        html += '</div>'
+        html += '<div class="paramLabel">Group Opacity</div>';
+        html += '<div class="paramSlider groupSlider" setName="' + setName + '" paramName="opacity"></div>';
+        html += '<div class="paramInput groupInput ui inverted transparent input" setName="' + setName + '" paramName="opacity"><input type="text"></div>';
+        html += '</div>';
     }
 
     // place layers
     for (var key in doc) {
+        // doc[key] may not be an object. If it's not, well, continue
+        if (Object.keys(doc[key]).length === 0) {
+            continue;
+        }
+
         if (!("html" in doc[key])) {
             // element is a set
             html += generateControlHTML(doc[key], order, key);
         }
         else {
-            html += doc[key]["html"]
+            html += doc[key].html;
             order.unshift(key);
         }
     }
 
-    html += '</div></div>'
+    html += '</div></div>';
     
     return html;
 }
@@ -1464,6 +1469,7 @@ function importLayers(doc, path) {
 
     // update internal structure
     c.setLayerOrder(order);
+    initSearch();
     renderImage();
 }
 
@@ -1472,13 +1478,14 @@ function loadLayers(doc, path) {
     deleteAllControls();
     initCompositor();
     var order = [];
-    var movebg = false
-    var data = doc["layers"]
+    var movebg = false;
+    var data = doc["layers"];
 
     // when loading an existing darkroom file we have some things already filled in
     // so we just load them from disk
-    modifiers = doc["modifiers"]
-    docTree = doc["docTree"]
+    modifiers = doc["modifiers"];
+
+    docTree = doc["docTree"];
 
     // we can skip metadata creation
     // and instead just load layers directly
@@ -1525,6 +1532,11 @@ function loadLayers(doc, path) {
         console.log("Added layer " + layerName);
     }
 
+    // but the shadow state may have some residual group settings from last time
+    // because the save file encodes those settings in the individual layers, we should
+    // reset the shadow state first.
+    resetShadowState();
+
     // render to page
     var layerData = generateControlHTML(docTree, order);
     $('#layerControls').html(layerData);
@@ -1537,6 +1549,7 @@ function loadLayers(doc, path) {
 
     // update internal structure
     c.setLayerOrder(order);
+    initSearch();
     renderImage();
 }
 
@@ -1986,7 +1999,7 @@ function showPreview(sample) {
         var sampleId = parseInt(img.attr("sampleId"));
 
         // we want to render this sample now at high quality, async
-        c.asyncRenderContext(sampleIndex[sampleId]["context"], "", function(err, img) {
+        c.asyncRenderContext(sampleIndex[sampleId]["context"], g_renderSize, function(err, img) {
             // replace the relevant image tags
             // because this is single threaded, if at the time of render completion, the user has
             // previewed a sample, this will also update the sample image (we copied it so the selector
@@ -2023,7 +2036,9 @@ function updateLayerControls() {
     // - Render at the end
     
     resetShadowState();
-    // update group ui settings
+    $('.groupSlider').slider('value', 100);
+    $('.groupButton').html('<i class="unhide icon"></i>').removeClass("black").addClass('white');
+
     g_renderPause = true;
 
     var layers = c.getAllLayers();
@@ -2031,7 +2046,7 @@ function updateLayerControls() {
         var layer = layers[layerName];
 
         // general controls
-        updateSliderControl(layerName, "opacity", "", layer.opacity() * 100);
+        updateSliderControl(layerName, "opacity", "", layer.opacity());
         
         // visibility
         var button = $('button[layerName="' + layerName + '"]')
@@ -2050,7 +2065,77 @@ function updateLayerControls() {
         $('.blendModeMenu[layerName="' + layerName + '"]').dropdown('set selected', layer.blendMode());
 
         // adjustment controls
+        var adjustments = layer.getAdjustments();
+        for (var i = 0; i < adjustments.length; i++) {
+            var type = adjustments[i];
+            var adj = layer.getAdjustment(type);
 
+            if (type === 0) {
+                updateSliderControl(layerName, "hue", "Hue/Saturation", adj["hue"]);
+                updateSliderControl(layerName, "saturation", "Hue/Saturation", adj["sat"]);
+                updateSliderControl(layerName, "lightness", "Hue/Saturation", adj["light"]);
+            }
+            else if (type === 1) {
+                // levels
+                updateSliderControl(layerName, "inMin", "Levels", adj["inMin"]);
+                updateSliderControl(layerName, "inMax", "Levels", adj["inMax"]);
+                updateSliderControl(layerName, "gamma", "Levels", adj["gamma"]);
+                updateSliderControl(layerName, "outMin", "Levels", adj["outMin"]);
+                updateSliderControl(layerName, "outMax", "Levels", adj["outMax"]);
+            }
+            else if (type === 2) {
+                // curves
+                updateCurve(layerName);
+            }
+            else if (type === 3) {
+                // exposure
+                updateSliderControl(layerName, "exposure", "Exposure", adj["exposure"]);
+                updateSliderControl(layerName, "offset", "Exposure", adj["offset"]);
+                updateSliderControl(layerName, "gamma", "Exposure", adj["gamma"]);
+            }
+            else if (type === 4) {
+                // gradient
+                updateGradient(layerName);
+            }
+            else if (type === 5) {
+                // selective color
+                // need to detect which option is currently selected
+                var activeChannel = $('.tabMenu[layerName="' + layerName + '"][sectionName="Selective Color"]').dropdown('get text');
+                var sc = layer.selectiveColor()[activeChannel];
+                updateSliderControl(layerName, "cyan", "Selective Color", sc["cyan"] * 100);
+                updateSliderControl(layerName, "magenta", "Selective Color", sc["magenta"] * 100);
+                updateSliderControl(layerName, "yellow", "Selective Color", sc["yellow"] * 100);
+                updateSliderControl(layerName, "black", "Selective Color", sc["black"] * 100);
+            }
+            else if (type === 6) {
+                // color balance
+                updateSliderControl(layerName, "shadow R", "Color Balance", adj["shadowR"]);
+                updateSliderControl(layerName, "shadow G", "Color Balance", adj["shadowG"]);
+                updateSliderControl(layerName, "shadow B", "Color Balance", adj["shadowB"]);
+                updateSliderControl(layerName, "mid R", "Color Balance", adj["midR"]);
+                updateSliderControl(layerName, "mid G", "Color Balance", adj["midG"]);
+                updateSliderControl(layerName, "mid B", "Color Balance", adj["midB"]);
+                updateSliderControl(layerName, "highlight R", "Color Balance", adj["highR"]);
+                updateSliderControl(layerName, "highlight G", "Color Balance", adj["highG"]);
+                updateSliderControl(layerName, "highlight B", "Color Balance", adj["highB"]);
+            }
+            else if (type === 7) {
+                // photo filter
+                updateColorControl(layerName, "Photo Filter", adj);
+            }
+            else if (type === 8) {
+                // colorize
+                updateColorControl(layerName, "Colorize", adj);
+            }
+            else if (type === 9) {
+                // lighter colorize
+                updateColorControl(layerName, "Lighter Colorize", adj);
+            }
+            else if (type === 10) {
+                // overwrite color
+                updateColorControl(layerName, "Overwrite Color", adj);
+            }
+        }
     }
 
     g_renderPause = false;
@@ -2059,21 +2144,25 @@ function updateLayerControls() {
 
 function updateSliderControl(name, param, section, val) {
     if (section === "") {
-        $('.paramSlider[layerName="' + name + '"][paramName="' + param + '"]').value(val);
-        $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').val(String(val).toFixed(2));
+        $('.paramSlider[layerName="' + name + '"][paramName="' + param + '"]').slider("value", val);
+        $('.paramInput[layerName="' + name + '"][paramName="opacity"] input').val(String(val.toFixed(2)));
     }
     else {
-        $('div[sectionName="' + section +'"] .paramSlider[layerName="' + name + '"][paramName="' + param +  '"]').value(val);
-        $('div[sectionName="' + section +'"] .paramInput[layerName="' + name + '"][paramName="' + param +  '"] input').val(String(val).toFixed(2));
+        $('div[sectionName="' + section +'"] .paramSlider[layerName="' + name + '"][paramName="' + param +  '"]').slider("value", val);
+        $('div[sectionName="' + section +'"] .paramInput[layerName="' + name + '"][paramName="' + param +  '"] input').val(String(val.toFixed(2)));
     }
+}
+
+function updateColorControl(name, section, adj) {
+    var selector = '.paramColor[layerName="' + name + '"][sectionName="' + section + '"]';
+    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
+    $(selector).css({"background-color" : colorStr });
 }
 
 function resetShadowState() {
     for (var name in modifiers) {
-        modifiers[name] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
+        modifiers[name] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : c.getLayer(name).visible(), 'opacity' : c.getLayer(name).opacity() };
     }
-
-    // probably want to propagate this to the group ui
 }
 
 /*===========================================================================*/
@@ -2147,7 +2236,7 @@ function processNewSample(img, ctx, meta) {
 
 function createSampleContainer(img, id) {
     var html = '<div class="ui card sample" sampleId="' + id + '">';
-    html += '<div class="ui blurring dimmable image">';
+    html += '<div class="ui dimmable image">';
 
     // dimmer - other controls
     html += createSampleControls(id);

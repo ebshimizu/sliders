@@ -19,7 +19,7 @@ body {
 #layerContainer .layerWrapper {
 	position: relative;
 	right: 0;
-	border: 1px solid #e8e8e8;
+	border: 1px solid #767676;
 	padding: 6px 0px 0px 0px;
 	border-radius: 5px;
 	min-height: 30px;
@@ -219,7 +219,7 @@ body {
 }
 
 #layerControls .layerSet {
-    border-left: 4px solid #e8e8e8;
+    border-left: 2px solid #767676;
     position: relative;
     padding-top: 36px;
 }
@@ -228,8 +228,8 @@ body {
     display: block;
     height: 36px;
     padding: 0.25em 0em;
-    background-color: #e8e8e8;
-    color: rgba(0,0,0,.6);
+    background-color: #767676;
+    color: #dcddde;
     font-weight: 700;
     margin-bottom: 3px;
     position: absolute;
@@ -238,7 +238,7 @@ body {
     top: 2px;
     font-size: 12pt;
     cursor: pointer;
-    border-bottom: 2px solid #1b1c1d;
+    border-bottom: 2px solid #dcddde;
 }
 
 #layerControls .layerSet .setName.ui.header .icon:only-child {
@@ -291,14 +291,14 @@ body {
 }
 
 #sampleContainer #samples .sampleWrapper {
-    overflow-y: visible;
+    overflow-y: auto;
     max-height: calc(100% - 2px);
     margin-top: 16px!important;
 }
 
 #sampleContainer .segment {
 	height: 100%;
-	padding-right: 11px;
+	padding-right: 14px;
 	margin-top: 0;
 }
 
@@ -337,4 +337,8 @@ body {
 
 #sampleContainer .sample .dimmable.image {
 	overflow: visible;
+}
+
+.inverted.attached.label {
+	background-color: #767676;
 }

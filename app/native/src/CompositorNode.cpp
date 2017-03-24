@@ -287,6 +287,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "isAdjustmentLayer", isAdjustmentLayer);
   Nan::SetPrototypeMethod(tpl, "selectiveColorChannel", selectiveColorChannel);
   Nan::SetPrototypeMethod(tpl, "resetImage", resetImage);
+  Nan::SetPrototypeMethod(tpl, "type", type);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -983,6 +984,20 @@ void LayerRef::resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(layer->_layer, "layer.resetImage");
 
   layer->_layer->resetImage();
+}
+
+void LayerRef::type(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.type");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value o1(info[0]->ToString());
+    string type(*o1);
+    layer->_layer->_psType = type;
+  }
+
+  info.GetReturnValue().Set(Nan::New(layer->_layer->_psType).ToLocalChecked());
 }
 
 void ContextWrapper::Init(v8::Local<v8::Object> exports)

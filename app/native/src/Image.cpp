@@ -92,13 +92,12 @@ namespace Comp {
     return resize((unsigned int)(_w * scale), (unsigned int)(_h * scale));
   }
 
-  void Image::reset(float r, float g, float b, float a)
+  void Image::reset(float r, float g, float b)
   {
     for (int i = 0; i < _data.size() / 4; i++) {
       _data[i * 4] = (unsigned char)(r * 255);
       _data[i * 4 + 1] = (unsigned char)(g * 255);
       _data[i * 4 + 2] = (unsigned char)(b * 255);
-      _data[i * 4 + 3] = (unsigned char)(a * 255);
     }
   }
 

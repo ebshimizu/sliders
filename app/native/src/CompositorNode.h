@@ -93,6 +93,7 @@ private:
   static void lighterColorize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

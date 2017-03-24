@@ -1241,6 +1241,8 @@ function importLayers(doc, path) {
                 // adjustment layer, create layer
                 c.addLayer(layerName);
             }
+
+            c.getLayer(layerName).type(layer.kind);
         }
         
         // adjustment layer information
@@ -1536,6 +1538,11 @@ function loadLayers(doc, path) {
             }
         }
 
+        // special cases
+        if (layer.type === "LayerKind.SOLIDFILL" && layer.isAdjustment === false) {
+            c.resetImages(layerName);
+        }
+
         console.log("Added layer " + layerName);
     }
 
@@ -1582,8 +1589,8 @@ function save(file) {
         layers[layerName].blendMode = l.blendMode();
         layers[layerName].isAdjustment = l.isAdjustmentLayer();
         layers[layerName].filename = l.image().filename();
+        layers[layerName].type = l.type();
         layers[layerName].adjustments = {};
-        // need the filenames somewhere
 
         // adjustments
         var adjTypes = l.getAdjustments()

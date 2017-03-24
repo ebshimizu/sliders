@@ -124,6 +124,9 @@ namespace Comp {
     // resets image to white with alpha 1
     void resetImage();
 
+    // photoshop typestring
+    string _psType;
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);

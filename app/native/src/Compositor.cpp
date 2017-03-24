@@ -515,7 +515,7 @@ namespace Comp {
       return;
 
     for (auto img : _imageData[name])
-      img.second->reset(1, 1, 1, 1);
+      img.second->reset(1, 1, 1);
   }
 
   void Compositor::addLayer(string name)

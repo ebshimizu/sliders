@@ -56,7 +56,7 @@ namespace Comp {
     shared_ptr<Image> resize(unsigned int w, unsigned int h);
     shared_ptr<Image> resize(float scale);
 
-    void reset(float r, float g, float b, float a);
+    void reset(float r, float g, float b);
 
   private:
     // loads an image from a file

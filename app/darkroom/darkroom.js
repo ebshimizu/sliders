@@ -26,10 +26,11 @@ var settings = {
     "sampleRows" : 6,
     "sampleThreads" : parseInt(maxThreads / 2),
     "sampleRenderSize" : "thumb",
+    "renderSize" : "full"
 };
 
 // global settings vars
-var g_renderSize, g_renderPause = false;
+var g_renderPause = false;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -113,7 +114,7 @@ function init() {
         // add icon to selected
         $(this).prepend('<i class="checkmark icon"></i>');
 
-        g_renderSize = $(this).attr("internal");
+        settings.renderSize = $(this).attr("internal");
         renderImage();
     });
 
@@ -239,8 +240,6 @@ function initUI() {
     for (var layer in layers) {
         createLayerControl(layers[layer]);
     }
-
-    initGlobals();
 }
 
 function loadSettings() {
@@ -253,16 +252,11 @@ function loadSettings() {
         $("#sampleContainer").addClass("noIds");
     }
 
-    $("#sampleRows").dropdown('set selected', num2Str[settings["sampleRows"]]);
+    $("#sampleRows").dropdown('set selected', num2Str[settings.sampleRows]);
 
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
-    $('#sampleThreads a.item[name="' + settings["sampleThreads"] + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
-}
-
-// default global variable settings
-function initGlobals() {
-    g_renderSize = "full";
+    $('#sampleThreads a.item[name="' + settings.sampleThreads + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -390,7 +384,7 @@ function placeLayer(name, html, doc) {
 
     for (var key in doc) {
         if (key === name) {
-            doc[key]["html"] = html;
+            doc[key].html = html;
             return;
         }
         else {
@@ -598,7 +592,7 @@ function bindStandardEvents(name, layer) {
 
         var button = $('button[layerName="' + name + '"]');
         
-        if (modifiers[name]["visible"]) {
+        if (modifiers[name].visible) {
             button.html('<i class="unhide icon"></i>');
             button.removeClass("black");
             button.addClass("white");
@@ -615,7 +609,7 @@ function bindStandardEvents(name, layer) {
 
     var button = $('button[layerName="' + name + '"]');
     // set starting visibility
-    if (modifiers[name]["visible"]) {
+    if (modifiers[name].visible) {
         button.html('<i class="unhide icon"></i>');
         button.removeClass("black");
         button.addClass("white");
@@ -650,55 +644,55 @@ function bindSectionEvents(name, layer) {
 }
 
 function bindHSLEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType["HSL"])["hue"], sectionName,
+    bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType.HSL).hue, sectionName,
         { "range" : false, "max" : 180, "min" : -180, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType["HSL"])["sat"], sectionName,
+    bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType.HSL).sat, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType["HSL"])["light"], sectionName,
+    bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType.HSL).light, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
 }
 
 function bindLevelsEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType["LEVELS"])["inMin"], sectionName,
+    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType.LEVELS).inMin, sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType["LEVELS"])["inMax"], sectionName,
+    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType.LEVELS).inMax, sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["LEVELS"])["gamma"], sectionName,
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType.LEVELS).gamma, sectionName,
         { "range" : false, "max" : 10, "min" : 0, "step" : 0.01, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType["LEVELS"])["outMin"], sectionName,
+    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType.LEVELS).outMin, sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType["LEVELS"])["outMax"], sectionName,
+    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType.LEVELS).outMax, sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
 }
 
 function bindExposureEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType["EXPOSURE"])["exposure"], sectionName,
+    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType.EXPOSURE).exposure, sectionName,
         { "range" : false, "max" : 20, "min" : -20, "step" : 0.1, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType["EXPOSURE"])["offset"], sectionName,
+    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType.EXPOSURE).offset, sectionName,
         { "range" : false, "max" : 0.5, "min" : -0.5, "step" : 0.01, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType["EXPOSURE"])["gamma"], sectionName,
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType.EXPOSURE).gamma, sectionName,
         { "range" : false, "max" : 9.99, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
 }
 
 function bindColorBalanceEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowR"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowG"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType["COLOR_BALANCE"])["shadowB"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType["COLOR_BALANCE"])["midR"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType["COLOR_BALANCE"])["midG"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType["COLOR_BALANCE"])["midB"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType["COLOR_BALANCE"])["highR"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType["COLOR_BALANCE"])["highG"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType["COLOR_BALANCE"])["highB"], sectionName,
-        { "range" : false, "max" : 1, "min" : -1, "step" : .01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType.COLOR_BALANCE).shadowR, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType.COLOR_BALANCE).shadowG, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType.COLOR_BALANCE).shadowB, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType.COLOR_BALANCE).midR, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType.COLOR_BALANCE).midG, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType.COLOR_BALANCE).midB, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType.COLOR_BALANCE).highR, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType.COLOR_BALANCE).highG, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
+    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType.COLOR_BALANCE).highB, sectionName,
+        { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
     
     bindToggleControl(name, sectionName, layer, "preserveLuma", "COLOR_BALANCE");
 }
@@ -755,7 +749,7 @@ function bindSelectiveColorEvents(name, sectionName, layer) {
                 i = 'div[sectionName="' + sectionName +'"] .paramInput[layerName="' + name + '"][paramName="' + params[j] +  '"] input';
 
                 var val = layer.selectiveColorChannel(text, params[j]) * 100;
-                $(s).slider({value: val })
+                $(s).slider({value: val });
                 $(i).val(String(val.toFixed(2)));
             }
         }
@@ -779,34 +773,34 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
 
     // defaults
     if (!("range" in psettings)) {
-        psettings["range"] = "min";
+        psettings.range = "min";
     }
     if (!("max" in psettings)) {
-        psettings["max"] = 100;
+        psettings.max = 100;
     }
     if (!("min" in psettings)) {
-        psettings["min"] = 0;
+        psettings.min = 0;
     }
     if (!("step" in psettings)) {
-        psettings["step"] = 0.1;
+        psettings.step = 0.1;
     }
     if (!("uiHandler" in psettings)) {
-        psettings["uiHandler"] = handleParamChange;
+        psettings.uiHandler = handleParamChange;
     }
 
     $(s).slider({
         orientation: "horizontal",
-        range: psettings["range"],
-        max: psettings["max"],
-        min: psettings["min"],
-        step: psettings["step"],
+        range: psettings.range,
+        max: psettings.max,
+        min: psettings.min,
+        step: psettings.step,
         value: initVal,
         stop: function(event, ui) {
-            psettings["uiHandler"](name, ui);
+            psettings.uiHandler(name, ui);
             renderImage();
         },
-        slide: function(event, ui) { psettings["uiHandler"](name, ui); },
-        change: function(event, ui) { psettings["uiHandler"](name, ui); },
+        slide: function(event, ui) { psettings.uiHandler(name, ui); },
+        change: function(event, ui) { psettings.uiHandler(name, ui); },
     });
 
     $(i).val(String(initVal.toFixed(2)));
@@ -870,7 +864,7 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
     });
 
     var adj = layer.getAdjustment(adjType[adjustmentType]);
-    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
+    var colorStr = "rgb(" + parseInt(adj.r * 255) + ","+ parseInt(adj.g * 255) + ","+ parseInt(adj.b * 255) + ")";
     $(selector).css({"background-color" : colorStr });
 }
 
@@ -901,14 +895,14 @@ function updateGradient(layer) {
     var canvas = $('.gradientDisplay[layerName="' + layer + '"] canvas');
     canvas.attr({width:canvas.width(),height:canvas.height()});
     var ctx = canvas[0].getContext("2d");
-    var grad = ctx.createLinearGradient(0, 0, canvas.width(), canvas.height())
+    var grad = ctx.createLinearGradient(0, 0, canvas.width(), canvas.height());
     
     // get gradient data
     var g = c.getLayer(layer).getGradient();
     for (var i = 0; i < g.length; i++) {
-        var color = 'rgb(' + g[i]["color"]["r"] * 255 + "," + g[i]["color"]["g"] * 255 + "," + g[i]["color"]["b"] * 255 + ")";
+        var color = 'rgb(' + g[i].color.r * 255 + "," + g[i].color.g * 255 + "," + g[i].color.b * 255 + ")";
 
-        grad.addColorStop(g[i]["x"], color)
+        grad.addColorStop(g[i].x, color);
     }
 
     ctx.fillStyle = grad;
@@ -926,7 +920,7 @@ function updateCurve(layer) {
     ctx.lineWeight = w / 100;
 
     // draw lines
-    ctx.strokeStyle = "rgba(255,255,255,0.6)"
+    ctx.strokeStyle = "rgba(255,255,255,0.6)";
     ctx.strokeRect(0, 0, w, h);
     ctx.beginPath();
     ctx.moveTo(0, h * 0.25);
@@ -978,22 +972,22 @@ function updateCurve(layer) {
         var curve = l.getCurve(types[i]);
         for (var j = 0; j < curve.length; j++) {
             ctx.beginPath();
-            ctx.arc(curve[j]["x"] * w, h - curve[j]["y"] * h, 1.5*(w / 100), 0, 2 * Math.PI);
+            ctx.arc(curve[j].x * w, h - curve[j].y * h, 1.5*(w / 100), 0, 2 * Math.PI);
             ctx.fill();
         }
     }
 }
 
 function createLayerParam(layerName, param) {
-    var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">'
+    var html = '<div class="parameter" layerName="' + layerName + '" paramName="' + param + '">';
 
-    html += '<div class="paramLabel">' + param + '</div>'
-    html += '<div class="paramSlider" layerName="' + layerName + '" paramName="' + param + '"></div>'
-    html += '<div class="paramInput ui inverted transparent input" layerName="' + layerName + '" paramName="' + param + '"><input type="text"></div>'
+    html += '<div class="paramLabel">' + param + '</div>';
+    html += '<div class="paramSlider" layerName="' + layerName + '" paramName="' + param + '"></div>';
+    html += '<div class="paramInput ui inverted transparent input" layerName="' + layerName + '" paramName="' + param + '"><input type="text"></div>';
 
-    html += '</div>'
+    html += '</div>';
 
-    return html
+    return html;
 }
 
 function addSliders(layerName, sectionName, params) {
@@ -1007,35 +1001,35 @@ function addSliders(layerName, sectionName, params) {
 }
 
 function addColorSelector(layerName, sectionName) {
-    var html = '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">'
+    var html = '<div class="parameter" layerName="' + layerName + '" paramName="colorPicker" sectionName="' + sectionName + '"">';
 
-    html += '<div class="paramLabel">Color</div>'
-    html += '<div class="paramColor" layerName="' + layerName + '" sectionName="' + sectionName + '" paramName="colorPicker"></div>'
+    html += '<div class="paramLabel">Color</div>';
+    html += '<div class="paramColor" layerName="' + layerName + '" sectionName="' + sectionName + '" paramName="colorPicker"></div>';
 
-    html += '</div>'
+    html += '</div>';
 
     return html;
 }
 
 function addGradient(layerName, sectionName) {
-    var html = '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-    html += '<canvas></canvas>'
-    html += '</div>'
+    var html = '<div class="gradientDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">';
+    html += '<canvas></canvas>';
+    html += '</div>';
 
     return html;
 }
 
 function addCurves(layerName, sectionName) {
-    var html = '<div class="curveDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-    html += '<canvas></canvas>'
-    html += '</div>'
+    var html = '<div class="curveDisplay" layerName="' + layerName + '" sectionName="' + sectionName + '">';
+    html += '<canvas></canvas>';
+    html += '</div>';
 
     return html;
 }
 
 function startParamSection(layerName, sectionName) {
-    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>'
-    html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">'
+    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>';
+    html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">';
 
     return html;
 }
@@ -1139,7 +1133,7 @@ function importFile() {
         var splitChar = '/';
 
         if (file.includes('\\')) {
-            splitChar = '\\'
+            splitChar = '\\';
         }
 
         var folder = file.split(splitChar).slice(0, -1).join('/');
@@ -1174,7 +1168,7 @@ function openFile() {
         var splitChar = '/';
 
         if (file.includes('\\')) {
-            splitChar = '\\'
+            splitChar = '\\';
         }
 
         var folder = file.split(splitChar).slice(0, -1).join('/');
@@ -1203,6 +1197,7 @@ function importLayers(doc, path) {
     var movebg = false;
     var data = doc.layers;
     var sets = doc.sets;
+    var layer, type, adjustment, i, colors;
 
     // the import function should be rewritten as follows:
     // - group information should be obtained in a first pass.
@@ -1210,7 +1205,7 @@ function importLayers(doc, path) {
     // gather data about adjustments and groups and add layers as needed
     var metadata = {};
     for (var layerName in data) {
-        var layer = data[layerName];
+        layer = data[layerName];
         var group = layerName;
         
         // check groups
@@ -1247,7 +1242,7 @@ function importLayers(doc, path) {
         
         // adjustment layer information
         // layer kind
-        var type = layer.kind;
+        type = layer.kind;
         if (type === "LayerKind.HUESATURATION") {
             metadata[group].adjustments.push("HSL");
             metadata[group].HSL = layer.adjustment;
@@ -1309,46 +1304,46 @@ function importLayers(doc, path) {
             continue;
         }
 
-        var layer = data[layerName];
+        layer = data[layerName];
 
         // at this point the proper layers have been added, we need to order
         // and add adjustments to them
 
         var adjustmentList = metadata[layerName].adjustments;
 
-        for (var i = 0; i < adjustmentList.length; i++) {
-            var type = adjustmentList[i];
+        for (i = 0; i < adjustmentList.length; i++) {
+            type = adjustmentList[i];
 
             if (type === "HSL") {
-                var adjustment = metadata[layerName]["HSL"];
-                var hslData = {"hue" : 0, "saturation" : 0, "lightness" : 0}
+                adjustment = metadata[layerName].HSL;
+                var hslData = {"hue" : 0, "saturation" : 0, "lightness" : 0};
                 
                 if ("adjustment" in adjustment) {
-                    hslData = adjustment["adjustment"][0];
+                    hslData = adjustment.adjustment[0];
                 }
 
                 // need to extract adjustment params here
-                c.getLayer(layerName).addHSLAdjustment(hslData["hue"], hslData["saturation"], hslData["lightness"]);
+                c.getLayer(layerName).addHSLAdjustment(hslData.hue, hslData.saturation, hslData.lightness);
             }
             if (type === "LEVELS") {
-                var adjustment = metadata[layerName]["LEVELS"];
+                adjustment = metadata[layerName].LEVELS;
 
                 var levelsData = {};
 
                 if ("adjustment" in adjustment) {
-                    levelsData = adjustment["adjustment"][0];
+                    levelsData = adjustment.adjustment[0];
                 }
 
-                var inMin = ("input" in levelsData) ? levelsData["input"][0] : 0;
-                var inMax = ("input" in levelsData) ? levelsData["input"][1] : 255;
-                var gamma = ("gamma" in levelsData) ? levelsData["gamma"] : 1;
-                var outMin = ("output" in levelsData) ? levelsData["output"][0] : 0;
-                var outMax = ("output" in levelsData) ? levelsData["output"][1] : 255;
+                var inMin = ("input" in levelsData) ? levelsData.input[0] : 0;
+                var inMax = ("input" in levelsData) ? levelsData.input[1] : 255;
+                var gamma = ("gamma" in levelsData) ? levelsData.gamma : 1;
+                var outMin = ("output" in levelsData) ? levelsData.output[0] : 0;
+                var outMax = ("output" in levelsData) ? levelsData.output[1] : 255;
 
                 c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
             }
             else if (type === "CURVES") {
-                var adjustment = metadata[layerName]["CURVES"];
+                adjustment = metadata[layerName].CURVES;
 
                 for (var channel in adjustment) {
                     if (channel === "class") {
@@ -1357,41 +1352,41 @@ function importLayers(doc, path) {
 
                     // normalize values, my system uses floats
                     var curve = adjustment[channel];
-                    for (var i = 0; i < curve.length; i++) {
-                        curve[i]["x"] = curve[i]["x"] / 255;
-                        curve[i]["y"] = curve[i]["y"] / 255;
+                    for (i = 0; i < curve.length; i++) {
+                        curve[i].x = curve[i].x / 255;
+                        curve[i].y = curve[i].y / 255;
                     }
 
                     c.getLayer(layerName).addCurve(channel, curve);
                 }
             }
             else if (type === "EXPOSURE") {
-                var adjustment = metadata[layerName]["EXPOSURE"];
+                adjustment = metadata[layerName].EXPOSURE;
 
-                c.getLayer(layerName).addExposureAdjustment(adjustment["exposure"], adjustment["offset"], adjustment["gammaCorrection"]);
+                c.getLayer(layerName).addExposureAdjustment(adjustment.exposure, adjustment.offset, adjustment.gammaCorrection);
             }
             else if (type === "GRADIENTMAP") {
-                var adjustment = metadata[layerName]["GRADIENTMAP"];
+                adjustment = metadata[layerName].GRADIENTMAP;
 
-                var colors = adjustment["gradient"]["colors"];
-                var pts = []
-                var gc = []
-                var stops = adjustment["gradient"]["interfaceIconFrameDimmed"];
+                colors = adjustment.gradient.colors;
+                var pts = [];
+                var gc = [];
+                var stops = adjustment.gradient.interfaceIconFrameDimmed;
 
-                for (var i = 0; i < colors.length; i++) {
-                    pts.push(colors[i]["location"] / stops);
-                    gc.push({"r" : colors[i]["color"]["red"] / 255, "g" : colors[i]["color"]["green"] / 255, "b" : colors[i]["color"]["blue"] / 255 });
+                for (i = 0; i < colors.length; i++) {
+                    pts.push(colors[i].location / stops);
+                    gc.push({"r" : colors[i].color.red / 255, "g" : colors[i].color.green / 255, "b" : colors[i].color.blue / 255 });
                 }
                 c.getLayer(layerName).addGradient(pts, gc);
             }
             else if (type === "SELECTIVECOLOR") {
-                var adjustment = metadata[layerName]["SELECTIVECOLOR"];
+                adjustment = metadata[layerName].SELECTIVECOLOR;
  
-                var relative = (adjustment["method"] === "relative") ? true : false;
-                var colors = adjustment["colorCorrection"];
+                var relative = (adjustment.method === "relative") ? true : false;
+                colors = adjustment.colorCorrection;
                 var sc = {};
 
-                for (var i = 0; i < colors.length; i++) {
+                for (i = 0; i < colors.length; i++) {
                     var name;
                     var adjust = {};
 
@@ -1400,7 +1395,7 @@ function importLayers(doc, path) {
                             name = colors[i][id];
                         }
                         else if (id === "yellowColor") {
-                            adjust["yellow"] = colors[i][id].value / 100;
+                            adjust.yellow = colors[i][id].value / 100;
                         }
                         else {
                             adjust[id] = colors[i][id].value / 100;
@@ -1413,28 +1408,28 @@ function importLayers(doc, path) {
                 c.getLayer(layerName).selectiveColor(relative, sc);
             }
             else if (type === "COLORBALANCE") {
-                var adjustment = metadata[layerName]["COLORBALANCE"];
+                adjustment = metadata[layerName].COLORBALANCE;
 
-                c.getLayer(layerName).colorBalance(adjustment["preserveLuminosity"], adjustment["shadowLevels"][0] / 100,
-                    adjustment["shadowLevels"][1] / 100, adjustment["shadowLevels"][2] / 100,
-                    adjustment["midtoneLevels"][0] / 100, adjustment["midtoneLevels"][1] / 100, adjustment["midtoneLevels"][2] / 100,
-                    adjustment["highlightLevels"][0] / 100, adjustment["highlightLevels"][1] / 100, adjustment["highlightLevels"][2] / 100);
+                c.getLayer(layerName).colorBalance(adjustment.preserveLuminosity, adjustment.shadowLevels[0] / 100,
+                    adjustment.shadowLevels[1] / 100, adjustment.shadowLevels[2] / 100,
+                    adjustment.midtoneLevels[0] / 100, adjustment.midtoneLevels[1] / 100, adjustment.midtoneLevels[2] / 100,
+                    adjustment.highlightLevels[0] / 100, adjustment.highlightLevels[1] / 100, adjustment.highlightLevels[2] / 100);
             }
             else if (type === "PHOTOFILTER") {
-                var adjustment = metadata[layerName]["PHOTOFILTER"];
-                var color = adjustment["color"];
+                adjustment = metadata[layerName].PHOTOFILTER;
+                var color = adjustment.color;
 
-                var dat = { "preserveLuma" : adjustment["preserveLuminosity"], "density" : adjustment["density"] / 100 };
+                var dat = { "preserveLuma" : adjustment.preserveLuminosity, "density" : adjustment.density / 100 };
 
                 if ("luminance" in color) {
-                    dat["luminance"] = color["luminance"];
-                    dat["a"] = color["a"];
-                    dat["b"] = color["b"];
+                    dat.luminance = color.luminance;
+                    dat.a = color.a;
+                    dat.b = color.b;
                 }
                 else if ("hue" in color) {
-                    dat["hue"] = color["hue"]["value"];
-                    dat["saturation"] = color["saturation"];
-                    dat["brightness"] = color["brightness"];
+                    dat.hue = color.hue.value;
+                    dat.saturation = color.saturation;
+                    dat.brightness = color.brightness;
                 }
 
                 c.getLayer(layerName).photoFilter(dat);
@@ -1471,7 +1466,7 @@ function importLayers(doc, path) {
     createShadowState(sets, order);
 
     // bind events
-    for (var i = 0; i < order.length; i++) {
+    for (i = 0; i < order.length; i++) {
         bindLayerEvents(order[i]);
     }
     bindGlobalEvents();
@@ -1640,7 +1635,7 @@ function saveAsCmd() {
         var splitChar = '/';
 
         if (file.includes('\\')) {
-            splitChar = '\\'
+            splitChar = '\\';
         }
 
         var folder = file.split(splitChar).slice(0, -1).join('/');
@@ -1684,13 +1679,13 @@ function saveImgCmd() {
 
 function handleParamChange(layerName, ui) {
     // hopefully ui has the name of the param somewhere
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName == "opacity") {
         // update the modifiers and compute acutual value
-        modifiers[layerName]["opacity"] = ui.value;
+        modifiers[layerName].opacity = ui.value;
 
-        c.getLayer(layerName).opacity(ui.value * (modifiers[layerName]["groupOpacity"] / 100));
+        c.getLayer(layerName).opacity(ui.value * (modifiers[layerName].groupOpacity / 100));
 
         // find associated value box and dump the value there
         $(ui.handle).parent().next().find("input").val(String(ui.value));
@@ -1698,16 +1693,16 @@ function handleParamChange(layerName, ui) {
 }
 
 function handleHSLParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName == "hue") {
-        c.getLayer(layerName).addAdjustment(adjType["HSL"], "hue", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "hue", ui.value);
     }
     else if (paramName == "saturation") {
-        c.getLayer(layerName).addAdjustment(adjType["HSL"], "sat", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "sat", ui.value);
     }
     else if (paramName == "lightness") {
-        c.getLayer(layerName).addAdjustment(adjType["HSL"], "light", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "light", ui.value);
 
     }
 
@@ -1716,22 +1711,22 @@ function handleHSLParamChange(layerName, ui) {
 }
 
 function handleLevelsParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName == "inMin") {
-        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "inMin", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMin", ui.value);
     }
     else if (paramName == "inMax") {
-        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "inMax", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMax", ui.value);
     }
     else if (paramName == "gamma") {
-        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "gamma", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "gamma", ui.value);
     }
     else if (paramName == "outMin") {
-        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "outMin", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMin", ui.value);
     }
     else if (paramName == "outMax") {
-        c.getLayer(layerName).addAdjustment(adjType["LEVELS"], "outMax", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMax", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1739,16 +1734,16 @@ function handleLevelsParamChange(layerName, ui) {
 }
 
 function handleExposureParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "exposure") {
-        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "exposure", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "exposure", ui.value);
     }
     else if (paramName === "offset") {
-        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "offset", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "offset", ui.value);
     }
     else if (paramName === "gamma") {
-        c.getLayer(layerName).addAdjustment(adjType["EXPOSURE"], "gamma", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "gamma", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1756,34 +1751,34 @@ function handleExposureParamChange(layerName, ui) {
 }
 
 function handleColorBalanceParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "shadow R") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowR", ui.value);
     }
     else if (paramName === "shadow G") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowG", ui.value);
     }
     else if (paramName === "shadow B") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "shadowB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowB", ui.value);
     }
     else if (paramName === "mid R") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midR", ui.value);
     }
     else if (paramName === "mid G") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midG", ui.value);
     }
     else if (paramName === "mid B") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "midB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midB", ui.value);
     }
     else if (paramName === "highlight R") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highR", ui.value);
     }
     else if (paramName === "highlight G") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highG", ui.value);
     }
     else if (paramName === "highlight B") {
-        c.getLayer(layerName).addAdjustment(adjType["COLOR_BALANCE"], "highB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highB", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1996,7 +1991,7 @@ function showStatusMsg(msg, type, title) {
 // then puts it in an image tag
 function renderImage() {
     if (g_renderPause !== true) {
-        c.asyncRender(g_renderSize, function(err, img) {
+        c.asyncRender(settings.renderSize, function(err, img) {
             var dat = 'data:image/png;base64,';
             dat += img.base64();
             $("#render").html('<img src="' + dat + '"" />')
@@ -2014,7 +2009,7 @@ function showPreview(sample) {
         var sampleId = parseInt(img.attr("sampleId"));
 
         // we want to render this sample now at high quality, async
-        c.asyncRenderContext(sampleIndex[sampleId]["context"], g_renderSize, function(err, img) {
+        c.asyncRenderContext(sampleIndex[sampleId]["context"], settings.renderSize, function(err, img) {
             // replace the relevant image tags
             // because this is single threaded, if at the time of render completion, the user has
             // previewed a sample, this will also update the sample image (we copied it so the selector

@@ -309,6 +309,11 @@ namespace Comp {
     return _grad;
   }
 
+  void Layer::resetImage()
+  {
+    _image->reset(1, 1, 1, 1);
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

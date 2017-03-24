@@ -89,6 +89,9 @@ namespace Comp {
     void stopSearch();
     void runSearch();
 
+    // resets images to full white alpha 1
+    void resetImages(string name);
+
   private:
     void addLayer(string name);
 

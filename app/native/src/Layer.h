@@ -121,6 +121,9 @@ namespace Comp {
     map<string, map<string, float>> getSelectiveColor();
     Gradient& getGradient();
 
+    // resets image to white with alpha 1
+    void resetImage();
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
@@ -129,7 +132,6 @@ namespace Comp {
     float _opacity;
 
     // Layer name.
-    // Immutable due to how layers are modified in the compositor
     string _name;
 
     // Initialized on creation, true if is an adjustment layer,

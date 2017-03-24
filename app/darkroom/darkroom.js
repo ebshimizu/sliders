@@ -42,7 +42,7 @@ const blendModes = {
     "BlendMode.COLORDODGE" : 7,
     "BlendMode.LINEARBURN" : 8,
     "BlendMode.LINEARLIGHT" : 9,
-    "BlendMode.COLOR" : 10,
+    "BlendMode.COLORBLEND" : 10,
     "BlendMode.LIGHTEN" : 11,
     "BlendMode.DARKEN" : 12,
     "BlendMode.PINLIGHT" : 13
@@ -764,7 +764,7 @@ function bindSelectiveColorEvents(name, sectionName, layer) {
     bindToggleControl(name, sectionName, layer, "relative", "SELECTIVE_COLOR");
 }
 
-function bindLayerParamControl(name, layer, paramName, initVal, sectionName, settings = {}) {
+function bindLayerParamControl(name, layer, paramName, initVal, sectionName, psettings = {}) {
     var s, i;
 
     if (sectionName !== "") {
@@ -778,35 +778,35 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, set
 
 
     // defaults
-    if (!("range" in settings)) {
-        settings["range"] = "min";
+    if (!("range" in psettings)) {
+        psettings["range"] = "min";
     }
-    if (!("max" in settings)) {
-        settings["max"] = 100;
+    if (!("max" in psettings)) {
+        psettings["max"] = 100;
     }
-    if (!("min" in settings)) {
-        settings["min"] = 0;
+    if (!("min" in psettings)) {
+        psettings["min"] = 0;
     }
-    if (!("step" in settings)) {
-        settings["step"] = 0.1;
+    if (!("step" in psettings)) {
+        psettings["step"] = 0.1;
     }
-    if (!("uiHandler" in settings)) {
-        settings["uiHandler"] = handleParamChange;
+    if (!("uiHandler" in psettings)) {
+        psettings["uiHandler"] = handleParamChange;
     }
 
     $(s).slider({
         orientation: "horizontal",
-        range: settings["range"],
-        max: settings["max"],
-        min: settings["min"],
-        step: settings["step"],
+        range: psettings["range"],
+        max: psettings["max"],
+        min: psettings["min"],
+        step: psettings["step"],
         value: initVal,
         stop: function(event, ui) {
-            settings["uiHandler"](name, ui);
+            psettings["uiHandler"](name, ui);
             renderImage();
         },
-        slide: function(event, ui) { settings["uiHandler"](name, ui); },
-        change: function(event, ui) { settings["uiHandler"](name, ui); },
+        slide: function(event, ui) { psettings["uiHandler"](name, ui); },
+        change: function(event, ui) { psettings["uiHandler"](name, ui); },
     });
 
     $(i).val(String(initVal.toFixed(2)));
@@ -1041,26 +1041,26 @@ function startParamSection(layerName, sectionName) {
 }
 
 function endParamSection() {
-    return '</div>'
+    return '</div>';
 }
 
 function addTabbedParamSection(layerName, sectionName, tabName, tabs, params) {
-    var html = '<div class="parameter" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-    html += '<div class="tabLabel">' + tabName + '</div>'
-    html += '<div class="ui scrolling selection dropdown tabMenu" layerName="' + layerName + '" sectionName="' + sectionName + '">'
-    html += '<input type="hidden" name="' + tabName + '" value="0">'
-    html += '<i class="dropdown icon"></i>'
-    html += '<div class="default text"></div>'
-    html += '<div class="menu">'
+    var html = '<div class="parameter" layerName="' + layerName + '" sectionName="' + sectionName + '">';
+    html += '<div class="tabLabel">' + tabName + '</div>';
+    html += '<div class="ui scrolling selection dropdown tabMenu" layerName="' + layerName + '" sectionName="' + sectionName + '">';
+    html += '<input type="hidden" name="' + tabName + '" value="0">';
+    html += '<i class="dropdown icon"></i>';
+    html += '<div class="default text"></div>';
+    html += '<div class="menu">';
 
     for (var i = 0; i < tabs.length; i++) {
-        html += '<div class="item" data-value="' + i + '">' + tabs[i] + '</div>'
+        html += '<div class="item" data-value="' + i + '">' + tabs[i] + '</div>';
     }
-    html += '</div>'
-    html += '</div>'
-    html += '</div>'
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
 
-    for (var i = 0; i < params.length; i++) {
+    for (i = 0; i < params.length; i++) {
         html += createLayerParam(layerName, params[i]);
     }
 
@@ -1076,35 +1076,35 @@ function addToggle(layerName, section, param, displayName) {
     html += '<div class="paramLabel">' + displayName + '</div>';
     html += '<div class="ui fitted checkbox" paramName="' + param + '" layerName="' + layerName + '" sectionName="' + section + '">';
     html += '<input type="checkbox">';
-    html += '</div></div>'
+    html += '</div></div>';
 
     return html;
 }
 
 function genBlendModeMenu(name) {
-    var menu = '<div class="ui scrolling selection dropdown blendModeMenu" layerName="' + name + '">'
-    menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">'
-    menu += '<i class="dropdown icon"></i>'
-    menu += '<div class="default text">Blend Mode</div>'
-    menu += '<div class="menu">'
-    menu += '<div class="item" data-value="0">Normal</div>'
-    menu += '<div class="item" data-value="1">Multiply</div>'
-    menu += '<div class="item" data-value="2">Screen</div>'
-    menu += '<div class="item" data-value="3">Overlay</div>'
-    menu += '<div class="item" data-value="4">Hard Light</div>'
-    menu += '<div class="item" data-value="5">Soft Light</div>'
-    menu += '<div class="item" data-value="6">Linear Dodge (Add)</div>'
-    menu += '<div class="item" data-value="7">Color Dodge</div>'
-    menu += '<div class="item" data-value="8">Linear Burn</div>'
-    menu += '<div class="item" data-value="9">Linear Light</div>'
-    menu += '<div class="item" data-value="10">Color</div>'
-    menu += '<div class="item" data-value="11">Lighten</div>'
-    menu += '<div class="item" data-value="12">Darken</div>'
-    menu += '<div class="item" data-value="13">Pin Light</div>'
-    menu += '</div>'
-    menu += '</div>'
+    var menu = '<div class="ui scrolling selection dropdown blendModeMenu" layerName="' + name + '">';
+    menu += '<input type="hidden" name="Blend Mode" value="' + c.getLayer(name).blendMode() + '">';
+    menu += '<i class="dropdown icon"></i>';
+    menu += '<div class="default text">Blend Mode</div>';
+    menu += '<div class="menu">';
+    menu += '<div class="item" data-value="0">Normal</div>';
+    menu += '<div class="item" data-value="1">Multiply</div>';
+    menu += '<div class="item" data-value="2">Screen</div>';
+    menu += '<div class="item" data-value="3">Overlay</div>';
+    menu += '<div class="item" data-value="4">Hard Light</div>';
+    menu += '<div class="item" data-value="5">Soft Light</div>';
+    menu += '<div class="item" data-value="6">Linear Dodge (Add)</div>';
+    menu += '<div class="item" data-value="7">Color Dodge</div>';
+    menu += '<div class="item" data-value="8">Linear Burn</div>';
+    menu += '<div class="item" data-value="9">Linear Light</div>';
+    menu += '<div class="item" data-value="10">Color</div>';
+    menu += '<div class="item" data-value="11">Lighten</div>';
+    menu += '<div class="item" data-value="12">Darken</div>';
+    menu += '<div class="item" data-value="13">Pin Light</div>';
+    menu += '</div>';
+    menu += '</div>';
 
-    return menu
+    return menu;
 }
 
 function createShadowState(tree, order) {
@@ -1115,7 +1115,7 @@ function createShadowState(tree, order) {
 
     // populate modifiers
     for (var i = 0; i < order.length; i++) {
-        var layer = c.getLayer(order[i])
+        var layer = c.getLayer(order[i]);
         modifiers[order[i]] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
     }
 }
@@ -1200,15 +1200,15 @@ function importLayers(doc, path) {
     deleteAllControls();
     initCompositor();
     var order = [];
-    var movebg = false
-    var data = doc["layers"]
-    var sets = doc["sets"]
+    var movebg = false;
+    var data = doc.layers;
+    var sets = doc.sets;
 
     // the import function should be rewritten as follows:
     // - group information should be obtained in a first pass.
 
     // gather data about adjustments and groups and add layers as needed
-    var metadata = {}
+    var metadata = {};
     for (var layerName in data) {
         var layer = data[layerName];
         var group = layerName;
@@ -1218,24 +1218,24 @@ function importLayers(doc, path) {
             // do not create a layer for this, layer is clipping mask
             // clipping masks typically come before their target layer, so create metadata fields
             // if they don't exist
-            group = layer["group"];
+            group = layer.group;
 
             if (!(group in metadata)) {
-                metadata[group] ={}
-                metadata[group]["adjustments"] = []
+                metadata[group] ={};
+                metadata[group].adjustments = [];
             }
         }
         else {
             if (!(group in metadata)) {
-                metadata[layerName] ={}
-                metadata[layerName]["adjustments"] = []
+                metadata[layerName] ={};
+                metadata[layerName].adjustments = [];
             }
 
-            metadata[layerName]["type"] = layer["kind"]
+            metadata[layerName].type = layer.kind;
 
             if ("filename" in layer) {
                 // standard layer, create layer
-                c.addLayer(layerName, path + "/" + layer["filename"]);
+                c.addLayer(layerName, path + "/" + layer.filename);
             }
             else {
                 // adjustment layer, create layer
@@ -1245,58 +1245,63 @@ function importLayers(doc, path) {
         
         // adjustment layer information
         // layer kind
-        var type = layer["kind"];
+        var type = layer.kind;
         if (type === "LayerKind.HUESATURATION") {
-            metadata[group]["adjustments"].push("HSL");
-            metadata[group]["HSL"] = layer["adjustment"];
+            metadata[group].adjustments.push("HSL");
+            metadata[group].HSL = layer.adjustment;
         }
         else if (type === "LayerKind.LEVELS") {
-            metadata[group]["adjustments"].push("LEVELS");
-            metadata[group]["LEVELS"] = layer["adjustment"];
+            metadata[group].adjustments.push("LEVELS");
+            metadata[group].LEVELS = layer.adjustment;
         }
         else if (type === "LayerKind.CURVES") {
-            metadata[group]["adjustments"].push("CURVES");
-            metadata[group]["CURVES"] = layer["adjustment"];
+            metadata[group].adjustments.push("CURVES");
+            metadata[group].CURVES = layer.adjustment;
         }
         else if (type === "LayerKind.EXPOSURE") {
-            metadata[group]["adjustments"].push("EXPOSURE");
-            metadata[group]["EXPOSURE"] = layer["adjustment"];
+            metadata[group].adjustments.push("EXPOSURE");
+            metadata[group].EXPOSURE = layer.adjustment;
         }
         else if (type === "LayerKind.GRADIENTMAP") {
-            metadata[group]["adjustments"].push("GRADIENTMAP");
-            metadata[group]["GRADIENTMAP"] = layer["adjustment"];
+            metadata[group].adjustments.push("GRADIENTMAP");
+            metadata[group].GRADIENTMAP = layer.adjustment;
         }
         else if (type === "LayerKind.SELECTIVECOLOR") {
-            metadata[group]["adjustments"].push("SELECTIVECOLOR");
-            metadata[group]["SELECTIVECOLOR"] = layer["adjustment"];
+            metadata[group].adjustments.push("SELECTIVECOLOR");
+            metadata[group].SELECTIVECOLOR = layer.adjustment;
         }
         else if (type === "LayerKind.COLORBALANCE") {
-            metadata[group]["adjustments"].push("COLORBALANCE");
-            metadata[group]["COLORBALANCE"] = layer["adjustment"];
+            metadata[group].adjustments.push("COLORBALANCE");
+            metadata[group].COLORBALANCE = layer.adjustment;
         }
         else if (type === "LayerKind.PHOTOFILTER") {
-            metadata[group]["adjustments"].push("PHOTOFILTER");
-            metadata[group]["PHOTOFILTER"] = layer["adjustment"];
+            metadata[group].adjustments.push("PHOTOFILTER");
+            metadata[group].PHOTOFILTER = layer.adjustment;
         }
-        else if (type === "LayerKind.SOLIDFILL" && ("group" in layer)) {
-            // special case, clipping mask that's using a color blend mode
-            if (layer["blendMode"] === "BlendMode.COLORBLEND") {
+        else if (type === "LayerKind.SOLIDFILL") {
+            if ("filename" in layer) {
+                // is not an adjustment, reset the image to white so the fill works out
+                c.resetImages(layerName);
+            }
+
+            // solid fill uses special controls based on the blend mode
+            if (layer.blendMode === "BlendMode.COLORBLEND") {
                 // unknown default color, will check if that data can be extracted
-                metadata[group]["adjustments"].push("COLORIZE");
+                metadata[group].adjustments.push("COLORIZE");
             }
-            else if (layer["blendMode"] === "BlendMode.LIGHTERCOLOR") {
-                metadata[group]["adjustments"].push("LIGHTER_COLORIZE");
+            else if (layer.blendMode === "BlendMode.LIGHTERCOLOR") {
+                metadata[group].adjustments.push("LIGHTER_COLORIZE");
             }
-            else if (layer["blendMode"] === "BlendMode.NORMAL") {
-                metadata[group]["adjustments"].push("OVERWRITE_COLOR");
+            else if (layer.blendMode === "BlendMode.NORMAL") {
+                metadata[group].adjustments.push("OVERWRITE_COLOR");
             }
         }
 
-        console.log("Pre-processed layer " + layerName + " of type " + layer["kind"]);
+        console.log("Pre-processed layer " + layerName + " of type " + layer.kind);
     }
 
     // create controls and set initial values
-    for (var layerName in data) {
+    for (layerName in data) {
         // if no metadata exists skip
         if (!(layerName in metadata)) {
             continue;
@@ -1307,7 +1312,7 @@ function importLayers(doc, path) {
         // at this point the proper layers have been added, we need to order
         // and add adjustments to them
 
-        var adjustmentList = metadata[layerName]["adjustments"]
+        var adjustmentList = metadata[layerName].adjustments;
 
         for (var i = 0; i < adjustmentList.length; i++) {
             var type = adjustmentList[i];
@@ -1381,22 +1386,22 @@ function importLayers(doc, path) {
                 var adjustment = metadata[layerName]["SELECTIVECOLOR"];
  
                 var relative = (adjustment["method"] === "relative") ? true : false;
-                var colors = adjustment["colorCorrection"]
-                var sc = {}
+                var colors = adjustment["colorCorrection"];
+                var sc = {};
 
                 for (var i = 0; i < colors.length; i++) {
                     var name;
-                    var adjust = {}
+                    var adjust = {};
 
                     for (var id in colors[i]) {
                         if (id === "colors") {
-                            name = colors[i][id]
+                            name = colors[i][id];
                         }
                         else if (id === "yellowColor") {
-                            adjust["yellow"] = colors[i][id]["value"] / 100;
+                            adjust["yellow"] = colors[i][id].value / 100;
                         }
                         else {
-                            adjust[id] = colors[i][id]["value"] / 100;
+                            adjust[id] = colors[i][id].value / 100;
                         }
                     }
 
@@ -1445,10 +1450,10 @@ function importLayers(doc, path) {
         }
 
         // update properties
-        var cLayer = c.getLayer(layerName)
-        cLayer.blendMode(blendModes[layer["blendMode"]]);
-        cLayer.opacity(layer["opacity"]);
-        cLayer.visible(layer["visible"]);
+        var cLayer = c.getLayer(layerName);
+        cLayer.blendMode(blendModes[layer.blendMode]);
+        cLayer.opacity(layer.opacity);
+        cLayer.visible(layer.visible);
 
         insertLayerElem(layerName, sets);
         //createLayerControl(layerName, false, layer["kind"]);
@@ -1481,13 +1486,13 @@ function loadLayers(doc, path) {
     initCompositor();
     var order = [];
     var movebg = false;
-    var data = doc["layers"];
+    var data = doc.layers;
 
     // when loading an existing darkroom file we have some things already filled in
     // so we just load them from disk
-    modifiers = doc["modifiers"];
+    modifiers = doc.modifiers;
 
-    docTree = doc["docTree"];
+    docTree = doc.docTree;
 
     // we can skip metadata creation
     // and instead just load layers directly
@@ -1496,21 +1501,21 @@ function loadLayers(doc, path) {
         var layer = data[layerName];
 
         // add the layer and relevant adjustments
-        if (layer["isAdjustment"]) {
+        if (layer.isAdjustment) {
             c.addLayer(layerName);
         }
         else {
-            c.addLayer(layerName, path + "/" + layerName + ".png");
+            c.addLayer(layerName, path + "/" + layer.filename);
         }
 
         var cl = c.getLayer(layerName);
-        var o = layer["opacity"];
+        var o = layer.opacity;
 
         cl.opacity(o);
-        cl.visible(layer["visible"]);
-        cl.blendMode(layer["blendMode"]);
+        cl.visible(layer.visible);
+        cl.blendMode(layer.blendMode);
 
-        var adjustmentsList = layer["adjustments"];
+        var adjustmentsList = layer.adjustments;
         for (var type in adjustmentsList) {
             var adj = Number(type);
             for (var key in adjustmentsList[type]) {
@@ -1521,13 +1526,13 @@ function loadLayers(doc, path) {
         // gradient
         if ("gradient" in layer) {
             // add the gradient
-            cl.addGradient(layer["gradient"])
+            cl.addGradient(layer.gradient);
         }
 
         // curves
         if ("curves" in layer) {
-            for (var channel in layer["curves"]) {
-                cl.addCurve(channel, layer["curves"][channel]);
+            for (var channel in layer.curves) {
+                cl.addCurve(channel, layer.curves[channel]);
             }
         }
 
@@ -1562,8 +1567,8 @@ function save(file) {
     // save the document tree
     // this will have the html attached to it but that's ok.
     // can be directly loaded
-    out["docTree"] = docTree;
-    out["modifiers"] = modifiers;
+    out.docTree = docTree;
+    out.modifiers = modifiers;
 
     // layer data
     var layers = {};
@@ -1572,11 +1577,12 @@ function save(file) {
         var l = cl[layerName];
         layers[layerName] = {};
 
-        layers[layerName]["opacity"] = l.opacity();
-        layers[layerName]["visible"] = l.visible();
-        layers[layerName]["blendMode"] = l.blendMode();
-        layers[layerName]["isAdjustment"] = l.isAdjustmentLayer();
-        layers[layerName]["adjustments"] = {}
+        layers[layerName].opacity = l.opacity();
+        layers[layerName].visible = l.visible();
+        layers[layerName].blendMode = l.blendMode();
+        layers[layerName].isAdjustment = l.isAdjustmentLayer();
+        layers[layerName].filename = l.image().filename();
+        layers[layerName].adjustments = {};
         // need the filenames somewhere
 
         // adjustments

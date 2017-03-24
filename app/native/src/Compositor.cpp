@@ -509,6 +509,15 @@ namespace Comp {
     }
   }
 
+  void Compositor::resetImages(string name)
+  {
+    if (_imageData.count(name) == 0)
+      return;
+
+    for (auto img : _imageData[name])
+      img.second->reset(1, 1, 1, 1);
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

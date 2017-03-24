@@ -131,6 +131,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "width", width);
   Nan::SetPrototypeMethod(tpl, "height", height);
   Nan::SetPrototypeMethod(tpl, "save", save);
+  Nan::SetPrototypeMethod(tpl, "filename", filename);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -234,6 +235,17 @@ void ImageWrapper::save(const Nan::FunctionCallbackInfo<v8::Value>& info)
   info.GetReturnValue().Set(Nan::Null());
 }
 
+void ImageWrapper::filename(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (image->_image == nullptr) {
+    info.GetReturnValue().Set(Nan::New("").ToLocalChecked());
+  }
+  else {
+    info.GetReturnValue().Set(Nan::New(image->_image->getFilename()).ToLocalChecked());
+  }
+}
+
 void LayerRef::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -274,6 +286,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "overwriteColor", overwriteColor);
   Nan::SetPrototypeMethod(tpl, "isAdjustmentLayer", isAdjustmentLayer);
   Nan::SetPrototypeMethod(tpl, "selectiveColorChannel", selectiveColorChannel);
+  Nan::SetPrototypeMethod(tpl, "resetImage", resetImage);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -323,7 +336,11 @@ void LayerRef::image(const Nan::FunctionCallbackInfo<v8::Value>& info)
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
   nullcheck(layer->_layer, "layer.image");
 
-  info.GetReturnValue().Set(Nan::New(layer->_layer->getImage()->getBase64()).ToLocalChecked());
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(layer->_layer->getImage().get()), Nan::New(false) };
+
+  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
 }
 
 void LayerRef::reset(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -959,6 +976,15 @@ void LayerRef::overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 }
 
+void LayerRef::resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // check if getting status or not
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.resetImage");
+
+  layer->_layer->resetImage();
+}
+
 void ContextWrapper::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -1046,6 +1072,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "asyncRenderContext", asyncRenderContext);
   Nan::SetPrototypeMethod(tpl, "getContext", getContext);
   Nan::SetPrototypeMethod(tpl, "setContext", setContext);
+  Nan::SetPrototypeMethod(tpl, "resetImages", resetImages);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1525,6 +1552,21 @@ void CompositorWrapper::setContext(const Nan::FunctionCallbackInfo<v8::Value>& i
   ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
 
   c->_compositor->setContext(ctx->_context);
+}
+
+void CompositorWrapper::resetImages(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.resetImage");
+
+  if (!info[0]->IsString()) {
+    Nan::ThrowError("resetImages(string) argument error");
+  }
+
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name = string(*val0);
+
+  c->_compositor->resetImages(name);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

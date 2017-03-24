@@ -69,6 +69,16 @@ namespace Comp {
     }
   }
 
+  void Image::save()
+  {
+    save("./" + _filename);
+  }
+
+  string Image::getFilename()
+  {
+    return _filename;
+  }
+
   shared_ptr<Image> Image::resize(unsigned int w, unsigned int h)
   {
     shared_ptr<Image> scaled = shared_ptr<Image>(new Image(w, h));
@@ -82,6 +92,16 @@ namespace Comp {
     return resize((unsigned int)(_w * scale), (unsigned int)(_h * scale));
   }
 
+  void Image::reset(float r, float g, float b, float a)
+  {
+    for (int i = 0; i < _data.size() / 4; i++) {
+      _data[i * 4] = (unsigned char)(r * 255);
+      _data[i * 4 + 1] = (unsigned char)(g * 255);
+      _data[i * 4 + 2] = (unsigned char)(b * 255);
+      _data[i * 4 + 3] = (unsigned char)(a * 255);
+    }
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());
@@ -91,6 +111,17 @@ namespace Comp {
     }
     else {
       getLogger()->log("Loaded " + filename);
+
+      // save the last part as the filename
+      int pos = filename.rfind('/');
+      if (pos == string::npos) {
+        pos = filename.rfind('\\');
+        if (pos == string::npos) {
+          _filename = filename;
+        }
+      }
+
+      _filename = filename.substr(pos + 1);
     }
   }
 }

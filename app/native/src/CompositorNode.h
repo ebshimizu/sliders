@@ -39,6 +39,7 @@ private:
   static void width(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void height(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void save(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void filename(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Image* _image;
   bool _deleteOnDestruct;
@@ -91,6 +92,7 @@ private:
   static void colorize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void lighterColorize(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };
@@ -142,6 +144,7 @@ private:
   static void startSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void setContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void resetImages(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 
   Comp::Compositor* _compositor;

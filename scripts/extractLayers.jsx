@@ -621,7 +621,7 @@ for (var i = 0; i < layers.length; i++) {
 	pngOpts.interlaced = false
 
 	// sanitize filename
-	var filename = activeLayer.name.replace(/\//, '-')
+	var filename = activeLayer.name.replace(/[\/\?]/, '-')
 	metadata[activeLayer.name]["filename"] = filename + ".png"
 
 	doc.saveAs(new File(outDir.absoluteURI + "/" + filename),

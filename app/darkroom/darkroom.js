@@ -1,3 +1,5 @@
+/* jshint esversion: 6, maxerr: 1000, node: true */
+
 const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
@@ -81,7 +83,7 @@ const num2Str = {
 function init() {
     // menu commands
     $("#renderCmd").on("click", function() {
-        renderImage()
+        renderImage();
     });
     $("#importCmd").click(function() { importFile(); });
     $("#openCmd").click(function() { openFile(); });
@@ -103,7 +105,7 @@ function init() {
     // render size options
     $('#renderSize a.item').click(function() {
         // reset icon status
-        var links = $('#renderSize a.item')
+        var links = $('#renderSize a.item');
         for (var i = 0; i < links.length; i++) {
             $(links[i]).html($(links[i]).attr("name"));
         }
@@ -117,7 +119,7 @@ function init() {
 
     $('#sampleRenderSize a.item').click(function() {
         // reset icon status
-        var links = $('#sampleRenderSize a.item')
+        var links = $('#sampleRenderSize a.item');
         for (var i = 0; i < links.length; i++) {
             $(links[i]).html($(links[i]).attr("name"));
         }
@@ -125,7 +127,7 @@ function init() {
         // add icon to selected
         $(this).prepend('<i class="checkmark icon"></i>');
 
-        settings["sampleRenderSize"] = $(this).attr("internal");
+        settings.sampleRenderSize = $(this).attr("internal");
     });
 
     // threading options
@@ -137,7 +139,7 @@ function init() {
 
     $('#sampleThreads a.item').click(function() {
         // reset icon status
-        var links = $('#sampleThreads a.item')
+        var links = $('#sampleThreads a.item');
         for (var i = 0; i < links.length; i++) {
             $(links[i]).html($(links[i]).attr("name"));
         }
@@ -145,7 +147,7 @@ function init() {
         // add icon to selected
         $(this).prepend('<i class="checkmark icon"></i>');
 
-        settings["sampleThreads"] = parseInt($(this).attr("name"));
+        settings.sampleThreads = parseInt($(this).attr("name"));
     });
 
     // dropdown components
@@ -163,14 +165,14 @@ function init() {
 
     // settings
     $("#showSampleId").checkbox({
-        onChecked: () => { settings["showSampleId"] = true; $("#sampleContainer").removeClass("noIds"); },
-        onUnchecked: () => { settings["showSampleId"] = false; $("#sampleContainer").addClass("noIds"); }
+        onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); },
+        onUnchecked: () => { settings.showSampleId = false; $("#sampleContainer").addClass("noIds"); }
     });
 
     $('#sampleRows').dropdown({
         action: 'activate',
         onChange: function(value, text) {
-            settings["sampleRows"] = parseInt(text);
+            settings.sampleRows = parseInt(text);
             $('#sampleContainer .sampleWrapper').removeClass("one two three four five six seven eight nine ten");
             $('#sampleContainer .sampleWrapper').addClass(value);
         }
@@ -200,7 +202,7 @@ function init() {
     // buttons
     $("#runSearchBtn").click(function() {
         runSearch(this);
-    })
+    });
 
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
@@ -229,20 +231,20 @@ function initUI() {
     $('.cp-exit').click(() => {
         $('#colorPicker').addClass('hidden');
         $('#colorPicker').removeClass('visible');
-    })
+    });
 
     // for now we assume the compositor is already initialized for testing purposes
-    var layers = c.getLayerNames()
+    var layers = c.getLayerNames();
 
     for (var layer in layers) {
-        createLayerControl(layers[layer])
+        createLayerControl(layers[layer]);
     }
 
     initGlobals();
 }
 
 function loadSettings() {
-    if (settings["showSampleId"]) {
+    if (settings.showSampleId) {
         $("#showSampleId").checkbox('check');
         $("#sampleContainer").removeClass("noIds");
     }
@@ -266,29 +268,29 @@ function initGlobals() {
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
 // to create the proper groups and html elements for those groups in the interface
 function insertLayerElem(name, doc) {
-    var layer = c.getLayer(name)
+    var layer = c.getLayer(name);
 
     // controls are created based on what adjustments each layer has
     // create the html
-    var html = '<div class="layer" layerName="' + name + '">'
-    html += '<h3 class="ui grey inverted header">' + name + '</h3>'
+    var html = '<div class="layer" layerName="' + name + '">';
+    html += '<h3 class="ui grey inverted header">' + name + '</h3>';
 
     if (layer.visible()) {
-        html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">'
-        html += '<i class="unhide icon"></i>'
+        html += '<button class="ui icon button mini white visibleButton" layerName="' + name + '">';
+        html += '<i class="unhide icon"></i>';
     }
     else {
-        html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">'
-        html += '<i class="hide icon"></i>'
+        html += '<button class="ui icon button mini black visibleButton" layerName="' + name + '">';
+        html += '<i class="hide icon"></i>';
     }
 
-    html += '</button>'
+    html += '</button>';
 
     // blend mode options
-    html += genBlendModeMenu(name)
+    html += genBlendModeMenu(name);
 
     // generate parameters
-    html += createLayerParam(name, "opacity")
+    html += createLayerParam(name, "opacity");
 
     // separate handlers for each adjustment type
     var adjustments = layer.getAdjustments();
@@ -373,7 +375,7 @@ function insertLayerElem(name, doc) {
         }
     }
 
-    html += '</div>'
+    html += '</div>';
 
     // place the html element in the proper location in the heirarchy.
     // basically we actually have an element placeholder already in the heirarchy, and just need to insert the
@@ -475,14 +477,14 @@ function bindGlobalEvents() {
         var visible = toggleGroupVisibility(group, docTree);
 
         if (visible) {
-            $(this).html('<i class="unhide icon"></i>')
-            $(this).removeClass("black")
-            $(this).addClass("white")
+            $(this).html('<i class="unhide icon"></i>');
+            $(this).removeClass("black");
+            $(this).addClass("white");
         }
         else {
-            $(this).html('<i class="hide icon"></i>')
-            $(this).removeClass("white")
-            $(this).addClass("black")
+            $(this).html('<i class="hide icon"></i>');
+            $(this).removeClass("white");
+            $(this).addClass("black");
         }
 
         renderImage();
@@ -498,7 +500,7 @@ function bindGlobalEvents() {
         value: 100,
         stop: function(event, ui) {
             groupOpacityChange($(this).attr("setName"), ui.value, docTree);
-            renderImage()
+            renderImage();
         },
         slide: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
         change: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
@@ -589,39 +591,39 @@ function bindStandardEvents(name, layer) {
     // visibility
     $('button[layerName="' + name + '"]').on('click', function() {
         // check status of button
-        var visible = layer.visible()
+        var visible = layer.visible();
 
-        layer.visible(!visible && modifiers[name]["groupVisible"]);
-        modifiers[name]["visible"] = !visible;
+        layer.visible(!visible && modifiers[name].groupVisible);
+        modifiers[name].visible = !visible;
 
-        var button = $('button[layerName="' + name + '"]')
+        var button = $('button[layerName="' + name + '"]');
         
         if (modifiers[name]["visible"]) {
-            button.html('<i class="unhide icon"></i>')
-            button.removeClass("black")
-            button.addClass("white")
+            button.html('<i class="unhide icon"></i>');
+            button.removeClass("black");
+            button.addClass("white");
         }
         else {
-            button.html('<i class="hide icon"></i>')
-            button.removeClass("white")
-            button.addClass("black")
+            button.html('<i class="hide icon"></i>');
+            button.removeClass("white");
+            button.addClass("black");
         }
 
         // trigger render after adjusting settings
-        renderImage()
-    })
+        renderImage();
+    });
 
-    var button = $('button[layerName="' + name + '"]')
+    var button = $('button[layerName="' + name + '"]');
     // set starting visibility
     if (modifiers[name]["visible"]) {
-        button.html('<i class="unhide icon"></i>')
-        button.removeClass("black")
-        button.addClass("white")
+        button.html('<i class="unhide icon"></i>');
+        button.removeClass("black");
+        button.addClass("white");
     }
     else {
-        button.html('<i class="hide icon"></i>')
-        button.removeClass("white")
-        button.addClass("black")
+        button.html('<i class="hide icon"></i>');
+        button.removeClass("white");
+        button.addClass("black");
     }
 
     // blend mode
@@ -800,11 +802,11 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, set
         step: settings["step"],
         value: initVal,
         stop: function(event, ui) {
-            settings["uiHandler"](name, ui)
-            renderImage()
+            settings["uiHandler"](name, ui);
+            renderImage();
         },
-        slide: function(event, ui) { settings["uiHandler"](name, ui) },
-        change: function(event, ui) { settings["uiHandler"](name, ui) },
+        slide: function(event, ui) { settings["uiHandler"](name, ui); },
+        change: function(event, ui) { settings["uiHandler"](name, ui); },
     });
 
     $(i).val(String(initVal.toFixed(2)));
@@ -832,8 +834,8 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
             var thisElem = $(selector);
             var offset = thisElem.offset();
 
-            var adj = layer.getAdjustment(adjType[adjustmentType])
-            cp.setColor({"r" : adj["r"] * 255, "g" : adj["g"] * 255, "b" : adj["b"] * 255}, 'rgb');
+            var adj = layer.getAdjustment(adjType[adjustmentType]);
+            cp.setColor({"r" : adj.r * 255, "g" : adj.g * 255, "b" : adj.b * 255}, 'rgb');
             cp.startRender();
 
             if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
@@ -845,9 +847,9 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
 
             // assign callbacks to update proper color
             cp.color.options.actionCallback = function(e, action) {
-                console.log(action)
+                console.log(action);
                 if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
-                    var color = cp.color.colors.rgb
+                    var color = cp.color.colors.rgb;
                     updateColor(layer, adjType[adjustmentType], color);
                     $(thisElem).css({"background-color": "#" + cp.color.colors.HEX});
 
@@ -2214,7 +2216,7 @@ function processNewSample(img, ctx, meta) {
     // to render the images at full size
     // CURRENT STATUS: Images returned are full sizes of the exact same render
     // of the exact same scene delivered at 5s intervals
-    sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta }
+    sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
     $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
 
     // bind the dimmer
@@ -2247,27 +2249,27 @@ function createSampleContainer(img, id) {
     // id display
     html += '<div class="ui black small floating circular label sampleId">' + id + '</div>';
 
-    html += '<img class="newSample" sampleId="' + id + '" src="data:image/png;base64,' + img.base64() + '">'
+    html += '<img class="newSample" sampleId="' + id + '" src="data:image/png;base64,' + img.base64() + '">';
     html += '</div></div>';
     return html;
 }
 
 function createSampleControls(id) {
-    var html = '<div class="ui dimmer">'
-    html += '<div class="content">'
-    html += '<div class="center">'
-    html += '<div class="ui inverted header">ID: ' + id + '</div>'
-    html += '<div class="ui buttons">'
-    html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>'
-    html += '<div class="ui compact inverted icon top left pointing dropdown button"><i class="ui options icon"></i>'
+    var html = '<div class="ui dimmer">';
+    html += '<div class="content">';
+    html += '<div class="center">';
+    html += '<div class="ui inverted header">ID: ' + id + '</div>';
+    html += '<div class="ui buttons">';
+    html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>';
+    html += '<div class="ui compact inverted icon top left pointing dropdown button"><i class="ui options icon"></i>';
 
     // dropdown menu creation
-    html += '<div class="menu">'
-    html += '<div class="header">Sample Actions</div>'
-    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>'
-    html += '</div></div>'
+    html += '<div class="menu">';
+    html += '<div class="header">Sample Actions</div>';
+    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>';
+    html += '</div></div>';
     
-    html += '</div></div></div></div>'
+    html += '</div></div></div></div>';
 
     return html;
 }

@@ -58,17 +58,17 @@ var unitPercent = app.stringIDToTypeID("percentUnit");
 
 // returns a list of all the artLayers in the specified layerSet.
 function getAllArtLayers(layers) {
-	var ret = []
+	var ret = [];
 
 	for( var i = 0; i < layers.artLayers.length; i++) {
-        ret.push(layers.artLayers[i])
+        ret.push(layers.artLayers[i]);
     }
 
     for( var i = 0; i < layers.layerSets.length; i++) {
-        ret = ret.concat(getAllArtLayers(layers.layerSets[i]))
+        ret = ret.concat(getAllArtLayers(layers.layerSets[i]));
     }
 
-    return ret
+    return ret;
 }
 
 // returns the layer set heirarchy
@@ -87,19 +87,19 @@ function getSetHeirarchy(layers) {
 
 function turnOnParents(obj) {
 	if (obj.parent) {
-		obj.parent.visible = true
-		turnOnParents(obj.parent)
+		obj.parent.visible = true;
+		turnOnParents(obj.parent);
 	}
 }
 
 function turnOffAll(obj) {
 	for(var i = 0; i < obj.artLayers.length; i++) {
-        obj.artLayers[i].visible = false
+        obj.artLayers[i].visible = false;
     }
 
     for(var i = 0; i < obj.layerSets.length; i++) {
-    	obj.layerSets[i].visible = false
-        turnOffAll(obj.layerSets[i])
+    	obj.layerSets[i].visible = false;
+        turnOffAll(obj.layerSets[i]);
     }
 }
 

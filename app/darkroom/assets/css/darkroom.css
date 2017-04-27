@@ -178,7 +178,7 @@ body {
 	position: absolute;
 	top: 0;
 	left: 0;
-	z-index: 10;
+	z-index: 1;
 }
 
 #imageContainer #preview img {
@@ -189,11 +189,24 @@ body {
 	position: absolute;
 	top: 0;
 	left: 0;
-	z-index: 20;
+	z-index: 2;
+}
+
+#imageContainer #mask canvas {
+	width: 100%;
+	height: 100%;
+	display: block;
+	object-fit: contain;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 3;
+	cursor: crosshair;
 }
 
 #imageContainer .segment {
 	border: none;
+	user-select: none;
 }
 
 #imageContainer .header.item {

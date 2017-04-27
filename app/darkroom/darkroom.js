@@ -26,11 +26,16 @@ var settings = {
     "sampleRows" : 6,
     "sampleThreads" : parseInt(maxThreads / 2),
     "sampleRenderSize" : "thumb",
-    "renderSize" : "full"
+    "renderSize" : "full",
+    "maskMode" : "mask",
+    "maskTool" : "paint"
 };
 
 // global settings vars
 var g_renderPause = false;
+var g_isPainting = false;
+var g_ctx;  // drawing context for mask canvas
+var g_drawReady = false;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -204,6 +209,11 @@ function init() {
     $("#runSearchBtn").click(function() {
         runSearch(this);
     });
+
+    $("#maskCanvas").mousedown(function(e) { canvasMousedown(e, this); });
+    $("#maskCanvas").mouseup(function(e) { canvasMouseup(e, this); });
+    $("#maskCanvas").mousemove(function(e) { canvasMousemove(e, this); });
+    $("#maskCanvas").mouseout(function(e) { canvasMouseup(e, this); });
 
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
@@ -1289,7 +1299,7 @@ function importLayers(doc, path) {
             else if (layer.blendMode === "BlendMode.LIGHTERCOLOR") {
                 metadata[group].adjustments.push("LIGHTER_COLORIZE");
             }
-            else if (layer.blendMode === "BlendMode.NORMAL") {
+            else {
                 metadata[group].adjustments.push("OVERWRITE_COLOR");
             }
         }
@@ -1475,6 +1485,7 @@ function importLayers(doc, path) {
     c.setLayerOrder(order);
     initSearch();
     renderImage();
+    initCanvas();
 }
 
 function loadLayers(doc, path) {
@@ -1560,6 +1571,7 @@ function loadLayers(doc, path) {
     c.setLayerOrder(order);
     initSearch();
     renderImage();
+    initCanvas();
 }
 
 // saves the document in an easier to load format
@@ -1588,27 +1600,27 @@ function save(file) {
         layers[layerName].adjustments = {};
 
         // adjustments
-        var adjTypes = l.getAdjustments()
+        var adjTypes = l.getAdjustments();
         for (var i = 0; i < adjTypes.length; i++) {
-            layers[layerName]["adjustments"][adjTypes[i]] = l.getAdjustment(adjTypes[i]);
+            layers[layerName].adjustments[adjTypes[i]] = l.getAdjustment(adjTypes[i]);
 
             // extra data
-            if (adjTypes[i] === adjType["GRADIENTMAP"]) {
-                layers[layerName]["gradient"] = l.getGradient();
+            if (adjTypes[i] === adjType.GRADIENTMAP) {
+                layers[layerName].gradient = l.getGradient();
             }
 
-            if (adjTypes[i] === adjType["CURVES"]) {
-                layers[layerName]["curves"] = {}
+            if (adjTypes[i] === adjType.CURVES) {
+                layers[layerName].curves = {};
 
-                var channels = l.getAdjustment(adjTypes[i])
+                var channels = l.getAdjustment(adjTypes[i]);
                 for (var chan in channels) {
-                    layers[layerName]["curves"][chan] = l.getCurve(chan);
+                    layers[layerName].curves[chan] = l.getCurve(chan);
                 }
             }
         }
     }
 
-    out["layers"] = layers;
+    out.layers = layers;
 
     fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
         if (err) {
@@ -1786,7 +1798,7 @@ function handleColorBalanceParamChange(layerName, ui) {
 }
 
 function handlePhotoFilterParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
     
     if (paramName === "density") {
         c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "density", ui.value);
@@ -1797,7 +1809,7 @@ function handlePhotoFilterParamChange(layerName, ui) {
 }
 
 function handleColorizeParamChange(layerName, ui) {
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "a", ui.value);
@@ -1808,7 +1820,7 @@ function handleColorizeParamChange(layerName, ui) {
 }
 
 function handleLighterColorizeParamChange(layerName, ui) {
-     var paramName = $(ui.handle).parent().attr("paramName")
+     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "a", ui.value);
@@ -1819,7 +1831,7 @@ function handleLighterColorizeParamChange(layerName, ui) {
 }
 
 function handleOverwriteColorizeParamChange(layerName, ui) {
-     var paramName = $(ui.handle).parent().attr("paramName")
+     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "a", ui.value);
@@ -1831,7 +1843,7 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
 
 function handleSelectiveColorParamChange(layerName, ui) {
     var channel = $(ui.handle).parent().parent().parent().find('.text').html();
-    var paramName = $(ui.handle).parent().attr("paramName")
+    var paramName = $(ui.handle).parent().attr("paramName");
 
     c.getLayer(layerName).selectiveColorChannel(channel, paramName, ui.value / 100);
 
@@ -1846,7 +1858,7 @@ function updateColor(layer, adjustment, color) {
 
 function deleteAllControls() {
     // may need to unlink callbacks
-    $('#layerControls').html('')
+    $('#layerControls').html('');
 }
 
 function toggleGroupVisibility(group, doc) {
@@ -1857,14 +1869,14 @@ function toggleGroupVisibility(group, doc) {
     if (group in doc) {
         // if the visibility key doesn't exist, the group was previous visible, init to that state
         if (!("visible" in doc[group])) {
-            doc[group]["visible"] = true;
+            doc[group].visible = true;
         }
 
-        doc[group]["visible"] = !doc[group]["visible"];
-        updateChildVisibility(doc[group], doc[group]["visible"]);
+        doc[group].visible = !doc[group].visible;
+        updateChildVisibility(doc[group], doc[group].visible);
 
         // groups are unique, once found we're done
-        return doc[group]["visible"];
+        return doc[group].visible;
     }
 
     var ret;
@@ -1958,19 +1970,19 @@ function showStatusMsg(msg, type, title) {
     var html = ''
 
     if (type === "OK") {
-        html += '<div class="ui positive small message'
+        html += '<div class="ui positive small message';
     }
     else if (type === "ERROR") {
-        html += '<div class="ui negative small message'
+        html += '<div class="ui negative small message';
     }
     else {
-        html += '<div class="ui info small message'
+        html += '<div class="ui info small message';
     }
 
     html += ' transition hidden" messageId="' + msgId + '">';
     html += '<div class="header">' + title + '</div>';
-    html += '<p>' + msg + '<p>'
-    html += '</div>'
+    html += '<p>' + msg + '<p>';
+    html += '</div>';
 
     msgArea.prepend(html);
 
@@ -1994,7 +2006,7 @@ function renderImage() {
         c.asyncRender(settings.renderSize, function(err, img) {
             var dat = 'data:image/png;base64,';
             dat += img.base64();
-            $("#render").html('<img src="' + dat + '"" />')
+            $("#render").html('<img src="' + dat + '"" />');
         });
     }
 }
@@ -2059,16 +2071,16 @@ function updateLayerControls() {
         updateSliderControl(layerName, "opacity", "", layer.opacity());
         
         // visibility
-        var button = $('button[layerName="' + layerName + '"]')
+        var button = $('button[layerName="' + layerName + '"]');
         if (modifiers[layerName]["visible"]) {
-            button.html('<i class="unhide icon"></i>')
-            button.removeClass("black")
-            button.addClass("white")
+            button.html('<i class="unhide icon"></i>');
+            button.removeClass("black");
+            button.addClass("white");
         }
         else {
-            button.html('<i class="hide icon"></i>')
-            button.removeClass("white")
-            button.addClass("black")
+            button.html('<i class="hide icon"></i>');
+            button.removeClass("white");
+            button.addClass("black");
         }
 
         // blend mode
@@ -2165,7 +2177,7 @@ function updateSliderControl(name, param, section, val) {
 
 function updateColorControl(name, section, adj) {
     var selector = '.paramColor[layerName="' + name + '"][sectionName="' + section + '"]';
-    var colorStr = "rgb(" + parseInt(adj["r"] * 255) + ","+ parseInt(adj["g"] * 255) + ","+ parseInt(adj["b"] * 255) + ")";
+    var colorStr = "rgb(" + parseInt(adj.r * 255) + ","+ parseInt(adj.g * 255) + ","+ parseInt(adj.b * 255) + ")";
     $(selector).css({"background-color" : colorStr });
 }
 
@@ -2180,7 +2192,7 @@ function resetShadowState() {
 /*===========================================================================*/
 
 function initSearch() {
-    sampleIndex = {}
+    sampleIndex = {};
     sampleId = 0;
     $('#sampleContainer .sampleWrapper').empty();
 }
@@ -2197,7 +2209,7 @@ function runSearch(elem) {
         $(elem).addClass("red");
         $(elem).html("Stop Search");
         initSearch();
-        c.startSearch(settings["sampleThreads"], settings["sampleRenderSize"]);
+        c.startSearch(settings.sampleThreads, settings.sampleRenderSize);
         console.log("Search started");
     }
     else {
@@ -2283,19 +2295,117 @@ function createSampleControls(id) {
 }
 
 /*===========================================================================*/
-/* Utility                                                                   */
+/* Mask Drawing                                                              */
 /*===========================================================================*/
 
-function quoteMatches(match, p1, offset, string) {
-    return '"' + p1 + '":';
+var paths = {};
+var pathIndex = 0;
+var prevPt;
+var canvasUpdated = true;
+
+function initCanvas() {
+    // set internal resolution to 1:1 with full res render
+    var img = c.render();
+    var w = img.width();
+    var h = img.height();
+
+    var canvas = $('#maskCanvas');
+    canvas.attr({width:w, height:h});
+    g_ctx = canvas[0].getContext("2d");
+    g_ctx.clearRect(0, 0, w, h);
+    g_ctx.strokeStyle = "#FFFFFF";
+    g_ctx.lineWidth = 10;
+    g_ctx.lineJoin = "round";
+
+    paths = [];
+    pathIndex = 0;
+
+    g_drawReady = true;
 }
 
-function PSObjectToJSON(str) {
-    // quote property names
-    var s = str.replace(/(\w+):/g, quoteMatches);
+function canvasMousedown(e, elem) {
+    g_isPainting = true;
+    pathIndex++;
+    
+    // paths.push({ id: pathIndex, type: settings.maskMode, tool: settings.maskTool });
 
-    // remove parentheses
-    s = s.replace(/([\(\)])/g, '');
+    // so the canvas is placed using the fit setting and the basic calculation will not work.
+    var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+    
+    if (settings.maskTool === "paint") {
+        paths[pathIndex] = {type : "paint", pts: []};
+        paths[pathIndex].pts.push(pt);
+    }
+    
+    canvasUpdated = false;
+}
 
-    return JSON.parse(s);
+function canvasMousemove(e, elem) {
+    if (g_isPainting) {
+        if (settings.maskTool === "paint") {
+            var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+            paths[pathIndex].pts.push(pt);
+        }
+        canvasUpdated = false;
+    }
+}
+
+function canvasMouseup(e, elem) {
+    if (settings.maskTool === "paint") {
+        // should be handled by mouse move
+    }
+
+    g_isPainting = false;
+    canvasUpdated = false;
+
+    //pathIndex++;
+}
+
+function repaint() {
+    window.requestAnimationFrame(repaint);
+    if (g_drawReady === false) {
+        canvasUpdated = true;
+        return;
+    }
+    if (canvasUpdated === true)
+        return;
+
+    g_ctx.clearRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
+    g_ctx.lineWidth = 10;
+    g_ctx.lineJoin = "round";
+
+    for (var p in paths) {
+        if (paths[p].type === "paint") {
+            g_ctx.strokeStyle = "#FFFFFF";
+            g_ctx.beginPath();
+            g_ctx.moveTo(paths[p].pts[0].x, paths[p].pts[0].y);
+
+            for (var i = 0; i < paths[p].pts.length; i++) {
+                g_ctx.lineTo(paths[p].pts[i].x, paths[p].pts[i].y);
+            }
+
+            g_ctx.stroke();
+        }
+    }
+
+    canvasUpdated = true;
+}
+window.requestAnimationFrame(repaint);
+
+// converts screen coordinates to internal canvas coordinates
+function screenToCanvas(sX, sY, w, h, sW, sH) {
+    // the canvas is positioned centered and scaled to fit
+    var actualW, actualH, scale;
+    
+    // determine actual dimensions
+    scale = Math.min(sH / h, sW / w);
+    actualW = w * scale;
+    actualH = h * scale;
+
+    // determine offset
+    var xOffset = (sW - actualW) / 2;
+    var yOffset = (sH - actualH) / 2;
+
+    // return point
+    return { x: ((sX - xOffset) / actualW) * w, y: ((sY - yOffset) / actualH) * h };
 }

@@ -107,6 +107,7 @@ function init() {
         $(".setName").find('i').removeClass("down");
         $(".setName").find('i').addClass("right");
     });
+    $("#clearCanvasCmd").click(() => { clearCanvas(); });
 
     // render size options
     $('#renderSize a.item').click(function() {
@@ -710,30 +711,30 @@ function bindColorBalanceEvents(name, sectionName, layer) {
 function bindPhotoFilterEvents(name, sectionName, layer) {
     bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "PHOTO_FILTER", layer);
 
-    bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType["PHOTO_FILTER"])["density"], sectionName,
+    bindLayerParamControl(name, layer, "density", layer.getAdjustment(adjType.PHOTO_FILTER).density, sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handlePhotoFilterParamChange });
     
     bindToggleControl(name, sectionName, layer, "preserveLuma", "PHOTO_FILTER");
 }
 
 function bindColorizeEvents(name, sectionName, layer) {
-    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "COLORIZE", layer)
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "COLORIZE", layer);
 
-    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["COLORIZE"])["a"], sectionName,
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType.COLORIZE).a, sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleColorizeParamChange });
 }
 
 function bindLighterColorizeEvents(name, sectionName, layer) {
-    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "LIGHTER_COLORIZE", layer)
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "LIGHTER_COLORIZE", layer);
 
-    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["LIGHTER_COLORIZE"])["a"], sectionName,
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType.LIGHTER_COLORIZE).a, sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleLighterColorizeParamChange });
 }
 
 function bindOverwriteColorEvents(name, sectionName, layer) {
-    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "OVERWRITE_COLOR", layer)
+    bindColorPickerControl('.paramColor[layerName="' + layer.name() + '"][sectionName="' + sectionName + '"]', "OVERWRITE_COLOR", layer);
 
-    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType["OVERWRITE_COLOR"])["a"], sectionName,
+    bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType.OVERWRITE_COLOR).a, sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
 }
 
@@ -2357,8 +2358,11 @@ function canvasMouseup(e, elem) {
 
     g_isPainting = false;
     canvasUpdated = false;
+}
 
-    //pathIndex++;
+function clearCanvas() {
+    paths = [];
+    canvasUpdated = false;
 }
 
 function repaint() {

@@ -1802,7 +1802,7 @@ function handlePhotoFilterParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
     
     if (paramName === "density") {
-        c.getLayer(layerName).addAdjustment(adjType["PHOTO_FILTER"], "density", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.PHOTO_FILTER, "density", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1813,7 +1813,7 @@ function handleColorizeParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
-        c.getLayer(layerName).addAdjustment(adjType["COLORIZE"], "a", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLORIZE, "a", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1824,7 +1824,7 @@ function handleLighterColorizeParamChange(layerName, ui) {
      var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
-        c.getLayer(layerName).addAdjustment(adjType["LIGHTER_COLORIZE"], "a", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LIGHTER_COLORIZE, "a", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1835,7 +1835,7 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
      var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "alpha") {
-        c.getLayer(layerName).addAdjustment(adjType["OVERWRITE_COLOR"], "a", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.OVERWRITE_COLOR, "a", ui.value);
     }
 
     // find associated value box and dump the value there
@@ -1904,18 +1904,18 @@ function updateChildVisibility(doc, val) {
         if (key in modifiers) {
             // layer
             // update group vis setting
-            modifiers[key]["groupVisible"] = val;
+            modifiers[key].groupVisible = val;
 
             // update the layer state
-            c.getLayer(key).visible(modifiers[key]["groupVisible"] && modifiers[key]["visible"]);
+            c.getLayer(key).visible(modifiers[key].groupVisible && modifiers[key].visible);
         }
         else {
             // not a layer
             if (!("visible" in doc[key])) {
-                doc[key]["visible"] = true;
+                doc[key].visible = true;
             }
 
-            updateChildVisibility(doc[key], val && doc[key]["visible"]);
+            updateChildVisibility(doc[key], val && doc[key].visible);
         }
     }
 }
@@ -1926,9 +1926,9 @@ function groupOpacityChange(group, val, doc) {
         return;
 
     if (group in doc) {
-        doc[group]["opacity"] = val;
+        doc[group].opacity = val;
 
-        updateChildOpacity(doc[group], doc[group]["opacity"]);
+        updateChildOpacity(doc[group], doc[group].opacity);
 
         // groups are unique, once found we're done
         $('.groupInput[setName="' + group + '"] input').val(String(val));
@@ -1950,25 +1950,25 @@ function updateChildOpacity(doc, val) {
         if (key in modifiers) {
             // layer
             // update group opacity setting
-            modifiers[key]["groupOpacity"] = val;
+            modifiers[key].groupOpacity = val;
 
             // update the layer state
-            c.getLayer(key).opacity((modifiers[key]["groupOpacity"] / 100) * modifiers[key]["opacity"]);
+            c.getLayer(key).opacity((modifiers[key].groupOpacity / 100) * modifiers[key].opacity);
         }
         else {
             // not a layer
             if (!("opacity" in doc[key])) {
-                doc[key]["opacity"] = 100;
+                doc[key].opacity = 100;
             }
 
-            updateChildOpacity(doc[key], val * (doc[key]["opacity"] / 100));
+            updateChildOpacity(doc[key], val * (doc[key].opacity / 100));
         }
     }
 }
 
 function showStatusMsg(msg, type, title) {
     var msgArea = $("#messageQueue");
-    var html = ''
+    var html = '';
 
     if (type === "OK") {
         html += '<div class="ui positive small message';
@@ -2022,12 +2022,12 @@ function showPreview(sample) {
         var sampleId = parseInt(img.attr("sampleId"));
 
         // we want to render this sample now at high quality, async
-        c.asyncRenderContext(sampleIndex[sampleId]["context"], settings.renderSize, function(err, img) {
+        c.asyncRenderContext(sampleIndex[sampleId].context, settings.renderSize, function(err, img) {
             // replace the relevant image tags
             // because this is single threaded, if at the time of render completion, the user has
             // previewed a sample, this will also update the sample image (we copied it so the selector
             // will also apply to the preview).
-            sampleIndex[sampleId]["img"] = img;
+            sampleIndex[sampleId].img = img;
             var src = 'data:image/png;base64,' + img.base64();
             $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('newSample');
         });
@@ -2043,7 +2043,7 @@ function hidePreview() {
 function pickSample(elem) {
     // get the sample
     var sampleId = parseInt($(elem).attr('sampleId'));
-    c.setContext(sampleIndex[sampleId]["context"]);
+    c.setContext(sampleIndex[sampleId].context);
 
     // the model changed, update the ui elements
     updateLayerControls();
@@ -2073,7 +2073,7 @@ function updateLayerControls() {
         
         // visibility
         var button = $('button[layerName="' + layerName + '"]');
-        if (modifiers[layerName]["visible"]) {
+        if (modifiers[layerName].visible) {
             button.html('<i class="unhide icon"></i>');
             button.removeClass("black");
             button.addClass("white");
@@ -2094,17 +2094,17 @@ function updateLayerControls() {
             var adj = layer.getAdjustment(type);
 
             if (type === 0) {
-                updateSliderControl(layerName, "hue", "Hue/Saturation", adj["hue"]);
-                updateSliderControl(layerName, "saturation", "Hue/Saturation", adj["sat"]);
-                updateSliderControl(layerName, "lightness", "Hue/Saturation", adj["light"]);
+                updateSliderControl(layerName, "hue", "Hue/Saturation", adj.hue);
+                updateSliderControl(layerName, "saturation", "Hue/Saturation", adj.sat);
+                updateSliderControl(layerName, "lightness", "Hue/Saturation", adj.light);
             }
             else if (type === 1) {
                 // levels
-                updateSliderControl(layerName, "inMin", "Levels", adj["inMin"]);
-                updateSliderControl(layerName, "inMax", "Levels", adj["inMax"]);
-                updateSliderControl(layerName, "gamma", "Levels", adj["gamma"]);
-                updateSliderControl(layerName, "outMin", "Levels", adj["outMin"]);
-                updateSliderControl(layerName, "outMax", "Levels", adj["outMax"]);
+                updateSliderControl(layerName, "inMin", "Levels", adj.inMin);
+                updateSliderControl(layerName, "inMax", "Levels", adj.inMax);
+                updateSliderControl(layerName, "gamma", "Levels", adj.gamma);
+                updateSliderControl(layerName, "outMin", "Levels", adj.outMin);
+                updateSliderControl(layerName, "outMax", "Levels", adj.outMax);
             }
             else if (type === 2) {
                 // curves
@@ -2112,9 +2112,9 @@ function updateLayerControls() {
             }
             else if (type === 3) {
                 // exposure
-                updateSliderControl(layerName, "exposure", "Exposure", adj["exposure"]);
-                updateSliderControl(layerName, "offset", "Exposure", adj["offset"]);
-                updateSliderControl(layerName, "gamma", "Exposure", adj["gamma"]);
+                updateSliderControl(layerName, "exposure", "Exposure", adj.exposure);
+                updateSliderControl(layerName, "offset", "Exposure", adj.offset);
+                updateSliderControl(layerName, "gamma", "Exposure", adj.gamma);
             }
             else if (type === 4) {
                 // gradient
@@ -2125,22 +2125,22 @@ function updateLayerControls() {
                 // need to detect which option is currently selected
                 var activeChannel = $('.tabMenu[layerName="' + layerName + '"][sectionName="Selective Color"]').dropdown('get text');
                 var sc = layer.selectiveColor()[activeChannel];
-                updateSliderControl(layerName, "cyan", "Selective Color", sc["cyan"] * 100);
-                updateSliderControl(layerName, "magenta", "Selective Color", sc["magenta"] * 100);
-                updateSliderControl(layerName, "yellow", "Selective Color", sc["yellow"] * 100);
-                updateSliderControl(layerName, "black", "Selective Color", sc["black"] * 100);
+                updateSliderControl(layerName, "cyan", "Selective Color", sc.cyan * 100);
+                updateSliderControl(layerName, "magenta", "Selective Color", sc.magenta * 100);
+                updateSliderControl(layerName, "yellow", "Selective Color", sc.yellow * 100);
+                updateSliderControl(layerName, "black", "Selective Color", sc.black * 100);
             }
             else if (type === 6) {
                 // color balance
-                updateSliderControl(layerName, "shadow R", "Color Balance", adj["shadowR"]);
-                updateSliderControl(layerName, "shadow G", "Color Balance", adj["shadowG"]);
-                updateSliderControl(layerName, "shadow B", "Color Balance", adj["shadowB"]);
-                updateSliderControl(layerName, "mid R", "Color Balance", adj["midR"]);
-                updateSliderControl(layerName, "mid G", "Color Balance", adj["midG"]);
-                updateSliderControl(layerName, "mid B", "Color Balance", adj["midB"]);
-                updateSliderControl(layerName, "highlight R", "Color Balance", adj["highR"]);
-                updateSliderControl(layerName, "highlight G", "Color Balance", adj["highG"]);
-                updateSliderControl(layerName, "highlight B", "Color Balance", adj["highB"]);
+                updateSliderControl(layerName, "shadow R", "Color Balance", adj.shadowR);
+                updateSliderControl(layerName, "shadow G", "Color Balance", adj.shadowG);
+                updateSliderControl(layerName, "shadow B", "Color Balance", adj.shadowB);
+                updateSliderControl(layerName, "mid R", "Color Balance", adj.midR);
+                updateSliderControl(layerName, "mid G", "Color Balance", adj.midG);
+                updateSliderControl(layerName, "mid B", "Color Balance", adj.midB);
+                updateSliderControl(layerName, "highlight R", "Color Balance", adj.highR);
+                updateSliderControl(layerName, "highlight G", "Color Balance", adj.highG);
+                updateSliderControl(layerName, "highlight B", "Color Balance", adj.highB);
             }
             else if (type === 7) {
                 // photo filter

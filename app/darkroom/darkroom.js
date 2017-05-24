@@ -82,6 +82,13 @@ const num2Str = {
 };
 
 /*===========================================================================*/
+/* Recurring Events                                                         */
+/*===========================================================================*/
+
+// kickoff the render loop.
+window.requestAnimationFrame(repaint);
+
+/*===========================================================================*/
 /* Initialization                                                            */
 /*===========================================================================*/
 
@@ -108,6 +115,7 @@ function init() {
         $(".setName").find('i').addClass("right");
     });
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
+    $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
 
     // render size options
     $('#renderSize a.item').click(function() {
@@ -215,6 +223,33 @@ function init() {
     $("#maskCanvas").mouseup(function(e) { canvasMouseup(e, this); });
     $("#maskCanvas").mousemove(function(e) { canvasMousemove(e, this); });
     $("#maskCanvas").mouseout(function(e) { canvasMouseup(e, this); });
+
+    // mask tools
+    $('#mask-paint').click(function () {
+        settings.maskTool = "paint";
+        $('#mask-paint').addClass("active");
+        $('#mask-rect').removeClass("active");
+    });
+
+    $('#mask-rect').click(function () {
+        settings.maskTool = "rect";
+        $('#mask-paint').removeClass("active");
+        $('#mask-rect').addClass("active");
+    });
+
+    $('#mode-paint').click(function () {
+        settings.maskMode = "mask";
+        $('#mode-paint').addClass("active");
+        $('#mode-erase').removeClass("active");
+    });
+
+    $('#mode-erase').click(function () {
+        settings.maskMode = "erase";
+        $('#mode-paint').removeClass("active");
+        $('#mode-erase').addClass("active");
+    });
+
+    $('#mask-tools').hide();
 
     // autoload
     //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
@@ -531,6 +566,8 @@ function bindGlobalEvents() {
     });
 }
 
+// Given a layer name, this function will add the proper bindings
+// for the interactive controls. This function assumes the controls exist.
 function bindLayerEvents(name) {
     var layer = c.getLayer(name);
 
@@ -780,7 +817,6 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
         s = '.paramSlider[layerName="' + name + '"][paramName="' + paramName +  '"]';
         i = '.paramInput[layerName="' + name + '"][paramName="' + paramName +  '"] input';
     }
-
 
     // defaults
     if (!("range" in psettings)) {
@@ -1209,9 +1245,6 @@ function importLayers(doc, path) {
     var data = doc.layers;
     var sets = doc.sets;
     var layer, type, adjustment, i, colors;
-
-    // the import function should be rewritten as follows:
-    // - group information should be obtained in a first pass.
 
     // gather data about adjustments and groups and add layers as needed
     var metadata = {};
@@ -2337,23 +2370,33 @@ function canvasMousedown(e, elem) {
         paths[pathIndex] = {type : "paint", pts: []};
         paths[pathIndex].pts.push(pt);
     }
+    else if (settings.maskTool == "rect") {
+        paths[pathIndex] = {type : "rect", pt1: pt, finished: false};
+    }
+
+    paths[pathIndex].mode = settings.maskMode;
     
     canvasUpdated = false;
 }
 
 function canvasMousemove(e, elem) {
     if (g_isPainting) {
+        var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+
         if (settings.maskTool === "paint") {
-            var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
             paths[pathIndex].pts.push(pt);
         }
+        else if (settings.maskTool == "rect") {
+            paths[pathIndex].pt2 = pt;
+        }
+
         canvasUpdated = false;
     }
 }
 
 function canvasMouseup(e, elem) {
-    if (settings.maskTool === "paint") {
-        // should be handled by mouse move
+    if (settings.maskTool === "rect") {
+        paths[pathIndex].finished = true;
     }
 
     g_isPainting = false;
@@ -2362,10 +2405,13 @@ function canvasMouseup(e, elem) {
 
 function clearCanvas() {
     paths = [];
+    g_ctx.clearRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
     canvasUpdated = false;
 }
 
 function repaint() {
+    // redraws the mask at regular intervals. If no update is needed, it just returns
+    // for efficiency.
     window.requestAnimationFrame(repaint);
     if (g_drawReady === false) {
         canvasUpdated = true;
@@ -2379,8 +2425,18 @@ function repaint() {
     g_ctx.lineJoin = "round";
 
     for (var p in paths) {
-        if (paths[p].type === "paint") {
+        if (paths[p].mode == "mask") {
             g_ctx.strokeStyle = "#FFFFFF";
+            g_ctx.fillStyle = "#FFFFFF";
+            g_ctx.globalCompositeOperation = "source-over";
+        }
+        else if (paths[p].mode == "erase") {
+            g_ctx.strokeStyle = "#000000";
+            g_ctx.fillStyle = "#000000";
+            g_ctx.globalCompositeOperation = "destination-out";
+        }
+
+        if (paths[p].type === "paint") {
             g_ctx.beginPath();
             g_ctx.moveTo(paths[p].pts[0].x, paths[p].pts[0].y);
 
@@ -2390,11 +2446,29 @@ function repaint() {
 
             g_ctx.stroke();
         }
+        else if (paths[p].type == "rect") {
+            // compute rectangle args here, need top left and width height
+            if (paths[p].pt2 !== undefined) {
+                var x = (paths[p].pt1.x < paths[p].pt2.x) ? paths[p].pt1.x : paths[p].pt2.x;
+                var y = (paths[p].pt1.y < paths[p].pt2.y) ? paths[p].pt1.y : paths[p].pt2.y;
+
+                var w = Math.abs(paths[p].pt1.x - paths[p].pt2.x);
+                var h = Math.abs(paths[p].pt1.y - paths[p].pt2.y);
+
+                if (paths[p].finished) {
+                    g_ctx.fillRect(x, y, w, h);
+                }
+                else {
+                    g_ctx.beginPath();
+                    g_ctx.rect(x, y, w, h);
+                    g_ctx.stroke();
+                }
+            }
+        }
     }
 
     canvasUpdated = true;
 }
-window.requestAnimationFrame(repaint);
 
 // converts screen coordinates to internal canvas coordinates
 function screenToCanvas(sX, sY, w, h, sW, sH) {

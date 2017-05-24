@@ -47,6 +47,12 @@
                     </div>
                 </div>
                 <div class="ui dropdown item">
+                    View
+                    <div class="menu">
+                        <div class="item" id="toggleMaskTools">Toggle Mask Tools</div>
+                    </div>
+                </div>
+                <div class="ui dropdown item">
                     Settings
                     <div class="menu">
                         <div class="item">
@@ -91,6 +97,26 @@
                 </div>
                 <div id="mask">
                     <canvas id="maskCanvas"></canvas>
+                </div>
+            </div>
+            <div id="mask-tools" class="ui top attached inverted segment">
+                <div class="ui top inverted attached label">Mask</div>
+                <div class="ui vertical icon buttons">
+                    <button id="mask-paint" class="ui icon button active">
+                        <i class="paint brush icon"></i>
+                    </button>
+                    <button id="mask-rect" class="ui icon button">
+                        <i class="square outline icon"></i>
+                    </button>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui vertical icon buttons">
+                    <button id="mode-paint" class="ui icon button active">
+                        <i class="plus icon"></i>
+                    </button>
+                    <button id="mode-erase" class="ui icon button">
+                        <i class="minus icon"></i>
+                    </button>
                 </div>
             </div>
         </div>

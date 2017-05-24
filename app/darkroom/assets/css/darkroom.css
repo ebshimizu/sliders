@@ -202,6 +202,7 @@ body {
 	left: 0;
 	z-index: 3;
 	cursor: crosshair;
+    opacity: 0.5;
 }
 
 #imageContainer .segment {
@@ -354,4 +355,27 @@ body {
 
 .inverted.attached.label {
 	background-color: #767676;
+}
+
+#imageContainer #mask-tools {
+    position: absolute;
+    top: 40px;
+    width: auto;
+    height: 182px;
+    left: 10px;
+    z-index: 500;
+    border: 1px solid #767676;
+    border-radius: 6px;
+}
+
+#imageContainer #mask-tools {
+    padding: 2px;
+}
+
+#imageContainer #mask-tools .label {
+    padding: 7px;
+}
+
+#imageContainer #mask-tools .divider {
+    margin: 5px 0;
 }

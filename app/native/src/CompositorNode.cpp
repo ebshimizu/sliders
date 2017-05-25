@@ -341,7 +341,7 @@ void LayerRef::image(const Nan::FunctionCallbackInfo<v8::Value>& info)
   const int argc = 2;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(layer->_layer->getImage().get()), Nan::New(false) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void LayerRef::reset(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1054,7 +1054,7 @@ void ContextWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)
@@ -1133,7 +1133,7 @@ void CompositorWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1217,7 +1217,7 @@ void CompositorWrapper::getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>&
     const int argc = 1;
     v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-    layers->Set(Nan::New(l.getName()).ToLocalChecked(), cons->NewInstance(argc, argv));
+    layers->Set(Nan::New(l.getName()).ToLocalChecked(), Nan::NewInstance(cons, argc, argv).ToLocalChecked());
   }
 
   info.GetReturnValue().Set(layers);
@@ -1302,8 +1302,6 @@ void CompositorWrapper::asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.render");
 
-  Comp::Image* img;
-
   string size = "";
   Nan::Callback* callback;
 
@@ -1360,8 +1358,6 @@ void CompositorWrapper::asyncRenderContext(const Nan::FunctionCallbackInfo<v8::V
   // does a render, async style
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.asyncRenderContext");
-
-  Comp::Image* img;
 
   if (!info[0]->IsObject()) {
     Nan::ThrowError("renderContext requires a context to render");
@@ -1481,7 +1477,7 @@ void CompositorWrapper::getCachedImage(const Nan::FunctionCallbackInfo<v8::Value
   // object goes bye bye
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img.get()), Nan::New(false) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1501,7 +1497,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.startSearch");
 
-  int threads = 1;
+  unsigned int threads = 1;
   string renderSize = "";
 
   if (info[0]->IsNumber()) {

@@ -28,11 +28,12 @@ body {
 }
 
 #layerControls {
-	position: relative;
-	right: 0;
-	overflow-y: auto;
-	overflow-x: hidden;
-	height: calc(100% - 36px);
+    position: relative;
+    right: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100% - 24px);
+    top: -4px;
 }
 
 #layerControls .layer {
@@ -45,6 +46,12 @@ body {
 	position: absolute;
 	right: 2px;
 	top: 6px;
+}
+
+#layerControls .layer .addAdjustment {
+    position: absolute;
+    right: 190px;
+    top: 6px;
 }
 
 #layerControls .parameter {
@@ -137,10 +144,6 @@ body {
     min-width: 80px;
 }
 
-#layerControls .layer .ui.dropdown .menu {
-	max-height: 8em;
-}
-
 #layerControls .layer .ui.dropdown i {
 	top: 0.5em;
 }
@@ -156,6 +159,10 @@ body {
     height: 15vw;
     margin: 10px auto;
     display: block;
+}
+
+#layerControls .layer .header {
+    width: calc(100% - 230px);
 }
 
 #imageContainer {

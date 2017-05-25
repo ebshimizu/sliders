@@ -4,6 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
+const version = 0.1
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -307,6 +308,7 @@ function loadSettings() {
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
 // to create the proper groups and html elements for those groups in the interface
+// Also returns the html of the element created if needed
 function insertLayerElem(name, doc) {
     var layer = c.getLayer(name);
 
@@ -328,6 +330,9 @@ function insertLayerElem(name, doc) {
 
     // blend mode options
     html += genBlendModeMenu(name);
+
+    // add adjustment button
+    html += genAddAdjustmentButton(name);
 
     // generate parameters
     html += createLayerParam(name, "opacity");
@@ -422,6 +427,8 @@ function insertLayerElem(name, doc) {
     // html in the proper position so that when we eventually iterate through it, we can just drop the html
     // in the proper position.
     placeLayer(name, html, doc);
+
+    return html;
 }
 
 function placeLayer(name, html, doc) {
@@ -438,6 +445,22 @@ function placeLayer(name, html, doc) {
             placeLayer(name, html, doc[key]);
         }
     }
+}
+
+function regenLayerControls(name) {
+    // remove handlers and elements
+    $('.layer[layerName="' + name + '"]').empty();
+
+    // update the doc tree
+    var html = insertLayerElem(name, docTree);
+
+    // replace the element
+    $('.layer[layerName="' + name + '"]').replaceWith(html);
+
+    // rebind the events
+    bindLayerEvents(name);
+
+    console.log("Updated controls for Layer " + name);
 }
 
 // Order gets written to
@@ -679,6 +702,16 @@ function bindStandardEvents(name, layer) {
     });
 
     $('.blendModeMenu[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
+
+    // add adjustment menu
+    $('.addAdjustment[layerName="' + name + '"]').dropdown({
+        action: 'hide',
+        onChange: function (value, text) {
+            // add the adjustment or something
+            addAdjustmentToLayer(name, parseInt(value));
+            regenLayerControls(name);
+        }
+    });
 
     bindLayerParamControl(name, layer, "opacity", layer.opacity(), "", { "uiHandler" : handleParamChange });
 }
@@ -1148,6 +1181,62 @@ function genBlendModeMenu(name) {
     return menu;
 }
 
+function genAddAdjustmentButton(name) {
+    var b = '<div class="ui mini icon top left pointing dropdown button addAdjustment" layerName="' + name + '">';
+    b += '<i class="plus icon"></i>';
+    b += '<div class="menu">';
+    b += '<div class="header">Add Adjustment</div>';
+    b += '<div class="item" data-value="0">HSL</div>';
+    b += '<div class="item" data-value="1">Levels</div>';
+    // curves omitted
+    b += '<div class="item" data-value="3">Exposure</div>';
+    // gradient map omitted
+    b += '<div class="item" data-value="5">Selective Color</div>';
+    b += '<div class="item" data-value="6">Color Balance</div>';
+    b += '<div class="item" data-value="7">Photo Filter</div>';
+    b += '<div class="item" data-value="8">Colorize</div>';
+    b += '<div class="item" data-value="9">Lighter Colorize</div>';
+    b += '<div class="item" data-value="10">Overwrite Color</div>';
+    b += '</div>';
+    b += '</div>';
+
+    return b;
+}
+
+// adds an adjustment to the specified layer
+// the UI should probably regenerate the relevant controls
+function addAdjustmentToLayer(name, adjType) {
+    if (adjType === 0) {
+        c.getLayer(name).addHSLAdjustment(0, 0, 0);
+    }
+    else if (adjType === 1) {
+        c.getLayer(name).addLevelsAdjustment(0, 255);
+    }
+    // curves omitted
+    else if (adjType === 3) {
+        c.getLayer(name).addExposureAdjustment(0, 0, 1);
+    }
+    // gradient map omitted
+    else if (adjType === 5) {
+        c.getLayer(name).selectiveColor(false, {});
+    }
+    else if (adjType === 6) {
+        c.getLayer(name).colorBalance(false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+    else if (adjType === 7) {
+        c.getLayer(name).addPhotoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
+    }
+    else if (adjType === 8) {
+        c.getLayer(name).colorize(1, 1, 1, 1);
+    }
+    else if (adjType === 9) {
+        c.getLayer(name).lighterColorize(1, 1, 1, 1);
+    }
+    else if (adjType === 10) {
+        c.getLayer(name).overwriteColor(1, 1, 1, 1);
+    }
+}
+
 function createShadowState(tree, order) {
     // just keep the entire loaded tree it's easier
     // it will have html but eh who cares
@@ -1591,6 +1680,12 @@ function loadLayers(doc, path) {
     // reset the shadow state first.
     resetShadowState();
 
+    // TODO: Out of date save files may need to regenerate their controls
+    // entirely. This process should just replace entries in the doc tree and
+    // rebind events accordingly.
+    // why is this different from importing? we already have the layer structure and
+    // hierarchy in the save file, so we don't need to do a pre-process to extract that data.
+
     // render to page
     var layerData = generateControlHTML(docTree, order);
     $('#layerControls').html(layerData);
@@ -1611,6 +1706,7 @@ function loadLayers(doc, path) {
 // saves the document in an easier to load format
 function save(file) {
     var out = {};
+    out.version = version;
 
     // save the document tree
     // this will have the html attached to it but that's ok.

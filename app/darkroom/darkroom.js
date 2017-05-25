@@ -4,7 +4,8 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const version = 0.1
+const saveVersion = 0.1
+const versionString = "0.1"
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -29,7 +30,11 @@ var settings = {
     "sampleRenderSize" : "thumb",
     "renderSize" : "full",
     "maskMode" : "mask",
-    "maskTool" : "paint"
+    "maskTool": "paint",
+    "search": {
+        "useVisibleLayersOnly": 1,
+        "mode" : 0
+    }
 };
 
 // global settings vars
@@ -81,6 +86,13 @@ const num2Str = {
     9 : "nine",
     10 : "ten"
 };
+
+const searchModeStrings = {
+    0: "Random",
+    1: "Directed Random",
+    2: "MCMC",
+    3: "Non-Linear Least Squares"
+}
 
 /*===========================================================================*/
 /* Recurring Events                                                         */
@@ -193,6 +205,23 @@ function init() {
             $('#sampleContainer .sampleWrapper').addClass(value);
         }
     });
+
+    // search settings
+    $('#useVisibleLayersOnly').checkbox({
+        onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
+        onUnchecked: () => { settings.search.useVisibleLayersOnly = 0; }
+    });
+
+    $('#searchModeSelector').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            settings.search.mode = parseInt(value);
+            $('#searchModeSelector .text').html(text);
+        }
+    })
+
+    $('#useVisibleLayersOnly').checkbox('set checked');
+    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
 
     // sample event bindings
     $('#samples').on('mouseover', '.sample', function() {
@@ -1630,6 +1659,11 @@ function loadLayers(doc, path) {
     var order = [];
     var movebg = false;
     var data = doc.layers;
+    var ver = doc.version;
+
+    if (ver === undefined) {
+        ver = 0;
+    }
 
     // when loading an existing darkroom file we have some things already filled in
     // so we just load them from disk
@@ -1692,20 +1726,27 @@ function loadLayers(doc, path) {
     // reset the shadow state first.
     resetShadowState();
 
-    // TODO: Out of date save files may need to regenerate their controls
-    // entirely. This process should just replace entries in the doc tree and
-    // rebind events accordingly.
-    // why is this different from importing? we already have the layer structure and
-    // hierarchy in the save file, so we don't need to do a pre-process to extract that data.
-
     // render to page
     var layerData = generateControlHTML(docTree, order);
     $('#layerControls').html(layerData);
 
-    // bind events
-    for (var i = 0; i < order.length; i++) {
-        bindLayerEvents(order[i]);
+    // check save version. If we're out of date, we need to update the controls.
+    // Do a complete regen and rebind here
+    if (ver < saveVersion) {
+        console.log("Older save version detected. Regenerating controls...");
+
+        for (var layerName in data) {
+            regenLayerControls(layerName);
+        }
     }
+    else {
+        // bind events
+        for (var i = 0; i < order.length; i++) {
+            bindLayerEvents(order[i]);
+        }
+    }
+
+    // global controls
     bindGlobalEvents();
 
     // update internal structure
@@ -1718,7 +1759,7 @@ function loadLayers(doc, path) {
 // saves the document in an easier to load format
 function save(file) {
     var out = {};
-    out.version = version;
+    out.version = saveVersion;
 
     // save the document tree
     // this will have the html attached to it but that's ok.

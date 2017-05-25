@@ -194,6 +194,38 @@
             <div class="ui top attached inverted segment" id="sampleControlsSegment">
                 <div class="ui top inverted attached label">Sampling Controls</div>
                 <button class="ui green button" id="runSearchBtn">Start Search</button>
+                <div class="ui horizontal divider header">Search Settings</div>
+                <div id="searchSettings">
+                    <div class="ui relaxed inverted list">
+                        <div class="item">
+                            <div class="content">
+                                <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" id="searchModeSelector">
+                                        <span class="text">[Search Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="0">Random</div>
+                                            <!-- <div class="item" data-value="1">Directed Random</div> -->
+                                            <!-- <div class="item" data-value="2">MCMC</div> -->
+                                            <!-- <div class="item" data-value="3">Non-Linear Least Squares</div> -->
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="header">Search Mode</div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div class="content">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox" id="useVisibleLayersOnly">
+                                        <input type="checkbox" name="useVisibleLayersOnly" />
+                                    </div>
+                                </div>
+                                <div class="header">Use Visible Layers Only</div>
+                                <div class="description">Only visible layers at time of search will be modified.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- END SAMPLE CONTROLS -->

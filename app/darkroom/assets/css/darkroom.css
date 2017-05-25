@@ -13,7 +13,7 @@ body {
 	right: 0;
 	top: 0;
 	background: #1b1c1d;
-	height: calc(100% - 250px);
+	height: 60%;
 }
 
 #layerContainer .layerWrapper {
@@ -330,7 +330,7 @@ body {
 
 #sampleControls {
 	width: 30%;
-	height: 250px;
+	height: 40%;
 	display: block;
 	position: absolute;
 	bottom: 0;

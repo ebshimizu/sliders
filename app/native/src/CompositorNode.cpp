@@ -1499,16 +1499,43 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
 
   unsigned int threads = 1;
   string renderSize = "";
+  Comp::SearchMode mode;
+  map<string, float> opt;
 
+  // search mode
   if (info[0]->IsNumber()) {
+    mode = (Comp::SearchMode)info[0]->IntegerValue();
+  }
+  else {
+    Nan::ThrowError("startSearch must specify a search mode.");
+  }
+
+  // options
+  if (info[1]->IsObject()) {
+    // convert object to c++ map
+    v8::Local<v8::Object> ret = info[1].As<v8::Object>();
+    auto names = ret->GetOwnPropertyNames();
+    for (unsigned int i = 0; i < names->Length(); i++) {
+      v8::Local<v8::Value> val = ret->Get(names->Get(i));
+      v8::String::Utf8Value o1(names->Get(i)->ToString());
+      string prop(*o1);
+
+      opt[prop] = val->NumberValue();
+    }
+  }
+
+  // threads
+  if (info[2]->IsNumber()) {
     threads = info[0]->Int32Value();
   }
 
-  if (info[1]->IsString()) {
+  // render size
+  if (info[3]->IsString()) {
     v8::String::Utf8Value val(info[1]->ToString());
     renderSize = string(*val);
   }
 
+  // clamp threads to max supported
   if (threads > thread::hardware_concurrency()) {
     threads = thread::hardware_concurrency();
   }
@@ -1529,7 +1556,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
     uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
   };
 
-  c->_compositor->startSearch(cb, threads, renderSize);
+  c->_compositor->startSearch(cb, mode, opt, threads, renderSize);
 
   info.GetReturnValue().SetUndefined();
 }

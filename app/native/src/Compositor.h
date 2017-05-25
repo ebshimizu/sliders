@@ -10,6 +10,8 @@ author: Evan Shimizu
 #include <functional>
 #include <algorithm>
 #include <thread>
+#include <set>
+#include <random>
 
 #include "Image.h"
 #include "Layer.h"
@@ -20,6 +22,14 @@ using namespace std;
 namespace Comp {
   typedef map<string, Layer> Context;
   typedef function<void(Image*, Context, map<string, float> metadata)> searchCallback;
+
+  enum SearchMode {
+    SEARCH_DEBUG,          // returns the same image at intervals for testing app functionality
+    RANDOM,         // randomly adjusts the available parameters to do things
+    SMART_RANDOM,
+    MCMC,
+    NLS
+  };
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
@@ -85,7 +95,8 @@ namespace Comp {
     shared_ptr<Image> getCachedImage(string id, string size);
 
     // main entry point for starting the search process.
-    void startSearch(searchCallback cb, int threads = 1, string searchRenderSize = "");
+    void startSearch(searchCallback cb, SearchMode mode, map<string, float> settings,
+      int threads = 1, string searchRenderSize = "");
     void stopSearch();
     void runSearch();
 
@@ -98,6 +109,9 @@ namespace Comp {
     // stores standard scales of the image in the cache
     // standard sizes are: thumb - 15%, small - 25%, medium - 50%
     void cacheScaled(string name);
+
+    // search modes
+    void randomSearch(Context start);
 
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
@@ -146,8 +160,17 @@ namespace Comp {
     searchCallback _activeCallback;
     vector<thread> _searchThreads;
     string _searchRenderSize;
+    SearchMode _searchMode;
 
-    // eventually this class will need to render things in parallel
+    // in an attempt to keep the signature of search mostly the same, additional
+    // settings should be stored in this map
+    map<string, float> _searchSettings;
 
+    // various search things that should be cached
+
+    // Layers that are allowed to change during the search process
+    // Associated settings: "useVisibleLayersOnly"
+    // Used by modes: RANDOM
+    set<string> _affectedLayers;
   };
 }

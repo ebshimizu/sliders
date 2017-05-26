@@ -597,7 +597,7 @@ namespace Comp {
           // here for completion but it doesn't make much sense to touch this
           break;
         case EXPOSURE:
-          l.addExposureAdjustment(range(gen) * 2.5, range(gen) * 0.5, dist(gen) * 2);
+          l.addExposureAdjustment(range(gen) * 2.5f, range(gen) * 0.5f, dist(gen) * 2);
           break;
         case GRADIENT:
           // also here for completion but also doesn't make much sense, maybe more sense thatn levels though

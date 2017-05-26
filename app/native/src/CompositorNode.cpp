@@ -863,26 +863,26 @@ void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
   
   if (color->Has(Nan::New("luminance").ToLocalChecked())) {
     // convert from lab to rgb
-    Comp::RGBColor rgb = Comp::LabToRGB(color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
+    Comp::RGBColor rgb = Comp::LabToRGB((float)color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
 
     layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
   }
   else if (color->Has(Nan::New("hue").ToLocalChecked())) {
     // convert from hsl to rgb
-    Comp::RGBColor rgb = Comp::HSLToRGB(color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
+    Comp::RGBColor rgb = Comp::HSLToRGB((float)color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
 
     layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
   }
   else if (color->Has(Nan::New("r").ToLocalChecked())) {
     // just do the thing
 
-    layer->_layer->addPhotoFilterAdjustment(preserveLuma, color->Get(Nan::New("r").ToLocalChecked())->NumberValue(), 
-      color->Get(Nan::New("g").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("b").ToLocalChecked())->NumberValue(), 
+    layer->_layer->addPhotoFilterAdjustment(preserveLuma, (float)color->Get(Nan::New("r").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("g").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("b").ToLocalChecked())->NumberValue(),
       density);
   }
   else {
@@ -1520,7 +1520,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
       v8::String::Utf8Value o1(names->Get(i)->ToString());
       string prop(*o1);
 
-      opt[prop] = val->NumberValue();
+      opt[prop] = (float)val->NumberValue();
     }
   }
 

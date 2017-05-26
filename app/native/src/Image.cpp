@@ -112,7 +112,7 @@ namespace Comp {
       getLogger()->log("Loaded " + filename);
 
       // save the last part as the filename
-      int pos = filename.rfind('/');
+      size_t pos = filename.rfind('/');
       if (pos == string::npos) {
         pos = filename.rfind('\\');
         if (pos == string::npos) {

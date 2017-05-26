@@ -174,6 +174,20 @@ namespace Comp {
 
   void Layer::addLevelsAdjustment(float inMin, float inMax, float gamma, float outMin, float outMax)
   {
+    // we should sanity check this one. Min < max. If min > max, min = max and max = min + 10 clamped to 255 max
+
+    if (inMin > inMax) {
+      inMin = inMax;
+      inMax = inMin + 10;
+      inMax = (inMax > 255) ? 255 : inMax;
+    }
+
+    if (outMin > outMax) {
+      outMin = outMax;
+      outMax = outMin + 10;
+      outMax = (outMax > 255) ? 255 : outMax;
+    }
+
     _adjustments[AdjustmentType::LEVELS]["inMin"] = inMin;
     _adjustments[AdjustmentType::LEVELS]["inMax"] = inMax;
     _adjustments[AdjustmentType::LEVELS]["gamma"] = gamma;

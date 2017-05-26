@@ -299,6 +299,7 @@ body {
 	width: 50%;
 	bottom: 10px;
 	left: 25%;
+    z-index: 1000;
 }
 
 #imageContainer .segment {

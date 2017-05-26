@@ -328,6 +328,10 @@ body {
 	margin-top: 0;
 }
 
+#sampleContainer .ui.circular.label {
+    z-index: 5;
+}
+
 #sampleControls {
 	width: 30%;
 	height: 40%;

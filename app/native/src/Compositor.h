@@ -164,6 +164,7 @@ namespace Comp {
 
     // in an attempt to keep the signature of search mostly the same, additional
     // settings should be stored in this map
+    // a list of available settings can be found at the end of this file
     map<string, float> _searchSettings;
 
     // various search things that should be cached
@@ -174,3 +175,18 @@ namespace Comp {
     set<string> _affectedLayers;
   };
 }
+
+/*
+_searchSettings - Allowed settings
+Settings not on this list have no effect besides taking up a tiny bit of memory
+
+useVisibleLayersOnly
+  - Used by: RANDOM (default: 1)
+  - Set to 1 to exclude hidden layers at time of initialization.
+  - Set to 0 to include everything
+
+modifyLayerBlendModes
+  - Used by: RANDOM (default: 0)
+  - Set to 1 to allow the random sampler to change blend modes
+  - Set to 0 to disallow
+*/

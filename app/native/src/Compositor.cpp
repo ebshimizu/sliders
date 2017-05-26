@@ -484,6 +484,11 @@ namespace Comp {
         for (auto l : getPrimaryContext())
           _affectedLayers.insert(l.first);
       }
+
+      // check settings, initialize defaults if not exist
+      if (_searchSettings.count("modifyLayerBlendModes") == 0) {
+        _searchSettings["modifyLayerBlendModes"] = 0;
+      }
     }
 
     // start threads
@@ -575,8 +580,8 @@ namespace Comp {
     uniform_real_distribution<float> dist(0, 1);
     uniform_real_distribution<float> range(-1, 1);
 
-    for (auto& kvp : start) {
-      Layer& l = kvp.second;
+    for (auto& name : _affectedLayers) {
+      Layer& l = start[name];
       
       // randomize opacity
       l.setOpacity(dist(gen) * 100);
@@ -584,9 +589,15 @@ namespace Comp {
       // randomize visibility
       l._visible = (dist(gen) >= 0.5) ? true : false;
 
+      // if its not visible anymore stop
+      if (!l._visible)
+        continue;
+
       // randomize blend mode?
-      uniform_int_distribution<int> modeDist(0, 13);
-      l._mode = (BlendMode)(modeDist(gen));
+      if (_searchSettings["modifyLayerBlendModes"] > 0) {
+        uniform_int_distribution<int> modeDist(0, 13);
+        l._mode = (BlendMode)(modeDist(gen));
+      }
 
       // randomize adjustments
       for (auto a : l.getAdjustments()) {

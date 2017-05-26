@@ -33,6 +33,7 @@ var settings = {
     "maskTool": "paint",
     "search": {
         "useVisibleLayersOnly": 1,
+        "modifyLayerBlendModes" : 0,
         "mode" : 1
     },
     "maxResults" : 100
@@ -222,6 +223,11 @@ function init() {
         onUnchecked: () => { settings.search.useVisibleLayersOnly = 0; }
     });
 
+    $('#modifyLayerBlendModes').checkbox({
+        onChecked: () => { settings.search.modifyLayerBlendModes = 1; },
+        onUnchecked: () => { settings.search.modifyLayerBlendModes = 0; }
+    });
+
     $('#searchModeSelector').dropdown({
         action: 'activate',
         onChange: function (value, text) {
@@ -231,6 +237,7 @@ function init() {
     })
 
     $('#useVisibleLayersOnly').checkbox('set checked');
+    $('#modifyLayerBlendModes').checkbox('set unchecked');
     $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
 
     // sample event bindings
@@ -2483,6 +2490,8 @@ function stopSearch() {
 
 function processNewSample(img, ctx, meta) {
     // discard sample if too many already in the results section
+    if (sampleId > settings.maxResults)
+        return;
 
     // eventually we will need references to each context element in order
     // to render the images at full size
@@ -2536,7 +2545,7 @@ function createSampleControls(id) {
     html += '<div class="ui inverted header">ID: ' + id + '</div>';
     html += '<div class="ui buttons">';
     html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>';
-    html += '<div class="ui compact inverted icon top left pointing dropdown button"><i class="ui options icon"></i>';
+    html += '<div class="ui compact inverted icon top floating dropdown button"><i class="ui options icon"></i>';
 
     // dropdown menu creation
     html += '<div class="menu">';

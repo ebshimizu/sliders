@@ -33,7 +33,7 @@ var settings = {
     "maskTool": "paint",
     "search": {
         "useVisibleLayersOnly": 1,
-        "mode" : 0
+        "mode" : 1
     }
 };
 
@@ -88,10 +88,11 @@ const num2Str = {
 };
 
 const searchModeStrings = {
-    0: "Random",
-    1: "Directed Random",
-    2: "MCMC",
-    3: "Non-Linear Least Squares"
+    0: "Debug",
+    1: "Random",
+    2: "Directed Random",
+    3: "MCMC",
+    4: "Non-Linear Least Squares"
 }
 
 /*===========================================================================*/
@@ -2392,7 +2393,7 @@ function runSearch(elem) {
         $(elem).addClass("red");
         $(elem).html("Stop Search");
         initSearch();
-        c.startSearch(settings.sampleThreads, settings.sampleRenderSize);
+        c.startSearch(settings.search.mode, settings.search, settings.sampleThreads, settings.sampleRenderSize);
         console.log("Search started");
     }
     else {

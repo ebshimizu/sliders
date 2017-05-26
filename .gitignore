@@ -56,3 +56,4 @@ app/darkroom/compositor.log
 app/native/test.js
 app/native/test.png
 .vs/*
+app/native/debug_build/*

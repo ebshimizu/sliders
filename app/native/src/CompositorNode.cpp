@@ -1526,12 +1526,12 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
 
   // threads
   if (info[2]->IsNumber()) {
-    threads = info[0]->Int32Value();
+    threads = info[2]->Int32Value();
   }
 
   // render size
   if (info[3]->IsString()) {
-    v8::String::Utf8Value val(info[1]->ToString());
+    v8::String::Utf8Value val(info[3]->ToString());
     renderSize = string(*val);
   }
 

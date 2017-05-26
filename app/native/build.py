@@ -2,10 +2,11 @@
 import sys
 import os
 import getopt
+import shutil
 
 def build():
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "cdnr", ['configure','debug','node-only','rebuild'])
+		opts, args = getopt.getopt(sys.argv[1:], "cdnr", ['configure','debug','node-only','rebuild', 'move-debug-dir'])
 	except getopt.GetoptError as err:
 		print str(err)
 		sys.exit(-1)
@@ -24,6 +25,9 @@ def build():
 	# rebuild application
 	rebuild = False
 
+	# move debug dir
+	moveDebugDir = False
+
 	for o, a in opts:
 		if o in ("-c", "--configure"):
 			configure = True
@@ -33,6 +37,8 @@ def build():
 			withElectron = False
 		elif o in ("-r", "--rebuild"):
 			rebuild = True
+		elif o in ("--move-debug-dir"):
+			moveDebugDir = True
 
 	if (configure):
 		# run configuration
@@ -54,6 +60,23 @@ def build():
 
 		print(cmd)
 		os.system(cmd)
+
+		if (not buildRelease):
+			# saved a local settings file that has debug setup, copy to build folder
+			shutil.copyfile("./debug/compositor.vcxproj.user", "./build/compositor.vcxproj.user")
+
+			print("Copied windows debug startup settings to build folder.")
+
+		if (moveDebugDir):
+			print("Deleting existing debug_build (if it exists)...")
+			if (os.path.isdir("./debug_build")):
+				shutil.rmtree("./debug_build")
+
+			print("Moving build folder to 'debug_build'...")
+			os.rename("./build", "./debug_build")
+
+			print("Build folder moved")
+
 
 if __name__ == "__main__":
 	build()

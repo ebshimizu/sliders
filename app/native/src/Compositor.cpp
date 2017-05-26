@@ -570,11 +570,11 @@ namespace Comp {
     uniform_real_distribution<float> dist(0, 1);
     uniform_real_distribution<float> range(-1, 1);
 
-    for (auto kvp : start) {
+    for (auto& kvp : start) {
       Layer& l = kvp.second;
       
       // randomize opacity
-      l.setOpacity(dist(gen));
+      l.setOpacity(dist(gen) * 100);
 
       // randomize visibility
       l._visible = (dist(gen) >= 0.5) ? true : false;

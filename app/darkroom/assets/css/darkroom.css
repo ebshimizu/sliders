@@ -342,6 +342,17 @@ body {
 	height: 100%;
 }
 
+#sampleControls #searchSettings {
+    height: calc(100% - 110px);
+}
+
+#sampleControls #searchSettings .list {
+    overflow-y: auto;
+    height: 100%;
+    overflow-x: hidden;
+    padding-right: 10px;
+}
+
 #sampleContainer .card {
 	background-color: #1b1c1d;
 }

@@ -124,33 +124,52 @@
         <!-- SAMPLE CONTAINER -->
         <div id="sampleContainer">
             <button class="ui icon button mini settings"><i class="setting icon"></i></button>
-            <div class="ui popup">
+            <div class="ui popup" id="sampleSettingsPopup">
                 <div class="ui header">Sample Display Settings</div>
-                <div class="ui one column grid">
-                    <div class="ui column">
-                        <span>Number of Rows: 
-                        <div class="ui inline dropdown" id="sampleRows">
-                            <input type="hidden" name="Sample Rows">
-                            <i class="dropdown icon"></i>
-                            <div class="default text">Rows</div>
-                            <div class="menu">
-                                <div class="item" data-value="one">1</div>
-                                <div class="item" data-value="two">2</div>
-                                <div class="item" data-value="three">3</div>
-                                <div class="item" data-value="four">4</div>
-                                <div class="item" data-value="five">5</div>
-                                <div class="item" data-value="six">6</div>
-                                <div class="item" data-value="seven">7</div>
-                                <div class="item" data-value="eight">8</div>
-                                <div class="item" data-value="nine">9</div>
-                                <div class="item" data-value="ten">10</div>
+                <div class="ui two column grid">
+                    <div class="ui row">
+                        <div class="ui column">
+                           Results Per Row 
+                        </div>
+                        <div class="ui column">
+                            <div class="ui compact selection dropdown" id="sampleRows">
+                                <input type="hidden" name="Sample Rows">
+                                <i class="dropdown icon"></i>
+                                <div class="default text">Rows</div>
+                                <div class="menu">
+                                    <div class="item" data-value="one">1</div>
+                                    <div class="item" data-value="two">2</div>
+                                    <div class="item" data-value="three">3</div>
+                                    <div class="item" data-value="four">4</div>
+                                    <div class="item" data-value="five">5</div>
+                                    <div class="item" data-value="six">6</div>
+                                    <div class="item" data-value="seven">7</div>
+                                    <div class="item" data-value="eight">8</div>
+                                    <div class="item" data-value="nine">9</div>
+                                    <div class="item" data-value="ten">10</div>
+                                </div>
                             </div>
                         </div>
-                        </span>
                     </div>
-                    <div class="ui slider checkbox column" id="showSampleId">
-                        <input type="checkbox" name="showSampleId">
-                        <label>Show Sample ID</label>
+                    <div class="ui row">
+                        <div class="ui column">
+                            Maximum Results
+                        </div>
+                        <div class="ui column">
+                            <div class="ui fluid input" id="maxSamples">
+                                <input type="number" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui row">
+                        <div class="ui column">
+                            Show Sample ID
+                        </div>
+                        <div class="ui column">
+                            <div class="ui toggle checkbox" id="showSampleId">
+                               <input type="checkbox" name="showSampleId"> 
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -193,37 +212,49 @@
         <div id="sampleControls">
             <div class="ui top attached inverted segment" id="sampleControlsSegment">
                 <div class="ui top inverted attached label">Sampling Controls</div>
-                <button class="ui green button" id="runSearchBtn">Start Search</button>
-                <div class="ui horizontal divider header">Search Settings</div>
-                <div id="searchSettings">
-                    <div class="ui relaxed inverted list">
-                        <div class="item">
-                            <div class="ui right floated content">
-                                <div class="ui right pointing dropdown inverted button" id="searchModeSelector">
-                                    <span class="text">[Search Mode]</span>
-                                    <div class="menu">
-                                        <div class="item" data-value="0">Random</div>
-                                        <!-- <div class="item" data-value="1">Directed Random</div> -->
-                                        <!-- <div class="item" data-value="2">MCMC</div> -->
-                                        <!-- <div class="item" data-value="3">Non-Linear Least Squares</div> -->
+                <div class="ui inverted secondary menu">
+                    <a class="item active" data-tab="first">Search Settings</a>
+                    <a class="item" data-tab="second">Render Queue</a>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui tab active" data-tab="first">
+                    <button class="ui green button" id="runSearchBtn">Start Search</button>
+                    <div class="ui horizontal divider inverted header">Search Settings</div>
+                    <div id="searchSettings">
+                        <div class="ui relaxed inverted list">
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" id="searchModeSelector">
+                                        <span class="text">[Search Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="0">Random</div>
+                                            <!-- <div class="item" data-value="1">Directed Random</div> -->
+                                            <!-- <div class="item" data-value="2">MCMC</div> -->
+                                            <!-- <div class="item" data-value="3">Non-Linear Least Squares</div> -->
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="content">
-                                <div class="header">Search Mode</div>
-                            </div>
-                        </div>
-                        <div class="item">
-                            <div class="ui right floated content">
-                                <div class="ui toggle fitted checkbox" id="useVisibleLayersOnly">
-                                    <input type="checkbox" name="useVisibleLayersOnly" />
+                                <div class="content">
+                                    <div class="header">Search Mode</div>
                                 </div>
                             </div>
-                            <div class="content">
-                                <div class="header">Use Visible Layers Only</div>
-                                <div class="description">Only visible layers at time of search will be modified.</div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox" id="useVisibleLayersOnly">
+                                        <input type="checkbox" name="useVisibleLayersOnly" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Use Visible Layers Only</div>
+                                    <div class="description">Only visible layers at time of search will be modified.</div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="second" id="renderQueueTab">
+                    <div class="ui relaxed inverted list" id="renderQueue">
+
                     </div>
                 </div>
             </div>

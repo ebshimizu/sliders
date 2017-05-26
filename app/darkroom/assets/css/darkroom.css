@@ -343,7 +343,12 @@ body {
 }
 
 #sampleControls #searchSettings {
-    height: calc(100% - 110px);
+    height: calc(100% - 180px);
+}
+
+#renderQueueTab {
+    height: calc(100% - 80px);
+    overflow-y: auto;
 }
 
 #sampleControls #searchSettings .list {
@@ -368,8 +373,18 @@ body {
     z-index: 100;
 }
 
-#sampleContainer .popup {
+#sampleContainer #sampleSettingsPopup {
 	width: 300px;
+    max-width: 400px;
+}
+
+#sampleContainer #sampleSettingsPopup .column {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+#sampleContainer #sampleSettingsPopup .row {
+    padding: 0;
 }
 
 #sampleContainer .sample .dimmable.image {

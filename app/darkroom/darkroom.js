@@ -34,7 +34,8 @@ var settings = {
     "search": {
         "useVisibleLayersOnly": 1,
         "mode" : 1
-    }
+    },
+    "maxResults" : 100
 };
 
 // global settings vars
@@ -42,6 +43,7 @@ var g_renderPause = false;
 var g_isPainting = false;
 var g_ctx;  // drawing context for mask canvas
 var g_drawReady = false;
+var g_renderID = 0;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -110,7 +112,7 @@ window.requestAnimationFrame(repaint);
 function init() {
     // menu commands
     $("#renderCmd").on("click", function() {
-        renderImage();
+        renderImage("#renderCmd click callback");
     });
     $("#importCmd").click(function() { importFile(); });
     $("#openCmd").click(function() { openFile(); });
@@ -143,7 +145,7 @@ function init() {
         $(this).prepend('<i class="checkmark icon"></i>');
 
         settings.renderSize = $(this).attr("internal");
-        renderImage();
+        renderImage("#renderSize click callback");
     });
 
     $('#sampleRenderSize a.item').click(function() {
@@ -207,7 +209,14 @@ function init() {
         }
     });
 
+    $('#maxSamples input').change(function () {
+        settings.maxResults = parseInt($(this).val());
+    });
+    $('#maxSamples input').val(settings.maxResults);
+
     // search settings
+    $('#sampleControls .secondary.menu .item').tab();
+
     $('#useVisibleLayersOnly').checkbox({
         onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
         onUnchecked: () => { settings.search.useVisibleLayersOnly = 0; }
@@ -579,7 +588,7 @@ function bindGlobalEvents() {
             $(this).addClass("black");
         }
 
-        renderImage();
+        renderImage(".layerSet visibility change callback");
     });
 
     // group opacity
@@ -592,7 +601,7 @@ function bindGlobalEvents() {
         value: 100,
         stop: function(event, ui) {
             groupOpacityChange($(this).attr("setName"), ui.value, docTree);
-            renderImage();
+            renderImage(".layerSet opacity slider change callback");
         },
         slide: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
         change: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
@@ -605,7 +614,7 @@ function bindGlobalEvents() {
         var data = parseFloat($(this).val());
         var group = $(this).attr("setName");
         $('.groupSlider[setName="' + group + '"]').slider("value", data);
-        renderImage();
+        renderImage(".layerSet opacity input change callback");
     });
     $('.groupInput input').keydown(function(event) {
         if (event.which != 13)
@@ -614,7 +623,7 @@ function bindGlobalEvents() {
         var data = parseFloat($(this).val());
         var group = $(this).attr("setName");
         $('.groupSlider[setName="' + group + '"]').slider("value", data);
-        renderImage();
+        renderImage(".layerSet opacity input change callback");
     });
 }
 
@@ -704,7 +713,7 @@ function bindStandardEvents(name, layer) {
         }
 
         // trigger render after adjusting settings
-        renderImage();
+        renderImage('layer ' + name + ' visibility change');
     });
 
     var button = $('button[layerName="' + name + '"]');
@@ -725,7 +734,7 @@ function bindStandardEvents(name, layer) {
         action: 'activate',
         onChange: function(value, text) {
             layer.blendMode(parseInt(value));
-            renderImage();
+            renderImage('layer ' + name + ' blend mode change');
         },
         'set selected': layer.blendMode()
     });
@@ -739,7 +748,7 @@ function bindStandardEvents(name, layer) {
             // add the adjustment or something
             addAdjustmentToLayer(name, parseInt(value));
             regenLayerControls(name);
-            renderImage();
+            renderImage('layer ' + name + ' adjustment added');
         }
     });
 
@@ -758,7 +767,7 @@ function bindSectionEvents(name, layer) {
         var adjType = parseInt($(this).attr("adjType"));
         c.getLayer(name).deleteAdjustment(adjType);
         regenLayerControls(name);
-        renderImage();
+        renderImage('layer ' + name + ' adjustment deleted');
     });
 }
 
@@ -915,7 +924,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
         value: initVal,
         stop: function(event, ui) {
             psettings.uiHandler(name, ui);
-            renderImage();
+            renderImage('layer ' + name + ' parameter ' + paramName + ' change');
         },
         slide: function(event, ui) { psettings.uiHandler(name, ui); },
         change: function(event, ui) { psettings.uiHandler(name, ui); },
@@ -927,7 +936,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
     $(i).blur(function() {
         var data = parseFloat($(this).val());
         $(s).slider("value", data);
-        renderImage();
+        renderImage('layer ' + name + ' parameter ' + paramName + ' change');
     });
     $(i).keydown(function(event) {
         if (event.which != 13)
@@ -935,7 +944,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
 
         var data = parseFloat($(this).val());
         $(s).slider("value", data);
-        renderImage();
+        renderImage('layer ' + name + ' parameter ' + paramName + ' change');
     });  
 }
 
@@ -967,7 +976,7 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
 
                     if (layer.visible()) {
                         // no point rendering an invisible layer
-                        renderImage();
+                        renderImage('layer ' + name + ' color change');
                     }
                 }
             };
@@ -991,11 +1000,11 @@ function bindToggleControl(name, sectionName, layer, param, adjustment) {
     $(elem).checkbox({
         onChecked: function() {
             layer.addAdjustment(adjType[adjustment], param, 1);
-            if (layer.visible()) { renderImage(); }
+            if (layer.visible()) { renderImage('layer ' + name + ' parameter ' + param + ' toggle'); }
         },
         onUnchecked: function() {
             layer.addAdjustment(adjType[adjustment], param, 0);
-            if (layer.visible()) { renderImage(); }
+            if (layer.visible()) { renderImage('layer ' + name + ' parameter ' + param + ' toggle'); }
         }
     });
 
@@ -1649,7 +1658,7 @@ function importLayers(doc, path) {
     // update internal structure
     c.setLayerOrder(order);
     initSearch();
-    renderImage();
+    renderImage('importLayers()');
     initCanvas();
 }
 
@@ -1753,7 +1762,7 @@ function loadLayers(doc, path) {
     // update internal structure
     c.setLayerOrder(order);
     initSearch();
-    renderImage();
+    renderImage("loadLayers()");
     initCanvas();
 }
 
@@ -2185,14 +2194,45 @@ function showStatusMsg(msg, type, title) {
 
 // Renders an image from the compositor module and
 // then puts it in an image tag
-function renderImage() {
+function renderImage(callerName) {
     if (g_renderPause !== true) {
+        g_renderID++;
+        var myRenderID = g_renderID;
+        addRenderLog(myRenderID, callerName);
+
         c.asyncRender(settings.renderSize, function(err, img) {
             var dat = 'data:image/png;base64,';
             dat += img.base64();
             $("#render").html('<img src="' + dat + '"" />');
+            removeRenderLog(myRenderID);
         });
     }
+}
+
+// logs a render call to the render queue
+// caller is responsible for tracking completion and removing the entry.
+function addRenderLog(renderID, callerName, sampleID = -1) {
+    var html = '<div class="item" renderID="' + renderID + '">';
+    html += '<div class="content">';
+    html += '<div class="header">' + renderID + ': ' + callerName + '</div>';
+    html += '<div class="description">';
+
+    if (sampleID !== -1) {
+        html += 'Sample ID: ' + sampleID;
+    }
+    else {
+        html += 'Main View Render';
+    }
+
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    $('#renderQueue').append(html);
+}
+
+function removeRenderLog(renderID) {
+    $('.item[renderID="' + renderID + '"]').remove();
 }
 
 function showPreview(sample) {
@@ -2203,6 +2243,11 @@ function showPreview(sample) {
 
     if (img.hasClass("newSample")) {
         var sampleId = parseInt(img.attr("sampleId"));
+        img.removeClass("newSample").addClass("fullRenderQueued");
+
+        g_renderID++;
+        var myRenderID = g_renderID;
+        addRenderLog(myRenderID, sampleId + ' full size preview', sampleId);
 
         // we want to render this sample now at high quality, async
         c.asyncRenderContext(sampleIndex[sampleId].context, settings.renderSize, function(err, img) {
@@ -2212,7 +2257,8 @@ function showPreview(sample) {
             // will also apply to the preview).
             sampleIndex[sampleId].img = img;
             var src = 'data:image/png;base64,' + img.base64();
-            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('newSample');
+            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+            removeRenderLog(myRenderID);
         });
     }
 }
@@ -2345,7 +2391,7 @@ function updateLayerControls() {
     }
 
     g_renderPause = false;
-    renderImage();
+    renderImage("updateLayerControls()");
 }
 
 function updateSliderControl(name, param, section, val) {
@@ -2415,11 +2461,31 @@ function runSearch(elem) {
     }
 }
 
+function stopSearch() {
+    var elem = $("#runSearchBtn");
+
+    // search is stopping
+    $(elem).html("Stopping Search...");
+    showStatusMsg("", "", "Stopping Search");
+    $(elem).addClass("disabled");
+
+    // this blocks, may want some indication that it is working, loading sign for instance
+    // in fact, this function should be async with a callback to indicate completion.
+    c.stopSearch(err => {
+        $(elem).removeClass("red");
+        $(elem).removeClass("disabled");
+        $(elem).addClass("green");
+        $(elem).html("Start Search");
+        showStatusMsg("", "OK", "Search Stopped");
+        console.log("Search stopped");
+    });
+}
+
 function processNewSample(img, ctx, meta) {
+    // discard sample if too many already in the results section
+
     // eventually we will need references to each context element in order
     // to render the images at full size
-    // CURRENT STATUS: Images returned are full sizes of the exact same render
-    // of the exact same scene delivered at 5s intervals
     sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
     $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
 
@@ -2438,6 +2504,11 @@ function processNewSample(img, ctx, meta) {
     });
 
     sampleId += 1;
+
+    // if we have too many samples we should stop
+    if (sampleId > settings.maxResults) {
+        stopSearch();
+    }
 }
 
 function createSampleContainer(img, id) {

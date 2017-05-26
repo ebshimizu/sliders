@@ -497,6 +497,11 @@ namespace Comp {
 
   void Compositor::stopSearch()
   {
+    // if the stop process has already been initiated return
+    if (!_searchRunning) {
+      return;
+    }
+
     _searchRunning = false;
     getLogger()->log("Waiting for all threads to finish...", LogLevel::INFO);
 

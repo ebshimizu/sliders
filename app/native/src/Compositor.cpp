@@ -636,12 +636,14 @@ namespace Comp {
         case COLORIZE:
         case LIGHTER_COLORIZE:
         case OVERWRITE_COLOR:
+        {
           // group these together they have the same interface
           l.addAdjustment(a, "r", dist(gen));
           l.addAdjustment(a, "g", dist(gen));
           l.addAdjustment(a, "b", dist(gen));
           l.addAdjustment(a, "a", dist(gen));
           break;
+        }
         default:
           break;
         }

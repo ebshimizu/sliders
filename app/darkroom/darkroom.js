@@ -195,6 +195,9 @@ function init() {
         }
     });
 
+    // layers
+    $('#layerControlsMenu .item').tab();
+
     // settings
     $("#showSampleId").checkbox({
         onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); },
@@ -216,7 +219,7 @@ function init() {
     $('#maxSamples input').val(settings.maxResults);
 
     // search settings
-    $('#sampleControls .secondary.menu .item').tab();
+    $('#sampleControls .top.menu .item').tab();
 
     $('#useVisibleLayersOnly').checkbox({
         onChecked: () => { settings.search.useVisibleLayersOnly = 1; },

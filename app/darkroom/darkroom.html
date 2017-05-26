@@ -184,9 +184,12 @@
         <!-- LAYER CONTROLS -->
         <div id="layerContainer">
             <div class="layerWrapper">
-                <div class="ui top inverted attached label">Layers</div>
-                <div id="layerControls">
-                    <div class="layer" layername="Rectangle 1">
+                <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
+                    <a class="item active" data-tab="layers">Layers</a>
+                    <a class="item" data-tab="history">History</a>
+                </div>
+                <div class="ui active tab" id="layerControls" data-tab="layers">
+                    <!-- <div class="layer" layername="Rectangle 1">
                         <h3 class="ui grey inverted header">Rectangle 1</h3>
                         <button class="ui icon button mini visibleButton white" layername="Rectangle 1"><i class="unhide icon"></i></button>
                         <div class="ui scrolling selection dropdown blendModeMenu" layername="Rectangle 1" tabindex="0"><input type="hidden" name="Blend Mode" value="0"><i class="dropdown icon"></i><div class="text">Normal</div><div class="menu" tabindex="-1"><div class="item active selected" data-value="0">Normal</div><div class="item" data-value="1">Multiply</div><div class="item" data-value="2">Screen</div><div class="item" data-value="3">Overlay</div><div class="item" data-value="4">Hard Light</div><div class="item" data-value="5">Soft Light</div><div class="item" data-value="6">Linear Dodge (Add)</div><div class="item" data-value="7">Color Dodge</div><div class="item" data-value="8">Linear Burn</div><div class="item" data-value="9">Linear Light</div><div class="item" data-value="10">Color</div><div class="item" data-value="11">Lighten</div><div class="item" data-value="12">Darken</div><div class="item" data-value="13">Pin Light</div></div></div>
@@ -203,20 +206,21 @@
                             <div class="paramSlider" layerName="Rectangle 1" paramName="levels"></div>
                             <div class="paramInput ui inverted transparent input" layerName="Rectangle 1" paramName="levels"><input type="text"></div>
                         </div>
-                    </div>
+                    </div> -->
+                </div>
+                <div class="ui tab" data-tab="history" id="historyPanel">
+                    
                 </div>
             </div>
         </div>
         <!-- END LAYER CONTROLS -->
         <!-- SAMPLE CONTROLS -->
         <div id="sampleControls">
+            <div class="ui top attached inverted grey mini menu">
+                <a class="item active" data-tab="first">Search Settings</a>
+                <a class="item" data-tab="second">Render Queue</a>
+            </div>
             <div class="ui top attached inverted segment" id="sampleControlsSegment">
-                <div class="ui top inverted attached label">Sampling Controls</div>
-                <div class="ui inverted secondary menu">
-                    <a class="item active" data-tab="first">Search Settings</a>
-                    <a class="item" data-tab="second">Render Queue</a>
-                </div>
-                <div class="ui divider"></div>
                 <div class="ui tab active" data-tab="first">
                     <button class="ui green button" id="runSearchBtn">Start Search</button>
                     <div class="ui horizontal divider inverted header">Search Settings</div>
@@ -264,6 +268,7 @@
                     </div>
                 </div>
                 <div class="ui tab" data-tab="second" id="renderQueueTab">
+                    <h3 class="ui inverted header">Render Queue</h3>
                     <div class="ui relaxed inverted list" id="renderQueue">
 
                     </div>

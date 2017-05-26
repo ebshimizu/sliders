@@ -33,7 +33,11 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     height: calc(100% - 24px);
-    top: -4px;
+    top: 0px;
+}
+
+#layerContainer #layerControlsMenu {
+    margin-top: -6px;
 }
 
 #layerControls .layer {
@@ -325,7 +329,7 @@ body {
 
 #sampleContainer .segment {
 	height: 100%;
-	padding-right: 14px;
+	padding-right: 10px;
 	margin-top: 0;
 }
 
@@ -344,7 +348,8 @@ body {
 }
 
 #sampleControls .segment {
-	height: 100%;
+	height: calc(100% - 31px);
+    margin-top: 0;
 }
 
 #sampleControls #searchSettings {

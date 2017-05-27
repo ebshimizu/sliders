@@ -2593,9 +2593,9 @@ function createSampleControls(id) {
     // dropdown menu creation
     html += '<div class="menu">';
     html += '<div class="header">Sample Actions</div>';
-    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>';
-    html += '<div class="item stashSampleCmd" sampleId="' + id + '">Stash Sample</div>';
-    html += '<div c;ass="item exportSampleCmd" sampleId="' + id + '">Export Image</div>'
+    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick</div>';
+    html += '<div class="item stashSampleCmd" sampleId="' + id + '">Stash</div>';
+    html += '<div class="item exportSampleCmd" sampleId="' + id + '">Export</div>'
     html += '</div></div>';
     
     html += '</div></div></div></div>';

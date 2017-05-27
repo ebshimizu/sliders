@@ -45,6 +45,8 @@ var g_isPainting = false;
 var g_ctx;  // drawing context for mask canvas
 var g_drawReady = false;
 var g_renderID = 0;
+var g_historyID = 0;
+var g_history = {};
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -1344,6 +1346,8 @@ function importFile() {
                 throw err;
             }
 
+            g_historyID = 0;
+
             // load the data
             importLayers(JSON.parse(data), folder);
         }); 
@@ -1379,6 +1383,9 @@ function openFile() {
             if (err) {
                 throw err;
             }
+
+            // reset some ids
+            g_historyID = 0;
 
             // load the data
             loadLayers(JSON.parse(data), folder);
@@ -2210,11 +2217,20 @@ function renderImage(callerName) {
         var myRenderID = g_renderID;
         addRenderLog(myRenderID, callerName);
 
+        g_historyID++;
+        var myHistoryID = g_historyID;
+        // history time
+        g_history[myHistoryID] = { context: c.getContext() };
+
         c.asyncRender(settings.renderSize, function(err, img) {
             var dat = 'data:image/png;base64,';
             dat += img.base64();
             $("#render").html('<img src="' + dat + '"" />');
             removeRenderLog(myRenderID);
+
+            // more history time
+            g_history[myHistoryID].img = img;
+            addHistory(myHistoryID);
         });
     }
 }
@@ -2243,6 +2259,22 @@ function addRenderLog(renderID, callerName, sampleID = -1) {
 
 function removeRenderLog(renderID) {
     $('.item[renderID="' + renderID + '"]').remove();
+}
+
+function addHistory(id) {
+    var html = '<div class="ui item">';
+    html += '<div class="ui medium image"><img src="data:image/png;base64,' + g_history[id].img.base64() + '" /></div>';
+    html += '<div class="ui middle aligned content"><div class="header">History ID: ' + id + '</div>';
+    html += '<div class="ui divider"></div><div class="description"><div class="ui inverted mini button" historyID="' + id + '">Restore</div></div>';
+    html += '</div>';
+
+    $("#historyItems").prepend(html);
+
+    // TODO: history event bindings
+    $('.button[historyID="' + id + '"]').click(function () {
+        c.setContext(g_history[id].context);
+        updateLayerControls();
+    })
 }
 
 function showPreview(sample) {

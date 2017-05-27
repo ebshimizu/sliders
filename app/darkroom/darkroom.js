@@ -258,6 +258,14 @@ function init() {
         pickSample(this);
     });
 
+    $('#samples').on('click', '.exportSampleCmd', function () {
+        //exportSampleImage(this);
+    });
+
+    $('#samples').on('click', '.stashSampleCmd', function () {
+        // stashSample(this);
+    })
+
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
         orientation: "horizontal",
@@ -2586,6 +2594,8 @@ function createSampleControls(id) {
     html += '<div class="menu">';
     html += '<div class="header">Sample Actions</div>';
     html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>';
+    html += '<div class="item stashSampleCmd" sampleId="' + id + '">Stash Sample</div>';
+    html += '<div c;ass="item exportSampleCmd" sampleId="' + id + '">Export Image</div>'
     html += '</div></div>';
     
     html += '</div></div></div></div>';

@@ -135,6 +135,7 @@ function init() {
     });
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
+    $('#exportAllSamplesCmd').click(() => { exportAllSamples() });
 
     // render size options
     $('#renderSize a.item').click(function() {
@@ -1917,7 +1918,28 @@ function exportSample(id) {
         }
 
         exportSingleSample(sample, filePaths);
-        showStatusMsg("Saved sample " + id + " to " + file);
+        showStatusMsg("Saved sample " + id + " to " + file, "OK", "Export Complete");
+    });
+}
+
+// exports everything in the sampleIndex map
+function exportAllSamples() {
+    // location to save things
+    dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: "Select Export Directory"
+    }, function (filePaths) {
+        if (filePaths === undefined)
+            return;
+
+        var folder = filePaths;
+        showStatusMsg("Saving " + Object.keys(sampleIndex).length + " samples to " + folder, '', "Export Started");
+
+        for (var id in sampleIndex) {
+            exportSingleSample(sampleIndex[id], folder + "/" + id + ".png");
+        }
+
+        showStatusMsg("Saved " + Object.keys(sampleIndex).length + " samples to " + folder, "OK", "Export Complete");
     });
 }
 
@@ -2293,6 +2315,7 @@ function showStatusMsg(msg, type, title) {
     html += '</div>';
 
     msgArea.prepend(html);
+    console.log("[" + msg + "]" + " " + title + ": " + msg);
 
     var msgElem = $('div[messageId="' + msgId + '"]');
 

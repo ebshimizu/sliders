@@ -1010,6 +1010,7 @@ void ContextWrapper::Init(v8::Local<v8::Object> exports)
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
+  Nan::SetPrototypeMethod(tpl, "keys", keys);
 
   contextConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Context").ToLocalChecked(), tpl->GetFunction());
@@ -1055,6 +1056,22 @@ void ContextWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
   info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void ContextWrapper::keys(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ContextWrapper* c = ObjectWrap::Unwrap<ContextWrapper>(info.Holder());
+  nullcheck(c, "ContextWrapper.keys");
+
+  v8::Local<v8::Array> keys = Nan::New<v8::Array>();
+
+  int i = 0;
+  for (auto k : c->_context) {
+    keys->Set(i, Nan::New<v8::String>(k.first).ToLocalChecked());
+    i++;
+  }
+
+  info.GetReturnValue().Set(keys);
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

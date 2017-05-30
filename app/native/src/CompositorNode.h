@@ -110,6 +110,7 @@ private:
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void keys(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 void asyncSampleEvent(uv_work_t* req);

@@ -259,7 +259,7 @@ function init() {
     });
 
     $('#samples').on('click', '.exportSampleCmd', function () {
-        //exportSampleImage(this);
+        exportSample(parseInt($(this).attr("sampleID")));
     });
 
     $('#samples').on('click', '.stashSampleCmd', function () {
@@ -1322,7 +1322,7 @@ function createShadowState(tree, order) {
 }
 
 /*===========================================================================*/
-/* File System                                                               */
+/* File System / Export / Import                                            */
 /*===========================================================================*/
 
 function importFile() {
@@ -1901,6 +1901,96 @@ function saveImgCmd() {
 
         c.render().save(file);
     });
+}
+
+// exports a sample with ability to select filename
+function exportSample(id) {
+    var sample = sampleIndex[id];
+
+    // open dialog
+    dialog.showSaveDialog({
+        filters: [{ name: 'PNG', extensions: ['png'] }],
+        title: "Export Sample"
+    }, function (filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
+
+        exportSingleSample(sample, filePaths);
+        showStatusMsg("Saved sample " + id + " to " + file);
+    });
+}
+
+// saves a sample to the specified path. Will also save .context and .meta
+// json files associated with the sample
+function exportSingleSample(sample, file) {
+    sample.img.save(file);
+
+    // metadata export
+    // need to split out the directory path from the file path
+    var splitChar = '/';
+
+    if (file.includes('\\')) {
+        splitChar = '\\';
+    }
+
+    var folder = file.split(splitChar).slice(0, -1).join('/');
+    var filename = file.split(splitChar);
+    filename = filename[filename.length - 1].split(".")[0];
+
+    // metadata
+    fs.writeFile(folder + "/" + filename + ".meta.json", JSON.stringify(sample.meta, null, 2), (err) => {
+        if (err) {
+            showStatusMsg(err.toString(), "ERROR", "Error Saving Metadata File");
+        }
+    });
+
+    // context
+    fs.writeFile(folder + "/" + filename + ".context.json", JSON.stringify(contextToJSON(sample.context), null, 2), (err) => {
+        if (err) {
+            showStatusMsg(err.toString(), "ERROR", "Error Saving Context File");
+        }
+    });
+}
+
+function contextToJSON(ctx) {
+    var layers = {};
+    var cl = ctx.keys();
+    for (var i in cl) {
+        var layerName = cl[i];
+        var l = ctx.getLayer(layerName);
+        layers[layerName] = {};
+
+        layers[layerName].opacity = l.opacity();
+        layers[layerName].visible = l.visible();
+        layers[layerName].blendMode = l.blendMode();
+        layers[layerName].isAdjustment = l.isAdjustmentLayer();
+        layers[layerName].filename = l.image().filename();
+        layers[layerName].type = l.type();
+        layers[layerName].adjustments = {};
+
+        // adjustments
+        var adjTypes = l.getAdjustments();
+        for (var i = 0; i < adjTypes.length; i++) {
+            layers[layerName].adjustments[adjTypes[i]] = l.getAdjustment(adjTypes[i]);
+
+            // extra data
+            if (adjTypes[i] === adjType.GRADIENTMAP) {
+                layers[layerName].gradient = l.getGradient();
+            }
+
+            if (adjTypes[i] === adjType.CURVES) {
+                layers[layerName].curves = {};
+
+                var channels = l.getAdjustment(adjTypes[i]);
+                for (var chan in channels) {
+                    layers[layerName].curves[chan] = l.getCurve(chan);
+                }
+            }
+        }
+    }
+
+    return layers;
 }
 
 /*===========================================================================*/

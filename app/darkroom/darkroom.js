@@ -4,7 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const saveVersion = 0.1
+const saveVersion = 0.2
 const versionString = "0.1"
 
 function inherits(target, source) {
@@ -1253,7 +1253,7 @@ function genBlendModeMenu(name) {
 }
 
 function genAddAdjustmentButton(name) {
-    var b = '<div class="ui mini icon top left pointing dropdown button addAdjustment" layerName="' + name + '">';
+    var b = '<div class="ui mini icon top left pointing scrolling dropdown button addAdjustment" layerName="' + name + '">';
     b += '<i class="plus icon"></i>';
     b += '<div class="menu">';
     b += '<div class="header">Add Adjustment</div>';

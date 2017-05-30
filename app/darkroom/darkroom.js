@@ -2315,7 +2315,7 @@ function showStatusMsg(msg, type, title) {
     html += '</div>';
 
     msgArea.prepend(html);
-    console.log("[" + msg + "]" + " " + title + ": " + msg);
+    console.log("[" + type + "]" + " " + title + ": " + msg);
 
     var msgElem = $('div[messageId="' + msgId + '"]');
 

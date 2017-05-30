@@ -84,6 +84,7 @@
 
                             </div>
                         </div>
+                        <a class="item" id="showAppInfoCmd">About</a>
                     </div>
                 </div>
                 <div class="right menu">
@@ -280,6 +281,7 @@
             </div>
         </div>
         <!-- END SAMPLE CONTROLS -->
+        <!-- MESSAGES AND MISC CONTROLS -->
         <div id="status" class="transition hidden">
             <div class="ui blue indicating progress">
               <div class="bar">
@@ -294,5 +296,21 @@
         <div id="colorPicker" class="hidden">
 
         </div>
+        <div id="versionModal" class="ui basic modal">
+            <div class="ui header">Application Info</div>
+            <div class="content">
+                <p>Third party libaries used: Electron, node.js, cpp-base64, lodepng</p>
+                <p>
+                    Application Version: <span id="appVersionLabel"></span><br />
+                    Save File Version: <span id="saveVersionLabel"></span>
+                </p>
+            </div>
+            <div class="actions">
+                <div class="ui basic ok inverted button">
+                    Close
+                </div>
+            </div>
+        </div>
+        <!-- END MESSAGES AND MISC CONTROLS -->
     </body>
 </html>

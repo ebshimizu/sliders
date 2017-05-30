@@ -136,6 +136,7 @@ function init() {
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
     $('#exportAllSamplesCmd').click(() => { exportAllSamples() });
+    $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); })
 
     // render size options
     $('#renderSize a.item').click(function() {
@@ -347,6 +348,10 @@ function initUI() {
     for (var layer in layers) {
         createLayerControl(layers[layer]);
     }
+
+    // place version numbers
+    $('#appVersionLabel').html(versionString);
+    $('#saveVersionLabel').html(saveVersion);
 }
 
 function loadSettings() {

@@ -212,8 +212,8 @@ function init() {
         action: 'activate',
         onChange: function(value, text) {
             settings.sampleRows = parseInt(text);
-            $('#sampleContainer .sampleWrapper').removeClass("one two three four five six seven eight nine ten");
-            $('#sampleContainer .sampleWrapper').addClass(value);
+            $('#sampleContainer #sampleWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sampleContainer #sampleWrapper').addClass(value);
         }
     });
 
@@ -224,6 +224,7 @@ function init() {
 
     // search settings
     $('#sampleControls .top.menu .item').tab();
+    $('#samplesTabs .item').tab();
 
     $('#useVisibleLayersOnly').checkbox({
         onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
@@ -2592,7 +2593,7 @@ function resetShadowState() {
 function initSearch() {
     sampleIndex = {};
     sampleId = 0;
-    $('#sampleContainer .sampleWrapper').empty();
+    $('#sampleContainer #sampleWrapper').empty();
 }
 
 function runSearch(elem) {
@@ -2657,7 +2658,7 @@ function processNewSample(img, ctx, meta) {
     // eventually we will need references to each context element in order
     // to render the images at full size
     sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
-    $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
+    $('#sampleContainer #sampleWrapper').append(createSampleContainer(img, sampleId));
 
     // bind the dimmer
     $('#sampleContainer .sample[sampleId="' + sampleId + '"] .image').dimmer({
@@ -2706,7 +2707,7 @@ function createSampleControls(id) {
     html += '<div class="ui inverted header">ID: ' + id + '</div>';
     html += '<div class="ui buttons">';
     html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>';
-    html += '<div class="ui compact inverted icon top floating dropdown button"><i class="ui options icon"></i>';
+    html += '<div class="ui compact inverted icon top dropdown button"><i class="ui options icon"></i>';
 
     // dropdown menu creation
     html += '<div class="menu">';

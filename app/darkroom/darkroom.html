@@ -176,10 +176,20 @@
                     </div>
                 </div>
             </div>
+            <div class="ui top attached inverted grey mini menu" id="samplesTabs">
+                <a class="item active" data-tab="results">Search Results</a>
+                <a class="item" data-tab="sideboard">Saved Results</a>
+            </div>
             <div class="ui top attached inverted segment" id="samples">
-                <div class="ui top inverted attached label">Samples</div>
-                <div class="ui six cards sampleWrapper">
+                <div class="ui active tab" data-tab="results">
+                    <div class="ui six cards" id="sampleWrapper">
 
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="sideboard">
+                    <div class="ui six cards" id="sideboardWrapper">
+
+                    </div>
                 </div>
             </div>
         </div>

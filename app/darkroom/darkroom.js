@@ -23,6 +23,7 @@ var cp;
 var msgId = 0, sampleId = 0;
 var g_sampleIndex = {};
 var g_sideboard = {};
+var g_sideboardID = 101;        // note: this is a huge hack to remove ID conflicts
 var maxThreads = comp.hardware_concurrency();
 var settings = {
     "showSampleId" : true,
@@ -225,23 +226,25 @@ function initUI() {
 
     // settings
     $("#showSampleId").checkbox({
-        onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); },
-        onUnchecked: () => { settings.showSampleId = false; $("#sampleContainer").addClass("noIds"); }
+        onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); $("#sideboardWrapper").removeClass("noIds"); },
+        onUnchecked: () => { settings.showSampleId = false; $("#sampleContainer").addClass("noIds"); $("#sideboardWrapper").addClass("noIds"); }
     });
 
     $('#sampleRows').dropdown({
         action: 'activate',
         onChange: function (value, text) {
             settings.sampleRows = parseInt(text);
-            $('#sampleContainer #sampleWrapper').removeClass("one two three four five six seven eight nine ten");
-            $('#sampleContainer #sampleWrapper').addClass(value);
+            $('#sampleWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sampleWrapper').addClass(value);
+            $('#sideboardWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sideboardWrapper').addClass(value);
         }
     });
 
     $('#maxSamples input').change(function () {
         settings.maxResults = parseInt($(this).val());
+        g_sideboardID += settings.maxResults;
     });
-    $('#maxSamples input').val(settings.maxResults);
 
     // search settings
     $('#sampleControls .top.menu .item').tab();
@@ -265,10 +268,6 @@ function initUI() {
         }
     })
 
-    $('#useVisibleLayersOnly').checkbox('set checked');
-    $('#modifyLayerBlendModes').checkbox('set unchecked');
-    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
-
     // sample event bindings
     $('#sampleWrapper').on('mouseover', '.sample', function () {
         showPreview(this);
@@ -283,11 +282,11 @@ function initUI() {
     });
 
     $('#sampleWrapper').on('click', '.exportSampleCmd', function () {
-        exportSample(parseInt($(this).attr("sampleID")));
+        exportSample(parseInt($(this).attr("sampleId")));
     });
 
     $('#sampleWrapper').on('click', '.stashSampleCmd', function () {
-        stashSample(parseInt($(this).attr("sampleID")));
+        stashSample(parseInt($(this).attr("sampleId")));
     });
 
     // Sideboard event bindings
@@ -305,7 +304,11 @@ function initUI() {
     });
 
     $('#sideboardWrapper').on('click', '.exportSampleCmd', function () {
-        exportSample(parseInt($(this).attr("sampleID")));
+        exportSample(parseInt($(this).attr("sampleId")));
+    });
+
+    $('#sideboardWrapper').on('click', '.deleteStashSampleCmd', function () {
+        deleteStashSample(parseInt($(this).attr("sampleId")));
     });
 
     // debug: if any sliders exist on load, initialize them with no listeners
@@ -390,6 +393,19 @@ function loadSettings() {
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
     $('#sampleThreads a.item[name="' + settings.sampleThreads + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
+
+    if (settings.search.useVisibleLayersOnly)
+        $('#useVisibleLayersOnly').checkbox('set checked');
+    else
+        $('#useVisibleLayersOnly').checkbox('set unchecked');
+
+    if (settings.search.modifyLayerBlendModes)
+        $('#modifyLayerBlendModes').checkbox('set checked');
+    else
+        $('#modifyLayerBlendModes').checkbox('set unchecked');
+
+    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
+    $('#maxSamples input').val(settings.maxResults);
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -2438,17 +2454,32 @@ function showPreview(sample) {
         var myRenderID = g_renderID;
         addRenderLog(myRenderID, sampleId + ' full size preview', sampleId);
 
-        // we want to render this sample now at high quality, async
-        c.asyncRenderContext(g_sampleIndex[sampleId].context, settings.renderSize, function(err, img) {
-            // replace the relevant image tags
-            // because this is single threaded, if at the time of render completion, the user has
-            // previewed a sample, this will also update the sample image (we copied it so the selector
-            // will also apply to the preview).
-            g_sampleIndex[sampleId].img = img;
-            var src = 'data:image/png;base64,' + img.base64();
-            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
-            removeRenderLog(myRenderID);
-        });
+        if (sampleId > settings.maxResults) {
+            // we want to render this sample now at high quality, async
+            c.asyncRenderContext(g_sideboard[sampleId].context, settings.renderSize, function (err, img) {
+                // replace the relevant image tags
+                // because this is single threaded, if at the time of render completion, the user has
+                // previewed a sample, this will also update the sample image (we copied it so the selector
+                // will also apply to the preview).
+                g_sideboard[sampleId].img = img;
+                var src = 'data:image/png;base64,' + img.base64();
+                $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+                removeRenderLog(myRenderID);
+            });
+        }
+        else {
+            // we want to render this sample now at high quality, async
+            c.asyncRenderContext(g_sampleIndex[sampleId].context, settings.renderSize, function (err, img) {
+                // replace the relevant image tags
+                // because this is single threaded, if at the time of render completion, the user has
+                // previewed a sample, this will also update the sample image (we copied it so the selector
+                // will also apply to the preview).
+                g_sampleIndex[sampleId].img = img;
+                var src = 'data:image/png;base64,' + img.base64();
+                $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+                removeRenderLog(myRenderID);
+            });
+        }
     }
 }
 
@@ -2465,6 +2496,50 @@ function pickSample(elem) {
 
     // the model changed, update the ui elements
     updateLayerControls();
+}
+
+// stashes the selected sample to the sideboard
+function stashSample(id) {
+    // find the object
+    var sample = g_sampleIndex[id];
+
+    // change the id
+    var newID = g_sideboardID;
+    g_sideboardID++;
+
+    // create a new element
+    $('#sideboardWrapper').append(createSampleContainer(sample.img, newID));
+
+    // Replace the stash menu option with delete
+    $('#sideboardWrapper .card[sampleId="' + newID + '"] .item.stashSampleCmd').removeClass('stashSampleCmd').addClass('deleteStashSampleCmd');
+    $('#sideboardWrapper .card[sampleId="' + newID + '"] .item.deleteStashSampleCmd').html('Delete');
+
+    // add to sideboard list
+    g_sideboard[newID] = sample;
+
+    // bind the dimmer
+    $('#sideboardWrapper .sample[sampleId="' + newID + '"] .image').dimmer({
+        on: 'hover',
+        duration: {
+            show: 100,
+            hide: 100
+        }
+    });
+
+    // start the menu
+    $('#sideboardWrapper .sample[sampleId="' + newID + '"] .dropdown').dropdown({
+        action: 'hide'
+    });
+}
+
+function deleteStashSample(id) {
+    // delete the object
+    delete g_sideboard[id];
+
+    // delete the elem
+    $('#sideboardWrapper .sample[sampleId="' + id + '"]').remove();
+
+    hidePreview();
 }
 
 function updateLayerControls() {
@@ -2613,7 +2688,8 @@ function resetShadowState() {
 function initSearch() {
     g_sampleIndex = {};
     sampleId = 0;
-    $('#sampleContainer #sampleWrapper').empty();
+    $('#sampleWrapper').empty();
+    $('#sideboardWrapper').empty();
 }
 
 function runSearch(elem) {

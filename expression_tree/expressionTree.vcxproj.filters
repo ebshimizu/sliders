@@ -8,5 +8,6 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="expressionTree.h" />
     <ClInclude Include="testApp.h" />
+    <ClInclude Include="expressionContext.h" />
   </ItemGroup>
 </Project>

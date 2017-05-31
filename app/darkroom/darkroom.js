@@ -21,7 +21,9 @@ var c, docTree, modifiers;
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
-var sampleIndex = {};
+var g_sampleIndex = {};
+var g_sideboard = {};
+var g_sideboardID = 101;        // note: this is a huge hack to remove ID conflicts
 var maxThreads = comp.hardware_concurrency();
 var settings = {
     "showSampleId" : true,
@@ -113,13 +115,33 @@ window.requestAnimationFrame(repaint);
 
 // Initializes html element listeners on document load
 function init() {
+    // autoload
+    //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
+
+    initCompositor();
+    initUI();
+    loadSettings();
+}
+
+// initialize and rebind events for the compositor. Should always be called
+// instead of manually re-creating compositor object.
+function initCompositor() {
+    c = new comp.Compositor();
+
+    c.on('sample', function(img, ctx, meta) {
+        processNewSample(img, ctx, meta);
+    });
+}
+
+// binds common events and sets up things in general
+function initUI() {
     // menu commands
-    $("#renderCmd").on("click", function() {
+    $("#renderCmd").on("click", function () {
         renderImage("#renderCmd click callback");
     });
-    $("#importCmd").click(function() { importFile(); });
-    $("#openCmd").click(function() { openFile(); });
-    $("#exitCmd").click(function() { app.quit(); });
+    $("#importCmd").click(function () { importFile(); });
+    $("#openCmd").click(function () { openFile(); });
+    $("#exitCmd").click(function () { app.quit(); });
     $("#saveCmd").click(() => { saveCmd(); });
     $("#saveAsCmd").click(() => { saveAsCmd(); });
     $("#saveImgCmd").click(() => { saveImgCmd(); });
@@ -136,9 +158,10 @@ function init() {
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
     $('#exportAllSamplesCmd').click(() => { exportAllSamples() });
+    $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); })
 
     // render size options
-    $('#renderSize a.item').click(function() {
+    $('#renderSize a.item').click(function () {
         // reset icon status
         var links = $('#renderSize a.item');
         for (var i = 0; i < links.length; i++) {
@@ -152,7 +175,7 @@ function init() {
         renderImage("#renderSize click callback");
     });
 
-    $('#sampleRenderSize a.item').click(function() {
+    $('#sampleRenderSize a.item').click(function () {
         // reset icon status
         var links = $('#sampleRenderSize a.item');
         for (var i = 0; i < links.length; i++) {
@@ -172,7 +195,7 @@ function init() {
         $("#sampleThreads").append(str);
     }
 
-    $('#sampleThreads a.item').click(function() {
+    $('#sampleThreads a.item').click(function () {
         // reset icon status
         var links = $('#sampleThreads a.item');
         for (var i = 0; i < links.length; i++) {
@@ -203,26 +226,29 @@ function init() {
 
     // settings
     $("#showSampleId").checkbox({
-        onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); },
-        onUnchecked: () => { settings.showSampleId = false; $("#sampleContainer").addClass("noIds"); }
+        onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); $("#sideboardWrapper").removeClass("noIds"); },
+        onUnchecked: () => { settings.showSampleId = false; $("#sampleContainer").addClass("noIds"); $("#sideboardWrapper").addClass("noIds"); }
     });
 
     $('#sampleRows').dropdown({
         action: 'activate',
-        onChange: function(value, text) {
+        onChange: function (value, text) {
             settings.sampleRows = parseInt(text);
-            $('#sampleContainer .sampleWrapper').removeClass("one two three four five six seven eight nine ten");
-            $('#sampleContainer .sampleWrapper').addClass(value);
+            $('#sampleWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sampleWrapper').addClass(value);
+            $('#sideboardWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sideboardWrapper').addClass(value);
         }
     });
 
     $('#maxSamples input').change(function () {
         settings.maxResults = parseInt($(this).val());
+        g_sideboardID += settings.maxResults;
     });
-    $('#maxSamples input').val(settings.maxResults);
 
     // search settings
     $('#sampleControls .top.menu .item').tab();
+    $('#samplesTabs .item').tab();
 
     $('#useVisibleLayersOnly').checkbox({
         onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
@@ -242,30 +268,48 @@ function init() {
         }
     })
 
-    $('#useVisibleLayersOnly').checkbox('set checked');
-    $('#modifyLayerBlendModes').checkbox('set unchecked');
-    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
-
     // sample event bindings
-    $('#samples').on('mouseover', '.sample', function() {
+    $('#sampleWrapper').on('mouseover', '.sample', function () {
         showPreview(this);
     });
 
-    $('#samples').on('mouseout', '.sample', function() {
+    $('#sampleWrapper').on('mouseout', '.sample', function () {
         hidePreview();
     });
 
-    $('#samples').on('click', '.pickSampleCmd', function() {
+    $('#sampleWrapper').on('click', '.pickSampleCmd', function () {
         pickSample(this);
     });
 
-    $('#samples').on('click', '.exportSampleCmd', function () {
-        exportSample(parseInt($(this).attr("sampleID")));
+    $('#sampleWrapper').on('click', '.exportSampleCmd', function () {
+        exportSample(parseInt($(this).attr("sampleId")));
     });
 
-    $('#samples').on('click', '.stashSampleCmd', function () {
-        // stashSample(this);
-    })
+    $('#sampleWrapper').on('click', '.stashSampleCmd', function () {
+        stashSample(parseInt($(this).attr("sampleId")));
+    });
+
+    // Sideboard event bindings
+    // some people might note these are basically the same with a few exceptions.
+    $('#sideboardWrapper').on('mouseover', '.sample', function () {
+        showPreview(this);
+    });
+
+    $('#sideboardWrapper').on('mouseout', '.sample', function () {
+        hidePreview();
+    });
+
+    $('#sideboardWrapper').on('click', '.pickSampleCmd', function () {
+        pickSample(this);
+    });
+
+    $('#sideboardWrapper').on('click', '.exportSampleCmd', function () {
+        exportSample(parseInt($(this).attr("sampleId")));
+    });
+
+    $('#sideboardWrapper').on('click', '.deleteStashSampleCmd', function () {
+        deleteStashSample(parseInt($(this).attr("sampleId")));
+    });
 
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
@@ -276,14 +320,14 @@ function init() {
     });
 
     // buttons
-    $("#runSearchBtn").click(function() {
+    $("#runSearchBtn").click(function () {
         runSearch(this);
     });
 
-    $("#maskCanvas").mousedown(function(e) { canvasMousedown(e, this); });
-    $("#maskCanvas").mouseup(function(e) { canvasMouseup(e, this); });
-    $("#maskCanvas").mousemove(function(e) { canvasMousemove(e, this); });
-    $("#maskCanvas").mouseout(function(e) { canvasMouseup(e, this); });
+    $("#maskCanvas").mousedown(function (e) { canvasMousedown(e, this); });
+    $("#maskCanvas").mouseup(function (e) { canvasMouseup(e, this); });
+    $("#maskCanvas").mousemove(function (e) { canvasMousemove(e, this); });
+    $("#maskCanvas").mouseout(function (e) { canvasMouseup(e, this); });
 
     // mask tools
     $('#mask-paint').click(function () {
@@ -312,25 +356,6 @@ function init() {
 
     $('#mask-tools').hide();
 
-    // autoload
-    //openLayers("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes/shapes.json", "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/shapes")
-
-    initCompositor();
-    initUI();
-    loadSettings();
-}
-
-// initialize and rebind events for the compositor. Should always be called
-// instead of manually re-creating compositor object.
-function initCompositor() {
-    c = new comp.Compositor();
-
-    c.on('sample', function(img, ctx, meta) {
-        processNewSample(img, ctx, meta);
-    });
-}
-
-function initUI() {
     cp = new ColorPicker({
         noAlpha: true,
         appendTo: document.getElementById('colorPicker')
@@ -347,6 +372,10 @@ function initUI() {
     for (var layer in layers) {
         createLayerControl(layers[layer]);
     }
+
+    // place version numbers
+    $('#appVersionLabel').html(versionString);
+    $('#saveVersionLabel').html(saveVersion);
 }
 
 function loadSettings() {
@@ -364,6 +393,19 @@ function loadSettings() {
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
     $('#sampleThreads a.item[name="' + settings.sampleThreads + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
+
+    if (settings.search.useVisibleLayersOnly)
+        $('#useVisibleLayersOnly').checkbox('set checked');
+    else
+        $('#useVisibleLayersOnly').checkbox('set unchecked');
+
+    if (settings.search.modifyLayerBlendModes)
+        $('#modifyLayerBlendModes').checkbox('set checked');
+    else
+        $('#modifyLayerBlendModes').checkbox('set unchecked');
+
+    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
+    $('#maxSamples input').val(settings.maxResults);
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -1906,7 +1948,7 @@ function saveImgCmd() {
 
 // exports a sample with ability to select filename
 function exportSample(id) {
-    var sample = sampleIndex[id];
+    var sample = g_sampleIndex[id];
 
     // open dialog
     dialog.showSaveDialog({
@@ -1933,13 +1975,13 @@ function exportAllSamples() {
             return;
 
         var folder = filePaths;
-        showStatusMsg("Saving " + Object.keys(sampleIndex).length + " samples to " + folder, '', "Export Started");
+        showStatusMsg("Saving " + Object.keys(g_sampleIndex).length + " samples to " + folder, '', "Export Started");
 
-        for (var id in sampleIndex) {
-            exportSingleSample(sampleIndex[id], folder + "/" + id + ".png");
+        for (var id in g_sampleIndex) {
+            exportSingleSample(g_sampleIndex[id], folder + "/" + id + ".png");
         }
 
-        showStatusMsg("Saved " + Object.keys(sampleIndex).length + " samples to " + folder, "OK", "Export Complete");
+        showStatusMsg("Saved " + Object.keys(g_sampleIndex).length + " samples to " + folder, "OK", "Export Complete");
     });
 }
 
@@ -2412,17 +2454,32 @@ function showPreview(sample) {
         var myRenderID = g_renderID;
         addRenderLog(myRenderID, sampleId + ' full size preview', sampleId);
 
-        // we want to render this sample now at high quality, async
-        c.asyncRenderContext(sampleIndex[sampleId].context, settings.renderSize, function(err, img) {
-            // replace the relevant image tags
-            // because this is single threaded, if at the time of render completion, the user has
-            // previewed a sample, this will also update the sample image (we copied it so the selector
-            // will also apply to the preview).
-            sampleIndex[sampleId].img = img;
-            var src = 'data:image/png;base64,' + img.base64();
-            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
-            removeRenderLog(myRenderID);
-        });
+        if (sampleId > settings.maxResults) {
+            // we want to render this sample now at high quality, async
+            c.asyncRenderContext(g_sideboard[sampleId].context, settings.renderSize, function (err, img) {
+                // replace the relevant image tags
+                // because this is single threaded, if at the time of render completion, the user has
+                // previewed a sample, this will also update the sample image (we copied it so the selector
+                // will also apply to the preview).
+                g_sideboard[sampleId].img = img;
+                var src = 'data:image/png;base64,' + img.base64();
+                $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+                removeRenderLog(myRenderID);
+            });
+        }
+        else {
+            // we want to render this sample now at high quality, async
+            c.asyncRenderContext(g_sampleIndex[sampleId].context, settings.renderSize, function (err, img) {
+                // replace the relevant image tags
+                // because this is single threaded, if at the time of render completion, the user has
+                // previewed a sample, this will also update the sample image (we copied it so the selector
+                // will also apply to the preview).
+                g_sampleIndex[sampleId].img = img;
+                var src = 'data:image/png;base64,' + img.base64();
+                $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+                removeRenderLog(myRenderID);
+            });
+        }
     }
 }
 
@@ -2435,10 +2492,54 @@ function hidePreview() {
 function pickSample(elem) {
     // get the sample
     var sampleId = parseInt($(elem).attr('sampleId'));
-    c.setContext(sampleIndex[sampleId].context);
+    c.setContext(g_sampleIndex[sampleId].context);
 
     // the model changed, update the ui elements
     updateLayerControls();
+}
+
+// stashes the selected sample to the sideboard
+function stashSample(id) {
+    // find the object
+    var sample = g_sampleIndex[id];
+
+    // change the id
+    var newID = g_sideboardID;
+    g_sideboardID++;
+
+    // create a new element
+    $('#sideboardWrapper').append(createSampleContainer(sample.img, newID));
+
+    // Replace the stash menu option with delete
+    $('#sideboardWrapper .card[sampleId="' + newID + '"] .item.stashSampleCmd').removeClass('stashSampleCmd').addClass('deleteStashSampleCmd');
+    $('#sideboardWrapper .card[sampleId="' + newID + '"] .item.deleteStashSampleCmd').html('Delete');
+
+    // add to sideboard list
+    g_sideboard[newID] = sample;
+
+    // bind the dimmer
+    $('#sideboardWrapper .sample[sampleId="' + newID + '"] .image').dimmer({
+        on: 'hover',
+        duration: {
+            show: 100,
+            hide: 100
+        }
+    });
+
+    // start the menu
+    $('#sideboardWrapper .sample[sampleId="' + newID + '"] .dropdown').dropdown({
+        action: 'hide'
+    });
+}
+
+function deleteStashSample(id) {
+    // delete the object
+    delete g_sideboard[id];
+
+    // delete the elem
+    $('#sideboardWrapper .sample[sampleId="' + id + '"]').remove();
+
+    hidePreview();
 }
 
 function updateLayerControls() {
@@ -2585,9 +2686,10 @@ function resetShadowState() {
 /*===========================================================================*/
 
 function initSearch() {
-    sampleIndex = {};
+    g_sampleIndex = {};
     sampleId = 0;
-    $('#sampleContainer .sampleWrapper').empty();
+    $('#sampleWrapper').empty();
+    $('#sideboardWrapper').empty();
 }
 
 function runSearch(elem) {
@@ -2651,8 +2753,8 @@ function processNewSample(img, ctx, meta) {
 
     // eventually we will need references to each context element in order
     // to render the images at full size
-    sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
-    $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
+    g_sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
+    $('#sampleContainer #sampleWrapper').append(createSampleContainer(img, sampleId));
 
     // bind the dimmer
     $('#sampleContainer .sample[sampleId="' + sampleId + '"] .image').dimmer({
@@ -2701,7 +2803,7 @@ function createSampleControls(id) {
     html += '<div class="ui inverted header">ID: ' + id + '</div>';
     html += '<div class="ui buttons">';
     html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>';
-    html += '<div class="ui compact inverted icon top floating dropdown button"><i class="ui options icon"></i>';
+    html += '<div class="ui compact inverted icon top dropdown button"><i class="ui options icon"></i>';
 
     // dropdown menu creation
     html += '<div class="menu">';

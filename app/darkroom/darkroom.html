@@ -84,6 +84,7 @@
 
                             </div>
                         </div>
+                        <a class="item" id="showAppInfoCmd">About</a>
                     </div>
                 </div>
                 <div class="right menu">
@@ -175,10 +176,20 @@
                     </div>
                 </div>
             </div>
+            <div class="ui top attached inverted grey mini menu" id="samplesTabs">
+                <a class="item active" data-tab="results">Search Results</a>
+                <a class="item" data-tab="sideboard">Saved Results</a>
+            </div>
             <div class="ui top attached inverted segment" id="samples">
-                <div class="ui top inverted attached label">Samples</div>
-                <div class="ui six cards sampleWrapper">
+                <div class="ui active tab" data-tab="results">
+                    <div class="ui six cards" id="sampleWrapper">
 
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="sideboard">
+                    <div class="ui six cards" id="sideboardWrapper">
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -280,6 +291,7 @@
             </div>
         </div>
         <!-- END SAMPLE CONTROLS -->
+        <!-- MESSAGES AND MISC CONTROLS -->
         <div id="status" class="transition hidden">
             <div class="ui blue indicating progress">
               <div class="bar">
@@ -294,5 +306,21 @@
         <div id="colorPicker" class="hidden">
 
         </div>
+        <div id="versionModal" class="ui basic modal">
+            <div class="ui header">Application Info</div>
+            <div class="content">
+                <p>Third party libaries used: Electron, node.js, cpp-base64, lodepng, jQuery, Semantic UI</p>
+                <p>
+                    Application Version: <span id="appVersionLabel"></span><br />
+                    Save File Version: <span id="saveVersionLabel"></span>
+                </p>
+            </div>
+            <div class="actions">
+                <div class="ui basic ok inverted button">
+                    Close
+                </div>
+            </div>
+        </div>
+        <!-- END MESSAGES AND MISC CONTROLS -->
     </body>
 </html>

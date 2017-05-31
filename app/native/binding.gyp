@@ -18,7 +18,8 @@
 		        "src/Layer.h",
 		        "src/Layer.cpp",
 		        "src/util.h",
-		        "src/util.cpp"
+		        "src/util.cpp",
+				"../../expression_tree/expressionContext.h"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

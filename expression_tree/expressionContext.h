@@ -57,18 +57,32 @@ struct ExpStep
 	{
 		init();
 	}
+
+	// constant constructor
 	explicit ExpStep(double constantValue)
 	{
 		init();
 		type = ETreeType::constant;
 		value = constantValue;
 	}
+
+	// binary operator constructor
 	ExpStep(ETreeOpType _op, const ExpStep &c0, const ExpStep &c1);
+
+	// binary operator with lhs constant
 	ExpStep(ETreeOpType _op, double c0, const ExpStep &c1);
+
+	// binary operator with rhs constant
 	ExpStep(ETreeOpType _op, const ExpStep &c0, double c1);
+
+	// unary operator constructor
 	ExpStep(ETreeOpType _op, const ExpStep &c0);
+
+	// result constructor
 	ExpStep(const ExpStep &c0, int resultIndex);
-	ExpStep(ExpContext &_context, double defaultValue, const string &_variableName, int _variableIndex);
+
+	// parameter constructor
+	ExpStep(ExpContext &_context, double defaultValue, const string &_parameterName, int _parameterIndex);
 
 	void init()
 	{
@@ -120,32 +134,6 @@ struct ExpStep
 			cout << "unknown ETreeType" << endl;
 			return 0.0;
 		}
-	}
-
-	string toString() const
-	{
-		/*if (type == ETreeType::constant)
-		{
-			return to_string(value);
-		}
-		else if (type == ETreeType::parameter)
-		{
-			return "v" + to_string(parameterIndex);
-		}
-		else if (type == ETreeType::result)
-		{
-			return "result[" + to_string(resultIndex) + "] = s" + to_string(operand0Step);
-		}
-		else if (type == ETreeType::unaryOp)
-		{
-			return getOpName(op) + "(r" + to_string(operand0Step) + ")";
-		}
-		else if (type == ETreeType::binaryOp)
-		{
-			return "(r" + to_string(operand0Step) + getOpName(op) + "r" + to_string(operand1Step) + ")";
-		}
-		return "invalid";*/
-		return toSourceCode(false);
 	}
 
 	string toSourceCode(bool useFloat) const
@@ -235,22 +223,6 @@ struct ExpContext
 		return values.back();
 	}
 
-	string toString() const
-	{
-		/*vector<string> stepIndexToOutputName;
-		stepIndexToOutputName.resize(steps.size());
-		for (auto &e : outputNameToStepIndex)
-			stepIndexToOutputName[e.second] = e.first;
-
-		string result;
-		for (int i = 0; i < (int)steps.size(); i++)
-		{
-			result += stepIndexToOutputName[i] + " r" + to_string(i) + " = " + steps[i].toString() + "\n";
-		}
-		return result;*/
-		return "implement";
-	}
-
 	vector<string> toSourceCode(const string &functionName, bool useFloat) const
 	{
 		const string floatType = useFloat ? "float" : "double";
@@ -273,7 +245,6 @@ struct ExpContext
 
 	vector<ExpStep> steps;
 	int parameterCount, resultCount;
-	map<string, int> outputNameToStepIndex;
 };
 
 //

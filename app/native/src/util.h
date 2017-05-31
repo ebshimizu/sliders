@@ -12,93 +12,108 @@ author: Evan Shimizu
 using namespace std;
 
 namespace Comp {
-  // utility functions for converting between color spaces
-  struct RGBColor {
-    float _r;
-    float _g;
-    float _b;
-  };
-
-  struct RGBAColor {
-    float _r;
-    float _g;
-    float _b;
-    float _a;
-  };
-
-  struct HSLColor {
-    float _h;
-    float _s;
-    float _l;
-  };
-
-  struct HSYColor {
-    float _h;
-    float _s;
-    float _y;
-  };
-
-  struct CMYKColor {
-    float _c;
-    float _m;
-    float _y;
-    float _k;
-  };
-
-  HSLColor RGBToHSL(float r, float g, float b);
-  HSLColor RGBToHSL(RGBColor& c);
-
-  RGBColor HSLToRGB(float h, float s, float l);
-  RGBColor HSLToRGB(HSLColor& c);
-  RGBColor HSYToRGB(float h, float s, float y);
-  RGBColor HSYToRGB(HSYColor& c);
-  RGBColor CMYKToRGB(float c, float m, float y, float k);
-  RGBColor CMYKToRGB(CMYKColor& c);
-  RGBColor LabToRGB(float L, float a, float b); // Lab isn't really used internally right now, so this is mostly one way
-
-  HSYColor RGBToHSY(float r, float g, float b);
-  HSYColor RGBToHSY(RGBColor& c);
-
-  CMYKColor RGBToCMYK(float r, float g, float b);
-  CMYKColor RGBToCMYK(RGBColor& c);
-
-  float rgbCompand(float x);
-  float clamp(float val, float mn, float mx);
-
   static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };
 
-  class Point {
+  // utility functions for converting between color spaces
+  template<typename T>
+  static class Utils {
   public:
-    Point(float x, float y) : _x(x), _y(y) {}
+    struct RGBColorT {
+      T _r;
+      T _g;
+      T _b;
+    };
 
-    float _x;
-    float _y;
+    struct RGBAColorT {
+      T _r;
+      T _g;
+      T _b;
+      T _a;
+    };
+
+    struct HSLColorT {
+      T _h;
+      T _s;
+      T _l;
+    };
+
+    struct HSYColorT {
+      T _h;
+      T _s;
+      T _y;
+    };
+
+    struct CMYKColorT {
+      T _c;
+      T _m;
+      T _y;
+      T _k;
+    };
+
+    HSLColorT RGBToHSL(T r, T g, T b);
+    HSLColorT RGBToHSL(RGBColorT& c);
+
+    RGBColorT HSLToRGB(T h, T s, T l);
+    RGBColorT HSLToRGB(HSLColorT& c);
+    RGBColorT HSYToRGB(T h, T s, T y);
+    RGBColorT HSYToRGB(HSYColorT& c);
+    RGBColorT CMYKToRGB(T c, T m, T y, T k);
+    RGBColorT CMYKToRGB(CMYKColorT& c);
+    RGBColorT LabToRGB(T L, T a, T b); // Lab isn't really used internally right now, so this is mostly one way
+
+    HSYColorT RGBToHSY(T r, T g, T b);
+    HSYColorT RGBToHSY(RGBColorT& c);
+
+    CMYKColorT RGBToCMYK(T r, T g, T b);
+    CMYKColorT RGBToCMYK(RGBColorT& c);
+
+    float rgbCompand(T x);
+    float clamp(T val, T mn, T mx);
+
+    class PointT {
+    public:
+      Point(T x, T y) : _x(x), _y(y) {}
+
+      T _x;
+      T _y;
+    };
+
+    // a curve here is implemented as a cubic hermite spline
+    class CurveT {
+    public:
+      CurveT() {}
+      CurveT(vector<PointT> pts);
+
+      vector<PointT> _pts;
+      vector<T> _m;
+
+      void computeTangents();
+      T eval(T x);
+    };
+
+    // very simple linear interpolation of gradients.
+    // does not handle the complicated parts of gradient creation in PS
+    // (like the midpoint)
+    class GradientT {
+    public:
+      GradientT() {}
+      GradientT(vector<T> x, vector<RGBColorT> colors) : _x(x), _colors(colors) {}
+
+      vector<T> _x;
+      vector<RGBColorT> _colors;
+
+      RGBColorT eval(T x);
+    };
   };
 
-  // a curve here is implemented as a cubic hermite spline
-  class Curve {
-  public:
-    Curve() {}
-    Curve(vector<Point> pts);
-
-    vector<Point> _pts;
-    vector<float> _m;
-
-    void computeTangents();
-    float eval(float x);
-  };
-
-  // very simple linear interpolation of gradients.
-  // does not handle the complicated parts of gradient creation in PS
-  // (like the midpoint)
-  class Gradient {
-  public:
-    Gradient() {}
-    Gradient(vector<float> x, vector<RGBColor> colors) : _x(x), _colors(colors) {}
-
-    vector<float> _x;
-    vector<RGBColor> _colors;
-
-    RGBColor eval(float x);
-  };
+  //typedef Utils<float>::RGBColorT RGBColor;
+  //typedef Utils<float>::RGBAColorT RGBAColor;
+  //typedef Utils<float>::CMYKColorT CMYKColor;
+  //typedef Utils<float>::HSLColorT HSLColor;
+  //typedef Utils<float>::HSYColorT HSYColor;
+  //typedef Utils<float>::PointT Point;
+  //typedef Utils<float>::GradientT Gradient;
+  //typedef Utils<float>::CurveT Curve;
 }
+
+#include "util.cpp"

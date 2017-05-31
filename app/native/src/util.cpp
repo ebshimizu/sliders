@@ -1,9 +1,10 @@
 #include "util.h"
 
 namespace Comp {
-  HSLColor RGBToHSL(float r, float g, float b)
+  template<typename T>
+  inline Utils<T>::HSLColorT Utils<T>::RGBToHSL(T r, T g, T b)
   {
-    HSLColor hsl;
+    HSLColorT hsl;
 
     float cmax = max(r, max(g, b));
     float cmin = min(r, min(g, b));
@@ -35,14 +36,16 @@ namespace Comp {
     return hsl;
   }
 
-  HSLColor RGBToHSL(RGBColor & c)
+  template<typename T>
+  inline Utils<T>::HSLColorT Utils<T>::RGBToHSL(RGBColorT & c)
   {
     return RGBToHSL(c._r, c._g, c._b);
   }
 
-  RGBColor HSLToRGB(float h, float s, float l)
+  template<typaname T>
+  inline Utils<T>::RGBColorT Utils<T>::HSLToRGB(float h, float s, float l)
   {
-    RGBColor rgb;
+    RGBColorT rgb;
 
     // h needs to be positive
     while (h < 0) {
@@ -91,9 +94,9 @@ namespace Comp {
 
     float m = l - 0.5f * c;
 
-    rgb._r += m;
-    rgb._g += m;
-    rgb._b += m;
+    rgb._r = rgb._r + m;
+    rgb._g = rgb._g + m;
+    rgb._b = rgb._b + m;
 
     return rgb;
   }
@@ -212,13 +215,14 @@ namespace Comp {
     return rgb;
   }
 
-  HSYColor RGBToHSY(float r, float g, float b)
+  template<typename T>
+  Utils<T>::HSYColorT Utils<T>::RGBToHSY(T r, T g, T b)
   {
     // basically this is the same as hsl except l is computed differently.
     // because nothing depends on L for this computation, we just abuse the
     // HSL conversion function and overwrite L
-    HSLColor c = RGBToHSL(r, g, b);
-    HSYColor c2;
+    HSLColorT c = RGBToHSL(r, g, b);
+    HSYColorT c2;
     c2._h = c._h;
     c2._s = max(r, max(g, b)) - min(r, min(g, b));
     c2._y = 0.30f * r + 0.59f * g + 0.11f * b;
@@ -226,7 +230,8 @@ namespace Comp {
     return c2;
   }
 
-  HSYColor RGBToHSY(RGBColor & c)
+  template<typename T>
+  Utils<T>::HSYColorT Utils<T>::RGBToHSY(RGBColorT& c)
   {
     return RGBToHSY(c._r, c._g, c._b);
   }

@@ -1038,29 +1038,36 @@ namespace Comp {
     // crafting remappings, but we don't do that for now.
     // basically we convert to hsl, add the proper adjustment, convert back to rgb8
     vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor layerPx = adjLayer->getPixel(i);
+      hslAdjust(layerPx, adj);
+
+      // convert to char
+      img[i * 4] = (unsigned char) (layerPx._r * 255);
+      img[i * 4 + 1] = (unsigned char) (layerPx._g * 255);
+      img[i * 4 + 2] = (unsigned char) (layerPx._b * 255);
+    }
+  }
+
+  inline void Compositor::hslAdjust(RGBAColor& adjPx, map<string, float>& adj)
+  {
     float h = adj["hue"];
     float s = adj["sat"];
     float l = adj["light"];
 
-    for (int i = 0; i < img.size() / 4; i++) {
-      // 4 pixel stride here, ignoring alpha
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+    HSLColor c = RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
 
-      HSLColor c = RGBToHSL(r, g, b);
+    // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
+    c._h += h;
+    c._s += s / 100.0f;
+    c._l += l / 100.0f;
 
-      // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
-      c._h += h;
-      c._s += s / 100.0f;
-      c._l += l / 100.0f;
-
-      // convert back
-      RGBColor c2 = HSLToRGB(c);
-      img[i * 4] = (unsigned char) (c2._r * 255);
-      img[i * 4 + 1] = (unsigned char) (c2._g * 255);
-      img[i * 4 + 2] = (unsigned char) (c2._b * 255);
-    }
+    // convert back
+    RGBColor c2 = HSLToRGB(c);
+    adjPx._r = c2._r;
+    adjPx._g = c2._g;
+    adjPx._b = c2._b;
   }
 
   inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {
@@ -1073,15 +1080,32 @@ namespace Comp {
     float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
     float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
 
-    for (int i = 0; i < img.size(); i++) {
-      if (i % 4 == 3)
-        continue;
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor layerPx = adjLayer->getPixel(i);
+      levelsAdjust(layerPx, adj);
 
-      img[i] = levels(img[i], inMin, inMax, gamma, outMin, outMax);
+      // convert to char
+      img[i * 4] = (unsigned char)(layerPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(layerPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(layerPx._b * 255);
     }
   }
 
-  inline unsigned char Compositor::levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax)
+  inline void Compositor::levelsAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
+    // so sometimes these values are missing and we should use defaults.
+    float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
+    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
+    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
+    float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
+    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+
+    adjPx._r = levels(adjPx._r, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255);
+    adjPx._g = levels(adjPx._g, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255);
+    adjPx._b = levels(adjPx._b, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255);
+  }
+
+  inline float Compositor::levels(float px, float inMin, float inMax, float gamma, float outMin, float outMax)
   {
     // input remapping
     float out = min(max(px - inMin, 0.0f) / (inMax - inMin), 1.0f);
@@ -1092,7 +1116,7 @@ namespace Comp {
     // output remapping
     out = out * (outMax - outMin) + outMin;
 
-    return (unsigned char)out;
+    return out;
   }
 
   inline void Compositor::curvesAdjust(Image * adjLayer, map<string, float> adj, Layer & l)
@@ -1104,38 +1128,53 @@ namespace Comp {
     vector<unsigned char>& img = adjLayer->getData();
 
     for (int i = 0; i < img.size() / 4; i++) {
-      float r = l.evalCurve("red", img[i * 4] / 255.0f);
-      float g = l.evalCurve("green", img[i * 4 + 1] / 255.0f);
-      float b = l.evalCurve("blue", img[i * 4 + 2] / 255.0f);
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      curvesAdjust(adjPx, adj, l);
 
-      // short circuit this to avoid unnecessary conversion if the curve
-      // doesn't actually exist
-      if (adj.count("RGB") > 0) {
-        r = l.evalCurve("RGB", r);
-        g = l.evalCurve("RGB", g);
-        b = l.evalCurve("RGB", b);
-      }
+      img[i * 4] = (unsigned char)(clamp(adjPx._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(adjPx._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(adjPx._b, 0, 1) * 255);
+    }
+  }
 
-      img[i * 4] = (unsigned char)(clamp(r, 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(g, 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(b, 0, 1) * 255);
+  inline void Compositor::curvesAdjust(RGBAColor & adjPx, map<string, float>& adj, Layer & l)
+  {
+    adjPx._r = l.evalCurve("red", adjPx._r);
+    adjPx._g = l.evalCurve("green", adjPx._g);
+    adjPx._b = l.evalCurve("blue", adjPx._b);
+
+    // short circuit this to avoid unnecessary conversion if the curve
+    // doesn't actually exist
+    if (adj.count("RGB") > 0) {
+      adjPx._r = l.evalCurve("RGB", adjPx._r);
+      adjPx._g = l.evalCurve("RGB", adjPx._g);
+      adjPx._b = l.evalCurve("RGB", adjPx._b);
     }
   }
 
   inline void Compositor::exposureAdjust(Image * adjLayer, map<string, float> adj)
   {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      exposureAdjust(adjPx, adj);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::exposureAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
     float exposure = adj["exposure"];
     float offset = adj["offset"];
     float gamma = adj["gamma"];
-    vector<unsigned char>& img = adjLayer->getData();
 
-    for (int i = 0; i < img.size(); i++) {
-      if (i % 4 == 3)
-        continue;
-
-      float px = img[i] / 255.0f;
-      img[i] = (unsigned char) (clamp((float)pow((px * pow(2, exposure)) + offset, 1 / gamma), 0, 1) * 255);
-    }
+    adjPx._r = clamp(pow(adjPx._r * pow(2, exposure) + offset, 1 / gamma), 0, 1);
+    adjPx._g = clamp(pow(adjPx._g * pow(2, exposure) + offset, 1 / gamma), 0, 1);
+    adjPx._b = clamp(pow(adjPx._b * pow(2, exposure) + offset, 1 / gamma), 0, 1);
   }
 
   inline void Compositor::gradientMap(Image * adjLayer, map<string, float> adj, Layer& l)
@@ -1143,20 +1182,25 @@ namespace Comp {
     vector<unsigned char>& img = adjLayer->getData();
 
     for (int i = 0; i < img.size() / 4; i++) {
-      // get the rgb color and convert to Y (grayscale)
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      gradientMap(adjPx, adj, l);
 
-      float y = 0.299f * r + 0.587f * g + 0.114f * b;
-
-      // map L to an rgb color. L is between 0 and 1.
-      RGBColor grad = l.evalGradient(y);
-
-      img[i * 4] = (unsigned char)(clamp(grad._r, 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(grad._g, 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(grad._b, 0, 1) * 255);
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
     }
+  }
+
+  inline void Compositor::gradientMap(RGBAColor & adjPx, map<string, float>& adj, Layer & l)
+  {
+    float y = 0.299f * adjPx._r + 0.587f * adjPx._g + 0.114f * adjPx._b;
+
+    // map L to an rgb color. L is between 0 and 1.
+    RGBColor grad = l.evalGradient(y);
+
+    adjPx._r = clamp(grad._r, 0, 1);
+    adjPx._g = clamp(grad._g, 0, 1);
+    adjPx._b = clamp(grad._b, 0, 1);
   }
 
   inline void Compositor::selectiveColor(Image * adjLayer, map<string, float> adj, Layer & l)
@@ -1168,78 +1212,85 @@ namespace Comp {
     // For now we'll approximate by using the HCL cone and some hacky interpolation because barycentric
     // coordinates get rather odd in a cone
     vector<unsigned char>& img = adjLayer->getData();
-    map<string, map<string, float>> data = l.getSelectiveColor();
 
     for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      selectiveColor(adjPx, adj, l);
 
-      // convert to hsl
-      HSLColor hslColor = RGBToHSL(r, g, b);
-      float chroma = max(r, max(g, b)) - min(r, min(g, b));
-
-      // determine which set of parameters we're using to adjust
-      // determine chroma interval
-      int interval = (int)(hslColor._h / 60);
-      string c1, c2, c3, c4;
-      c1 = intervalNames[interval];
-
-      if (interval == 5) {
-        // wrap around for magenta
-        c2 = intervalNames[0];
-      }
-      else {
-        c2 = intervalNames[interval + 1];
-      }
-
-      c3 = "neutrals";
-
-      // non-chromatic colors
-      if (hslColor._l < 0.5) {
-        c4 = "blacks";
-      }
-      else {
-        c4 = "whites";
-      }
-
-      // compute weights
-      float w1, w2, w3, w4, wc;
-
-      // chroma
-      wc = chroma / 1.0f;
-
-      // hue - always 60 deg intervals
-      w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
-      w2 = 1 - w1;
-
-      // luma - measure distance from midtones, w3 is always midtone
-      w3 = 1 - abs(hslColor._l - 0.5f);
-      w4 = w3 - 1;
-
-      // do the adjustment
-      CMYKColor cmykColor = RGBToCMYK(r, g, b);
-
-      if (adj["relative"] > 0) {
-        // relative
-        cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
-        cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
-        cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
-        cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
-      }
-      else {
-        // absolute
-        cmykColor._c += (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
-        cmykColor._m += (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
-        cmykColor._y += (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
-        cmykColor._k += (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
-      }
-
-      RGBColor res = CMYKToRGB(cmykColor);
-      img[i * 4] = (unsigned char)(clamp(res._r, 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(res._g, 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(res._b, 0, 1) * 255);
+      img[i * 4] = (unsigned char)(clamp(adjPx._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(adjPx._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(adjPx._b, 0, 1) * 255);
     }
+  }
+
+  inline void Compositor::selectiveColor(RGBAColor & adjPx, map<string, float>& adj, Layer & l)
+  {
+    map<string, map<string, float>> data = l.getSelectiveColor();
+
+    // convert to hsl
+    HSLColor hslColor = RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
+    float chroma = max(adjPx._r, max(adjPx._g, adjPx._b)) - min(adjPx._r, min(adjPx._g, adjPx._b));
+
+    // determine which set of parameters we're using to adjust
+    // determine chroma interval
+    int interval = (int)(hslColor._h / 60);
+    string c1, c2, c3, c4;
+    c1 = intervalNames[interval];
+
+    if (interval == 5) {
+      // wrap around for magenta
+      c2 = intervalNames[0];
+    }
+    else {
+      c2 = intervalNames[interval + 1];
+    }
+
+    c3 = "neutrals";
+
+    // non-chromatic colors
+    if (hslColor._l < 0.5) {
+      c4 = "blacks";
+    }
+    else {
+      c4 = "whites";
+    }
+
+    // compute weights
+    float w1, w2, w3, w4, wc;
+
+    // chroma
+    wc = chroma / 1.0f;
+
+    // hue - always 60 deg intervals
+    w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
+    w2 = 1 - w1;
+
+    // luma - measure distance from midtones, w3 is always midtone
+    w3 = 1 - abs(hslColor._l - 0.5f);
+    w4 = w3 - 1;
+
+    // do the adjustment
+    CMYKColor cmykColor = RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);
+
+    if (adj["relative"] > 0) {
+      // relative
+      cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+      cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+      cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+      cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+    }
+    else {
+      // absolute
+      cmykColor._c += (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+      cmykColor._m += (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+      cmykColor._y += (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+      cmykColor._k += (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+    }
+
+    RGBColor res = CMYKToRGB(cmykColor);
+    adjPx._r = res._r;
+    adjPx._g = res._g;
+    adjPx._b = res._b;
   }
 
   inline void Compositor::colorBalanceAdjust(Image * adjLayer, map<string, float> adj)
@@ -1251,25 +1302,31 @@ namespace Comp {
     vector<unsigned char>& img = adjLayer->getData();
 
     for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      colorBalanceAdjust(adjPx, adj);
 
-      RGBColor balanced;
-      balanced._r = colorBalance(r, adj["shadowR"], adj["midR"], adj["highR"]);
-      balanced._g = colorBalance(g, adj["shadowG"], adj["midG"], adj["highG"]);
-      balanced._b = colorBalance(b, adj["shadowB"], adj["midB"], adj["highB"]);
-
-      if (adj["preserveLuma"] > 0) {
-        HSLColor l = RGBToHSL(balanced);
-        float originalLuma = 0.5f * (max(r, max(g, b)) + min(r, min(g, b)));
-        balanced = HSLToRGB(l._h, l._s, originalLuma);
-      }
-
-      img[i * 4] = (unsigned char)(clamp(balanced._r, 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(balanced._g, 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(balanced._b, 0, 1) * 255);
+      img[i * 4] = (unsigned char)(clamp(adjPx._r, 0, 1) * 255);
+      img[i * 4 + 1] = (unsigned char)(clamp(adjPx._g, 0, 1) * 255);
+      img[i * 4 + 2] = (unsigned char)(clamp(adjPx._b, 0, 1) * 255);
     }
+  }
+
+  inline void Compositor::colorBalanceAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
+    RGBColor balanced;
+    balanced._r = colorBalance(adjPx._r, adj["shadowR"], adj["midR"], adj["highR"]);
+    balanced._g = colorBalance(adjPx._g, adj["shadowG"], adj["midG"], adj["highG"]);
+    balanced._b = colorBalance(adjPx._b, adj["shadowB"], adj["midB"], adj["highB"]);
+
+    if (adj["preserveLuma"] > 0) {
+      HSLColor l = RGBToHSL(balanced);
+      float originalLuma = 0.5f * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+      balanced = HSLToRGB(l._h, l._s, originalLuma);
+    }
+
+    adjPx._r = balanced._r;
+    adjPx._g = balanced._g;
+    adjPx._b = balanced._b;
   }
 
   inline float Compositor::colorBalance(float px, float shadow, float mid, float high)
@@ -1294,31 +1351,36 @@ namespace Comp {
     // we'll do the simple version
     vector<unsigned char>& img = adjLayer->getData();
 
-    float d = adj["density"];
-
     for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      photoFilterAdjust(adjPx, adj);
 
-      float fr = r * adj["r"];
-      float fg = g * adj["g"];
-      float fb = b * adj["b"];
-
-      if (adj["preserveLuma"] > 0) {
-        HSLColor l = RGBToHSL(fr, fg, fb);
-        float originalLuma = 0.5f * (max(r, max(g, b)) + min(r, min(g, b)));
-        RGBColor rgb = HSLToRGB(l._h, l._s, originalLuma);
-        fr = rgb._r;
-        fg = rgb._g;
-        fb = rgb._b;
-      }
-
-      // weight by density
-      img[i * 4] = (unsigned char)(clamp(fr * d + r * (1 - d), 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(fg * d + g * (1 - d), 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(fb * d + b * (1 - d), 0, 1) * 255);
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
     }
+  }
+
+  inline void Compositor::photoFilterAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
+    float d = adj["density"];
+    float fr = adjPx._r * adj["r"];
+    float fg = adjPx._g * adj["g"];
+    float fb = adjPx._b * adj["b"];
+
+    if (adj["preserveLuma"] > 0) {
+      HSLColor l = RGBToHSL(fr, fg, fb);
+      float originalLuma = 0.5f * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+      RGBColor rgb = HSLToRGB(l._h, l._s, originalLuma);
+      fr = rgb._r;
+      fg = rgb._g;
+      fb = rgb._b;
+    }
+
+    // weight by density
+    adjPx._r = clamp(fr * d + adjPx._r * (1 - d), 0, 1);
+    adjPx._g = clamp(fg * d + adjPx._g * (1 - d), 0, 1);
+    adjPx._b = clamp(fb * d + adjPx._b * (1 - d), 0, 1);
   }
 
   inline void Compositor::colorizeAdjust(Image * adjLayer, map<string, float> adj)
@@ -1326,29 +1388,35 @@ namespace Comp {
     // identical to color layer blend mode, assuming a solid color input layer
     vector<unsigned char>& img = adjLayer->getData();
 
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      colorizeAdjust(adjPx, adj);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::colorizeAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  { 
     float sr = adj["r"];
     float sg = adj["g"];
     float sb = adj["b"];
     float a = adj["a"];
     HSYColor sc = RGBToHSY(sr, sg, sb);
 
-    for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+    // color keeps dest luma and keeps top hue and chroma
+    HSYColor dc = RGBToHSY(adjPx._r, adjPx._g, adjPx._b);
+    dc._h = sc._h;
+    dc._s = sc._s;
 
-      // color keeps dest luma and keeps top hue and chroma
-      HSYColor dc = RGBToHSY(r, g, b);
-      dc._h = sc._h;
-      dc._s = sc._s;
+    RGBColor res = HSYToRGB(dc);
 
-      RGBColor res = HSYToRGB(dc);
-
-      // blend the resulting colors according to alpha
-      img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(res._g * a + g * (1 - a), 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(res._b * a + b * (1 - a), 0, 1) * 255);
-    }
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp(res._r * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp(res._g * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp(res._b * a + adjPx._b * (1 - a), 0, 1);
   }
 
   inline void Compositor::lighterColorizeAdjust(Image * adjLayer, map<string, float> adj)
@@ -1357,50 +1425,63 @@ namespace Comp {
     // I'm fairly sure this is literally just max(dest.L, src.L)
     vector<unsigned char>& img = adjLayer->getData();
 
+    
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      lighterColorizeAdjust(adjPx, adj);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::lighterColorizeAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
     float sr = adj["r"];
     float sg = adj["g"];
     float sb = adj["b"];
     float a = adj["a"];
     float y = 0.299f * sr + 0.587f * sg + 0.114f * sb;
 
-    for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
+    float yp = 0.299f * adjPx._r + 0.587f * adjPx._g + 0.114f * adjPx._b;
 
-      float yp = 0.299f * r + 0.587f * g + 0.114f * b;
+    adjPx._r = (yp > y) ? adjPx._r : sr;
+    adjPx._g = (yp > y) ? adjPx._g : sg;
+    adjPx._b = (yp > y) ? adjPx._b : sb;
 
-      RGBColor res;
-      res._r = (yp > y) ? r : sr;
-      res._g = (yp > y) ? g : sg;
-      res._b = (yp > y) ? b : sb;
-
-      // blend the resulting colors according to alpha
-      img[i * 4] = (unsigned char)(clamp(res._r * a + r * (1 - a), 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(res._g * a + g * (1 - a), 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(res._b * a + b * (1 - a), 0, 1) * 255);
-    }
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp(adjPx._r * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp(adjPx._g * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp(adjPx._b * a + adjPx._b * (1 - a), 0, 1);
   }
 
   inline void Compositor::overwriteColorAdjust(Image * adjLayer, map<string, float> adj)
   {
     vector<unsigned char>& img = adjLayer->getData();
 
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      overwriteColorAdjust(adjPx, adj);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::overwriteColorAdjust(RGBAColor & adjPx, map<string, float>& adj)
+  {
     float sr = adj["r"];
     float sg = adj["g"];
     float sb = adj["b"];
     float a = adj["a"];
 
-    for (int i = 0; i < img.size() / 4; i++) {
-      float r = img[i * 4] / 255.0f;
-      float g = img[i * 4 + 1] / 255.0f;
-      float b = img[i * 4 + 2] / 255.0f;
-
-      // blend the resulting colors according to alpha
-      img[i * 4] = (unsigned char)(clamp(sr * a + r * (1 - a), 0, 1) * 255);
-      img[i * 4 + 1] = (unsigned char)(clamp(sg * a + g * (1 - a), 0, 1) * 255);
-      img[i * 4 + 2] = (unsigned char)(clamp(sb * a + b * (1 - a), 0, 1) * 255);
-    }
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp(sr * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp(sg * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp(sb * a + adjPx._b * (1 - a), 0, 1);
   }
 
 }

@@ -151,18 +151,39 @@ namespace Comp {
     RGBAColor adjustPixel(RGBAColor comp, Layer& l);
 
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
+    inline void hslAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
-    inline unsigned char levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax);
+    inline void levelsAdjust(RGBAColor& adjPx, map<string, float>& adj);
+    inline float levels(float px, float inMin, float inMax, float gamma, float outMin, float outMax);
+
     inline void curvesAdjust(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void curvesAdjust(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void exposureAdjust(Image* adjLayer, map<string, float> adj);
+    inline void exposureAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void gradientMap(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void gradientMap(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void selectiveColor(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void selectiveColor(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
+    inline void colorBalanceAdjust(RGBAColor& adjPx, map<string, float>& adj);
     inline float colorBalance(float px, float shadow, float mid, float high);
+
     inline void photoFilterAdjust(Image* adjLayer, map<string, float> adj);
+    inline void photoFilterAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void colorizeAdjust(Image* adjLayer, map<string, float> adj);
+    inline void colorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void lighterColorizeAdjust(Image* adjLayer, map<string, float> adj);
+    inline void lighterColorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void overwriteColorAdjust(Image* adjLayer, map<string, float> adj);
+    inline void overwriteColorAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
     // compositing order for layers
     vector<string> _layerOrder;

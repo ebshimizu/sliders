@@ -20,6 +20,8 @@ author: Evan Shimizu
 using namespace std;
 
 namespace Comp {
+  const string version = "0.1";
+
   typedef map<string, Layer> Context;
   typedef function<void(Image*, Context, map<string, float> metadata)> searchCallback;
 

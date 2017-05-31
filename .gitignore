@@ -56,3 +56,8 @@ app/darkroom/compositor.log
 app/native/test.js
 app/native/test.png
 .vs/*
+/test_images
+/expression_tree/Debug
+/expression_tree/*.opendb
+/expression_tree/*.db
+/expression_tree/.vs/expressionTree/v14/*.suo

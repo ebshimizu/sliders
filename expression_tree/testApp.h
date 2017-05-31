@@ -1,0 +1,9 @@
+#pragma once
+
+class TestApp
+{
+public:
+	void go();
+	
+	void testFunction2(function<ETree(ETree, ETree)> &funcE, function<double(double, double)> &funcD);
+};

@@ -341,7 +341,7 @@ void LayerRef::image(const Nan::FunctionCallbackInfo<v8::Value>& info)
   const int argc = 2;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(layer->_layer->getImage().get()), Nan::New(false) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void LayerRef::reset(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -863,26 +863,26 @@ void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
   
   if (color->Has(Nan::New("luminance").ToLocalChecked())) {
     // convert from lab to rgb
-    Comp::RGBColor rgb = Comp::LabToRGB(color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
+    Comp::RGBColor rgb = Comp::LabToRGB((float)color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
 
     layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
   }
   else if (color->Has(Nan::New("hue").ToLocalChecked())) {
     // convert from hsl to rgb
-    Comp::RGBColor rgb = Comp::HSLToRGB(color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
+    Comp::RGBColor rgb = Comp::HSLToRGB((float)color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
 
     layer->_layer->addPhotoFilterAdjustment(preserveLuma, rgb._r, rgb._g, rgb._b, density);
   }
   else if (color->Has(Nan::New("r").ToLocalChecked())) {
     // just do the thing
 
-    layer->_layer->addPhotoFilterAdjustment(preserveLuma, color->Get(Nan::New("r").ToLocalChecked())->NumberValue(), 
-      color->Get(Nan::New("g").ToLocalChecked())->NumberValue(),
-      color->Get(Nan::New("b").ToLocalChecked())->NumberValue(), 
+    layer->_layer->addPhotoFilterAdjustment(preserveLuma, (float)color->Get(Nan::New("r").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("g").ToLocalChecked())->NumberValue(),
+      (float)color->Get(Nan::New("b").ToLocalChecked())->NumberValue(),
       density);
   }
   else {
@@ -1010,6 +1010,7 @@ void ContextWrapper::Init(v8::Local<v8::Object> exports)
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
+  Nan::SetPrototypeMethod(tpl, "keys", keys);
 
   contextConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Context").ToLocalChecked(), tpl->GetFunction());
@@ -1054,7 +1055,23 @@ void ContextWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void ContextWrapper::keys(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ContextWrapper* c = ObjectWrap::Unwrap<ContextWrapper>(info.Holder());
+  nullcheck(c, "ContextWrapper.keys");
+
+  v8::Local<v8::Array> keys = Nan::New<v8::Array>();
+
+  int i = 0;
+  for (auto k : c->_context) {
+    keys->Set(i, Nan::New<v8::String>(k.first).ToLocalChecked());
+    i++;
+  }
+
+  info.GetReturnValue().Set(keys);
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)
@@ -1133,7 +1150,7 @@ void CompositorWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1217,7 +1234,7 @@ void CompositorWrapper::getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>&
     const int argc = 1;
     v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-    layers->Set(Nan::New(l.getName()).ToLocalChecked(), cons->NewInstance(argc, argv));
+    layers->Set(Nan::New(l.getName()).ToLocalChecked(), Nan::NewInstance(cons, argc, argv).ToLocalChecked());
   }
 
   info.GetReturnValue().Set(layers);
@@ -1302,8 +1319,6 @@ void CompositorWrapper::asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.render");
 
-  Comp::Image* img;
-
   string size = "";
   Nan::Callback* callback;
 
@@ -1360,8 +1375,6 @@ void CompositorWrapper::asyncRenderContext(const Nan::FunctionCallbackInfo<v8::V
   // does a render, async style
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.asyncRenderContext");
-
-  Comp::Image* img;
 
   if (!info[0]->IsObject()) {
     Nan::ThrowError("renderContext requires a context to render");
@@ -1481,7 +1494,7 @@ void CompositorWrapper::getCachedImage(const Nan::FunctionCallbackInfo<v8::Value
   // object goes bye bye
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img.get()), Nan::New(false) };
 
-  info.GetReturnValue().Set(cons->NewInstance(argc, argv));
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void CompositorWrapper::reorderLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -1501,18 +1514,45 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.startSearch");
 
-  int threads = 1;
+  unsigned int threads = 1;
   string renderSize = "";
+  Comp::SearchMode mode;
+  map<string, float> opt;
 
+  // search mode
   if (info[0]->IsNumber()) {
-    threads = info[0]->Int32Value();
+    mode = (Comp::SearchMode)info[0]->IntegerValue();
+  }
+  else {
+    Nan::ThrowError("startSearch must specify a search mode.");
   }
 
-  if (info[1]->IsString()) {
-    v8::String::Utf8Value val(info[1]->ToString());
+  // options
+  if (info[1]->IsObject()) {
+    // convert object to c++ map
+    v8::Local<v8::Object> ret = info[1].As<v8::Object>();
+    auto names = ret->GetOwnPropertyNames();
+    for (unsigned int i = 0; i < names->Length(); i++) {
+      v8::Local<v8::Value> val = ret->Get(names->Get(i));
+      v8::String::Utf8Value o1(names->Get(i)->ToString());
+      string prop(*o1);
+
+      opt[prop] = (float)val->NumberValue();
+    }
+  }
+
+  // threads
+  if (info[2]->IsNumber()) {
+    threads = info[2]->Int32Value();
+  }
+
+  // render size
+  if (info[3]->IsString()) {
+    v8::String::Utf8Value val(info[3]->ToString());
     renderSize = string(*val);
   }
 
+  // clamp threads to max supported
   if (threads > thread::hardware_concurrency()) {
     threads = thread::hardware_concurrency();
   }
@@ -1533,7 +1573,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
     uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
   };
 
-  c->_compositor->startSearch(cb, threads, renderSize);
+  c->_compositor->startSearch(cb, mode, opt, threads, renderSize);
 
   info.GetReturnValue().SetUndefined();
 }

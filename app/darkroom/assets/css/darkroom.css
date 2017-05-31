@@ -13,7 +13,7 @@ body {
 	right: 0;
 	top: 0;
 	background: #1b1c1d;
-	height: calc(100% - 250px);
+	height: 60%;
 }
 
 #layerContainer .layerWrapper {
@@ -27,12 +27,23 @@ body {
 	box-sizing: border-box;
 }
 
-#layerControls {
-	position: relative;
-	right: 0;
-	overflow-y: auto;
-	overflow-x: hidden;
-	height: calc(100% - 36px);
+#historyItems {
+    padding: 0.5em;
+}
+
+#layerControls,
+#historyPanel
+{
+    position: relative;
+    right: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: calc(100% - 24px);
+    top: 0px;
+}
+
+#layerContainer #layerControlsMenu {
+    margin-top: -6px;
 }
 
 #layerControls .layer {
@@ -45,6 +56,12 @@ body {
 	position: absolute;
 	right: 2px;
 	top: 6px;
+}
+
+#layerControls .layer .addAdjustment {
+    position: absolute;
+    right: 190px;
+    top: 6px;
 }
 
 #layerControls .parameter {
@@ -91,6 +108,11 @@ body {
 #layerControls .parameter .paramInput input {
 	height: 100%;
 	text-align: center;
+    border-radius: 2px;
+}
+
+#layerControls .parameter .paramInput input:focus {
+    border: 1px #ffffff solid !important;
 }
 
 #layerControls .parameter .paramSlider {
@@ -137,10 +159,6 @@ body {
     min-width: 80px;
 }
 
-#layerControls .layer .ui.dropdown .menu {
-	max-height: 8em;
-}
-
 #layerControls .layer .ui.dropdown i {
 	top: 0.5em;
 }
@@ -156,6 +174,10 @@ body {
     height: 15vw;
     margin: 10px auto;
     display: block;
+}
+
+#layerControls .layer .header {
+    width: calc(100% - 230px);
 }
 
 #imageContainer {
@@ -287,6 +309,7 @@ body {
 	width: 50%;
 	bottom: 10px;
 	left: 25%;
+    z-index: 1000;
 }
 
 #imageContainer .segment {
@@ -312,13 +335,17 @@ body {
 
 #sampleContainer .segment {
 	height: 100%;
-	padding-right: 14px;
+	padding-right: 10px;
 	margin-top: 0;
+}
+
+#sampleContainer .ui.circular.label {
+    z-index: 5;
 }
 
 #sampleControls {
 	width: 30%;
-	height: 250px;
+	height: 40%;
 	display: block;
 	position: absolute;
 	bottom: 0;
@@ -327,7 +354,24 @@ body {
 }
 
 #sampleControls .segment {
-	height: 100%;
+	height: calc(100% - 31px);
+    margin-top: 0;
+}
+
+#sampleControls #searchSettings {
+    height: calc(100% - 180px);
+}
+
+#renderQueueTab {
+    height: calc(100% - 80px);
+    overflow-y: auto;
+}
+
+#sampleControls #searchSettings .list {
+    overflow-y: auto;
+    height: 100%;
+    overflow-x: hidden;
+    padding-right: 10px;
 }
 
 #sampleContainer .card {
@@ -345,8 +389,18 @@ body {
     z-index: 100;
 }
 
-#sampleContainer .popup {
+#sampleContainer #sampleSettingsPopup {
 	width: 300px;
+    max-width: 400px;
+}
+
+#sampleContainer #sampleSettingsPopup .column {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+#sampleContainer #sampleSettingsPopup .row {
+    padding: 0;
 }
 
 #sampleContainer .sample .dimmable.image {
@@ -378,4 +432,8 @@ body {
 
 #imageContainer #mask-tools .divider {
     margin: 5px 0;
+}
+
+.clearBoth {
+    clear: both;
 }

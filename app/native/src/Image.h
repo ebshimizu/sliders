@@ -10,8 +10,16 @@ author: Evan Shimizu
 #include <vector>
 #include <iostream>
 
+// warnings from external libs suppressed 
+#pragma warning(push)
+// C4267 - type conversions possible loss of data
+// C4334 - 32 bit shift implicitly converted to 64 bit shift
+#pragma warning(disable : 4267 4334)
+
 #include "third_party/lodepng/lodepng.h"
 #include "third_party/cpp-base64/base64.h"
+
+#pragma warning(pop)
 
 #include "Logger.h"
 

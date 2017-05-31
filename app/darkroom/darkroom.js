@@ -4,6 +4,8 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
+const saveVersion = 0.2
+const versionString = "0.1"
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -28,7 +30,13 @@ var settings = {
     "sampleRenderSize" : "thumb",
     "renderSize" : "full",
     "maskMode" : "mask",
-    "maskTool" : "paint"
+    "maskTool": "paint",
+    "search": {
+        "useVisibleLayersOnly": 1,
+        "modifyLayerBlendModes" : 0,
+        "mode" : 1
+    },
+    "maxResults" : 100
 };
 
 // global settings vars
@@ -36,6 +44,9 @@ var g_renderPause = false;
 var g_isPainting = false;
 var g_ctx;  // drawing context for mask canvas
 var g_drawReady = false;
+var g_renderID = 0;
+var g_historyID = 0;
+var g_history = {};
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -81,6 +92,14 @@ const num2Str = {
     10 : "ten"
 };
 
+const searchModeStrings = {
+    0: "Debug",
+    1: "Random",
+    2: "Directed Random",
+    3: "MCMC",
+    4: "Non-Linear Least Squares"
+}
+
 /*===========================================================================*/
 /* Recurring Events                                                         */
 /*===========================================================================*/
@@ -96,7 +115,7 @@ window.requestAnimationFrame(repaint);
 function init() {
     // menu commands
     $("#renderCmd").on("click", function() {
-        renderImage();
+        renderImage("#renderCmd click callback");
     });
     $("#importCmd").click(function() { importFile(); });
     $("#openCmd").click(function() { openFile(); });
@@ -116,6 +135,7 @@ function init() {
     });
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
+    $('#exportAllSamplesCmd').click(() => { exportAllSamples() });
 
     // render size options
     $('#renderSize a.item').click(function() {
@@ -129,7 +149,7 @@ function init() {
         $(this).prepend('<i class="checkmark icon"></i>');
 
         settings.renderSize = $(this).attr("internal");
-        renderImage();
+        renderImage("#renderSize click callback");
     });
 
     $('#sampleRenderSize a.item').click(function() {
@@ -178,6 +198,9 @@ function init() {
         }
     });
 
+    // layers
+    $('#layerControlsMenu .item').tab();
+
     // settings
     $("#showSampleId").checkbox({
         onChecked: () => { settings.showSampleId = true; $("#sampleContainer").removeClass("noIds"); },
@@ -193,6 +216,36 @@ function init() {
         }
     });
 
+    $('#maxSamples input').change(function () {
+        settings.maxResults = parseInt($(this).val());
+    });
+    $('#maxSamples input').val(settings.maxResults);
+
+    // search settings
+    $('#sampleControls .top.menu .item').tab();
+
+    $('#useVisibleLayersOnly').checkbox({
+        onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
+        onUnchecked: () => { settings.search.useVisibleLayersOnly = 0; }
+    });
+
+    $('#modifyLayerBlendModes').checkbox({
+        onChecked: () => { settings.search.modifyLayerBlendModes = 1; },
+        onUnchecked: () => { settings.search.modifyLayerBlendModes = 0; }
+    });
+
+    $('#searchModeSelector').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            settings.search.mode = parseInt(value);
+            $('#searchModeSelector .text').html(text);
+        }
+    })
+
+    $('#useVisibleLayersOnly').checkbox('set checked');
+    $('#modifyLayerBlendModes').checkbox('set unchecked');
+    $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
+
     // sample event bindings
     $('#samples').on('mouseover', '.sample', function() {
         showPreview(this);
@@ -205,6 +258,14 @@ function init() {
     $('#samples').on('click', '.pickSampleCmd', function() {
         pickSample(this);
     });
+
+    $('#samples').on('click', '.exportSampleCmd', function () {
+        exportSample(parseInt($(this).attr("sampleID")));
+    });
+
+    $('#samples').on('click', '.stashSampleCmd', function () {
+        // stashSample(this);
+    })
 
     // debug: if any sliders exist on load, initialize them with no listeners
     $('.paramSlider').slider({
@@ -307,6 +368,7 @@ function loadSettings() {
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
 // to create the proper groups and html elements for those groups in the interface
+// Also returns the html of the element created if needed
 function insertLayerElem(name, doc) {
     var layer = c.getLayer(name);
 
@@ -329,6 +391,9 @@ function insertLayerElem(name, doc) {
     // blend mode options
     html += genBlendModeMenu(name);
 
+    // add adjustment button
+    html += genAddAdjustmentButton(name);
+
     // generate parameters
     html += createLayerParam(name, "opacity");
 
@@ -340,48 +405,48 @@ function insertLayerElem(name, doc) {
 
         if (type === 0) {
             // hue sat
-            html += startParamSection(name, "Hue/Saturation");
+            html += startParamSection(name, "Hue/Saturation", type);
             html += addSliders(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 1) {
             // levels
             // TODO: Turn some of these into range sliders
             html += startParamSection(name, "Levels");
             html += addSliders(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 2) {
             // curves
             html += startParamSection(name, "Curves");
             html += addCurves(name, "Curves");
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 3) {
             // exposure
             html += startParamSection(name, "Exposure");
             html += addSliders(name, "Exposure", ["exposure", "offset", "gamma"]);
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 4) {
             // gradient
             html += startParamSection(name, "Gradient Map");
             html += addGradient(name);
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 5) {
             // selective color
             html += startParamSection(name, "Selective Color");
             html += addTabbedParamSection(name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
             html += addToggle(name, "Selective Color", "relative", "Relative");
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 6) {
             // color balance
             html += startParamSection(name, "Color Balance");
             html += addSliders(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
             html += addToggle(name, "Color Balance", "preserveLuma", "Preserve Luma");
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 7) {
             // photo filter
@@ -389,15 +454,14 @@ function insertLayerElem(name, doc) {
             html += addColorSelector(name, "Photo Filter");
             html += addSliders(name, "Photo Filter", ["density"]);
             html += addToggle(name, "Photo Filter", "preserveLuma", "Preserve Luma");
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 8) {
             // colorize
             html += startParamSection(name, "Colorize");
             html += addColorSelector(name, "Colorize");
             html += addSliders(name, "Colorize", ["alpha"]);
-            html += endParamSection();
-
+            html += endParamSection(name, type);
         }
         else if (type === 9) {
             // lighter colorize
@@ -405,14 +469,14 @@ function insertLayerElem(name, doc) {
             html += startParamSection(name, "Lighter Colorize");
             html += addColorSelector(name, "Lighter Colorize");
             html += addSliders(name, "Lighter Colorize", ["alpha"]);
-            html += endParamSection();
+            html += endParamSection(name, type);
         }
         else if (type === 10) {
             html += startParamSection(name, "Overwrite Color");
             html += addColorSelector(name, "Overwrite Color");
             html += addSliders(name, "Overwrite Color", ["alpha"]);
-            html += endParamSection();
-        }
+            html += endParamSection(name, type);
+       }
     }
 
     html += '</div>';
@@ -422,6 +486,8 @@ function insertLayerElem(name, doc) {
     // html in the proper position so that when we eventually iterate through it, we can just drop the html
     // in the proper position.
     placeLayer(name, html, doc);
+
+    return html;
 }
 
 function placeLayer(name, html, doc) {
@@ -438,6 +504,22 @@ function placeLayer(name, html, doc) {
             placeLayer(name, html, doc[key]);
         }
     }
+}
+
+function regenLayerControls(name) {
+    // remove handlers and elements
+    $('.layer[layerName="' + name + '"]').empty();
+
+    // update the doc tree
+    var html = insertLayerElem(name, docTree);
+
+    // replace the element
+    $('.layer[layerName="' + name + '"]').replaceWith(html);
+
+    // rebind the events
+    bindLayerEvents(name);
+
+    console.log("Updated controls for Layer " + name);
 }
 
 // Order gets written to
@@ -527,7 +609,7 @@ function bindGlobalEvents() {
             $(this).addClass("black");
         }
 
-        renderImage();
+        renderImage(".layerSet visibility change callback");
     });
 
     // group opacity
@@ -540,7 +622,7 @@ function bindGlobalEvents() {
         value: 100,
         stop: function(event, ui) {
             groupOpacityChange($(this).attr("setName"), ui.value, docTree);
-            renderImage();
+            renderImage(".layerSet opacity slider change callback");
         },
         slide: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
         change: function(event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
@@ -553,7 +635,7 @@ function bindGlobalEvents() {
         var data = parseFloat($(this).val());
         var group = $(this).attr("setName");
         $('.groupSlider[setName="' + group + '"]').slider("value", data);
-        renderImage();
+        renderImage(".layerSet opacity input change callback");
     });
     $('.groupInput input').keydown(function(event) {
         if (event.which != 13)
@@ -562,7 +644,7 @@ function bindGlobalEvents() {
         var data = parseFloat($(this).val());
         var group = $(this).attr("setName");
         $('.groupSlider[setName="' + group + '"]').slider("value", data);
-        renderImage();
+        renderImage(".layerSet opacity input change callback");
     });
 }
 
@@ -652,7 +734,7 @@ function bindStandardEvents(name, layer) {
         }
 
         // trigger render after adjusting settings
-        renderImage();
+        renderImage('layer ' + name + ' visibility change');
     });
 
     var button = $('button[layerName="' + name + '"]');
@@ -673,12 +755,23 @@ function bindStandardEvents(name, layer) {
         action: 'activate',
         onChange: function(value, text) {
             layer.blendMode(parseInt(value));
-            renderImage();
+            renderImage('layer ' + name + ' blend mode change');
         },
         'set selected': layer.blendMode()
     });
 
     $('.blendModeMenu[layerName="' + name + '"]').dropdown('set selected', layer.blendMode());
+
+    // add adjustment menu
+    $('.addAdjustment[layerName="' + name + '"]').dropdown({
+        action: 'hide',
+        onChange: function (value, text) {
+            // add the adjustment or something
+            addAdjustmentToLayer(name, parseInt(value));
+            regenLayerControls(name);
+            renderImage('layer ' + name + ' adjustment added');
+        }
+    });
 
     bindLayerParamControl(name, layer, "opacity", layer.opacity(), "", { "uiHandler" : handleParamChange });
 }
@@ -688,6 +781,14 @@ function bindSectionEvents(name, layer) {
     $('.layer[layerName="' + name + '"] .divider').click(function() {
         var section = $(this).html();
         $(this).siblings('.paramSection[sectionName="' + section + '"]').transition('fade down');
+    });
+
+    // there's a delete button
+    $('.layer[layerName="' + name + '"] .deleteAdj').click(function () {
+        var adjType = parseInt($(this).attr("adjType"));
+        c.getLayer(name).deleteAdjustment(adjType);
+        regenLayerControls(name);
+        renderImage('layer ' + name + ' adjustment deleted');
     });
 }
 
@@ -844,7 +945,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
         value: initVal,
         stop: function(event, ui) {
             psettings.uiHandler(name, ui);
-            renderImage();
+            renderImage('layer ' + name + ' parameter ' + paramName + ' change');
         },
         slide: function(event, ui) { psettings.uiHandler(name, ui); },
         change: function(event, ui) { psettings.uiHandler(name, ui); },
@@ -856,7 +957,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
     $(i).blur(function() {
         var data = parseFloat($(this).val());
         $(s).slider("value", data);
-        renderImage();
+        renderImage('layer ' + name + ' parameter ' + paramName + ' change');
     });
     $(i).keydown(function(event) {
         if (event.which != 13)
@@ -864,7 +965,7 @@ function bindLayerParamControl(name, layer, paramName, initVal, sectionName, pse
 
         var data = parseFloat($(this).val());
         $(s).slider("value", data);
-        renderImage();
+        renderImage('layer ' + name + ' parameter ' + paramName + ' change');
     });  
 }
 
@@ -896,7 +997,7 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
 
                     if (layer.visible()) {
                         // no point rendering an invisible layer
-                        renderImage();
+                        renderImage('layer ' + name + ' color change');
                     }
                 }
             };
@@ -920,11 +1021,11 @@ function bindToggleControl(name, sectionName, layer, param, adjustment) {
     $(elem).checkbox({
         onChecked: function() {
             layer.addAdjustment(adjType[adjustment], param, 1);
-            if (layer.visible()) { renderImage(); }
+            if (layer.visible()) { renderImage('layer ' + name + ' parameter ' + param + ' toggle'); }
         },
         onUnchecked: function() {
             layer.addAdjustment(adjType[adjustment], param, 0);
-            if (layer.visible()) { renderImage(); }
+            if (layer.visible()) { renderImage('layer ' + name + ' parameter ' + param + ' toggle'); }
         }
     });
 
@@ -1074,15 +1175,19 @@ function addCurves(layerName, sectionName) {
     return html;
 }
 
-function startParamSection(layerName, sectionName) {
-    var html = '<div class="ui fitted horizontal inverted divider">' + sectionName + '</div>';
+function startParamSection(layerName, sectionName, type) {
+    var html = '<div class="ui fitted horizontal inverted divider" layerName="' + layerName + '" adjType="' + type + '">' + sectionName + '</div>';
     html += '<div class="paramSection" layerName="' + layerName + '" sectionName="' + sectionName + '">';
 
     return html;
 }
 
-function endParamSection() {
-    return '</div>';
+function endParamSection(name, type) {
+    var html = '<div class="ui mini right floated red button deleteAdj" layerName="' + name + '" adjType="' + type + '">Delete Adjustment</div>';
+    html += '<div class="clearBoth"></div>'
+    html += '</div>';
+
+    return html;
 }
 
 function addTabbedParamSection(layerName, sectionName, tabName, tabs, params) {
@@ -1148,6 +1253,62 @@ function genBlendModeMenu(name) {
     return menu;
 }
 
+function genAddAdjustmentButton(name) {
+    var b = '<div class="ui mini icon top left pointing scrolling dropdown button addAdjustment" layerName="' + name + '">';
+    b += '<i class="plus icon"></i>';
+    b += '<div class="menu">';
+    b += '<div class="header">Add Adjustment</div>';
+    b += '<div class="item" data-value="0">HSL</div>';
+    b += '<div class="item" data-value="1">Levels</div>';
+    // curves omitted
+    b += '<div class="item" data-value="3">Exposure</div>';
+    // gradient map omitted
+    b += '<div class="item" data-value="5">Selective Color</div>';
+    b += '<div class="item" data-value="6">Color Balance</div>';
+    b += '<div class="item" data-value="7">Photo Filter</div>';
+    b += '<div class="item" data-value="8">Colorize</div>';
+    b += '<div class="item" data-value="9">Lighter Colorize</div>';
+    b += '<div class="item" data-value="10">Overwrite Color</div>';
+    b += '</div>';
+    b += '</div>';
+
+    return b;
+}
+
+// adds an adjustment to the specified layer
+// the UI should probably regenerate the relevant controls
+function addAdjustmentToLayer(name, adjType) {
+    if (adjType === 0) {
+        c.getLayer(name).addHSLAdjustment(0, 0, 0);
+    }
+    else if (adjType === 1) {
+        c.getLayer(name).addLevelsAdjustment(0, 255);
+    }
+    // curves omitted
+    else if (adjType === 3) {
+        c.getLayer(name).addExposureAdjustment(0, 0, 1);
+    }
+    // gradient map omitted
+    else if (adjType === 5) {
+        c.getLayer(name).selectiveColor(false, {});
+    }
+    else if (adjType === 6) {
+        c.getLayer(name).colorBalance(false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+    else if (adjType === 7) {
+        c.getLayer(name).addPhotoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
+    }
+    else if (adjType === 8) {
+        c.getLayer(name).colorize(1, 1, 1, 1);
+    }
+    else if (adjType === 9) {
+        c.getLayer(name).lighterColorize(1, 1, 1, 1);
+    }
+    else if (adjType === 10) {
+        c.getLayer(name).overwriteColor(1, 1, 1, 1);
+    }
+}
+
 function createShadowState(tree, order) {
     // just keep the entire loaded tree it's easier
     // it will have html but eh who cares
@@ -1162,7 +1323,7 @@ function createShadowState(tree, order) {
 }
 
 /*===========================================================================*/
-/* File System                                                               */
+/* File System / Export / Import                                            */
 /*===========================================================================*/
 
 function importFile() {
@@ -1193,6 +1354,8 @@ function importFile() {
             if (err) {
                 throw err;
             }
+
+            g_historyID = 0;
 
             // load the data
             importLayers(JSON.parse(data), folder);
@@ -1229,6 +1392,9 @@ function openFile() {
             if (err) {
                 throw err;
             }
+
+            // reset some ids
+            g_historyID = 0;
 
             // load the data
             loadLayers(JSON.parse(data), folder);
@@ -1518,7 +1684,7 @@ function importLayers(doc, path) {
     // update internal structure
     c.setLayerOrder(order);
     initSearch();
-    renderImage();
+    renderImage('importLayers()');
     initCanvas();
 }
 
@@ -1529,6 +1695,11 @@ function loadLayers(doc, path) {
     var order = [];
     var movebg = false;
     var data = doc.layers;
+    var ver = doc.version;
+
+    if (ver === undefined) {
+        ver = 0;
+    }
 
     // when loading an existing darkroom file we have some things already filled in
     // so we just load them from disk
@@ -1595,22 +1766,36 @@ function loadLayers(doc, path) {
     var layerData = generateControlHTML(docTree, order);
     $('#layerControls').html(layerData);
 
-    // bind events
-    for (var i = 0; i < order.length; i++) {
-        bindLayerEvents(order[i]);
+    // check save version. If we're out of date, we need to update the controls.
+    // Do a complete regen and rebind here
+    if (ver < saveVersion) {
+        console.log("Older save version detected. Regenerating controls...");
+
+        for (var layerName in data) {
+            regenLayerControls(layerName);
+        }
     }
+    else {
+        // bind events
+        for (var i = 0; i < order.length; i++) {
+            bindLayerEvents(order[i]);
+        }
+    }
+
+    // global controls
     bindGlobalEvents();
 
     // update internal structure
     c.setLayerOrder(order);
     initSearch();
-    renderImage();
+    renderImage("loadLayers()");
     initCanvas();
 }
 
 // saves the document in an easier to load format
 function save(file) {
     var out = {};
+    out.version = saveVersion;
 
     // save the document tree
     // this will have the html attached to it but that's ok.
@@ -1717,6 +1902,117 @@ function saveImgCmd() {
 
         c.render().save(file);
     });
+}
+
+// exports a sample with ability to select filename
+function exportSample(id) {
+    var sample = sampleIndex[id];
+
+    // open dialog
+    dialog.showSaveDialog({
+        filters: [{ name: 'PNG', extensions: ['png'] }],
+        title: "Export Sample"
+    }, function (filePaths) {
+        if (filePaths === undefined) {
+            return;
+        }
+
+        exportSingleSample(sample, filePaths);
+        showStatusMsg("Saved sample " + id + " to " + file, "OK", "Export Complete");
+    });
+}
+
+// exports everything in the sampleIndex map
+function exportAllSamples() {
+    // location to save things
+    dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: "Select Export Directory"
+    }, function (filePaths) {
+        if (filePaths === undefined)
+            return;
+
+        var folder = filePaths;
+        showStatusMsg("Saving " + Object.keys(sampleIndex).length + " samples to " + folder, '', "Export Started");
+
+        for (var id in sampleIndex) {
+            exportSingleSample(sampleIndex[id], folder + "/" + id + ".png");
+        }
+
+        showStatusMsg("Saved " + Object.keys(sampleIndex).length + " samples to " + folder, "OK", "Export Complete");
+    });
+}
+
+// saves a sample to the specified path. Will also save .context and .meta
+// json files associated with the sample
+function exportSingleSample(sample, file) {
+    sample.img.save(file);
+
+    // metadata export
+    // need to split out the directory path from the file path
+    var splitChar = '/';
+
+    if (file.includes('\\')) {
+        splitChar = '\\';
+    }
+
+    var folder = file.split(splitChar).slice(0, -1).join('/');
+    var filename = file.split(splitChar);
+    filename = filename[filename.length - 1].split(".")[0];
+
+    // metadata
+    fs.writeFile(folder + "/" + filename + ".meta.json", JSON.stringify(sample.meta, null, 2), (err) => {
+        if (err) {
+            showStatusMsg(err.toString(), "ERROR", "Error Saving Metadata File");
+        }
+    });
+
+    // context
+    fs.writeFile(folder + "/" + filename + ".context.json", JSON.stringify(contextToJSON(sample.context), null, 2), (err) => {
+        if (err) {
+            showStatusMsg(err.toString(), "ERROR", "Error Saving Context File");
+        }
+    });
+}
+
+function contextToJSON(ctx) {
+    var layers = {};
+    var cl = ctx.keys();
+    for (var i in cl) {
+        var layerName = cl[i];
+        var l = ctx.getLayer(layerName);
+        layers[layerName] = {};
+
+        layers[layerName].opacity = l.opacity();
+        layers[layerName].visible = l.visible();
+        layers[layerName].blendMode = l.blendMode();
+        layers[layerName].isAdjustment = l.isAdjustmentLayer();
+        layers[layerName].filename = l.image().filename();
+        layers[layerName].type = l.type();
+        layers[layerName].adjustments = {};
+
+        // adjustments
+        var adjTypes = l.getAdjustments();
+        for (var i = 0; i < adjTypes.length; i++) {
+            layers[layerName].adjustments[adjTypes[i]] = l.getAdjustment(adjTypes[i]);
+
+            // extra data
+            if (adjTypes[i] === adjType.GRADIENTMAP) {
+                layers[layerName].gradient = l.getGradient();
+            }
+
+            if (adjTypes[i] === adjType.CURVES) {
+                layers[layerName].curves = {};
+
+                var channels = l.getAdjustment(adjTypes[i]);
+                for (var chan in channels) {
+                    layers[layerName].curves[chan] = l.getCurve(chan);
+                }
+            }
+        }
+    }
+
+    return layers;
 }
 
 /*===========================================================================*/
@@ -2019,6 +2315,7 @@ function showStatusMsg(msg, type, title) {
     html += '</div>';
 
     msgArea.prepend(html);
+    console.log("[" + type + "]" + " " + title + ": " + msg);
 
     var msgElem = $('div[messageId="' + msgId + '"]');
 
@@ -2035,14 +2332,70 @@ function showStatusMsg(msg, type, title) {
 
 // Renders an image from the compositor module and
 // then puts it in an image tag
-function renderImage() {
+function renderImage(callerName) {
     if (g_renderPause !== true) {
+        g_renderID++;
+        var myRenderID = g_renderID;
+        addRenderLog(myRenderID, callerName);
+
+        g_historyID++;
+        var myHistoryID = g_historyID;
+        // history time
+        g_history[myHistoryID] = { context: c.getContext() };
+
         c.asyncRender(settings.renderSize, function(err, img) {
             var dat = 'data:image/png;base64,';
             dat += img.base64();
             $("#render").html('<img src="' + dat + '"" />');
+            removeRenderLog(myRenderID);
+
+            // more history time
+            g_history[myHistoryID].img = img;
+            addHistory(myHistoryID);
         });
     }
+}
+
+// logs a render call to the render queue
+// caller is responsible for tracking completion and removing the entry.
+function addRenderLog(renderID, callerName, sampleID = -1) {
+    var html = '<div class="item" renderID="' + renderID + '">';
+    html += '<div class="content">';
+    html += '<div class="header">' + renderID + ': ' + callerName + '</div>';
+    html += '<div class="description">';
+
+    if (sampleID !== -1) {
+        html += 'Sample ID: ' + sampleID;
+    }
+    else {
+        html += 'Main View Render';
+    }
+
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    $('#renderQueue').append(html);
+}
+
+function removeRenderLog(renderID) {
+    $('.item[renderID="' + renderID + '"]').remove();
+}
+
+function addHistory(id) {
+    var html = '<div class="ui item">';
+    html += '<div class="ui medium image"><img src="data:image/png;base64,' + g_history[id].img.base64() + '" /></div>';
+    html += '<div class="ui middle aligned content"><div class="header">History ID: ' + id + '</div>';
+    html += '<div class="ui divider"></div><div class="description"><div class="ui inverted mini button" historyID="' + id + '">Restore</div></div>';
+    html += '</div>';
+
+    $("#historyItems").prepend(html);
+
+    // TODO: history event bindings
+    $('.button[historyID="' + id + '"]').click(function () {
+        c.setContext(g_history[id].context);
+        updateLayerControls();
+    })
 }
 
 function showPreview(sample) {
@@ -2053,6 +2406,11 @@ function showPreview(sample) {
 
     if (img.hasClass("newSample")) {
         var sampleId = parseInt(img.attr("sampleId"));
+        img.removeClass("newSample").addClass("fullRenderQueued");
+
+        g_renderID++;
+        var myRenderID = g_renderID;
+        addRenderLog(myRenderID, sampleId + ' full size preview', sampleId);
 
         // we want to render this sample now at high quality, async
         c.asyncRenderContext(sampleIndex[sampleId].context, settings.renderSize, function(err, img) {
@@ -2062,7 +2420,8 @@ function showPreview(sample) {
             // will also apply to the preview).
             sampleIndex[sampleId].img = img;
             var src = 'data:image/png;base64,' + img.base64();
-            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('newSample');
+            $('img[sampleId="' + sampleId + '"]').attr('src', src).removeClass('fullRenderQueued');
+            removeRenderLog(myRenderID);
         });
     }
 }
@@ -2195,7 +2554,7 @@ function updateLayerControls() {
     }
 
     g_renderPause = false;
-    renderImage();
+    renderImage("updateLayerControls()");
 }
 
 function updateSliderControl(name, param, section, val) {
@@ -2243,7 +2602,7 @@ function runSearch(elem) {
         $(elem).addClass("red");
         $(elem).html("Stop Search");
         initSearch();
-        c.startSearch(settings.sampleThreads, settings.sampleRenderSize);
+        c.startSearch(settings.search.mode, settings.search, settings.sampleThreads, settings.sampleRenderSize);
         console.log("Search started");
     }
     else {
@@ -2265,11 +2624,33 @@ function runSearch(elem) {
     }
 }
 
+function stopSearch() {
+    var elem = $("#runSearchBtn");
+
+    // search is stopping
+    $(elem).html("Stopping Search...");
+    showStatusMsg("", "", "Stopping Search");
+    $(elem).addClass("disabled");
+
+    // this blocks, may want some indication that it is working, loading sign for instance
+    // in fact, this function should be async with a callback to indicate completion.
+    c.stopSearch(err => {
+        $(elem).removeClass("red");
+        $(elem).removeClass("disabled");
+        $(elem).addClass("green");
+        $(elem).html("Start Search");
+        showStatusMsg("", "OK", "Search Stopped");
+        console.log("Search stopped");
+    });
+}
+
 function processNewSample(img, ctx, meta) {
+    // discard sample if too many already in the results section
+    if (sampleId > settings.maxResults)
+        return;
+
     // eventually we will need references to each context element in order
     // to render the images at full size
-    // CURRENT STATUS: Images returned are full sizes of the exact same render
-    // of the exact same scene delivered at 5s intervals
     sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
     $('#sampleContainer .sampleWrapper').append(createSampleContainer(img, sampleId));
 
@@ -2288,6 +2669,11 @@ function processNewSample(img, ctx, meta) {
     });
 
     sampleId += 1;
+
+    // if we have too many samples we should stop
+    if (sampleId > settings.maxResults) {
+        stopSearch();
+    }
 }
 
 function createSampleContainer(img, id) {
@@ -2315,12 +2701,14 @@ function createSampleControls(id) {
     html += '<div class="ui inverted header">ID: ' + id + '</div>';
     html += '<div class="ui buttons">';
     html += '<div class="ui compact primary inverted button pickSampleCmd" sampleId="' + id + '">Pick</div>';
-    html += '<div class="ui compact inverted icon top left pointing dropdown button"><i class="ui options icon"></i>';
+    html += '<div class="ui compact inverted icon top floating dropdown button"><i class="ui options icon"></i>';
 
     // dropdown menu creation
     html += '<div class="menu">';
     html += '<div class="header">Sample Actions</div>';
-    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick Sample</div>';
+    html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick</div>';
+    html += '<div class="item stashSampleCmd" sampleId="' + id + '">Stash</div>';
+    html += '<div class="item exportSampleCmd" sampleId="' + id + '">Export</div>'
     html += '</div></div>';
     
     html += '</div></div></div></div>';

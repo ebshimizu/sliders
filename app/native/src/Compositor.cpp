@@ -448,10 +448,9 @@ namespace Comp {
     return nullptr;
   }
 
-  void Compositor::startSearch(searchCallback cb, int threads, string searchRenderSize)
+  void Compositor::startSearch(searchCallback cb, SearchMode mode, map<string, float> settings,
+    int threads, string searchRenderSize)
   {
-    // for testing purposes this function just starts a thread that returns a render
-    // every 5 seconds.
     if (_searchRunning) {
       stopSearch();
     }
@@ -460,12 +459,37 @@ namespace Comp {
     _searchThreads.resize(threads);
 
     _activeCallback = cb;
+    _searchMode = mode;
+    _searchSettings = settings;
     _searchRunning = true;
     _searchRenderSize = searchRenderSize;
 
     stringstream ss;
     ss << "Starting search with " << threads << " threads";
     getLogger()->log(ss.str(), LogLevel::INFO);
+
+    // precompute ops, if any
+    if (mode == RANDOM) {
+      _affectedLayers.clear();
+
+      // precompute affected layers
+      if (settings["useVisibleLayersOnly"] > 0) {
+        for (auto l : getPrimaryContext()) {
+          if (l.second._visible)
+            _affectedLayers.insert(l.first);
+        }
+      }
+      else {
+        // add everything
+        for (auto l : getPrimaryContext())
+          _affectedLayers.insert(l.first);
+      }
+
+      // check settings, initialize defaults if not exist
+      if (_searchSettings.count("modifyLayerBlendModes") == 0) {
+        _searchSettings["modifyLayerBlendModes"] = 0;
+      }
+    }
 
     // start threads
     for (int i = 0; i < threads; i++) {
@@ -478,6 +502,11 @@ namespace Comp {
 
   void Compositor::stopSearch()
   {
+    // if the stop process has already been initiated return
+    if (!_searchRunning) {
+      return;
+    }
+
     _searchRunning = false;
     getLogger()->log("Waiting for all threads to finish...", LogLevel::INFO);
 
@@ -502,10 +531,17 @@ namespace Comp {
   {
     while (_searchRunning) {
       // do stuff
-      // debug: returns a render of the current context every time it runs
-      Image* r = render(_searchRenderSize);
-      _activeCallback(r, Context(getPrimaryContext()), map<string, float>());
-      this_thread::sleep_for(5s);
+      if (_searchMode == SEARCH_DEBUG) {
+        // debug: returns a render of the current context every time it runs
+        Image* r = render(_searchRenderSize);
+        _activeCallback(r, Context(getPrimaryContext()), map<string, float>());
+        this_thread::sleep_for(5s);
+      }
+      else if (_searchMode == RANDOM) {
+        // random will take the available parameters of the layer and just
+        // randomly change them
+        randomSearch(Context(getPrimaryContext()));
+      }
     }
   }
 
@@ -533,6 +569,92 @@ namespace Comp {
     _imageData[name]["thumb"] = _imageData[name]["full"]->resize(0.15f);
     _imageData[name]["small"] = _imageData[name]["full"]->resize(0.25f);
     _imageData[name]["medium"] = _imageData[name]["full"]->resize(0.5f);
+  }
+
+  void Compositor::randomSearch(Context start)
+  {
+    // note: this function runs in a threaded context. start is assumed to
+    // be an independent context that can be freely manipulated.
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<float> dist(0, 1);
+    uniform_real_distribution<float> range(-1, 1);
+
+    for (auto& name : _affectedLayers) {
+      Layer& l = start[name];
+      
+      // randomize opacity
+      l.setOpacity(dist(gen) * 100);
+
+      // randomize visibility
+      l._visible = (dist(gen) >= 0.5) ? true : false;
+
+      // if its not visible anymore stop
+      if (!l._visible)
+        continue;
+
+      // randomize blend mode?
+      if (_searchSettings["modifyLayerBlendModes"] > 0) {
+        uniform_int_distribution<int> modeDist(0, 13);
+        l._mode = (BlendMode)(modeDist(gen));
+      }
+
+      // randomize adjustments
+      for (auto a : l.getAdjustments()) {
+        // each adjustment has its own parameter limits...
+        switch (a) {
+        case HSL:
+          l.addHSLAdjustment(range(gen) * 180, range(gen) * 100, range(gen) * 100);
+          break;
+        case LEVELS:
+          l.addLevelsAdjustment(dist(gen) * 255, dist(gen) * 255, dist(gen) * 2, dist(gen) * 255, dist(gen) * 255);
+          break;
+        case CURVES:
+          // here for completion but it doesn't make much sense to touch this
+          break;
+        case EXPOSURE:
+          l.addExposureAdjustment(range(gen) * 2.5f, range(gen) * 0.5f, dist(gen) * 2);
+          break;
+        case GRADIENT:
+          // also here for completion but also doesn't make much sense, maybe more sense thatn levels though
+          break;
+        case SELECTIVE_COLOR:
+          // skipping for now there are like 36 parameters here
+          break;
+        case COLOR_BALANCE:
+        {
+          bool luma = (l.getAdjustment(COLOR_BALANCE)["preserveLuma"] > 0) ? true : false;
+          l.addColorBalanceAdjustment(luma, dist(gen), dist(gen), dist(gen), dist(gen), dist(gen), dist(gen), dist(gen), dist(gen), dist(gen));
+          break;
+        }
+        case PHOTO_FILTER:
+        {
+          bool luma = (l.getAdjustment(PHOTO_FILTER)["preserveLuma"] > 0) ? true : false;
+          l.addPhotoFilterAdjustment(luma, dist(gen), dist(gen), dist(gen), dist(gen));
+          break;
+        }
+        case COLORIZE:
+        case LIGHTER_COLORIZE:
+        case OVERWRITE_COLOR:
+        {
+          // group these together they have the same interface
+          l.addAdjustment(a, "r", dist(gen));
+          l.addAdjustment(a, "g", dist(gen));
+          l.addAdjustment(a, "b", dist(gen));
+          l.addAdjustment(a, "a", dist(gen));
+          break;
+        }
+        default:
+          break;
+        }
+      }
+    }
+
+    // render
+    Image* r = render(start, _searchRenderSize);
+
+    // callback
+    _activeCallback(r, start, map<string, float>());
   }
 
   inline float Compositor::premult(unsigned char px, float a)

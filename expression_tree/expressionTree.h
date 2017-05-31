@@ -1,5 +1,9 @@
 #pragma once
 
+//
+// deprecated, uses expression trees instead of expression contexts
+//
+
 enum class ETreeType
 {
 	constant,

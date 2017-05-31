@@ -80,6 +80,18 @@ namespace Comp {
     // render with a given context
     Image* render(Context c, string size = "");
 
+    // Couple functions for rendering specific pixels. This function is used internally
+    // to render pixels for the final composite and is exposed here for use by
+    // various optimizers.
+    // i is the Pixel Number (NOT the array start number, as in i * 4 = pixel number)
+    RGBAColor renderPixel(Context& c, int i, string size = "");
+
+    // (x, y) version
+    RGBAColor renderPixel(Context& c, int x, int y, string size = "");
+
+    // floating point coords version
+    RGBAColor renderPixel(Context& c, float x, float y, string size = "");
+
     // render directly to a string with the primary context
     string renderToBase64();
 
@@ -117,6 +129,7 @@ namespace Comp {
 
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
+    inline float cvtf(float px, float a);
     inline float normal(float a, float b, float alpha1, float alpha2);
     inline float multiply(float a, float b, float alpha1, float alpha2);
     inline float screen(float a, float b, float alpha1, float alpha2);
@@ -133,6 +146,9 @@ namespace Comp {
     inline float pinLight(float Dca, float Sca, float Da, float Sa);
 
     void adjust(Image* adjLayer, Layer& l);
+
+    // adjusts a single pixel according to the given adjustment layer
+    RGBAColor adjustPixel(RGBAColor comp, Layer& l);
 
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);

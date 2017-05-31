@@ -101,6 +101,17 @@ namespace Comp {
     }
   }
 
+  RGBAColor Image::getPixel(int index)
+  {
+    RGBAColor c;
+    c._r = _data[index * 4] / 255.0f;
+    c._g = _data[index * 4 + 1] / 255.0f;
+    c._b = _data[index * 4 + 2] / 255.0f;
+    c._a = _data[index * 4 + 3] / 255.0f;
+
+    return c;
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

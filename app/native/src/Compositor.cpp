@@ -358,6 +358,153 @@ namespace Comp {
     return comp;
 
   }
+
+  RGBAColor Compositor::renderPixel(Context & c, int i, string size)
+  {
+    // photoshop appears to start with all white alpha 0 image
+    RGBAColor compPx = { 1, 1, 1, 0 };
+
+    if (size == "") {
+      size = "full";
+    }
+
+    // blend the layers
+    for (auto id : _layerOrder) {
+      Layer& l = c[id];
+
+      if (!l._visible)
+        continue;
+
+      RGBAColor layerPx;
+
+      // handle adjustment layers
+      if (l.isAdjustmentLayer()) {
+        // ok so here we adjust the current composition, then blend it as normal below
+        // create duplicate of current composite
+        layerPx = adjustPixel(compPx, l);
+      }
+      else if (l.getAdjustments().size() > 0) {
+        // so a layer may have other things clipped to it, in which case we apply the
+        // specified adjustment only to the source layer and the composite as normal
+        layerPx = adjustPixel(_imageData[l.getName()][size]->getPixel(i), l);
+      }
+      else {
+        layerPx = _imageData[l.getName()][size]->getPixel(i);
+      }
+
+      // blend the layer
+      // pixel data is a flat array, rgba interlaced format
+      // a = background, b = new layer
+      // alphas
+      float ab = layerPx._a * (l.getOpacity() / 100.0f);
+      float aa = compPx._a;
+      float ad = aa + ab - aa * ab;
+
+      compPx._a = ad;
+
+      // premult colors
+      float rb = layerPx._r * ab;
+      float gb = layerPx._g * ab;
+      float bb = layerPx._b * ab;
+
+      float ra = compPx._r * aa;
+      float ga = compPx._g * aa;
+      float ba = compPx._b * aa;
+
+      // blend modes
+      if (l._mode == BlendMode::NORMAL) {
+        // b over a, standard alpha blend
+        compPx._r = cvtf(normal(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(normal(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(normal(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::MULTIPLY) {
+        compPx._r = cvtf(multiply(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(multiply(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(multiply(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SCREEN) {
+        compPx._r = cvtf(screen(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(screen(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(screen(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::OVERLAY) {
+        compPx._r = cvtf(overlay(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(overlay(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(overlay(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::HARD_LIGHT) {
+        compPx._r = cvtf(hardLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(hardLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(hardLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SOFT_LIGHT) {
+        compPx._r = cvtf(softLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(softLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(softLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_DODGE) {
+        // special override for alpha here
+        ad = (aa + ab > 1) ? 1 : (aa + ab);
+        compPx._a = ad;
+
+        compPx._r = cvtf(linearDodge(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(linearDodge(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(linearDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR_DODGE) {
+        compPx._r = cvtf(colorDodge(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(colorDodge(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(colorDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_BURN) {
+        // need unmultiplied colors for this one
+        compPx._r = cvtf(linearBurn(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtf(linearBurn(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtf(linearBurn(compPx._b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_LIGHT) {
+        compPx._r = cvtf(linearLight(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtf(linearLight(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtf(linearLight(compPx._b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR) {
+        // also no premult colors
+        RGBColor dest;
+        dest._r = compPx._r;
+        dest._g = compPx._g;
+        dest._b = compPx._b;
+
+        RGBColor src;
+        src._r = layerPx._r;
+        src._g = layerPx._g;
+        src._b = layerPx._b;
+
+        RGBColor res = color(dest, src, aa, ab);
+        compPx._r = cvtf(res._r, ad);
+        compPx._g = cvtf(res._g, ad);
+        compPx._b = cvtf(res._b, ad);
+      }
+      else if (l._mode == BlendMode::LIGHTEN) {
+        compPx._r = cvtf(lighten(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(lighten(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(lighten(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::DARKEN) {
+        compPx._r = cvtf(darken(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(darken(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(darken(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::PIN_LIGHT) {
+        compPx._r = cvtf(pinLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtf(pinLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtf(pinLight(ba, bb, aa, ab), ad);
+      }
+    }
+
+    return compPx;
+  }
+
   string Compositor::renderToBase64()
   {
     Image* i = render();
@@ -668,6 +815,12 @@ namespace Comp {
     return (unsigned char)((v > 255) ? 255 : (v < 0) ? 0 : v);
   }
 
+  inline float Compositor::cvtf(float px, float a)
+  {
+    float v = px / a;
+    return (v > 1) ? 1 : (v < 0) ? 0 : v;
+  }
+
   inline float Compositor::normal(float a, float b, float alpha1, float alpha2)
   {
     return b + a * (1 - alpha2);
@@ -872,6 +1025,11 @@ namespace Comp {
         overwriteColorAdjust(adjLayer, l.getAdjustment(type));
       }
     }
+  }
+
+  RGBAColor Compositor::adjustPixel(RGBAColor comp, Layer & l)
+  {
+    return RGBAColor();
   }
 
   inline void Compositor::hslAdjust(Image * adjLayer, map<string, float> adj)

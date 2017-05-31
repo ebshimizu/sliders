@@ -103,6 +103,13 @@ namespace Comp {
 
   RGBAColor Image::getPixel(int index)
   {
+    // return black instead of dying for out of bounds
+    if (index < 0 || index > _data.size() / 4) {
+      // but also log
+      getLogger()->log("Attempt to access out of bound pixel", Comp::WARN);
+      return RGBAColor();
+    }
+
     RGBAColor c;
     c._r = _data[index * 4] / 255.0f;
     c._g = _data[index * 4 + 1] / 255.0f;

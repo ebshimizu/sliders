@@ -393,7 +393,6 @@ namespace Comp {
       }
 
       // blend the layer
-      // pixel data is a flat array, rgba interlaced format
       // a = background, b = new layer
       // alphas
       float ab = layerPx._a * (l.getOpacity() / 100.0f);
@@ -503,6 +502,44 @@ namespace Comp {
     }
 
     return compPx;
+  }
+
+  RGBAColor Compositor::renderPixel(Context & c, int x, int y, string size)
+  {
+    int width, height;
+
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
+    }
+    else {
+      getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
+    }
+
+    int index = x + y * width;
+
+    return renderPixel(c, index, size);
+  }
+
+  RGBAColor Compositor::renderPixel(Context & c, float x, float y, string size)
+  {
+    int width, height;
+
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
+    }
+    else {
+      getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
+    }
+
+    int index = (int)(x * width) + (int)(y * height) * width;
+
+    return renderPixel(c, index, size);
   }
 
   string Compositor::renderToBase64()
@@ -1029,7 +1066,43 @@ namespace Comp {
 
   RGBAColor Compositor::adjustPixel(RGBAColor comp, Layer & l)
   {
-    return RGBAColor();
+    for (auto type : l.getAdjustments()) {
+      if (type == AdjustmentType::HSL) {
+        hslAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::LEVELS) {
+        levelsAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::CURVES) {
+        curvesAdjust(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::EXPOSURE) {
+        exposureAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::GRADIENT) {
+        gradientMap(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::SELECTIVE_COLOR) {
+        selectiveColor(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::COLOR_BALANCE) {
+        colorBalanceAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::PHOTO_FILTER) {
+        photoFilterAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::COLORIZE) {
+        colorizeAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::LIGHTER_COLORIZE) {
+        lighterColorizeAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::OVERWRITE_COLOR) {
+        overwriteColorAdjust(comp, l.getAdjustment(type));
+      }
+    }
+
+    return comp;
   }
 
   inline void Compositor::hslAdjust(Image * adjLayer, map<string, float> adj)

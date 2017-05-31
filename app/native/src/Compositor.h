@@ -75,6 +75,7 @@ namespace Comp {
     // Render the primary context
     // since the render functions do hit the js interface, images are allocated and 
     // memory is explicity handled to prevent scope issues
+    // The render functions should be used for GUI render calls.
     Image* render(string size = "");
 
     // render with a given context

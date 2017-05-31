@@ -3,7 +3,8 @@
 enum class ETreeType
 {
 	constant,
-	variable,
+	parameter,
+	result,
 	unaryOp,
 	binaryOp,
 	invalid
@@ -37,6 +38,7 @@ inline string getOpName(ETreeOpType op)
 	case ETreeOpType::tan: return "tan";
 	case ETreeOpType::negate: return "-";
 	case ETreeOpType::sqrt: return "sqrt";
+
 	case ETreeOpType::add: return " + ";
 	case ETreeOpType::subtract: return " - ";
 	case ETreeOpType::multiply: return " * ";
@@ -65,24 +67,30 @@ struct ExpStep
 	ExpStep(ETreeOpType _op, double c0, const ExpStep &c1);
 	ExpStep(ETreeOpType _op, const ExpStep &c0, double c1);
 	ExpStep(ETreeOpType _op, const ExpStep &c0);
+	ExpStep(const ExpStep &c0, int resultIndex);
 	ExpStep(ExpContext &_context, double defaultValue, const string &_variableName, int _variableIndex);
 
 	void init()
 	{
 		type = ETreeType::invalid;
 		value = numeric_limits<double>::max();
-		variableIndex = -1;
+		parameterIndex = -1;
 		operand0Step = -1;
 		operand1Step = -1;
 		context = nullptr;
 		contextStepIndex = -1;
+		resultIndex = -1;
 	}
-
+	
 	double eval(const vector<double> &values) const
 	{
-		if (type == ETreeType::constant || type == ETreeType::variable)
+		if (type == ETreeType::constant || type == ETreeType::parameter)
 		{
 			return value;
+		}
+		else if (type == ETreeType::result)
+		{
+			return values[operand0Step];
 		}
 		else if (type == ETreeType::unaryOp)
 		{
@@ -116,13 +124,17 @@ struct ExpStep
 
 	string toString() const
 	{
-		if (type == ETreeType::constant)
+		/*if (type == ETreeType::constant)
 		{
 			return to_string(value);
 		}
-		else if (type == ETreeType::variable)
+		else if (type == ETreeType::parameter)
 		{
-			return "v" + to_string(variableIndex);
+			return "v" + to_string(parameterIndex);
+		}
+		else if (type == ETreeType::result)
+		{
+			return "result[" + to_string(resultIndex) + "] = s" + to_string(operand0Step);
 		}
 		else if (type == ETreeType::unaryOp)
 		{
@@ -131,6 +143,41 @@ struct ExpStep
 		else if (type == ETreeType::binaryOp)
 		{
 			return "(r" + to_string(operand0Step) + getOpName(op) + "r" + to_string(operand1Step) + ")";
+		}
+		return "invalid";*/
+		return toSourceCode(false);
+	}
+
+	string toSourceCode(bool useFloat) const
+	{
+		const string floatType = useFloat ? "float" : "double";
+		const string assignment = "const " + floatType + " s" + to_string(contextStepIndex) + " = ";
+		if (type == ETreeType::constant)
+		{
+			return assignment + to_string(value);
+		}
+		else if (type == ETreeType::parameter)
+		{
+			return assignment + "params[" + to_string(parameterIndex) + "]";
+		}
+		else if (type == ETreeType::result)
+		{
+			return "result[" + to_string(resultIndex) + "] = s" + to_string(operand0Step);
+		}
+		else if (type == ETreeType::unaryOp)
+		{
+			return assignment + getOpName(op) + "(s" + to_string(operand0Step) + ")";
+		}
+		else if (type == ETreeType::binaryOp)
+		{
+			if (op == ETreeOpType::pow)
+			{
+				return assignment + "pow(s" + to_string(operand0Step) + ", s" + to_string(operand1Step) + ")";
+			}
+			else
+			{
+				return assignment + "s" + to_string(operand0Step) + getOpName(op) + "s" + to_string(operand1Step);
+			}
 		}
 		return "invalid";
 	}
@@ -141,7 +188,8 @@ struct ExpStep
 	double value;
 
 	// valid for variables
-	int variableIndex;
+	int parameterIndex;
+	int resultIndex;
 
 	// valid for unary and binary ops
 	ETreeOpType op;
@@ -155,6 +203,12 @@ struct ExpStep
 // the context in which a set of expressions is executed
 struct ExpContext
 {
+	ExpContext()
+	{
+		parameterCount = 0;
+		resultCount = 0;
+	}
+
 	int registerConstant(double value)
 	{
 		ExpStep newStep(value);
@@ -167,6 +221,8 @@ struct ExpContext
 		step.context = this;
 		step.contextStepIndex = steps.size();
 		steps.push_back(step);
+		parameterCount = max(parameterCount, step.parameterIndex + 1);
+		resultCount = max(resultCount, step.resultIndex + 1);
 	}
 
 	double eval() const
@@ -181,15 +237,43 @@ struct ExpContext
 
 	string toString() const
 	{
+		/*vector<string> stepIndexToOutputName;
+		stepIndexToOutputName.resize(steps.size());
+		for (auto &e : outputNameToStepIndex)
+			stepIndexToOutputName[e.second] = e.first;
+
 		string result;
 		for (int i = 0; i < (int)steps.size(); i++)
 		{
-			result += "r" + to_string(i) + " = " + steps[i].toString() + "\n";
+			result += stepIndexToOutputName[i] + " r" + to_string(i) + " = " + steps[i].toString() + "\n";
 		}
+		return result;*/
+		return "implement";
+	}
+
+	vector<string> toSourceCode(const string &functionName, bool useFloat) const
+	{
+		const string floatType = useFloat ? "float" : "double";
+		const string indent = "    ";
+		const string vectorType = "vector<" + floatType + ">";
+		vector<string> result;
+		result.push_back(vectorType + " " + functionName + "(const " + vectorType + " &params)");
+		result.push_back("{");
+		result.push_back(indent + vectorType + " result(" + to_string(resultCount) + ");");
+		result.push_back(indent);
+		for (const ExpStep &s : steps)
+		{
+			result.push_back(indent + s.toSourceCode(useFloat) + ";");
+		}
+		result.push_back(indent);
+		result.push_back(indent + "return result;");
+		result.push_back("}");
 		return result;
 	}
 
 	vector<ExpStep> steps;
+	int parameterCount, resultCount;
+	map<string, int> outputNameToStepIndex;
 };
 
 //
@@ -346,12 +430,21 @@ inline ExpStep::ExpStep(ETreeOpType _op, const ExpStep &c0)
 	c0.context->addStep(*this);
 }
 
-inline ExpStep::ExpStep(ExpContext &_context, double defaultValue, const string &_variableName, int _variableIndex)
+inline ExpStep::ExpStep(ExpContext &_context, double defaultValue, const string &_variableName, int _parameterIndex)
 {
 	init();
 	context = &_context;
-	type = ETreeType::variable;
+	type = ETreeType::parameter;
 	value = defaultValue;
-	variableIndex = _variableIndex;
+	parameterIndex = _parameterIndex;
 	context->addStep(*this);
+}
+
+inline ExpStep::ExpStep(const ExpStep &c0, int _resultIndex)
+{
+	init();
+	type = ETreeType::result;
+	operand0Step = c0.contextStepIndex;
+	resultIndex = _resultIndex;
+	c0.context->addStep(*this);
 }

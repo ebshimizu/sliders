@@ -23,11 +23,11 @@ void TestApp::go()
 	//testFunction2(function<ETree(ETree, ETree)>(f0<ETree>), function<double(double, double)>(f0<double>));
 	//testFunction2(function<ETree(ETree, ETree)>(f1<ETree>), function<double(double, double)>(f1<double>));
 
-	testFunction2(function<ExpStep(ExpStep, ExpStep)>(f0<ExpStep>), function<double(double, double)>(f0<double>));
-	testFunction2(function<ExpStep(ExpStep, ExpStep)>(f1<ExpStep>), function<double(double, double)>(f1<double>));
+	testFunction2(function<ExpStep(ExpStep, ExpStep)>(f0<ExpStep>), function<double(double, double)>(f0<double>), "f0");
+	testFunction2(function<ExpStep(ExpStep, ExpStep)>(f1<ExpStep>), function<double(double, double)>(f1<double>), "f1");
 }
 
-void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function<double(double, double)>& funcD)
+void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function<double(double, double)>& funcD, const string &functionName)
 {
 	cout << "testing function2" << endl;
 	for (int testIndex = 0; testIndex < 5; testIndex++)
@@ -45,12 +45,20 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 		//ExpStep vE = x0E + x1E;
 
 		ExpStep vE = funcE(x0E, x1E);
-		double vEEval = context.eval();
-
+		ExpStep vEOut = ExpStep(vE, 0);
+		
 		if (testIndex == 0)
 		{
-			cout << context.toString() << endl;
+			vector<string> sourceCode = context.toSourceCode(functionName, false);
+			ofstream file(functionName + ".txt");
+			for (auto &s : sourceCode)
+			{
+				file << s << endl;
+				cout << s << endl;
+			}
 		}
+
+		double vEEval = context.eval();
 
 		cout << "delta " << testIndex << " = " << vD - vEEval << endl;
 	}

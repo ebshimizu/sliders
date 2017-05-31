@@ -5,6 +5,9 @@
 #include <functional>
 #include <cassert>
 #include <string>
+#include <map>
+#include <algorithm>
+#include <fstream>
 
 using namespace std;
 

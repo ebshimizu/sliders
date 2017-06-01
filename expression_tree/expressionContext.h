@@ -66,6 +66,27 @@ struct ExpStep
 		value = constantValue;
 	}
 
+	explicit ExpStep(int constantValue)
+	{
+		init();
+		type = ETreeType::constant;
+		value = constantValue;
+	}
+
+	explicit ExpStep(unsigned int constantValue)
+	{
+		init();
+		type = ETreeType::constant;
+		value = constantValue;
+	}
+
+	explicit ExpStep(float constantValue)
+	{
+		init();
+		type = ETreeType::constant;
+		value = constantValue;
+	}
+
 	// binary operator constructor
 	ExpStep(ETreeOpType _op, const ExpStep &c0, const ExpStep &c1);
 
@@ -168,6 +189,14 @@ struct ExpStep
 			}
 		}
 		return "invalid";
+	}
+
+	void assertContext() const
+	{
+		if (context == nullptr) {
+			cout << "ExpStep with no contexts!" << endl;
+			assert(false);
+		}
 	}
 
 	ETreeType type;
@@ -369,7 +398,9 @@ inline ExpStep::ExpStep(ETreeOpType _op, const ExpStep &c0, const ExpStep &c1)
 	op = _op;
 	operand0Step = c0.contextStepIndex;
 	operand1Step = c1.contextStepIndex;
-	c0.context->addStep(*this);
+	context = c0.context ? c0.context : c1.context;
+	assertContext();
+	context->addStep(*this);
 }
 
 inline ExpStep::ExpStep(ETreeOpType _op, double c0, const ExpStep &c1)
@@ -377,9 +408,11 @@ inline ExpStep::ExpStep(ETreeOpType _op, double c0, const ExpStep &c1)
 	init();
 	type = ETreeType::binaryOp;
 	op = _op;
+	context = c1.context;
+	assertContext();
 	operand0Step = c1.context->registerConstant(c0);
 	operand1Step = c1.contextStepIndex;
-	c1.context->addStep(*this);
+	context->addStep(*this);
 }
 
 inline ExpStep::ExpStep(ETreeOpType _op, const ExpStep &c0, double c1)
@@ -397,6 +430,8 @@ inline ExpStep::ExpStep(ETreeOpType _op, const ExpStep &c0)
 	init();
 	type = ETreeType::unaryOp;
 	op = _op;
+	context = c0.context;
+	assertContext();
 	operand0Step = c0.contextStepIndex;
 	c0.context->addStep(*this);
 }

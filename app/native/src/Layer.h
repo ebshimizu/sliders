@@ -162,6 +162,8 @@ namespace Comp {
     // the current composition. If adjustment is false, this layer itself has adjustments
     // and the adjustments apply to only this layer.
     map<AdjustmentType, map<string, float> > _adjustments;
+    
+    // For the expression context
 
     // curves yay
     map<string, Curve> _curves;

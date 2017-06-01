@@ -143,6 +143,17 @@ namespace Comp {
     // photoshop typestring
     string _psType;
 
+    // By default we don't do anything with the _exp* fields. When generating the
+    // expression tree this function should be called on all layers in the context
+    // to convert all the adjustment values into expression variables
+    // returns the next available variable index
+    int prepExp(ExpContext& context, int start);
+
+    // For the expression context
+    map<AdjustmentType, map<string, ExpStep> > _expAdjustments;
+    map<string, map<string, ExpStep> > _expSelectiveColor;
+    ExpStep _expOpacity;
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
@@ -163,8 +174,6 @@ namespace Comp {
     // and the adjustments apply to only this layer.
     map<AdjustmentType, map<string, float> > _adjustments;
     
-    // For the expression context
-
     // curves yay
     map<string, Curve> _curves;
 

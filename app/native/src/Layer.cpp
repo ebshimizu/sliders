@@ -310,6 +310,24 @@ namespace Comp {
     _image->reset(1, 1, 1);
   }
 
+  int Layer::prepExp(ExpContext& context, int start)
+  {
+    int index = start;
+    string pfx = "x_" + _name + "_";
+
+    _expOpacity = ExpStep(context, _opacity, pfx + "_opacity", index);
+    index++;
+
+    for (auto a : _adjustments) {
+      for (auto params : a.second) {
+        _expAdjustments[a.first][params.first] = ExpStep(context, params.second, pfx + params.first, index);
+        index++;
+      }
+    }
+
+    return index;
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

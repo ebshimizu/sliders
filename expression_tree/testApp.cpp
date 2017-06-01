@@ -46,6 +46,9 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 
 		ExpStep vE = funcE(x0E, x1E);
 		ExpStep vEOut = ExpStep(vE, 0);
+		//ExpStep vEOut2 = ExpStep(x0E, 1);
+		//ExpStep vEOut3 = ExpStep(x1E, 2);
+
 		
 		if (testIndex == 0)
 		{

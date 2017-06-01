@@ -19,6 +19,13 @@ namespace Comp {
     float _b;
   };
 
+  struct RGBAColor {
+    float _r;
+    float _g;
+    float _b;
+    float _a;
+  };
+
   struct HSLColor {
     float _h;
     float _s;

@@ -22,6 +22,7 @@ author: Evan Shimizu
 #pragma warning(pop)
 
 #include "Logger.h"
+#include "util.h"
 
 using namespace std;
 
@@ -65,6 +66,9 @@ namespace Comp {
     shared_ptr<Image> resize(float scale);
 
     void reset(float r, float g, float b);
+
+    // get the specified pixel
+    RGBAColor getPixel(int index);
 
   private:
     // loads an image from a file

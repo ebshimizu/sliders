@@ -75,10 +75,23 @@ namespace Comp {
     // Render the primary context
     // since the render functions do hit the js interface, images are allocated and 
     // memory is explicity handled to prevent scope issues
+    // The render functions should be used for GUI render calls.
     Image* render(string size = "");
 
     // render with a given context
     Image* render(Context c, string size = "");
+
+    // Couple functions for rendering specific pixels. This function is used internally
+    // to render pixels for the final composite and is exposed here for use by
+    // various optimizers.
+    // i is the Pixel Number (NOT the array start number, as in i * 4 = pixel number)
+    RGBAColor renderPixel(Context& c, int i, string size = "");
+
+    // (x, y) version
+    RGBAColor renderPixel(Context& c, int x, int y, string size = "");
+
+    // floating point coords version
+    RGBAColor renderPixel(Context& c, float x, float y, string size = "");
 
     // render directly to a string with the primary context
     string renderToBase64();
@@ -117,6 +130,7 @@ namespace Comp {
 
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
+    inline float cvtf(float px, float a);
     inline float normal(float a, float b, float alpha1, float alpha2);
     inline float multiply(float a, float b, float alpha1, float alpha2);
     inline float screen(float a, float b, float alpha1, float alpha2);
@@ -134,19 +148,43 @@ namespace Comp {
 
     void adjust(Image* adjLayer, Layer& l);
 
+    // adjusts a single pixel according to the given adjustment layer
+    RGBAColor adjustPixel(RGBAColor comp, Layer& l);
+
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
+    inline void hslAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
-    inline unsigned char levels(unsigned char px, float inMin, float inMax, float gamma, float outMin, float outMax);
+    inline void levelsAdjust(RGBAColor& adjPx, map<string, float>& adj);
+    inline float levels(float px, float inMin, float inMax, float gamma, float outMin, float outMax);
+
     inline void curvesAdjust(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void curvesAdjust(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void exposureAdjust(Image* adjLayer, map<string, float> adj);
+    inline void exposureAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void gradientMap(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void gradientMap(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void selectiveColor(Image* adjLayer, map<string, float> adj, Layer& l);
+    inline void selectiveColor(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
+
     inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
+    inline void colorBalanceAdjust(RGBAColor& adjPx, map<string, float>& adj);
     inline float colorBalance(float px, float shadow, float mid, float high);
+
     inline void photoFilterAdjust(Image* adjLayer, map<string, float> adj);
+    inline void photoFilterAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void colorizeAdjust(Image* adjLayer, map<string, float> adj);
+    inline void colorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void lighterColorizeAdjust(Image* adjLayer, map<string, float> adj);
+    inline void lighterColorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
     inline void overwriteColorAdjust(Image* adjLayer, map<string, float> adj);
+    inline void overwriteColorAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
     // compositing order for layers
     vector<string> _layerOrder;

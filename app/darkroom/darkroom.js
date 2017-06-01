@@ -4,8 +4,8 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const saveVersion = 0.2
-const versionString = "0.1"
+const saveVersion = 0.2;
+const versionString = "0.1";
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -157,8 +157,8 @@ function initUI() {
     });
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
-    $('#exportAllSamplesCmd').click(() => { exportAllSamples() });
-    $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); })
+    $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
+    $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -1226,7 +1226,7 @@ function startParamSection(layerName, sectionName, type) {
 
 function endParamSection(name, type) {
     var html = '<div class="ui mini right floated red button deleteAdj" layerName="' + name + '" adjType="' + type + '">Delete Adjustment</div>';
-    html += '<div class="clearBoth"></div>'
+    html += '<div class="clearBoth"></div>';
     html += '</div>';
 
     return html;
@@ -1813,8 +1813,8 @@ function loadLayers(doc, path) {
     if (ver < saveVersion) {
         console.log("Older save version detected. Regenerating controls...");
 
-        for (var layerName in data) {
-            regenLayerControls(layerName);
+        for (var name in data) {
+            regenLayerControls(name);
         }
     }
     else {
@@ -2035,18 +2035,18 @@ function contextToJSON(ctx) {
 
         // adjustments
         var adjTypes = l.getAdjustments();
-        for (var i = 0; i < adjTypes.length; i++) {
-            layers[layerName].adjustments[adjTypes[i]] = l.getAdjustment(adjTypes[i]);
+        for (var j = 0; j < adjTypes.length; j++) {
+            layers[layerName].adjustments[adjTypes[j]] = l.getAdjustment(adjTypes[j]);
 
             // extra data
-            if (adjTypes[i] === adjType.GRADIENTMAP) {
+            if (adjTypes[j] === adjType.GRADIENTMAP) {
                 layers[layerName].gradient = l.getGradient();
             }
 
-            if (adjTypes[i] === adjType.CURVES) {
+            if (adjTypes[j] === adjType.CURVES) {
                 layers[layerName].curves = {};
 
-                var channels = l.getAdjustment(adjTypes[i]);
+                var channels = l.getAdjustment(adjTypes[j]);
                 for (var chan in channels) {
                     layers[layerName].curves[chan] = l.getCurve(chan);
                 }
@@ -2433,11 +2433,10 @@ function addHistory(id) {
 
     $("#historyItems").prepend(html);
 
-    // TODO: history event bindings
     $('.button[historyID="' + id + '"]').click(function () {
         c.setContext(g_history[id].context);
         updateLayerControls();
-    })
+    });
 }
 
 function showPreview(sample) {
@@ -2810,7 +2809,7 @@ function createSampleControls(id) {
     html += '<div class="header">Sample Actions</div>';
     html += '<div class="item pickSampleCmd" sampleId="' + id + '">Pick</div>';
     html += '<div class="item stashSampleCmd" sampleId="' + id + '">Stash</div>';
-    html += '<div class="item exportSampleCmd" sampleId="' + id + '">Export</div>'
+    html += '<div class="item exportSampleCmd" sampleId="' + id + '">Export</div>';
     html += '</div></div>';
     
     html += '</div></div></div></div>';

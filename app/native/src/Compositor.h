@@ -437,7 +437,7 @@ namespace Comp {
   inline typename Utils<ExpStep>::RGBAColorT Compositor::renderPixel<ExpStep>(Context & c, int i, string size)
   {
     // photoshop appears to start with all white alpha 0 image
-    Utils<ExpStep>::RGBAColorT compPx = { 1.0, 1.0, 1.0, 0.0 };
+    Utils<ExpStep>::RGBAColorT compPx = { ExpStep(1.0), ExpStep(1.0), ExpStep(1.0), ExpStep(0.0) };
 
     if (size == "") {
       size = "full";
@@ -477,13 +477,13 @@ namespace Comp {
       compPx._a = ad;
 
       // premult colors
-      float rb = layerPx._r * ab;
-      float gb = layerPx._g * ab;
-      float bb = layerPx._b * ab;
+      ExpStep rb = layerPx._r * ab;
+      ExpStep gb = layerPx._g * ab;
+      ExpStep bb = layerPx._b * ab;
 
-      float ra = compPx._r * aa;
-      float ga = compPx._g * aa;
-      float ba = compPx._b * aa;
+      ExpStep ra = compPx._r * aa;
+      ExpStep ga = compPx._g * aa;
+      ExpStep ba = compPx._b * aa;
 
       // blend modes
       if (l._mode == BlendMode::NORMAL) {

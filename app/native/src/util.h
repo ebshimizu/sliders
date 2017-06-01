@@ -9,6 +9,7 @@ author: Evan Shimizu
 #include <vector>
 #include <map>
 #include <cmath>
+#include "../../../expression_tree/expressionContext.h"
 
 using namespace std;
 

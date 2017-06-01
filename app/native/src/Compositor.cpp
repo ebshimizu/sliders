@@ -555,6 +555,26 @@ namespace Comp {
       img.second->reset(1, 1, 1);
   }
 
+  void Compositor::computeExpContext(Context & c, int px, string size)
+  {
+    // ok so here we want to build the expression context that represents the entire render pipeline
+    ExpContext ctx;
+
+    // create variables (they get stored in the layer and image structures)
+    int index = 0;
+    
+    for (auto l : c) {
+      // create layer pixel vars
+      index = l.second.getImage()->initExp(ctx, l.first, index, px);
+
+      // create layer adjustment vars
+      index = l.second.prepExp(ctx, index);
+    }
+
+    // get the result
+    Utils<ExpStep>::RGBAColorT res = renderPixel<ExpStep>(c, px, size);
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

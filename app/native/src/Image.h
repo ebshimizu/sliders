@@ -70,6 +70,12 @@ namespace Comp {
     // get the specified pixel
     RGBAColor getPixel(int index);
 
+    int initExp(ExpContext context, string name, int index, int pxPos);
+
+    // i don't think the exp step cares really where the pixel comes from?
+    // we'll initialize the ExpStep color with the specified color but it shouldn't actually matter
+    Utils<ExpStep>::RGBAColorT& getPixel();
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);
@@ -82,6 +88,9 @@ namespace Comp {
 
     // raw pixel data
     vector<unsigned char> _data;
+
+    // variables for the expression context
+    Utils<ExpStep>::RGBAColorT _vars;
   };
 }
 

@@ -116,8 +116,24 @@ namespace Comp {
     void addLighterColorAdjustment(float r, float g, float b, float a);
     void addOverwriteColorAdjustment(float r, float g, float b, float a);
 
-    float evalCurve(string channel, float x);
-    RGBColor evalGradient(float x);
+    template <typename T>
+    inline T evalCurve(string channel, T x) {
+      if (_curves.count(channel) > 0) {
+        return _curves[channel].eval(x);
+      }
+
+      return x;
+    }
+
+    template <typename T>
+    inline typename Utils<T>::RGBColorT evalGradient(T x) {
+      if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
+        return _grad.eval(x);
+      }
+
+      return Utils<T>::RGBColorT();
+    }
+
     map<string, map<string, float>> getSelectiveColor();
     Gradient& getGradient();
 

@@ -295,24 +295,6 @@ namespace Comp {
     _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = a;
   }
 
-  float Layer::evalCurve(string channel, float x)
-  {
-    if (_curves.count(channel) > 0) {
-      return _curves[channel].eval(x);
-    }
-
-    return x;
-  }
-
-  RGBColor Layer::evalGradient(float x)
-  {
-    if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
-      return _grad.eval(x);
-    }
-
-    return RGBColor();
-  }
-
   map<string, map<string, float>> Layer::getSelectiveColor()
   {
     return _selectiveColor;

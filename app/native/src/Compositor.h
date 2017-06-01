@@ -81,9 +81,7 @@ namespace Comp {
     // render with a given context
     Image* render(Context c, string size = "");
 
-    // Couple functions for rendering specific pixels. This function is used internally
-    // to render pixels for the final composite and is exposed here for use by
-    // various optimizers.
+    // Couple functions for rendering specific pixels. Mostly used by optimizers
     // i is the Pixel Number (NOT the array start number, as in i * 4 = pixel number)
     RGBAColor renderPixel(Context& c, int i, string size = "");
 
@@ -130,61 +128,129 @@ namespace Comp {
 
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
-    inline float cvtf(float px, float a);
-    inline float normal(float a, float b, float alpha1, float alpha2);
-    inline float multiply(float a, float b, float alpha1, float alpha2);
-    inline float screen(float a, float b, float alpha1, float alpha2);
-    inline float overlay(float a, float b, float alpha1, float alpha2);
-    inline float hardLight(float a, float b, float alpha1, float alpha2);
-    inline float softLight(float Dca, float Sca, float Da, float Sa);
-    inline float linearDodge(float Dca, float Sca, float Da, float Sa);
-    inline float colorDodge(float Dca, float Sca, float Da, float Sa);
-    inline float linearBurn(float Dc, float Sc, float Da, float Sa);
-    inline float linearLight(float Dc, float Sc, float Da, float Sa);
-    inline RGBColor color(RGBColor& dest, RGBColor& src, float Da, float Sa);
-    inline float lighten(float Dca, float Sca, float Da, float Sa);
-    inline float darken(float Dca, float Sca, float Da, float Sa);
-    inline float pinLight(float Dca, float Sca, float Da, float Sa);
+
+    template <typename T>
+    inline T cvtT(T px, T a);
+    
+    template <typename T>
+    inline T normal(T a, T b, T alpha1, T alpha2);
+
+    template <typename T>
+    inline T multiply(T a, T b, T alpha1, T alpha2);
+
+    template <typename T>
+    inline T screen(T a, T b, T alpha1, T alpha2);
+
+    template <typename T>
+    inline T overlay(T a, T b, T alpha1, T alpha2);
+
+    template <typename T>
+    inline T hardLight(T a, T b, T alpha1, T alpha2);
+
+    template <typename T>
+    inline T softLight(T Dca, T Sca, T Da, T Sa);
+
+    template <typename T>
+    inline T linearDodge(T Dca, T Sca, T Da, T Sa);
+
+    template <typename T>
+    inline T colorDodge(T Dca, T Sca, T Da, T Sa);
+
+    template <typename T>
+    inline T linearBurn(T Dc, T Sc, T Da, T Sa);
+
+    template <typename T>
+    inline T linearLight(T Dc, T Sc, T Da, T Sa);
+
+    template <typename T>
+    inline typename Utils<T>::RGBColorT color(typename Utils<T>::RGBColorT& dest, typename Utils<T>::RGBColorT& src, T Da, T Sa);
+    
+    template <typename T>
+    inline T lighten(T Dca, T Sca, T Da, T Sa);
+
+    template <typename T>
+    inline T darken(T Dca, T Sca, T Da, T Sa);
+
+    template <typename T>
+    inline T pinLight(T Dca, T Sca, T Da, T Sa);
 
     void adjust(Image* adjLayer, Layer& l);
 
     // adjusts a single pixel according to the given adjustment layer
-    RGBAColor adjustPixel(RGBAColor comp, Layer& l);
+    template <typename T>
+    inline typename Utils<T>::RGBAColorT adjustPixel(typename Utils<T>::RGBAColorT comp, Layer& l);
 
+    // HSL
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
-    inline void hslAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
+    template <typename T>
+    inline void hslAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    // Levels
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
-    inline void levelsAdjust(RGBAColor& adjPx, map<string, float>& adj);
-    inline float levels(float px, float inMin, float inMax, float gamma, float outMin, float outMax);
 
+    template <typename T>
+    inline void levelsAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    template <typename T>
+    inline T levels(T px, T inMin, T inMax, T gamma, T outMin, T outMax);
+
+    // Curves
     inline void curvesAdjust(Image* adjLayer, map<string, float> adj, Layer& l);
-    inline void curvesAdjust(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
 
+    template <typename T>
+    inline void curvesAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj, Layer& l);
+
+    // Exposure
     inline void exposureAdjust(Image* adjLayer, map<string, float> adj);
-    inline void exposureAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
+    template <typename T>
+    inline void exposureAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    // Gradient Map
     inline void gradientMap(Image* adjLayer, map<string, float> adj, Layer& l);
-    inline void gradientMap(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
 
+    template <typename T>
+    inline void gradientMap(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj, Layer& l);
+
+    // selective color
     inline void selectiveColor(Image* adjLayer, map<string, float> adj, Layer& l);
-    inline void selectiveColor(RGBAColor& adjPx, map<string, float>& adj, Layer& l);
 
+    template <typename T>
+    inline void selectiveColor(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj, Layer& l);
+
+    // Color Balance
     inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
-    inline void colorBalanceAdjust(RGBAColor& adjPx, map<string, float>& adj);
-    inline float colorBalance(float px, float shadow, float mid, float high);
 
+    template <typename T>
+    inline void colorBalanceAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    template <typename T>
+    inline T colorBalance(T px, T shadow, T mid, T high);
+
+    // Photo filter
     inline void photoFilterAdjust(Image* adjLayer, map<string, float> adj);
-    inline void photoFilterAdjust(RGBAColor& adjPx, map<string, float>& adj);
+    
+    template<typename T>
+    inline void photoFilterAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
 
+    // Colorize
     inline void colorizeAdjust(Image* adjLayer, map<string, float> adj);
-    inline void colorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
+    template <typename T>
+    inline void colorizeAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    // Lighter Colorize
     inline void lighterColorizeAdjust(Image* adjLayer, map<string, float> adj);
-    inline void lighterColorizeAdjust(RGBAColor& adjPx, map<string, float>& adj);
 
+    template <typename T>
+    inline void lighterColorizeAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
+    // Overwrite Color
     inline void overwriteColorAdjust(Image* adjLayer, map<string, float> adj);
-    inline void overwriteColorAdjust(RGBAColor& adjPx, map<string, float>& adj);
+
+    template <typename T>
+    inline void overwriteColorAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
 
     // compositing order for layers
     vector<string> _layerOrder;
@@ -214,6 +280,534 @@ namespace Comp {
     // Used by modes: RANDOM
     set<string> _affectedLayers;
   };
+
+  template<typename T>
+  inline T Compositor::cvtT(T px, T a)
+  {
+    T v = px / a;
+    return (v > 1) ? 1 : (v < 0) ? 0 : v;
+  }
+
+  template<typename T>
+  inline T Compositor::normal(T a, T b, T alpha1, T alpha2)
+  {
+    return b + a * (1 - alpha2);
+  }
+
+  template<typename T>
+  inline T Compositor::multiply(T a, T b, T alpha1, T alpha2)
+  {
+    return b * a + b * (1 - alpha1) + a * (1 - alpha2);
+  }
+
+  template<typename T>
+  inline T Compositor::screen(T a, T b, T alpha1, T alpha2)
+  {
+    return b + a - b * a;
+  }
+
+  template<typename T>
+  inline T Compositor::overlay(T a, T b, T alpha1, T alpha2)
+  {
+    if (2 * a <= alpha1) {
+      return b * a * 2 + b * (1 - alpha1) + a * (1 - alpha2);
+    }
+    else {
+      return b * (1 + alpha1) + a * (1 + alpha2) - 2 * a * b - alpha1 * alpha2;
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::hardLight(T a, T b, T alpha1, T alpha2)
+  {
+    if (2 * b <= alpha2) {
+      return 2 * b * a + b * (1 - alpha1) + a * (1 - alpha2);
+    }
+    else {
+      return b * (1 + alpha1) + a * (1 + alpha2) - alpha1 * alpha2 - 2 * a * b;
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::softLight(T Dca, T Sca, T Da, T Sa)
+  {
+    T m = (Da == 0) ? 0 : Dca / Da;
+
+    if (2 * Sca <= Sa) {
+      return Dca * (Sa + (2 * Sca - Sa) * (1 - m)) + Sca * (1 - Da) + Dca * (1 - Sa);
+    }
+    else if (2 * Sca > Sa && 4 * Dca <= Da) {
+      return Da * (2 * Sca - Sa) * (16 * m * m * m - 12 * m * m - 3 * m) + Sca - Sca * Da + Dca;
+    }
+    else if (2 * Sca > Sa && 4 * Dca > Da) {
+      return Da * (2 * Sca - Sa) * (sqrt(m) - m) + Sca - Sca * Da + Dca;
+    }
+    else {
+      return normal(Dca, Sca, Da, Sa);
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::linearDodge(T Dca, T Sca, T Da, T Sa)
+  {
+    return Sca + Dca;
+  }
+
+  template<typename T>
+  inline T Compositor::colorDodge(T Dca, T Sca, T Da, T Sa)
+  {
+    if (Sca == Sa && Dca == 0) {
+      return Sca * (1 - Da);
+    }
+    else if (Sca == Sa) {
+      return Sa * Da + Sca * (1 - Da) + Dca * (1 - Sa);
+    }
+    else if (Sca < Sa) {
+      return Sa * Da * min(1.0f, Dca / Da * Sa / (Sa - Sca)) + Sca * (1 - Da) + Dca * (1 - Sa);
+    }
+
+    // probably never get here but compiler is yelling at me
+    return 0;
+  }
+
+  template<typename T>
+  inline T Compositor::linearBurn(T Dc, T Sc, T Da, T Sa)
+  {
+    // special case for handling background with alpha 0
+    if (Da == 0)
+      return Sc;
+
+    T burn = Dc + Sc - 1;
+
+    // normal blend
+    return burn * Sa + Dc * (1 - Sa);
+  }
+
+  template<typename T>
+  inline T Compositor::linearLight(T Dc, T Sc, T Da, T Sa)
+  {
+    if (Da == 0)
+      return Sc;
+
+    T light = Dc + 2 * Sc - 1;
+    return light * Sa + Dc * (1 - Sa);
+  }
+
+  template<typename T>
+  inline typename Utils<T>::RGBColorT Compositor::color(typename Utils<T>::RGBColorT & dest, typename Utils<T>::RGBColorT & src, T Da, T Sa)
+  {
+    // so it's unclear if this composition operation happens in the full LCH color space or
+    // if we can approximate it with a jank HSY color space so let's try it before doing the full
+    // implementation
+    if (Da == 0) {
+      src._r *= Sa;
+      src._g *= Sa;
+      src._b *= Sa;
+
+      return src;
+    }
+
+    if (Sa == 0) {
+      dest._r *= Da;
+      dest._g *= Da;
+      dest._b *= Da;
+
+      return dest;
+    }
+
+    // color keeps dest luma and keeps top hue and chroma
+    Utils<T>::HSYColorT dc = Utils<T>::RGBToHSY(dest);
+    Utils<T>::HSYColorT sc = Utils<T>::RGBToHSY(src);
+    dc._h = sc._h;
+    dc._s = sc._s;
+
+    Utils<T>::RGBColorT res = Utils<T>::HSYToRGB(dc);
+
+    // actually have to blend here...
+    res._r = res._r * Sa + dest._r * Da * (1 - Sa);
+    res._g = res._g * Sa + dest._g * Da * (1 - Sa);
+    res._b = res._b * Sa + dest._b * Da * (1 - Sa);
+
+    return res;
+  }
+
+  template<typename T>
+  inline T Compositor::lighten(T Dca, T Sca, T Da, T Sa)
+  {
+    if (Sca > Dca) {
+      return Sca + Dca * (1 - Sa);
+    }
+    else {
+      return Dca + Sca * (1 - Da);
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::darken(T Dca, T Sca, T Da, T Sa)
+  {
+    if (Sca > Dca) {
+      return Dca + Sca * (1 - Da);
+    }
+    else {
+      return Sca + Dca * (1 - Sa);
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::pinLight(T Dca, T Sca, T Da, T Sa)
+  {
+    if (Da == 0)
+      return Sca;
+
+    if (Sca < 0.5f) {
+      return darken(Dca, Sca * 2, Da, Sa);
+    }
+    else {
+      return lighten(Dca, 2 * (Sca - 0.5f), Da, Sa);
+    }
+  }
+
+  template<typename T>
+  inline typename Utils<T>::RGBAColorT Compositor::adjustPixel(typename Utils<T>::RGBAColorT comp, Layer & l)
+  {
+    for (auto type : l.getAdjustments()) {
+      if (type == AdjustmentType::HSL) {
+        hslAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::LEVELS) {
+        levelsAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::CURVES) {
+        curvesAdjust(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::EXPOSURE) {
+        exposureAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::GRADIENT) {
+        gradientMap(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::SELECTIVE_COLOR) {
+        selectiveColor(comp, l.getAdjustment(type), l);
+      }
+      else if (type == AdjustmentType::COLOR_BALANCE) {
+        colorBalanceAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::PHOTO_FILTER) {
+        photoFilterAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::COLORIZE) {
+        colorizeAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::LIGHTER_COLORIZE) {
+        lighterColorizeAdjust(comp, l.getAdjustment(type));
+      }
+      else if (type == AdjustmentType::OVERWRITE_COLOR) {
+        overwriteColorAdjust(comp, l.getAdjustment(type));
+      }
+    }
+
+    return comp;
+  }
+
+  template<typename T>
+  inline void Compositor::hslAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T h = adj["hue"];
+    T s = adj["sat"];
+    T l = adj["light"];
+
+    Utils<T>::HSLColorT c = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
+
+    // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
+    c._h += h;
+    c._s += s / 100.0f;
+    c._l += l / 100.0f;
+
+    // convert back
+    Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);
+    adjPx._r = c2._r;
+    adjPx._g = c2._g;
+    adjPx._b = c2._b;
+  }
+
+  template<typename T>
+  inline void Compositor::levelsAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    // so sometimes these values are missing and we should use defaults.
+    T inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
+    T inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
+    T gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
+    T outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
+    T outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+
+    adjPx._r = clamp<T>(levels(adjPx._r, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
+    adjPx._g = clamp<T>(levels(adjPx._g, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
+    adjPx._b = clamp<T>(levels(adjPx._b, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
+  }
+
+  template<typename T>
+  inline T Compositor::levels(T px, T inMin, T inMax, T gamma, T outMin, T outMax)
+  {
+    // input remapping
+    T out = min(max(px - inMin, 0.0f) / (inMax - inMin), 1.0f);
+
+    // gamma correction
+    out = pow(out, 1 / gamma);
+
+    // output remapping
+    out = out * (outMax - outMin) + outMin;
+
+    return out;
+  }
+
+  template<typename T>
+  inline void Compositor::curvesAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
+  {
+    adjPx._r = l.evalCurve("red", adjPx._r);
+    adjPx._g = l.evalCurve("green", adjPx._g);
+    adjPx._b = l.evalCurve("blue", adjPx._b);
+
+    // short circuit this to avoid unnecessary conversion if the curve
+    // doesn't actually exist
+    if (adj.count("RGB") > 0) {
+      adjPx._r = l.evalCurve("RGB", adjPx._r);
+      adjPx._g = l.evalCurve("RGB", adjPx._g);
+      adjPx._b = l.evalCurve("RGB", adjPx._b);
+    }
+  }
+
+  template<typename T>
+  inline void Compositor::exposureAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T exposure = adj["exposure"];
+    T offset = adj["offset"];
+    T gamma = adj["gamma"];
+
+    adjPx._r = clamp<T>(pow(adjPx._r * pow(2, exposure) + offset, 1 / gamma), 0.0, 1.0);
+    adjPx._g = clamp<T>(pow(adjPx._g * pow(2, exposure) + offset, 1 / gamma), 0.0, 1.0);
+    adjPx._b = clamp<T>(pow(adjPx._b * pow(2, exposure) + offset, 1 / gamma), 0.0, 1.0);
+  }
+
+  template<typename T>
+  inline void Compositor::gradientMap(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
+  {
+    T y = 0.299f * adjPx._r + 0.587f * adjPx._g + 0.114f * adjPx._b;
+
+    // map L to an rgb color. L is between 0 and 1.
+    Utils<T>::RGBColorT grad = l.evalGradient(y);
+
+    adjPx._r = clamp<T>(grad._r, 0.0, 1.0);
+    adjPx._g = clamp<T>(grad._g, 0.0, 1.0);
+    adjPx._b = clamp<T>(grad._b, 0.0, 1.0);
+  }
+
+  template<typename T>
+  inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
+  {
+    // !!! TODO: SELECTIVE COLOR HAS A SEPARATE MAP THAT ALSO NEEDS TO BE TEMPLATED TO GET THE RIGHT
+    // PARAMETERS IN THE RIGHT PLACE
+    map<string, map<string, float>> data = l.getSelectiveColor();
+
+    // convert to hsl
+    Utils<T>::HSLColorT hslColor = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
+    T chroma = max(adjPx._r, max(adjPx._g, adjPx._b)) - min(adjPx._r, min(adjPx._g, adjPx._b));
+
+    // determine which set of parameters we're using to adjust
+    // determine chroma interval
+    int interval = (int)(hslColor._h / 60);
+    string c1, c2, c3, c4;
+    c1 = intervalNames[interval];
+
+    if (interval == 5) {
+      // wrap around for magenta
+      c2 = intervalNames[0];
+    }
+    else {
+      c2 = intervalNames[interval + 1];
+    }
+
+    c3 = "neutrals";
+
+    // non-chromatic colors
+    if (hslColor._l < 0.5) {
+      c4 = "blacks";
+    }
+    else {
+      c4 = "whites";
+    }
+
+    // compute weights
+    T w1, w2, w3, w4, wc;
+
+    // chroma
+    wc = chroma / 1.0f;
+
+    // hue - always 60 deg intervals
+    w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
+    w2 = 1 - w1;
+
+    // luma - measure distance from midtones, w3 is always midtone
+    w3 = 1 - abs(hslColor._l - 0.5f);
+    w4 = w3 - 1;
+
+    // do the adjustment
+    Utils<T>::CMYKColorT cmykColor = Utils<T>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);
+
+    if (adj["relative"] > 0) {
+      // relative
+      cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+      cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+      cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+      cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+    }
+    else {
+      // absolute
+      cmykColor._c += (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+      cmykColor._m += (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+      cmykColor._y += (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+      cmykColor._k += (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+    }
+
+    Utils<T>::RGBColorT res = Utils<T>::CMYKToRGB(cmykColor);
+    adjPx._r = clamp<T>(res._r, 0, 1);
+    adjPx._g = clamp<T>(res._g, 0, 1);
+    adjPx._b = clamp<T>(res._b, 0, 1);
+  }
+
+  template<typename T>
+  inline void Compositor::colorBalanceAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    Utils<T>::RGBColorT balanced;
+    balanced._r = colorBalance(adjPx._r, adj["shadowR"], adj["midR"], adj["highR"]);
+    balanced._g = colorBalance(adjPx._g, adj["shadowG"], adj["midG"], adj["highG"]);
+    balanced._b = colorBalance(adjPx._b, adj["shadowB"], adj["midB"], adj["highB"]);
+
+    if (adj["preserveLuma"] > 0) {
+      Utils<T>::HSLColorT l = Utils<T>::RGBToHSL(balanced);
+      T originalLuma = 0.5f * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+      balanced = Utils<T>::HSLToRGB(l._h, l._s, originalLuma);
+    }
+
+    adjPx._r = clamp<T>(balanced._r, 0, 1);
+    adjPx._g = clamp<T>(balanced._g, 0, 1);
+    adjPx._b = clamp<T>(balanced._b, 0, 1);
+  }
+
+  template<typename T>
+  inline T Compositor::colorBalance(T px, T shadow, T mid, T high)
+  {
+    // some arbitrary constants...?
+    T a = 0.25f;
+    T b = 0.333f;
+    T scale = 0.7f;
+
+    T s = shadow * (clamp<T>((px - b) / -a + 0.5f, 0, 1.0f) * scale);
+    T m = mid * (clamp<T>((px - b) / a + 0.5f, 0, 1.0f) * clamp<T>((px + b - 1.0f) / -a + 0.5f, 0, 1.0f) * scale);
+    T h = high * (clamp<T>((px + b - 1.0f) / a + 0.5f, 0, 1.0f) * scale);
+
+    return clamp<T>(px + s + m + h, 0, 1.0);
+  }
+
+  template<typename T>
+  inline void Compositor::photoFilterAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T d = adj["density"];
+    T fr = adjPx._r * adj["r"];
+    T fg = adjPx._g * adj["g"];
+    T fb = adjPx._b * adj["b"];
+
+    if (adj["preserveLuma"] > 0) {
+      Utils<T>::HSLColorT l = Utils<T>::RGBToHSL(fr, fg, fb);
+      T originalLuma = 0.5 * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+      Utils<T>::RGBColorT rgb = Utils<T>::HSLToRGB(l._h, l._s, originalLuma);
+      fr = rgb._r;
+      fg = rgb._g;
+      fb = rgb._b;
+    }
+
+    // weight by density
+    adjPx._r = clamp<T>(fr * d + adjPx._r * (1 - d), 0, 1);
+    adjPx._g = clamp<T>(fg * d + adjPx._g * (1 - d), 0, 1);
+    adjPx._b = clamp<T>(fb * d + adjPx._b * (1 - d), 0, 1);
+  }
+
+  template<typename T>
+  inline void Compositor::colorizeAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T sr = adj["r"];
+    T sg = adj["g"];
+    T sb = adj["b"];
+    T a = adj["a"];
+    Utils<T>::HSYColorT sc = Utils<T>::RGBToHSY(sr, sg, sb);
+
+    // color keeps dest luma and keeps top hue and chroma
+    Utils<T>::HSYColorT dc = Utils<T>::RGBToHSY(adjPx._r, adjPx._g, adjPx._b);
+    dc._h = sc._h;
+    dc._s = sc._s;
+
+    Utils<T>::RGBColorT res = Utils<T>::HSYToRGB(dc);
+
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp<T>(res._r * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp<T>(res._g * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp<T>(res._b * a + adjPx._b * (1 - a), 0, 1);
+  }
+
+  template<typename T>
+  inline void Compositor::lighterColorizeAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T sr = adj["r"];
+    T sg = adj["g"];
+    T sb = adj["b"];
+    T a = adj["a"];
+    T y = 0.299f * sr + 0.587f * sg + 0.114f * sb;
+
+    T yp = 0.299f * adjPx._r + 0.587f * adjPx._g + 0.114f * adjPx._b;
+
+    adjPx._r = (yp > y) ? adjPx._r : sr;
+    adjPx._g = (yp > y) ? adjPx._g : sg;
+    adjPx._b = (yp > y) ? adjPx._b : sb;
+
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp<T>(adjPx._r * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp<T>(adjPx._g * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp<T>(adjPx._b * a + adjPx._b * (1 - a), 0, 1);
+  }
+
+  template<typename T>
+  inline void Compositor::overwriteColorAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    T sr = adj["r"];
+    T sg = adj["g"];
+    T sb = adj["b"];
+    T a = adj["a"];
+
+    // blend the resulting colors according to alpha
+    adjPx._r = clamp<T>(sr * a + adjPx._r * (1 - a), 0, 1);
+    adjPx._g = clamp<T>(sg * a + adjPx._g * (1 - a), 0, 1);
+    adjPx._b = clamp<T>(sb * a + adjPx._b * (1 - a), 0, 1);
+  }
+
+  inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    // so sometimes these values are missing and we should use defaults.
+    float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
+    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
+    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
+    float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
+    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor layerPx = adjLayer->getPixel(i);
+      levelsAdjust(layerPx, adj);
+
+      // convert to char
+      img[i * 4] = (unsigned char)(layerPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(layerPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(layerPx._b * 255);
+    }
+  }
 }
 
 /*

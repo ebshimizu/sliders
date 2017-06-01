@@ -863,7 +863,7 @@ void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
   
   if (color->Has(Nan::New("luminance").ToLocalChecked())) {
     // convert from lab to rgb
-    Comp::RGBColor rgb = Comp::LabToRGB((float)color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
+    Comp::Utils<float>::RGBColorT rgb = Comp::Utils<float>::LabToRGB((float)color->Get(Nan::New("luminance").ToLocalChecked())->NumberValue(),
       (float)color->Get(Nan::New("a").ToLocalChecked())->NumberValue(),
       (float)color->Get(Nan::New("b").ToLocalChecked())->NumberValue());
 
@@ -871,7 +871,7 @@ void LayerRef::addPhotoFilter(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
   else if (color->Has(Nan::New("hue").ToLocalChecked())) {
     // convert from hsl to rgb
-    Comp::RGBColor rgb = Comp::HSLToRGB((float)color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
+    Comp::Utils<float>::RGBColorT rgb = Comp::Utils<float>::HSLToRGB((float)color->Get(Nan::New("hue").ToLocalChecked())->NumberValue(),
       (float)color->Get(Nan::New("saturation").ToLocalChecked())->NumberValue(),
       (float)color->Get(Nan::New("brightness").ToLocalChecked())->NumberValue());
 

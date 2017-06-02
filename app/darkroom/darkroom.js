@@ -353,6 +353,34 @@ function initUI() {
         $('#mode-erase').addClass("active");
     });
 
+    $('#constraintLayerMenu').dropdown({
+        action: function (text, value, element) {
+            setActiveConstraintLayer(value);
+            $('#constraintLayerMenu .text').html(text);
+            $(this).dropdown('hide');
+        }
+    });
+
+    $('#constraintModeMenu').dropdown({
+        action: function (text, value, element) {
+            if (g_activeConstraintLayer !== null) {
+                setConstraintLayerMode(g_activeConstraintLayer, parseInt(value));
+            }
+
+            $('#constraintModeMenu .text').html(text);
+            $(this).dropdown('hide');
+        }
+    });
+
+    $('#newConstraintLayer').click(function () {
+        $('#newConstraintLayerModal').modal({
+            onApprove: function () {
+                newConstraintLayer($('#newConstraintLayerModal input').val(), 0);
+            }
+        });
+        $('#newConstraintLayerModal').modal('show');
+    });
+
     $('#mask-tools').hide();
 
     cp = new ColorPicker({
@@ -2833,6 +2861,9 @@ const g_constraintModesStrings = {
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
     g_constraintLayers[name] = { "name": name, "mode": mode, "color": "#FFFFFF", "active" : true };
+
+    // add to menu
+    $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
 }
 
 function setActiveConstraintLayer(name) {
@@ -2848,6 +2879,10 @@ function setConstraintLayerColor(name, color) {
 
 function setConstraintLayerActive(active) {
     g_constraintLayers[name].active = true;
+}
+
+function setConstraintLayerMode(name, mode) {
+    g_constraintLayers[name].mode = mode;
 }
 
 function initCanvas() {

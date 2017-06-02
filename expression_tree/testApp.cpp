@@ -39,17 +39,16 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 
 		ExpContext context;
 
-		ExpStep x0E = ExpStep(context, x0D, "x0", 0);
-		ExpStep x1E = ExpStep(context, x1D, "x1", 1);
+		ExpStep x0E = context.registerParam(0, "x0", x0D);
+		ExpStep x1E = context.registerParam(0, "x1", x1D);
 
 		//ExpStep vE = x0E + x1E;
 
 		ExpStep vE = funcE(x0E, x1E);
-		ExpStep vEOut = ExpStep(vE, 0);
+		context.registerResult(vE, 0);
 		//ExpStep vEOut2 = ExpStep(x0E, 1);
 		//ExpStep vEOut3 = ExpStep(x1E, 2);
 
-		
 		if (testIndex == 0)
 		{
 			vector<string> sourceCode = context.toSourceCode(functionName, false);

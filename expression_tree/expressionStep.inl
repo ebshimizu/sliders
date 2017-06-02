@@ -1,3 +1,4 @@
+#include "expressionStep.h"
 #pragma once
 
 //
@@ -157,5 +158,48 @@ inline ExpStepData ExpStepData::makeResult(int stepIndex, int resultIndex)
 	result.type = ExpStepType::result;
 	result.operand0Step = stepIndex;
 	result.resultIndex = resultIndex;
+	return result;
+}
+
+inline ExpStepData ExpStepData::makeFunctionCall(int functionIndex, const vector<ExpStep> &parameters)
+{
+	ExpStepData result;
+	result.type = ExpStepType::functionCall;
+	result.functionIndex = functionIndex;
+	for (auto &it : parameters)
+		result.functionParamStepIndices.push_back(it.stepIndex);
+	return result;
+}
+
+inline ExpStepData ExpStepData::makeFunctionOutput(int funcStepIndex, int outputIndex)
+{
+	ExpStepData result;
+	result.type = ExpStepType::functionOutput;
+	result.functionStepIndex = funcStepIndex;
+	result.functionOutputIndex = outputIndex;
+	return result;
+}
+
+inline vector<string> ExpStepData::toSourceCode(const ExpContext &parent, bool useFloat) const
+{
+	const string floatType = useFloat ? "float" : "double";
+	vector<string> result;
+	if (type == ExpStepType::functionCall)
+	{
+		string paramList = "";
+		for (int i = 0; i < (int)functionParamStepIndices.size(); i++)
+		{
+			paramList += "s" + to_string(functionParamStepIndices[i]);
+			if (i != functionParamStepIndices.size() - 1)
+				paramList += ", ";
+		}
+
+		string vectorLine = "vector<" + floatType + "> v" + to_string(stepIndex) + " = { " + paramList + " }";
+		string callLine = "auto s" + to_string(stepIndex) + " = " + parent.functionList[functionIndex] + "(v" + to_string(stepIndex) + ")";
+		result.push_back(vectorLine);
+		result.push_back(callLine);
+		return result;
+	}
+	result.push_back("invalid");
 	return result;
 }

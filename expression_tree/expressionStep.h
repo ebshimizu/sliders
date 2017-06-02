@@ -8,7 +8,7 @@ enum class ExpStepType
 	unaryOp,
 	binaryOp,
 	functionCall,
-	functionResult,
+	functionOutput,
 	invalid
 };
 
@@ -134,7 +134,10 @@ struct ExpStepData
 	// result constructor
 	static ExpStepData makeResult(int stepIndex, int resultIndex);
 
-	
+	static ExpStepData makeFunctionCall(int functionIndex, const vector<ExpStep> &parameters);
+
+	static ExpStepData makeFunctionOutput(int funcStepIndex, int outputIndex);
+
 	void init()
 	{
 		type = ExpStepType::invalid;
@@ -178,6 +181,16 @@ struct ExpStepData
 			cout << "unknown binary op" << endl;
 			return 0.0;
 		}
+		else if (type == ExpStepType::functionCall)
+		{
+			//cout << "eval not supported for functions" << endl;
+			return 0.0;
+		}
+		else if (type == ExpStepType::functionOutput)
+		{
+			//cout << "eval not supported for functions" << endl;
+			return 0.0;
+		}
 		else
 		{
 			assert(false);
@@ -217,8 +230,14 @@ struct ExpStepData
 				return assignment + "s" + to_string(operand0Step) + getOpName(op) + "s" + to_string(operand1Step);
 			}
 		}
+		else if (type == ExpStepType::functionOutput)
+		{
+			return assignment + "s" + to_string(functionStepIndex) + "[" + to_string(functionOutputIndex) + "]";
+		}
 		return "invalid";
 	}
+
+	vector<string> toSourceCode(const ExpContext & parent, bool useFloat) const;
 
 	ExpStepType type;
 	
@@ -231,6 +250,11 @@ struct ExpStepData
 
 	// valid for functions
 	int functionIndex;
+	vector<int> functionParamStepIndices;
+
+	//valid for function outputs
+	int functionStepIndex;
+	int functionOutputIndex;
 
 	// valid for unary and binary ops
 	ExpOpType op;

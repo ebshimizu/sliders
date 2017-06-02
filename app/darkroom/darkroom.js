@@ -156,7 +156,6 @@ function initUI() {
         $(".setName").find('i').addClass("right");
     });
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
-    $('#toggleMaskTools').click(() => { $("#mask-tools").toggle(); });
     $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
 
@@ -2818,13 +2817,38 @@ function createSampleControls(id) {
 }
 
 /*===========================================================================*/
-/* Mask Drawing                                                              */
+/* Mask/Constraint Drawing                                                   */
 /*===========================================================================*/
 
-var paths = {};
-var pathIndex = 0;
-var prevPt;
-var canvasUpdated = true;
+var g_paths = {};
+var g_pathIndex = 0;
+var g_canvasUpdated = true;
+var g_constraintLayers = {};
+var g_activeConstraintLayer = null;
+const g_constraintModesStrings = {
+    0: "Full Color",
+    1: "Hue"
+}
+
+function newConstraintLayer(name, mode) {
+    // constraint layers are initialized to white full color constraint mode
+    g_constraintLayers[name] = { "name": name, "mode": mode, "color": "#FFFFFF", "active" : true };
+}
+
+function setActiveConstraintLayer(name) {
+    if (name in g_constraintLayers) {
+        g_activeConstraintLayer = name;
+    }
+}
+
+function setConstraintLayerColor(name, color) {
+    g_constraintLayers[name].color = color;
+    g_canvasUpdated = false;
+}
+
+function setConstraintLayerActive(active) {
+    g_constraintLayers[name].active = true;
+}
 
 function initCanvas() {
     // set internal resolution to 1:1 with full res render
@@ -2840,32 +2864,37 @@ function initCanvas() {
     g_ctx.lineWidth = 10;
     g_ctx.lineJoin = "round";
 
-    paths = [];
-    pathIndex = 0;
+    g_paths = [];
+    g_pathIndex = 0;
 
     g_drawReady = true;
 }
 
 function canvasMousedown(e, elem) {
+    if (g_activeConstraintLayer === null) {
+        showStatusMsg("Create a constraint layer first.", "ERROR", "Cannot Draw Constraint")
+        return;
+    }
+
     g_isPainting = true;
-    pathIndex++;
+    g_pathIndex++;
     
-    // paths.push({ id: pathIndex, type: settings.maskMode, tool: settings.maskTool });
+    // g_paths.push({ id: g_pathIndex, type: settings.maskMode, tool: settings.maskTool });
 
     // so the canvas is placed using the fit setting and the basic calculation will not work.
     var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
     
     if (settings.maskTool === "paint") {
-        paths[pathIndex] = {type : "paint", pts: []};
-        paths[pathIndex].pts.push(pt);
+        g_paths[g_pathIndex] = { type: "paint", pts: [], layer: g_activeConstraintLayer };
+        g_paths[g_pathIndex].pts.push(pt);
     }
     else if (settings.maskTool == "rect") {
-        paths[pathIndex] = {type : "rect", pt1: pt, finished: false};
+        g_paths[g_pathIndex] = { type: "rect", pt1: pt, finished: false, layer: g_activeConstraintLayer };
     }
 
-    paths[pathIndex].mode = settings.maskMode;
+    g_paths[g_pathIndex].mode = settings.maskMode;
     
-    canvasUpdated = false;
+    g_canvasUpdated = false;
 }
 
 function canvasMousemove(e, elem) {
@@ -2873,29 +2902,29 @@ function canvasMousemove(e, elem) {
         var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
 
         if (settings.maskTool === "paint") {
-            paths[pathIndex].pts.push(pt);
+            g_paths[g_pathIndex].pts.push(pt);
         }
         else if (settings.maskTool == "rect") {
-            paths[pathIndex].pt2 = pt;
+            g_paths[g_pathIndex].pt2 = pt;
         }
 
-        canvasUpdated = false;
+        g_canvasUpdated = false;
     }
 }
 
 function canvasMouseup(e, elem) {
     if (settings.maskTool === "rect") {
-        paths[pathIndex].finished = true;
+        g_paths[g_pathIndex].finished = true;
     }
 
     g_isPainting = false;
-    canvasUpdated = false;
+    g_canvasUpdated = false;
 }
 
 function clearCanvas() {
-    paths = [];
+    g_paths = [];
     g_ctx.clearRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
-    canvasUpdated = false;
+    g_canvasUpdated = false;
 }
 
 function repaint() {
@@ -2903,48 +2932,53 @@ function repaint() {
     // for efficiency.
     window.requestAnimationFrame(repaint);
     if (g_drawReady === false) {
-        canvasUpdated = true;
+        g_canvasUpdated = true;
         return;
     }
-    if (canvasUpdated === true)
+    if (g_canvasUpdated === true)
         return;
 
     g_ctx.clearRect(0, 0, g_ctx.canvas.width, g_ctx.canvas.height);
     g_ctx.lineWidth = 10;
     g_ctx.lineJoin = "round";
 
-    for (var p in paths) {
-        if (paths[p].mode == "mask") {
-            g_ctx.strokeStyle = "#FFFFFF";
-            g_ctx.fillStyle = "#FFFFFF";
+    for (var p in g_paths) {
+        var layer = g_constraintLayers[g_paths[p].layer];
+
+        if (!layer.active)
+            continue;
+
+        if (g_paths[p].mode == "mask") {
+            g_ctx.strokeStyle = layer.color;
+            g_ctx.fillStyle = layer.color;
             g_ctx.globalCompositeOperation = "source-over";
         }
-        else if (paths[p].mode == "erase") {
+        else if (g_paths[p].mode == "erase") {
             g_ctx.strokeStyle = "#000000";
             g_ctx.fillStyle = "#000000";
             g_ctx.globalCompositeOperation = "destination-out";
         }
 
-        if (paths[p].type === "paint") {
+        if (g_paths[p].type === "paint") {
             g_ctx.beginPath();
-            g_ctx.moveTo(paths[p].pts[0].x, paths[p].pts[0].y);
+            g_ctx.moveTo(g_paths[p].pts[0].x, g_paths[p].pts[0].y);
 
-            for (var i = 0; i < paths[p].pts.length; i++) {
-                g_ctx.lineTo(paths[p].pts[i].x, paths[p].pts[i].y);
+            for (var i = 0; i < g_paths[p].pts.length; i++) {
+                g_ctx.lineTo(g_paths[p].pts[i].x, g_paths[p].pts[i].y);
             }
 
             g_ctx.stroke();
         }
-        else if (paths[p].type == "rect") {
+        else if (g_paths[p].type == "rect") {
             // compute rectangle args here, need top left and width height
-            if (paths[p].pt2 !== undefined) {
-                var x = (paths[p].pt1.x < paths[p].pt2.x) ? paths[p].pt1.x : paths[p].pt2.x;
-                var y = (paths[p].pt1.y < paths[p].pt2.y) ? paths[p].pt1.y : paths[p].pt2.y;
+            if (g_paths[p].pt2 !== undefined) {
+                var x = (g_paths[p].pt1.x < g_paths[p].pt2.x) ? g_paths[p].pt1.x : g_paths[p].pt2.x;
+                var y = (g_paths[p].pt1.y < g_paths[p].pt2.y) ? g_paths[p].pt1.y : g_paths[p].pt2.y;
 
-                var w = Math.abs(paths[p].pt1.x - paths[p].pt2.x);
-                var h = Math.abs(paths[p].pt1.y - paths[p].pt2.y);
+                var w = Math.abs(g_paths[p].pt1.x - g_paths[p].pt2.x);
+                var h = Math.abs(g_paths[p].pt1.y - g_paths[p].pt2.y);
 
-                if (paths[p].finished) {
+                if (g_paths[p].finished) {
                     g_ctx.fillRect(x, y, w, h);
                 }
                 else {
@@ -2956,7 +2990,7 @@ function repaint() {
         }
     }
 
-    canvasUpdated = true;
+    g_canvasUpdated = true;
 }
 
 // converts screen coordinates to internal canvas coordinates

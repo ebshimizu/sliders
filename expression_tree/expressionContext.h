@@ -73,6 +73,14 @@ struct ExpContext
 		return callFunc(functionName, params);
 	}
 
+	vector<ExpStep> callFunc(const string &functionName, const ExpStep *paramPtrs, int paramCount)
+	{
+		vector<ExpStep> params;
+		for(int i = 0; i < paramCount; i++)
+			params.push_back(paramPtrs[i]);
+		return callFunc(functionName, params);
+	}
+
 	vector<ExpStep> callFunc(const string &functionName, const ExpStep &p0, const ExpStep &p1)
 	{
 		vector<ExpStep> params;

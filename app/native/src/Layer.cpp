@@ -295,24 +295,6 @@ namespace Comp {
     _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = a;
   }
 
-  float Layer::evalCurve(string channel, float x)
-  {
-    if (_curves.count(channel) > 0) {
-      return _curves[channel].eval(x);
-    }
-
-    return x;
-  }
-
-  RGBColor Layer::evalGradient(float x)
-  {
-    if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
-      return _grad.eval(x);
-    }
-
-    return RGBColor();
-  }
-
   map<string, map<string, float>> Layer::getSelectiveColor()
   {
     return _selectiveColor;
@@ -326,6 +308,24 @@ namespace Comp {
   void Layer::resetImage()
   {
     _image->reset(1, 1, 1);
+  }
+
+  int Layer::prepExp(ExpContext& context, int start)
+  {
+    int index = start;
+    string pfx = "x_" + _name + "_";
+
+    _expOpacity = ExpStep(context, _opacity, pfx + "_opacity", index);
+    index++;
+
+    for (auto a : _adjustments) {
+      for (auto params : a.second) {
+        _expAdjustments[a.first][params.first] = ExpStep(context, params.second, pfx + params.first, index);
+        index++;
+      }
+    }
+
+    return index;
   }
 
   void Layer::init(shared_ptr<Image> source)

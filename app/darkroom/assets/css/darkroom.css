@@ -5,6 +5,10 @@ body {
 	height: 99%;
 }
 
+body p {
+    color: #1b1c1d;
+}
+
 #layerContainer {
 	padding: 5px;
 	width: 30%;
@@ -313,7 +317,7 @@ body {
 }
 
 #imageContainer .segment {
-	height: calc(100% - 40px);
+	height: calc(100% - 50px);
 }
 
 #sampleContainer {
@@ -440,4 +444,22 @@ body {
 
 .clearBoth {
     clear: both;
+}
+
+#imgStatusBar {
+    display: block;
+    width: calc(100% - 10px);
+    height: 35px;
+    background-color: #767676;
+    border-radius: 6px;
+    font-size: 12pt;
+    padding: 3px 10px;
+    color: #FFFFFF;
+    position: absolute;
+    bottom: -15px;
+    z-index: 20;
+}
+
+#imgStatusBar .right.floated.buttons {
+    margin-left: 5px;
 }

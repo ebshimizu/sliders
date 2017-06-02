@@ -116,8 +116,24 @@ namespace Comp {
     void addLighterColorAdjustment(float r, float g, float b, float a);
     void addOverwriteColorAdjustment(float r, float g, float b, float a);
 
-    float evalCurve(string channel, float x);
-    RGBColor evalGradient(float x);
+    template <typename T>
+    inline T evalCurve(string channel, T x) {
+      if (_curves.count(channel) > 0) {
+        return _curves[channel].eval(x);
+      }
+
+      return x;
+    }
+
+    template <typename T>
+    inline typename Utils<T>::RGBColorT evalGradient(T x) {
+      if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
+        return _grad.eval(x);
+      }
+
+      return Utils<T>::RGBColorT();
+    }
+
     map<string, map<string, float>> getSelectiveColor();
     Gradient& getGradient();
 
@@ -126,6 +142,17 @@ namespace Comp {
 
     // photoshop typestring
     string _psType;
+
+    // By default we don't do anything with the _exp* fields. When generating the
+    // expression tree this function should be called on all layers in the context
+    // to convert all the adjustment values into expression variables
+    // returns the next available variable index
+    int prepExp(ExpContext& context, int start);
+
+    // For the expression context
+    map<AdjustmentType, map<string, ExpStep> > _expAdjustments;
+    map<string, map<string, ExpStep> > _expSelectiveColor;
+    ExpStep _expOpacity;
 
   private:
     // initializes default layer settings
@@ -146,7 +173,7 @@ namespace Comp {
     // the current composition. If adjustment is false, this layer itself has adjustments
     // and the adjustments apply to only this layer.
     map<AdjustmentType, map<string, float> > _adjustments;
-
+    
     // curves yay
     map<string, Curve> _curves;
 

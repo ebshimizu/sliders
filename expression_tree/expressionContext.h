@@ -61,13 +61,62 @@ struct ExpContext
 
 	void registerFunc(const string &functionName, int parameterCount, int resultCount)
 	{
-		int funcCount = (int)functions.size();
-		functions[functionName] = FunctionInfo(funcCount, parameterCount, resultCount);
+		int functionIndex = (int)functionList.size();
+		functionList.push_back(functionName);
+		functions[functionName] = FunctionInfo(functionIndex, parameterCount, resultCount);
+	}
+
+	vector<ExpStep> callFunc(const string &functionName, const ExpStep &p0)
+	{
+		vector<ExpStep> params;
+		params.push_back(p0);
+		return callFunc(functionName, params);
+	}
+
+	vector<ExpStep> callFunc(const string &functionName, const ExpStep &p0, const ExpStep &p1)
+	{
+		vector<ExpStep> params;
+		params.push_back(p0);
+		params.push_back(p1);
+		return callFunc(functionName, params);
+	}
+
+	vector<ExpStep> callFunc(const string &functionName, const ExpStep &p0, const ExpStep &p1, const ExpStep &p2)
+	{
+		vector<ExpStep> params;
+		params.push_back(p0);
+		params.push_back(p1);
+		params.push_back(p2);
+		return callFunc(functionName, params);
+	}
+
+	vector<ExpStep> callFunc(const string &functionName, const ExpStep &p0, const ExpStep &p1, const ExpStep &p2, const ExpStep &p3)
+	{
+		vector<ExpStep> params;
+		params.push_back(p0);
+		params.push_back(p1);
+		params.push_back(p2);
+		params.push_back(p3);
+		return callFunc(functionName, params);
 	}
 
 	vector<ExpStep> callFunc(const string &functionName, const vector<ExpStep> &params)
 	{
-		
+		if (functions.count(functionName) == 0)
+		{
+			cout << "Function not found: " << functionName << endl;
+		}
+		const FunctionInfo &info = functions[functionName];
+		ExpStepData callStepData = ExpStepData::makeFunctionCall(info.globalIndex, params);
+		addStep(callStepData);
+
+		vector<ExpStep> result;
+		for (int outputIndex = 0; outputIndex < info.resultCount; outputIndex++)
+		{
+			ExpStepData outputStepData = ExpStepData::makeFunctionOutput(callStepData.stepIndex, outputIndex);
+			result.push_back(addStep(outputStepData));
+		}
+		return result;
 	}
 
 	double eval() const
@@ -92,7 +141,15 @@ struct ExpContext
 		result.push_back(indent);
 		for (const ExpStepData &s : steps)
 		{
-			result.push_back(indent + s.toSourceCode(useFloat) + ";");
+			if (s.type == ExpStepType::functionCall)
+			{
+				for(const string &line : s.toSourceCode(*this, useFloat))
+					result.push_back(indent + line + ";");
+			}
+			else
+			{
+				result.push_back(indent + s.toSourceCode(useFloat) + ";");
+			}
 		}
 		result.push_back(indent);
 		result.push_back(indent + "return result;");
@@ -101,6 +158,7 @@ struct ExpContext
 	}
 
 	map<string, FunctionInfo> functions;
+	vector<string> functionList;
 	vector<ExpStepData> steps;
 	int parameterCount, resultCount;
 };

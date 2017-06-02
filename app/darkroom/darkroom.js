@@ -357,6 +357,7 @@ function initUI() {
         action: function (text, value, element) {
             setActiveConstraintLayer(value);
             $('#constraintLayerMenu .text').html(text);
+            $('#setConstraintLayerColor').css({ "background-color": g_constraintLayers[g_activeConstraintLayer].colorStr });
             $(this).dropdown('hide');
         }
     });
@@ -372,13 +373,70 @@ function initUI() {
         }
     });
 
+    $('#setConstraintLayerColor').click(function () {
+        if (g_activeConstraintLayer === null)
+            return;
+
+        if ($('#colorPicker').hasClass('hidden')) {
+            // move color picker to spot
+            var offset = $(this).offset();
+
+            var layer = g_constraintLayers[g_activeConstraintLayer];
+            cp.setColor({ "r": layer.color.r * 255, "g": layer.color.g * 255, "b": layer.color.b * 255 }, 'rgb');
+            cp.startRender();
+
+            if (offset.top + $(this).height() + $('#colorPicker').height() > $('body').height()) {
+                $('#colorPicker').css({ "left": offset.left, top: offset.top - $('#colorPicker').height() });
+            }
+            else {
+                $('#colorPicker').css({ "left": offset.left, top: offset.top + $(this).height() + 18 });
+            }
+
+            // assign callbacks to update proper color
+            cp.color.options.actionCallback = function (e, action) {
+                console.log(action);
+                if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+                    var color = cp.color.colors.rgb;
+                    layer.color.r = color.r;
+                    layer.color.g = color.g;
+                    layer.color.b = color.b;
+                    layer.colorStr = "#" + cp.color.colors.HEX;
+                    g_canvasUpdated = false;
+
+                    $('#setConstraintLayerColor').css({ "background-color": "#" + cp.color.colors.HEX });
+                }
+            };
+
+            $('#colorPicker').addClass('visible');
+            $('#colorPicker').removeClass('hidden');
+        }
+        else {
+            $('#colorPicker').addClass('hidden');
+            $('#colorPicker').removeClass('visible');
+        }
+    });
+
     $('#newConstraintLayer').click(function () {
         $('#newConstraintLayerModal').modal({
             onApprove: function () {
                 newConstraintLayer($('#newConstraintLayerModal input').val(), 0);
+                $('#newConstraintLayerModal input').val("");
             }
         });
         $('#newConstraintLayerModal').modal('show');
+    });
+
+    $('#deleteConstraintLayer').click(function () {
+        if (g_activeConstraintLayer === null)
+            return;
+
+        $('#deleteConstraintLayerModal .layerName').html(g_activeConstraintLayer);
+        $('#deleteConstraintLayerModal').modal({
+            onApprove: function () {
+                deleteConstraintLayer(g_activeConstraintLayer);
+            }
+        });
+        $('#deleteConstraintLayerModal').modal('show');
     });
 
     $('#mask-tools').hide();
@@ -2860,7 +2918,7 @@ const g_constraintModesStrings = {
 
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
-    g_constraintLayers[name] = { "name": name, "mode": mode, "color": "#FFFFFF", "active" : true };
+    g_constraintLayers[name] = { "name": name, "mode": mode, "colorStr": "#FFFFFF", "color": { "r": 1, "g": 1, "b": 1 }, "active" : true };
 
     // add to menu
     $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
@@ -2883,6 +2941,26 @@ function setConstraintLayerActive(active) {
 
 function setConstraintLayerMode(name, mode) {
     g_constraintLayers[name].mode = mode;
+}
+
+function deleteConstraintLayer(name) {
+    delete g_constraintLayers[name];
+
+    for (var p in g_paths) {
+        if (g_paths[p].layer === name) {
+            delete g_paths[p];
+        }
+    }
+
+    // remove from menus
+    $('#constraintLayerMenu .menu .item[data-value="' + name + '"]').remove();
+
+    if (g_activeConstraintLayer === name) {
+        g_activeConstraintLayer = null;
+        $('#constraintLayerMenu .text').html('[No Active Layer]');
+    }
+
+    g_canvasUpdated = false;
 }
 
 function initCanvas() {
@@ -2984,8 +3062,8 @@ function repaint() {
             continue;
 
         if (g_paths[p].mode == "mask") {
-            g_ctx.strokeStyle = layer.color;
-            g_ctx.fillStyle = layer.color;
+            g_ctx.strokeStyle = layer.colorStr;
+            g_ctx.fillStyle = layer.colorStr;
             g_ctx.globalCompositeOperation = "source-over";
         }
         else if (g_paths[p].mode == "erase") {

@@ -121,13 +121,13 @@
                         <div class="item" data-value="0">Color</div>
                     </div>
                 </div>
-                <div class="ui mini button">
+                <div class="ui mini button" id="setConstraintLayerColor">
                     Set Color
                 </div>
                 <div class="ui inverted green mini button" id="newConstraintLayer">
                     New
                 </div>
-                <div class="ui inverted red mini button">
+                <div class="ui inverted red mini button" id="deleteConstraintLayer">
                     Delete
                 </div>
                 <div class="ui right floated mini icon buttons">
@@ -349,7 +349,7 @@
         <div id="newConstraintLayerModal" class="ui modal">
             <div class="ui header">New Constraint Layer</div>
             <div class="content">
-                <div class="ui labeled input">
+                <div class="ui fluid labeled input">
                     <div class="ui label">Layer Name</div>
                     <input type="text" placeholder="Enter a Name" />
                 </div>
@@ -357,6 +357,16 @@
             <div class="actions">
                 <div class="ui red deny button">Cancel</div>
                 <div class="ui green positive button">Create</div>
+            </div>
+        </div>
+        <div id="deleteConstraintLayerModal" class="ui modal">
+            <div class="ui header">Delete Constraint Layer</div>
+            <div class="content">
+                <p>Are you sure you want to delete layer <span class="layerName"></span>?</p>
+            </div>
+            <div class="actions">
+                <div class="ui red deny button">No</div>
+                <div class="ui green positive button">Yes</div>
             </div>
         </div>
         <!-- END MESSAGES AND MISC CONTROLS -->

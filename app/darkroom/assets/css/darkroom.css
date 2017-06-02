@@ -5,6 +5,10 @@ body {
 	height: 99%;
 }
 
+body p {
+    color: #1b1c1d;
+}
+
 #layerContainer {
 	padding: 5px;
 	width: 30%;
@@ -444,13 +448,16 @@ body {
 
 #imgStatusBar {
     display: block;
-    width: 100%;
+    width: calc(100% - 10px);
     height: 35px;
     background-color: #767676;
     border-radius: 6px;
     font-size: 12pt;
     padding: 3px 10px;
     color: #FFFFFF;
+    position: absolute;
+    bottom: -15px;
+    z-index: 20;
 }
 
 #imgStatusBar .right.floated.buttons {

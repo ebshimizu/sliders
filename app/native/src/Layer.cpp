@@ -315,12 +315,12 @@ namespace Comp {
     int index = start;
     string pfx = "x_" + _name + "_";
 
-    _expOpacity = ExpStep(context, _opacity, pfx + "_opacity", index);
+    _expOpacity = context.registerParam(index, pfx + "_opacity", _opacity);
     index++;
 
     for (auto a : _adjustments) {
       for (auto params : a.second) {
-        _expAdjustments[a.first][params.first] = ExpStep(context, params.second, pfx + params.first, index);
+        _expAdjustments[a.first][params.first] = context.registerParam(index, pfx + params.first, params.second);
         index++;
       }
     }

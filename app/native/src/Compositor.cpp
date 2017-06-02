@@ -560,6 +560,13 @@ namespace Comp {
     // ok so here we want to build the expression context that represents the entire render pipeline
     ExpContext ctx;
 
+    // register functions
+    ctx.registerFunc("linearDodgeAlpha", 2, 1);
+    ctx.registerFunc("cvtT", 2, 1);
+    ctx.registerFunc("clamp", 3, 1);
+    ctx.registerFunc("RGBToHSL", 3, 3);
+    ctx.registerFunc("HSLToRGB", 3, 3);
+
     // create variables (they get stored in the layer and image structures)
     int index = 0;
     

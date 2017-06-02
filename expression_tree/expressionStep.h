@@ -68,25 +68,25 @@ struct ExpStep
 	}
 
 	// constant constructor
-	explicit ExpStep(double constantValue)
+	ExpStep(double constantValue)
 	{
 		init();
 		value = constantValue;
 	}
 
-	explicit ExpStep(int constantValue)
+	ExpStep(int constantValue)
 	{
 		init();
 		value = constantValue;
 	}
 
-	explicit ExpStep(unsigned int constantValue)
+	ExpStep(unsigned int constantValue)
 	{
 		init();
 		value = constantValue;
 	}
 
-	explicit ExpStep(float constantValue)
+	ExpStep(float constantValue)
 	{
 		init();
 		value = constantValue;

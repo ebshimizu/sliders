@@ -9,9 +9,18 @@ author: Evan Shimizu
 #include <vector>
 #include <map>
 #include <cmath>
-#include "../../../expression_tree/expressionContext.h"
+#include <iostream>
+#include <vector>
+#include <functional>
+#include <cassert>
+#include <string>
+#include <map>
+#include <algorithm>
+#include <fstream>
 
 using namespace std;
+
+#include "../../../expression_tree/expressionContext.h"
 
 namespace Comp {
   static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };
@@ -19,6 +28,12 @@ namespace Comp {
   template <typename T>
   inline T clamp(T val, T mn, T mx) {
     return (val > mx) ? mx : ((val < mn) ? mn : val);
+  }
+
+  template <>
+  inline ExpStep clamp(ExpStep val, ExpStep mn, ExpStep mx) {
+    vector<ExpStep> res = val.context->callFunc("clamp", val, mn, mx);
+    return res[0];
   }
 
   class Point {

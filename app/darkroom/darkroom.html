@@ -103,28 +103,28 @@
                 </div>
             </div>
             <div class="" id="imgStatusBar">
-                <div class="ui mini left labeled dropdown button">
+                <div class="ui mini left labeled dropdown button" id="constraintLayerMenu">
                     <div class="ui basic left label">
                         Constraint Layer
                     </div>
-                    <div class="ui mini button">Current Layer</div>
+                    <div class="ui mini button text">[No Active Layer]</div>
                     <div class="menu">
-                        <div class="item">Test</div>
+
                     </div>
                 </div>
-                <div class="ui mini left labeled dropdown button">
+                <div class="ui mini left labeled dropdown button" id="constraintModeMenu">
                     <div class="ui basic left label">
                         Constraint Mode
                     </div>
-                    <div class="ui mini button">Color</div>
+                    <div class="ui mini button text">Color</div>
                     <div class="menu">
-                        <div class="item">Color</div>
+                        <div class="item" data-value="0">Color</div>
                     </div>
                 </div>
                 <div class="ui mini button">
                     Set Color
                 </div>
-                <div class="ui inverted green mini button">
+                <div class="ui inverted green mini button" id="newConstraintLayer">
                     New
                 </div>
                 <div class="ui inverted red mini button">
@@ -344,6 +344,19 @@
                 <div class="ui basic ok inverted button">
                     Close
                 </div>
+            </div>
+        </div>
+        <div id="newConstraintLayerModal" class="ui modal">
+            <div class="ui header">New Constraint Layer</div>
+            <div class="content">
+                <div class="ui labeled input">
+                    <div class="ui label">Layer Name</div>
+                    <input type="text" placeholder="Enter a Name" />
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui red deny button">Cancel</div>
+                <div class="ui green positive button">Create</div>
             </div>
         </div>
         <!-- END MESSAGES AND MISC CONTROLS -->

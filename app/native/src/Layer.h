@@ -128,7 +128,7 @@ namespace Comp {
     template <typename T>
     inline typename Utils<T>::RGBColorT evalGradient(T x) {
       if (_adjustments.count(AdjustmentType::GRADIENT) > 0) {
-        return _grad.eval(x);
+        return _grad.eval<T>(x);
       }
 
       return Utils<T>::RGBColorT();

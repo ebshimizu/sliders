@@ -120,10 +120,10 @@ namespace Comp {
     class GradientT {
     public:
       GradientT() {}
-      GradientT(vector<float> x, vector<RGBColorT> colors) : _x(x), _colors(colors) {}
+      GradientT(vector<float> x, vector<RGBColor> colors) : _x(x), _colors(colors) {}
 
       vector<float> _x;
-      vector<RGBColorT> _colors;
+      vector<RGBColor> _colors;
 
       RGBColorT eval(T x);
     };
@@ -162,6 +162,18 @@ namespace Comp {
     }
 
     return hsl;
+  }
+
+  template<>
+  inline typename Utils<ExpStep>::HSLColorT Utils<ExpStep>::RGBToHSL(ExpStep r, ExpStep g, ExpStep b) {
+    vector<ExpStep> res = r.context->callFunc("RGBToHSL", r, g, b);
+
+    Utils<ExpStep>::HSLColorT c;
+    c._h = res[0];
+    c._s = res[1];
+    c._l = res[2];
+
+    return c;
   }
 
   template<typename T>
@@ -229,6 +241,18 @@ namespace Comp {
     return rgb;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Utils<ExpStep>::HSLToRGB(ExpStep h, ExpStep s, ExpStep l) {
+    vector<ExpStep> res = h.context->callFunc("HSLToRGB", h, s, l);
+
+    Utils<ExpStep>::RGBColorT c;
+    c._r = res[0];
+    c._g = res[1];
+    c._b = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline typename Utils<T>::RGBColorT Utils<T>::HSLToRGB(HSLColorT& c)
   {
@@ -293,6 +317,18 @@ namespace Comp {
     return rgb;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Utils<ExpStep>::HSYToRGB(ExpStep h, ExpStep s, ExpStep y) {
+    vector<ExpStep> res = h.context->callFunc("HSYToRGB", h, s, y);
+
+    Utils<ExpStep>::RGBColorT c;
+    c._r = res[0];
+    c._g = res[1];
+    c._b = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline typename Utils<T>::RGBColorT Utils<T>::HSYToRGB(HSYColorT & c)
   {
@@ -302,7 +338,7 @@ namespace Comp {
   template<typename T>
   inline typename Utils<T>::RGBColorT Utils<T>::CMYKToRGB(T c, T m, T y, T k)
   {
-    RGBColor rgb;
+    RGBColorT rgb;
 
     rgb._r = (1 - c) * (1 - k);
     rgb._g = (1 - m) * (1 - k);
@@ -349,6 +385,18 @@ namespace Comp {
     return rgb;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Utils<ExpStep>::LabToRGB(ExpStep L, ExpStep a, ExpStep b) {
+    vector<ExpStep> res = L.context->callFunc("LabToRGB", L, a, b);
+
+    Utils<ExpStep>::RGBColorT c;
+    c._r = res[0];
+    c._g = res[1];
+    c._b = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline typename Utils<T>::HSYColorT Utils<T>::RGBToHSY(T r, T g, T b)
   {
@@ -390,6 +438,19 @@ namespace Comp {
     return c;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::CMYKColorT Utils<ExpStep>::RGBToCMYK(ExpStep r, ExpStep g, ExpStep b) {
+    vector<ExpStep> res = r.context->callFunc("RGBToCMYK", r, g, b);
+
+    Utils<ExpStep>::CMYKColorT c;
+    c._c = res[0];
+    c._m = res[1];
+    c._y = res[2];
+    c._k = res[4];
+
+    return c;
+  }
+
   template<typename T>
   inline typename Utils<T>::CMYKColorT Utils<T>::RGBToCMYK(RGBColorT& c)
   {
@@ -403,6 +464,12 @@ namespace Comp {
       return 1.055 * pow(x, 1.0f / 2.4f) - 0.055;
     else
       return 12.92 * x;
+  }
+
+  template<>
+  inline ExpStep Utils<ExpStep>::rgbCompand(ExpStep x) {
+    vector<ExpStep> res = x.context->callFunc("rgbCompand", x);
+    return res[0];
   }
 
   template<typename T>

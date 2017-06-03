@@ -562,10 +562,28 @@ namespace Comp {
 
     // register functions
     ctx.registerFunc("linearDodgeAlpha", 2, 1);
+    ctx.registerFunc("overlay", 4, 1);
+    ctx.registerFunc("hardLight", 4, 1);
+    ctx.registerFunc("softLight", 4, 1);
+    ctx.registerFunc("linearBurn", 4, 1);
+    ctx.registerFunc("linearLight", 4, 1);
+    ctx.registerFunc("colorDodge", 4, 1);
+    ctx.registerFunc("color", 8, 3);
+    ctx.registerFunc("lighten", 4, 1);
+    ctx.registerFunc("darken", 4, 1);
+    ctx.registerFunc("pinLight", 4, 1);
     ctx.registerFunc("cvtT", 2, 1);
     ctx.registerFunc("clamp", 3, 1);
     ctx.registerFunc("RGBToHSL", 3, 3);
     ctx.registerFunc("HSLToRGB", 3, 3);
+    ctx.registerFunc("HSYToRGB", 3, 3);
+    ctx.registerFunc("LabToRGB", 3, 3);
+    ctx.registerFunc("RGBToCMYK", 3, 4);
+    ctx.registerFunc("rgbCompand", 1, 1);
+    ctx.registerFunc("selectiveColor", 9 * 4 + 3, 3);
+    ctx.registerFunc("colorBalanceAdjust", 12, 3);
+    ctx.registerFunc("photoFilter", 7, 3);
+    ctx.registerFunc("lighterColorizeAdjust", 7, 3);
 
     // create variables (they get stored in the layer and image structures)
     int index = 0;

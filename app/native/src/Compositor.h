@@ -516,6 +516,12 @@ namespace Comp {
     }
   }
 
+  template<>
+  inline ExpStep Compositor::overlay<ExpStep>(ExpStep a, ExpStep b, ExpStep alpha1, ExpStep alpha2) {
+    vector<ExpStep> res = a.context->callFunc("overlay", a, b, alpha1, alpha2);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::hardLight(T a, T b, T alpha1, T alpha2)
   {
@@ -525,6 +531,12 @@ namespace Comp {
     else {
       return b * (1 + alpha1) + a * (1 + alpha2) - alpha1 * alpha2 - 2 * a * b;
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::hardLight<ExpStep>(ExpStep a, ExpStep b, ExpStep alpha1, ExpStep alpha2) {
+    vector<ExpStep> res = a.context->callFunc("hardLight", a, b, alpha1, alpha2);
+    return res[0];
   }
 
   template<typename T>
@@ -544,6 +556,12 @@ namespace Comp {
     else {
       return normal(Dca, Sca, Da, Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::softLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("softLight", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -569,6 +587,12 @@ namespace Comp {
     return 0;
   }
 
+  template<>
+  inline ExpStep Compositor::colorDodge<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::linearBurn(T Dc, T Sc, T Da, T Sa)
   {
@@ -582,6 +606,12 @@ namespace Comp {
     return burn * Sa + Dc * (1 - Sa);
   }
 
+  template<>
+  inline ExpStep Compositor::linearBurn<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::linearLight(T Dc, T Sc, T Da, T Sa)
   {
@@ -591,6 +621,13 @@ namespace Comp {
     T light = Dc + 2 * Sc - 1;
     return light * Sa + Dc * (1 - Sa);
   }
+
+  template<>
+  inline ExpStep Compositor::linearLight<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
+    return res[0];
+  }
+
 
   template<typename T>
   inline typename Utils<T>::RGBColorT Compositor::color(typename Utils<T>::RGBColorT & dest, typename Utils<T>::RGBColorT & src, T Da, T Sa)
@@ -630,6 +667,29 @@ namespace Comp {
     return res;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Compositor::color<ExpStep>(typename Utils<ExpStep>::RGBColorT & dest,
+    typename Utils<ExpStep>::RGBColorT & src, ExpStep Da, ExpStep Sa)
+  {
+    vector<ExpStep> params;
+    params.push_back(dest._r);
+    params.push_back(dest._g);
+    params.push_back(dest._b);
+    params.push_back(src._r);
+    params.push_back(src._g);
+    params.push_back(src._b);
+    params.push_back(Da);
+    params.push_back(Sa);
+
+    vector<ExpStep> res = Da.context->callFunc("color", params);
+    Utils<ExpStep>::RGBColorT c;
+    c._r = res[0];
+    c._g = res[1];
+    c._b = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline T Compositor::lighten(T Dca, T Sca, T Da, T Sa)
   {
@@ -641,6 +701,12 @@ namespace Comp {
     }
   }
 
+  template<>
+  inline ExpStep Compositor::lighten<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("lighten", Dca, Sca, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::darken(T Dca, T Sca, T Da, T Sa)
   {
@@ -650,6 +716,12 @@ namespace Comp {
     else {
       return Sca + Dca * (1 - Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::darken<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("darken", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -664,6 +736,12 @@ namespace Comp {
     else {
       return lighten(Dca, 2 * (Sca - 0.5f), Da, Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::pinLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -729,30 +807,6 @@ namespace Comp {
     adjPx._b = c2._b;
   }
 
-  template<>
-  inline void Compositor::hslAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
-    ExpStep h = adj["hue"];
-    ExpStep s = adj["sat"];
-    ExpStep l = adj["light"];
-
-    vector<ExpStep> cx = adjPx._r.context->callFunc("RGBToHSL", adjPx._r, adjPx._g, adjPx._b);
-    Utils<ExpStep>::HSLColorT c;
-    c._h = cx[0];
-    c._s = cx[1];
-    c._l = cx[2];
-
-    // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
-    c._h = c._h + h;
-    c._s = c._s + s / 100.0f;
-    c._l = c._l + l / 100.0f;
-
-    // convert back
-    vector<ExpStep> c2 = c._h.context->callFunc("HSLToRGB", c._h, c._s, c._l);
-    adjPx._r = c2[0];
-    adjPx._g = c2[1];
-    adjPx._b = c2[2];
-  }
-
   template<typename T>
   inline void Compositor::levelsAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
@@ -772,7 +826,7 @@ namespace Comp {
   inline T Compositor::levels(T px, T inMin, T inMax, T gamma, T outMin, T outMax)
   {
     // input remapping
-    T out = min(max(px - inMin, 0.0f) / (inMax - inMin), 1.0f);
+    T out = min(max(px - inMin, (T)0.0f) / (inMax - inMin), (T)1.0f);
 
     // gamma correction
     out = pow(out, 1 / gamma);
@@ -899,7 +953,23 @@ namespace Comp {
 
   template<>
   inline void Compositor::selectiveColor<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj, Layer& l) {
+    // there are 9*4 + 3 params here
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
 
+    for (auto c : l._expSelectiveColor) {
+      for (auto p : c.second) {
+        params.push_back(p.second);
+      }
+    }
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("selectiveColor", params);
+
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>
@@ -919,6 +989,30 @@ namespace Comp {
     adjPx._r = clamp<T>(balanced._r, 0, 1);
     adjPx._g = clamp<T>(balanced._g, 0, 1);
     adjPx._b = clamp<T>(balanced._b, 0, 1);
+  }
+
+  template<>
+  inline void Compositor::colorBalanceAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["shadowR"]);
+    params.push_back(adj["shadowG"]);
+    params.push_back(adj["shadowB"]);
+    params.push_back(adj["midR"]);
+    params.push_back(adj["midG"]);
+    params.push_back(adj["midB"]);
+    params.push_back(adj["highR"]);
+    params.push_back(adj["highG"]);
+    params.push_back(adj["highB"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("colorBalanceAdjust", params);
+
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>
@@ -957,6 +1051,24 @@ namespace Comp {
     adjPx._r = clamp<T>(fr * d + adjPx._r * (1 - d), 0, 1);
     adjPx._g = clamp<T>(fg * d + adjPx._g * (1 - d), 0, 1);
     adjPx._b = clamp<T>(fb * d + adjPx._b * (1 - d), 0, 1);
+  }
+
+  template <>
+  inline void Compositor::photoFilterAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["density"]);
+    params.push_back(adj["r"]);
+    params.push_back(adj["g"]);
+    params.push_back(adj["b"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("photoFilter", params);
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>
@@ -1000,6 +1112,24 @@ namespace Comp {
     adjPx._r = clamp<T>(adjPx._r * a + adjPx._r * (1 - a), 0, 1);
     adjPx._g = clamp<T>(adjPx._g * a + adjPx._g * (1 - a), 0, 1);
     adjPx._b = clamp<T>(adjPx._b * a + adjPx._b * (1 - a), 0, 1);
+  }
+
+  template<>
+  inline void Compositor::lighterColorizeAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["r"]);
+    params.push_back(adj["g"]);
+    params.push_back(adj["b"]);
+    params.push_back(adj["a"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("lighterColorizeAdjust", params);
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>

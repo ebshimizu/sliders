@@ -11,4 +11,6 @@ c.addLayer("1", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/te
 c.addLayer("2", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/test_images/shapes/Rectangle 1.png")
 c.addLayer("3", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/test_images/shapes/Ellipse 2.png")
 
-c.startSearch(1, { "useVisibleLayersOnly": 1 }, 1, "");
+c.getLayer("2").opacity(50);
+
+c.computeExpContext(c.getContext(), 164, 139, "shapesTest");

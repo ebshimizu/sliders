@@ -119,13 +119,13 @@ namespace Comp {
     return c;
   }
 
-  int Image::initExp(ExpContext context, string name, int index, int pxPos)
+  int Image::initExp(ExpContext& context, string name, int index, int pxPos)
   {
     RGBAColor c = getPixel(pxPos);
-    _vars._r = ExpStep(context, c._r, name + "_r", index);
-    _vars._g = ExpStep(context, c._g, name + "_g", index + 1);
-    _vars._b = ExpStep(context, c._b, name + "_b", index + 2);
-    _vars._a = ExpStep(context, c._a, name + "_a", index + 3);
+    _vars._r = context.registerParam(index, name + "_r", c._r);
+    _vars._g = context.registerParam(index + 1, name + "_g", c._g);
+    _vars._b = context.registerParam(index + 2, name + "_b", c._b);
+    _vars._a = context.registerParam(index + 3, name + "_a", c._a);
 
     return index + 4;
   }

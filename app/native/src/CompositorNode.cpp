@@ -1105,6 +1105,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getContext", getContext);
   Nan::SetPrototypeMethod(tpl, "setContext", setContext);
   Nan::SetPrototypeMethod(tpl, "resetImages", resetImages);
+  Nan::SetPrototypeMethod(tpl, "computeExpContext", computeExpContext);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1622,6 +1623,64 @@ void CompositorWrapper::resetImages(const Nan::FunctionCallbackInfo<v8::Value>& 
   string name = string(*val0);
 
   c->_compositor->resetImages(name);
+}
+
+void CompositorWrapper::computeExpContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.computeExpContext");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("computeExpContext requires a context to evaluate");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  string size = "";
+
+  if (info[2]->IsString()) {
+    v8::String::Utf8Value val0(info[2]->ToString());
+    string funcName = string(*val0);
+    int px;
+
+    if (info[1]->IsInt32()) {
+      px = info[1]->Int32Value();
+    }
+    else {
+      Nan::ThrowError("computeExpContext requires a pixel index");
+    }
+
+    if (info[3]->IsString()) {
+      v8::String::Utf8Value val1(info[3]->ToString());
+      size = string(*val1);
+    }
+
+    c->_compositor->computeExpContext(ctx->_context, px, funcName, size);
+  }
+  else if (info[2]->IsInt32()) {
+    v8::String::Utf8Value val0(info[3]->ToString());
+    string funcName = string(*val0);
+    int x, y;
+
+    if (info[1]->IsInt32() && info[2]->IsInt32()) {
+      x = info[1]->Int32Value();
+      y = info[2]->Int32Value();
+    }
+    else {
+      Nan::ThrowError("computeExpContext requires an (x, y) pixel coordinate");
+    }
+
+    if (info[4]->IsString()) {
+      v8::String::Utf8Value val1(info[3]->ToString());
+      size = string(*val1);
+    }
+
+    c->_compositor->computeExpContext(ctx->_context, x, y, funcName, size);
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

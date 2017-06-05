@@ -119,7 +119,8 @@ namespace Comp {
     // resets images to full white alpha 1
     void resetImages(string name);
 
-    void computeExpContext(Context& c, int px, string size = "");
+    void computeExpContext(Context& c, int px, string functionName, string size = "");
+    void computeExpContext(Context& c, int x, int y, string functionName, string size = "");
 
   private:
     void addLayer(string name);
@@ -432,153 +433,6 @@ namespace Comp {
     return compPx;
   }
 
-  // specialization for exp step (pixel access different, attribute access different, etc)
-  template<>
-  inline typename Utils<ExpStep>::RGBAColorT Compositor::renderPixel<ExpStep>(Context & c, int i, string size)
-  {
-    // photoshop appears to start with all white alpha 0 image
-    Utils<ExpStep>::RGBAColorT compPx = { ExpStep(1.0), ExpStep(1.0), ExpStep(1.0), ExpStep(0.0) };
-
-    if (size == "") {
-      size = "full";
-    }
-
-    // blend the layers
-    for (auto id : _layerOrder) {
-      Layer& l = c[id];
-
-      if (!l._visible)
-        continue;
-
-      Utils<ExpStep>::RGBAColorT layerPx;
-
-      // handle adjustment layers
-      if (l.isAdjustmentLayer()) {
-        // ok so here we adjust the current composition, then blend it as normal below
-        // create duplicate of current composite
-        layerPx = adjustPixel<ExpStep>(compPx, l);
-      }
-      else if (l.getAdjustments().size() > 0) {
-        // so a layer may have other things clipped to it, in which case we apply the
-        // specified adjustment only to the source layer and the composite as normal
-        layerPx = adjustPixel<ExpStep>(_imageData[l.getName()][size]->getPixel(), l);
-      }
-      else {
-        layerPx = _imageData[l.getName()][size]->getPixel();
-      }
-
-      // blend the layer
-      // a = background, b = new layer
-      // alphas
-      ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
-      ExpStep aa = compPx._a;
-      ExpStep ad = aa + ab - aa * ab;
-
-      compPx._a = ad;
-
-      // premult colors
-      ExpStep rb = layerPx._r * ab;
-      ExpStep gb = layerPx._g * ab;
-      ExpStep bb = layerPx._b * ab;
-
-      ExpStep ra = compPx._r * aa;
-      ExpStep ga = compPx._g * aa;
-      ExpStep ba = compPx._b * aa;
-
-      // blend modes
-      if (l._mode == BlendMode::NORMAL) {
-        // b over a, standard alpha blend
-        compPx._r = cvtT(normal(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(normal(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(normal(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::MULTIPLY) {
-        compPx._r = cvtT(multiply(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(multiply(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(multiply(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::SCREEN) {
-        compPx._r = cvtT(screen(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(screen(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(screen(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::OVERLAY) {
-        compPx._r = cvtT(overlay(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(overlay(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(overlay(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::HARD_LIGHT) {
-        compPx._r = cvtT(hardLight(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(hardLight(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(hardLight(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::SOFT_LIGHT) {
-        compPx._r = cvtT(softLight(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(softLight(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(softLight(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::LINEAR_DODGE) {
-        // special override for alpha here
-        ad = (aa + ab > 1) ? 1 : (aa + ab);
-        compPx._a = ad;
-
-        compPx._r = cvtT(linearDodge(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(linearDodge(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(linearDodge(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::COLOR_DODGE) {
-        compPx._r = cvtT(colorDodge(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(colorDodge(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(colorDodge(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::LINEAR_BURN) {
-        // need unmultiplied colors for this one
-        compPx._r = cvtT(linearBurn(compPx._r, layerPx._r, aa, ab), ad);
-        compPx._g = cvtT(linearBurn(compPx._g, layerPx._g, aa, ab), ad);
-        compPx._b = cvtT(linearBurn(compPx._b, layerPx._b, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::LINEAR_LIGHT) {
-        compPx._r = cvtT(linearLight(compPx._r, layerPx._r, aa, ab), ad);
-        compPx._g = cvtT(linearLight(compPx._g, layerPx._g, aa, ab), ad);
-        compPx._b = cvtT(linearLight(compPx._b, layerPx._b, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::COLOR) {
-        // also no premult colors
-        RGBColor dest;
-        dest._r = compPx._r;
-        dest._g = compPx._g;
-        dest._b = compPx._b;
-
-        RGBColor src;
-        src._r = layerPx._r;
-        src._g = layerPx._g;
-        src._b = layerPx._b;
-
-        RGBColor res = color(dest, src, aa, ab);
-        compPx._r = cvtT(res._r, ad);
-        compPx._g = cvtT(res._g, ad);
-        compPx._b = cvtT(res._b, ad);
-      }
-      else if (l._mode == BlendMode::LIGHTEN) {
-        compPx._r = cvtT(lighten(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(lighten(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(lighten(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::DARKEN) {
-        compPx._r = cvtT(darken(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(darken(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(darken(ba, bb, aa, ab), ad);
-      }
-      else if (l._mode == BlendMode::PIN_LIGHT) {
-        compPx._r = cvtT(pinLight(ra, rb, aa, ab), ad);
-        compPx._g = cvtT(pinLight(ga, gb, aa, ab), ad);
-        compPx._b = cvtT(pinLight(ba, bb, aa, ab), ad);
-      }
-    }
-
-    return compPx;
-  }
-
   template <typename T>
   inline typename Utils<T>::RGBAColorT Compositor::renderPixel(Context & c, int x, int y, string size)
   {
@@ -626,6 +480,14 @@ namespace Comp {
     return (v > 1) ? 1 : (v < 0) ? 0 : v;
   }
 
+  template<>
+  inline ExpStep Compositor::cvtT(ExpStep px, ExpStep a)
+  {
+    ExpStep v = px / a;
+    vector<ExpStep> res = px.context->callFunc("cvtT", px, a);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::normal(T a, T b, T alpha1, T alpha2)
   {
@@ -655,6 +517,12 @@ namespace Comp {
     }
   }
 
+  template<>
+  inline ExpStep Compositor::overlay<ExpStep>(ExpStep a, ExpStep b, ExpStep alpha1, ExpStep alpha2) {
+    vector<ExpStep> res = a.context->callFunc("overlay", a, b, alpha1, alpha2);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::hardLight(T a, T b, T alpha1, T alpha2)
   {
@@ -664,6 +532,12 @@ namespace Comp {
     else {
       return b * (1 + alpha1) + a * (1 + alpha2) - alpha1 * alpha2 - 2 * a * b;
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::hardLight<ExpStep>(ExpStep a, ExpStep b, ExpStep alpha1, ExpStep alpha2) {
+    vector<ExpStep> res = a.context->callFunc("hardLight", a, b, alpha1, alpha2);
+    return res[0];
   }
 
   template<typename T>
@@ -683,6 +557,12 @@ namespace Comp {
     else {
       return normal(Dca, Sca, Da, Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::softLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("softLight", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -708,6 +588,12 @@ namespace Comp {
     return 0;
   }
 
+  template<>
+  inline ExpStep Compositor::colorDodge<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::linearBurn(T Dc, T Sc, T Da, T Sa)
   {
@@ -721,6 +607,12 @@ namespace Comp {
     return burn * Sa + Dc * (1 - Sa);
   }
 
+  template<>
+  inline ExpStep Compositor::linearBurn<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::linearLight(T Dc, T Sc, T Da, T Sa)
   {
@@ -730,6 +622,13 @@ namespace Comp {
     T light = Dc + 2 * Sc - 1;
     return light * Sa + Dc * (1 - Sa);
   }
+
+  template<>
+  inline ExpStep Compositor::linearLight<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
+    return res[0];
+  }
+
 
   template<typename T>
   inline typename Utils<T>::RGBColorT Compositor::color(typename Utils<T>::RGBColorT & dest, typename Utils<T>::RGBColorT & src, T Da, T Sa)
@@ -769,6 +668,29 @@ namespace Comp {
     return res;
   }
 
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Compositor::color<ExpStep>(typename Utils<ExpStep>::RGBColorT & dest,
+    typename Utils<ExpStep>::RGBColorT & src, ExpStep Da, ExpStep Sa)
+  {
+    vector<ExpStep> params;
+    params.push_back(dest._r);
+    params.push_back(dest._g);
+    params.push_back(dest._b);
+    params.push_back(src._r);
+    params.push_back(src._g);
+    params.push_back(src._b);
+    params.push_back(Da);
+    params.push_back(Sa);
+
+    vector<ExpStep> res = Da.context->callFunc("color", params);
+    Utils<ExpStep>::RGBColorT c;
+    c._r = res[0];
+    c._g = res[1];
+    c._b = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline T Compositor::lighten(T Dca, T Sca, T Da, T Sa)
   {
@@ -780,6 +702,12 @@ namespace Comp {
     }
   }
 
+  template<>
+  inline ExpStep Compositor::lighten<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("lighten", Dca, Sca, Da, Sa);
+    return res[0];
+  }
+
   template<typename T>
   inline T Compositor::darken(T Dca, T Sca, T Da, T Sa)
   {
@@ -789,6 +717,12 @@ namespace Comp {
     else {
       return Sca + Dca * (1 - Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::darken<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("darken", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -803,6 +737,12 @@ namespace Comp {
     else {
       return lighten(Dca, 2 * (Sca - 0.5f), Da, Sa);
     }
+  }
+
+  template<>
+  inline ExpStep Compositor::pinLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
+    vector<ExpStep> res = Dca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
+    return res[0];
   }
 
   template<typename T>
@@ -857,9 +797,9 @@ namespace Comp {
     Utils<T>::HSLColorT c = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
 
     // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
-    c._h += h;
-    c._s += s / 100.0f;
-    c._l += l / 100.0f;
+    c._h = c._h + h;
+    c._s = c._s + s / 100.0f;
+    c._l = c._l + l / 100.0f;
 
     // convert back
     Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);
@@ -871,23 +811,23 @@ namespace Comp {
   template<typename T>
   inline void Compositor::levelsAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
-    // so sometimes these values are missing and we should use defaults.
-    T inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
-    T inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
-    T gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
-    T outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
-    T outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+    // all of these keys should exist. if they don't there could be problems...
+    T inMin = adj["inMin"];
+    T inMax = adj["inMax"];
+    T gamma = adj["gamma"];
+    T outMin = adj["outMin"];
+    T outMax = adj["outMax"];
 
-    adjPx._r = clamp<T>(levels(adjPx._r, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
-    adjPx._g = clamp<T>(levels(adjPx._g, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
-    adjPx._b = clamp<T>(levels(adjPx._b, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0, 1);
+    adjPx._r = clamp<T>(levels(adjPx._r, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
+    adjPx._g = clamp<T>(levels(adjPx._g, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
+    adjPx._b = clamp<T>(levels(adjPx._b, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
   }
 
   template<typename T>
   inline T Compositor::levels(T px, T inMin, T inMax, T gamma, T outMin, T outMax)
   {
     // input remapping
-    T out = min(max(px - inMin, 0.0f) / (inMax - inMin), 1.0f);
+    T out = min(max(px - inMin, (T)0.0f) / (inMax - inMin), (T)1.0f);
 
     // gamma correction
     out = pow(out, 1 / gamma);
@@ -896,6 +836,21 @@ namespace Comp {
     out = out * (outMax - outMin) + outMin;
 
     return out;
+  }
+
+  template <>
+  inline ExpStep Compositor::levels<ExpStep>(ExpStep px, ExpStep inMin, ExpStep inMax, ExpStep gamma, ExpStep outMin, ExpStep outMax) {
+    vector<ExpStep> args;
+    args.push_back(px);
+    args.push_back(inMin);
+    args.push_back(inMax);
+    args.push_back(gamma);
+    args.push_back(outMin);
+    args.push_back(outMax);
+
+    vector<ExpStep> res = px.context->callFunc("levels", args);
+
+    return res[0];
   }
 
   template<typename T>
@@ -1012,6 +967,27 @@ namespace Comp {
     adjPx._b = clamp<T>(res._b, 0, 1);
   }
 
+  template<>
+  inline void Compositor::selectiveColor<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj, Layer& l) {
+    // there are 9*4 + 3 params here
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    for (auto c : l._expSelectiveColor) {
+      for (auto p : c.second) {
+        params.push_back(p.second);
+      }
+    }
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("selectiveColor", params);
+
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
+  }
+
   template<typename T>
   inline void Compositor::colorBalanceAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
@@ -1029,6 +1005,30 @@ namespace Comp {
     adjPx._r = clamp<T>(balanced._r, 0, 1);
     adjPx._g = clamp<T>(balanced._g, 0, 1);
     adjPx._b = clamp<T>(balanced._b, 0, 1);
+  }
+
+  template<>
+  inline void Compositor::colorBalanceAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["shadowR"]);
+    params.push_back(adj["shadowG"]);
+    params.push_back(adj["shadowB"]);
+    params.push_back(adj["midR"]);
+    params.push_back(adj["midG"]);
+    params.push_back(adj["midB"]);
+    params.push_back(adj["highR"]);
+    params.push_back(adj["highG"]);
+    params.push_back(adj["highB"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("colorBalanceAdjust", params);
+
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>
@@ -1067,6 +1067,24 @@ namespace Comp {
     adjPx._r = clamp<T>(fr * d + adjPx._r * (1 - d), 0, 1);
     adjPx._g = clamp<T>(fg * d + adjPx._g * (1 - d), 0, 1);
     adjPx._b = clamp<T>(fb * d + adjPx._b * (1 - d), 0, 1);
+  }
+
+  template <>
+  inline void Compositor::photoFilterAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["density"]);
+    params.push_back(adj["r"]);
+    params.push_back(adj["g"]);
+    params.push_back(adj["b"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("photoFilter", params);
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
   }
 
   template<typename T>
@@ -1112,6 +1130,24 @@ namespace Comp {
     adjPx._b = clamp<T>(adjPx._b * a + adjPx._b * (1 - a), 0, 1);
   }
 
+  template<>
+  inline void Compositor::lighterColorizeAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+    vector<ExpStep> params;
+    params.push_back(adjPx._r);
+    params.push_back(adjPx._g);
+    params.push_back(adjPx._b);
+
+    params.push_back(adj["r"]);
+    params.push_back(adj["g"]);
+    params.push_back(adj["b"]);
+    params.push_back(adj["a"]);
+
+    vector<ExpStep> res = adjPx._r.context->callFunc("lighterColorizeAdjust", params);
+    adjPx._r = res[0];
+    adjPx._g = res[1];
+    adjPx._b = res[2];
+  }
+
   template<typename T>
   inline void Compositor::overwriteColorAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
@@ -1145,6 +1181,199 @@ namespace Comp {
       img[i * 4 + 1] = (unsigned char)(layerPx._g * 255);
       img[i * 4 + 2] = (unsigned char)(layerPx._b * 255);
     }
+  }
+
+  template<>
+  inline typename Utils<ExpStep>::RGBAColorT Compositor::adjustPixel<ExpStep>(typename Utils<ExpStep>::RGBAColorT comp, Layer & l)
+  {
+    for (auto type : l.getAdjustments()) {
+      if (type == AdjustmentType::HSL) {
+        hslAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::LEVELS) {
+        levelsAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::CURVES) {
+        curvesAdjust(comp, l._expAdjustments[type], l);
+      }
+      else if (type == AdjustmentType::EXPOSURE) {
+        exposureAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::GRADIENT) {
+        gradientMap(comp, l._expAdjustments[type], l);
+      }
+      else if (type == AdjustmentType::SELECTIVE_COLOR) {
+        selectiveColor(comp, l._expAdjustments[type], l);
+      }
+      else if (type == AdjustmentType::COLOR_BALANCE) {
+        colorBalanceAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::PHOTO_FILTER) {
+        photoFilterAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::COLORIZE) {
+        colorizeAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::LIGHTER_COLORIZE) {
+        lighterColorizeAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::OVERWRITE_COLOR) {
+        overwriteColorAdjust(comp, l._expAdjustments[type]);
+      }
+    }
+
+    return comp;
+  }
+
+  // specialization for exp step (pixel access different, attribute access different, etc)
+  template<>
+  inline typename Utils<ExpStep>::RGBAColorT Compositor::renderPixel<ExpStep>(Context & c, int i, string size)
+  {
+    // photoshop appears to start with all white alpha 0 image
+    Utils<ExpStep>::RGBAColorT compPx = { ExpStep(1.0), ExpStep(1.0), ExpStep(1.0), ExpStep(0.0) };
+
+    if (size == "") {
+      size = "full";
+    }
+
+    // blend the layers
+    for (auto id : _layerOrder) {
+      Layer& l = c[id];
+
+      if (!l._visible)
+        continue;
+
+      Utils<ExpStep>::RGBAColorT layerPx;
+
+      // handle adjustment layers
+      if (l.isAdjustmentLayer()) {
+        // ok so here we adjust the current composition, then blend it as normal below
+        // create duplicate of current composite
+        layerPx = adjustPixel<ExpStep>(compPx, l);
+      }
+      else if (l.getAdjustments().size() > 0) {
+        // so a layer may have other things clipped to it, in which case we apply the
+        // specified adjustment only to the source layer and the composite as normal
+        layerPx = adjustPixel<ExpStep>(_imageData[l.getName()][size]->getPixel(), l);
+      }
+      else {
+        layerPx = _imageData[l.getName()][size]->getPixel();
+      }
+
+      // blend the layer
+      // a = background, b = new layer
+      // alphas
+      ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
+      ExpStep aa = compPx._a;
+      aa.context = layerPx._a.context;
+      ExpStep ad = aa + ab - aa * ab;
+
+      compPx._a = ad;
+
+      // premult colors
+      ExpStep rb = layerPx._r * ab;
+      ExpStep gb = layerPx._g * ab;
+      ExpStep bb = layerPx._b * ab;
+
+      ExpStep ra = compPx._r * aa;
+      ExpStep ga = compPx._g * aa;
+      ExpStep ba = compPx._b * aa;
+
+      // blend modes
+      if (l._mode == BlendMode::NORMAL) {
+        // b over a, standard alpha blend
+        compPx._r = cvtT(normal(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(normal(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(normal(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::MULTIPLY) {
+        compPx._r = cvtT(multiply(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(multiply(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(multiply(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SCREEN) {
+        compPx._r = cvtT(screen(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(screen(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(screen(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::OVERLAY) {
+        compPx._r = cvtT(overlay(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(overlay(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(overlay(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::HARD_LIGHT) {
+        compPx._r = cvtT(hardLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(hardLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(hardLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SOFT_LIGHT) {
+        compPx._r = cvtT(softLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(softLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(softLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_DODGE) {
+        // special override for alpha here
+
+        //linearDodgeAlpha(aa, ab) = { return (aa + ab > 1) ? 1 : (aa + ab); }
+        vector<ExpStep> res = aa.context->callFunc("linearDodgeAlpha", aa, ab);
+        ad = res[0];
+        compPx._a = ad;
+
+        compPx._r = cvtT(linearDodge(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(linearDodge(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(linearDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR_DODGE) {
+        compPx._r = cvtT(colorDodge(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(colorDodge(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(colorDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_BURN) {
+        // need unmultiplied colors for this one
+        compPx._r = cvtT(linearBurn(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtT(linearBurn(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtT(linearBurn(compPx._b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_LIGHT) {
+        compPx._r = cvtT(linearLight(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtT(linearLight(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtT(linearLight(compPx._b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR) {
+        // also no premult colors
+        Utils<ExpStep>::RGBColorT dest;
+        dest._r = compPx._r;
+        dest._g = compPx._g;
+        dest._b = compPx._b;
+
+        Utils<ExpStep>::RGBColorT src;
+        src._r = layerPx._r;
+        src._g = layerPx._g;
+        src._b = layerPx._b;
+
+        Utils<ExpStep>::RGBColorT res = color(dest, src, aa, ab);
+        compPx._r = cvtT(res._r, ad);
+        compPx._g = cvtT(res._g, ad);
+        compPx._b = cvtT(res._b, ad);
+      }
+      else if (l._mode == BlendMode::LIGHTEN) {
+        compPx._r = cvtT(lighten(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(lighten(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(lighten(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::DARKEN) {
+        compPx._r = cvtT(darken(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(darken(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(darken(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::PIN_LIGHT) {
+        compPx._r = cvtT(pinLight(ra, rb, aa, ab), ad);
+        compPx._g = cvtT(pinLight(ga, gb, aa, ab), ad);
+        compPx._b = cvtT(pinLight(ba, bb, aa, ab), ad);
+      }
+    }
+
+    return compPx;
   }
 }
 

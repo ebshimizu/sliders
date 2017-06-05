@@ -119,7 +119,8 @@ namespace Comp {
     // resets images to full white alpha 1
     void resetImages(string name);
 
-    void computeExpContext(Context& c, int px, string size = "");
+    void computeExpContext(Context& c, int px, string functionName, string size = "");
+    void computeExpContext(Context& c, int x, int y, string functionName, string size = "");
 
   private:
     void addLayer(string name);
@@ -837,6 +838,21 @@ namespace Comp {
     return out;
   }
 
+  template <>
+  inline ExpStep Compositor::levels<ExpStep>(ExpStep px, ExpStep inMin, ExpStep inMax, ExpStep gamma, ExpStep outMin, ExpStep outMax) {
+    vector<ExpStep> args;
+    args.push_back(px);
+    args.push_back(inMin);
+    args.push_back(inMax);
+    args.push_back(gamma);
+    args.push_back(outMin);
+    args.push_back(outMax);
+
+    vector<ExpStep> res = px.context->callFunc("levels", args);
+
+    return res[0];
+  }
+
   template<typename T>
   inline void Compositor::curvesAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
   {
@@ -1249,6 +1265,7 @@ namespace Comp {
       // alphas
       ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
       ExpStep aa = compPx._a;
+      aa.context = layerPx._a.context;
       ExpStep ad = aa + ab - aa * ab;
 
       compPx._a = ad;

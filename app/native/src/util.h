@@ -113,20 +113,23 @@ namespace Comp {
     static CMYKColorT RGBToCMYK(RGBColorT& c);
 
     static T rgbCompand(T x);
+  };
 
-    // very simple linear interpolation of gradients.
-    // does not handle the complicated parts of gradient creation in PS
-    // (like the midpoint)
-    class GradientT {
-    public:
-      GradientT() {}
-      GradientT(vector<float> x, vector<RGBColor> colors) : _x(x), _colors(colors) {}
+  typedef Utils<float>::RGBColorT RGBColor;
 
-      vector<float> _x;
-      vector<RGBColor> _colors;
+  // very simple linear interpolation of gradients.
+  // does not handle the complicated parts of gradient creation in PS
+  // (like the midpoint)
+  class Gradient {
+  public:
+    Gradient() {}
+    Gradient(vector<float> x, vector<RGBColor> colors) : _x(x), _colors(colors) {}
 
-      RGBColorT eval(T x);
-    };
+    vector<float> _x;
+    vector<RGBColor> _colors;
+
+    template<typename T>
+    inline typename Utils<T>::RGBColorT eval(T x);
   };
 
   template<typename T>
@@ -412,6 +415,19 @@ namespace Comp {
     return c2;
   }
 
+  template <>
+  inline typename Utils<ExpStep>::HSYColorT Utils<ExpStep>::RGBToHSY(ExpStep r, ExpStep g, ExpStep b)
+  {
+    vector<ExpStep> res = r.context->callFunc("RGBToHSY", r, g, b);
+
+    Utils<ExpStep>::HSYColorT c;
+    c._h = res[0];
+    c._s = res[1];
+    c._y = res[2];
+
+    return c;
+  }
+
   template<typename T>
   inline typename Utils<T>::HSYColorT Utils<T>::RGBToHSY(RGBColorT& c)
   {
@@ -511,17 +527,30 @@ namespace Comp {
     return p;
   }
 
+  // specialization. Unsure how to handle uneven intervals without conditionals,
+  // so this actually just returns x. (linear)
+  template<>
+  inline ExpStep Curve::eval(ExpStep x) {
+    return x;
+  }
+
   template<typename T>
-  typename Utils<T>::RGBColorT Utils<T>::GradientT::eval(T x)
+  inline typename Utils<T>::RGBColorT Gradient::eval(T x)
   {
     if (_x.size() == 0)
-      return RGBColorT();
+      return Utils<T>::RGBColorT();
 
     int k = -1;
 
     // sometimes there will be nothing at x = 0 so clamp to nearest
     if (x < _x[0]) {
-      return _colors[0];
+      RGBColor c = _colors[0];
+      Utils<T>::RGBColorT ret;
+
+      ret._r = c._r;
+      ret._g = c._g;
+      ret._b = c._b;
+      return ret;
     }
 
     // determine interval
@@ -534,15 +563,21 @@ namespace Comp {
 
     // if k wasn't ever assigned, clamp to last seen y
     if (k == -1) {
-      return _colors[_x.size() - 1];
+      RGBColor c = _colors[_x.size() - 1];
+      Utils<T>::RGBColorT ret;
+
+      ret._r = c._r;
+      ret._g = c._g;
+      ret._b = c._b;
+      return ret;
     }
 
     // linear interpolation
     T a = (x - _x[k]) / (_x[k + 1] - _x[k]);
-    RGBColorT c1 = _colors[k];
-    RGBColorT c2 = _colors[k + 1];
+    RGBColor c1 = _colors[k];
+    RGBColor c2 = _colors[k + 1];
 
-    RGBColorT c;
+    Utils<T>::RGBColorT c;
     c._r = c1._r * (1 - a) + c2._r * a;
     c._g = c1._g * (1 - a) + c2._g * a;
     c._b = c1._b * (1 - a) + c2._b * a;
@@ -550,10 +585,25 @@ namespace Comp {
     return c;
   }
 
-  typedef Utils<float>::RGBColorT RGBColor;
+  //this also has a problem with uneven intervals, for now we'll interpolate between first
+  // and last colors, as that should handle most gradients
+  template<>
+  inline typename Utils<ExpStep>::RGBColorT Gradient::eval<ExpStep>(ExpStep x) {
+    // linear interpolation
+    ExpStep a = (x - _x[0]) / (_x[_x.size() - 1] - _x[0]);
+    RGBColor c1 = _colors[0];
+    RGBColor c2 = _colors[_x.size() - 1];
+
+    Utils<ExpStep>::RGBColorT c;
+    c._r = c1._r * (1 - a) + c2._r * a;
+    c._g = c1._g * (1 - a) + c2._g * a;
+    c._b = c1._b * (1 - a) + c2._b * a;
+
+    return c;
+  }
+
   typedef Utils<float>::RGBAColorT RGBAColor;
   typedef Utils<float>::CMYKColorT CMYKColor;
   typedef Utils<float>::HSLColorT HSLColor;
   typedef Utils<float>::HSYColorT HSYColor;
-  typedef Utils<float>::GradientT Gradient;
 }

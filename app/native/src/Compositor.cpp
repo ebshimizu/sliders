@@ -1,7 +1,7 @@
 #include "Compositor.h"
 
 namespace Comp {
-  Compositor::Compositor()
+  Compositor::Compositor() : _searchRunning(false)
   {
   }
 
@@ -555,8 +555,12 @@ namespace Comp {
       img.second->reset(1, 1, 1);
   }
 
-  void Compositor::computeExpContext(Context & c, int px, string size)
+  void Compositor::computeExpContext(Context & c, int px, string functionName, string size)
   {
+    if (size == "") {
+      size = "full";
+    }
+
     // ok so here we want to build the expression context that represents the entire render pipeline
     ExpContext ctx;
 
@@ -579,6 +583,8 @@ namespace Comp {
     ctx.registerFunc("HSYToRGB", 3, 3);
     ctx.registerFunc("LabToRGB", 3, 3);
     ctx.registerFunc("RGBToCMYK", 3, 4);
+    ctx.registerFunc("RGBToHSY", 3, 3);
+    ctx.registerFunc("levels", 6, 1);
     ctx.registerFunc("rgbCompand", 1, 1);
     ctx.registerFunc("selectiveColor", 9 * 4 + 3, 3);
     ctx.registerFunc("colorBalanceAdjust", 12, 3);
@@ -590,7 +596,7 @@ namespace Comp {
     
     for (auto l : c) {
       // create layer pixel vars
-      index = l.second.getImage()->initExp(ctx, l.first, index, px);
+      index = _imageData[l.first][size]->initExp(ctx, l.first, index, px);
 
       // create layer adjustment vars
       index = l.second.prepExp(ctx, index);
@@ -598,6 +604,36 @@ namespace Comp {
 
     // get the result
     Utils<ExpStep>::RGBAColorT res = renderPixel<ExpStep>(c, px, size);
+
+    ctx.registerResult(res._r, 0);
+    ctx.registerResult(res._g, 1);
+    ctx.registerResult(res._b, 2);
+    ctx.registerResult(res._a, 3);
+
+    vector<string> sc = ctx.toSourceCode(functionName, false);
+    ofstream file(functionName + ".txt");
+    for (auto &s : sc) {
+      file << s << endl;
+    }
+  }
+
+  void Compositor::computeExpContext(Context & c, int x, int y, string functionName, string size)
+  {
+    int width, height;
+
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
+    }
+    else {
+      getLogger()->log("No render size named " + size + " found. Using full size.", LogLevel::WARN);
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
+    }
+
+    int index = clamp(x, 0, width) + clamp(y, 0, height) * width;
+
+    computeExpContext(c, index, functionName, size);
   }
 
   void Compositor::addLayer(string name)

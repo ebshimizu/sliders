@@ -325,13 +325,16 @@ namespace Comp {
       }
     }
 
-    // selective color
-    vector<string> channels = { "reds", "yellows", "greens", "cyans", "blues", "magentas", "neutrals", "blacks", "whites" };
-    vector<string> params = { "cyan", "magenta", "yellow", "black" };
+    if (_adjustments.count(SELECTIVE_COLOR) > 0) {
+      // selective color
+      vector<string> channels = { "reds", "yellows", "greens", "cyans", "blues", "magentas", "neutrals", "blacks", "whites" };
+      vector<string> params = { "cyan", "magenta", "yellow", "black" };
 
-    for (auto c : channels) {
-      for (auto p : params) {
-        _expSelectiveColor[c][p] = context.registerParam(index, pfx + "sc_" + c + "_" + p, _selectiveColor[c][p]);
+      for (auto c : channels) {
+        for (auto p : params) {
+          _expSelectiveColor[c][p] = context.registerParam(index, pfx + "sc_" + c + "_" + p, _selectiveColor[c][p]);
+          index++;
+        }
       }
     }
 

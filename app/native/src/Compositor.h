@@ -1265,7 +1265,6 @@ namespace Comp {
       // alphas
       ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
       ExpStep aa = compPx._a;
-      aa.context = layerPx._a.context;
       ExpStep ad = aa + ab - aa * ab;
 
       compPx._a = ad;

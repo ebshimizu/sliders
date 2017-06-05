@@ -13,4 +13,4 @@ c.addLayer("3", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/te
 
 c.getLayer("2").opacity(50);
 
-c.computeExpContext(c.getContext(), 164, 139, "shapesTest");
+c.computeExpContext(c.getContext(), 164, 139, "compTest");

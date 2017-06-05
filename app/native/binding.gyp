@@ -19,6 +19,8 @@
 		        "src/Layer.cpp",
 		        "src/util.h",
 		        "src/util.cpp",
+				"src/testHarness.h",
+				"src/testHarness.cpp",
 				"../../expression_tree/expressionContext.h"
 			],
 			"include_dirs" : [

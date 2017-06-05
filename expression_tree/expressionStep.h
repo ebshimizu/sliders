@@ -132,7 +132,7 @@ struct ExpStepData
 	static ExpStepData makeParameter(const string &paramName, double defaultValue, int _parameterIndex);
 
 	// result constructor
-	static ExpStepData makeResult(int stepIndex, int resultIndex);
+	static ExpStepData makeResult(const string &resultName, int stepIndex, int resultIndex);
 
 	static ExpStepData makeFunctionCall(int functionIndex, const vector<ExpStep> &parameters);
 
@@ -209,11 +209,11 @@ struct ExpStepData
 		}
 		else if (type == ExpStepType::parameter)
 		{
-			return assignment + "params[" + to_string(parameterIndex) + "]";
+			return assignment + "params[" + to_string(parameterIndex) + "]; // " + name;
 		}
 		else if (type == ExpStepType::result)
 		{
-			return "result[" + to_string(resultIndex) + "] = s" + to_string(operand0Step);
+			return "result[" + to_string(resultIndex) + "] = s" + to_string(operand0Step) + "; // " + name;
 		}
 		else if (type == ExpStepType::unaryOp)
 		{
@@ -247,6 +247,7 @@ struct ExpStepData
 	// valid for variables
 	int parameterIndex;
 	int resultIndex;
+	string name;
 
 	// valid for functions
 	int functionIndex;

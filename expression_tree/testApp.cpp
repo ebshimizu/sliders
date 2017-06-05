@@ -73,7 +73,7 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 		//ExpStep vE = x0E + x1E;
 
 		ExpStep vE = funcE(x0E, x1E);
-		context.registerResult(vE, 0);
+		context.registerResult(vE, 0, "output0");
 		//ExpStep vEOut2 = ExpStep(x0E, 1);
 		//ExpStep vEOut3 = ExpStep(x1E, 2);
 

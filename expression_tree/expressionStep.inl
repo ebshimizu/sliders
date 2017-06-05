@@ -153,15 +153,17 @@ inline ExpStepData ExpStepData::makeParameter(const string &paramName, double de
 	result.type = ExpStepType::parameter;
 	result.value = defaultValue;
 	result.parameterIndex = _parameterIndex;
+	result.name = paramName;
 	return result;
 }
 
-inline ExpStepData ExpStepData::makeResult(int stepIndex, int resultIndex)
+inline ExpStepData ExpStepData::makeResult(const string &resultName, int stepIndex, int resultIndex)
 {
 	ExpStepData result;
 	result.type = ExpStepType::result;
 	result.operand0Step = stepIndex;
 	result.resultIndex = resultIndex;
+	result.name = resultName;
 	return result;
 }
 

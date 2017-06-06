@@ -564,7 +564,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::softLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("softLight", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("softLight", Dca, Sca, Da, Sa);
     return res[0];
   }
 

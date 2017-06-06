@@ -9,6 +9,10 @@ used to call the functions)
 namespace Comp {
   // Functions for the compTest to actually use
   vector<double> cvtT(vector<double> params);
+  vector<double> overlay(vector<double> params);
+  vector<double> hardLight(vector<double> params);
+  vector<double> softLight(vector<double> params);
+  vector<double> linearDodgeAlpha(vector<double> params);
 
   // test function
   vector<double> compTest(const vector<double> &params);

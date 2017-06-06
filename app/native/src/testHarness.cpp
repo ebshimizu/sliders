@@ -20,6 +20,67 @@ vector<double> cvtT(vector<double> params)
   return res;
 }
 
+vector<double> overlay(vector<double> params)
+{
+  double a = params[0];
+  double b = params[1];
+  double alpha1 = params[2];
+  double alpha2 = params[3];
+
+  if (2 * a <= alpha1) {
+    return { b * a * 2 + b * (1 - alpha1) + a * (1 - alpha2) };
+  }
+  else {
+    return { b * (1 + alpha1) + a * (1 + alpha2) - 2 * a * b - alpha1 * alpha2 };
+  }
+}
+
+vector<double> hardLight(vector<double> params)
+{
+  double a = params[0];
+  double b = params[1];
+  double alpha1 = params[2];
+  double alpha2 = params[3];
+
+  if (2 * b <= alpha2) {
+    return { 2 * b * a + b * (1 - alpha1) + a * (1 - alpha2) };
+  }
+  else {
+    return { b * (1 + alpha1) + a * (1 + alpha2) - alpha1 * alpha2 - 2 * a * b };
+  }
+}
+
+vector<double> softLight(vector<double> params)
+{
+  double Dca = params[0];
+  double Sca = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  double m = (Da == 0) ? 0 : Dca / Da;
+
+  if (2 * Sca <= Sa) {
+    return { Dca * (Sa + (2 * Sca - Sa) * (1 - m)) + Sca * (1 - Da) + Dca * (1 - Sa) };
+  }
+  else if (2 * Sca > Sa && 4 * Dca <= Da) {
+    return { Da * (2 * Sca - Sa) * (16 * m * m * m - 12 * m * m - 3 * m) + Sca - Sca * Da + Dca };
+  }
+  else if (2 * Sca > Sa && 4 * Dca > Da) {
+    return { Da * (2 * Sca - Sa) * (sqrt(m) - m) + Sca - Sca * Da + Dca };
+  }
+  else {
+    return { Sca + Dca * (1 - Sa) };
+  }
+}
+
+vector<double> linearDodgeAlpha(vector<double> params)
+{
+  double aa = params[0];
+  double ab = params[1];
+
+  return { (aa + ab > 1) ?  1 : (aa + ab) };
+}
+
   // This function must be used on full size images
 double compare(Compositor* c, int x, int y) {
   int width, height;

@@ -1423,7 +1423,7 @@ function addAdjustmentToLayer(name, adjType) {
         c.getLayer(name).colorBalance(false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
     else if (adjType === 7) {
-        c.getLayer(name).addPhotoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
+        c.getLayer(name).photoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
     }
     else if (adjType === 8) {
         c.getLayer(name).colorize(1, 1, 1, 1);
@@ -3028,8 +3028,10 @@ function canvasMousemove(e, elem) {
 }
 
 function canvasMouseup(e, elem) {
-    if (settings.maskTool === "rect") {
-        g_paths[g_pathIndex].finished = true;
+    if (g_isPainting) {
+        if (settings.maskTool === "rect") {
+            g_paths[g_pathIndex].finished = true;
+        }
     }
 
     g_isPainting = false;

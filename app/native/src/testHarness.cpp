@@ -224,6 +224,45 @@ vector<double> pinLight(vector<double> params)
   }
 }
 
+vector<double> RGBToHSL(vector<double> params)
+{
+  auto res = Utils<double>::RGBToHSL(params[0], params[1], params[2]);
+
+  return { res._h, res._s, res._l };
+}
+
+vector<double> HSLToRGB(vector<double> params)
+{
+  auto res = Utils<double>::HSLToRGB(params[0], params[1], params[2]);
+  return { res._r, res._g, res._b };
+}
+
+vector<double> levels(vector<double> params)
+{
+  double px = params[0];
+  double inMin = params[1];
+  double inMax = params[2];
+  double gamma = params[3];
+  double outMin = params[4];
+  double outMax = params[5];
+
+  // input remapping
+  double out = min(max(px - inMin, 0.0) / (inMax - inMin), 1.0);
+
+  // gamma correction
+  out = pow(out, 1 / gamma);
+
+  // output remapping
+  out = out * (outMax - outMin) + outMin;
+
+  return { out };
+}
+
+vector<double> clamp(vector<double> params)
+{
+  return { clamp<double>(params[0], params[1], params[2]) };
+}
+
   // This function must be used on full size images
 double compare(Compositor* c, int x, int y) {
   int width, height;

@@ -20,6 +20,10 @@ namespace Comp {
   vector<double> color(vector<double> params);
   vector<double> darken(vector<double> params);
   vector<double> pinLight(vector<double> params);
+  vector<double> RGBToHSL(vector<double> params);
+  vector<double> HSLToRGB(vector<double> params);
+  vector<double> levels(vector<double> params);
+  vector<double> clamp(vector<double> params);
 
   // test function
   vector<double> compTest(const vector<double> &params);

@@ -1719,27 +1719,29 @@ function importLayers(doc, path) {
             else if (type === "SELECTIVECOLOR") {
                 adjustment = metadata[layerName].SELECTIVECOLOR;
  
-                var relative = (adjustment.method === "relative") ? true : false;
+                var relative = (adjustment.method === "absolute") ? false : true;
                 colors = adjustment.colorCorrection;
                 var sc = {};
 
-                for (i = 0; i < colors.length; i++) {
-                    var name;
-                    var adjust = {};
+                if (colors !== undefined) {
+                    for (i = 0; i < colors.length; i++) {
+                        var name;
+                        var adjust = {};
 
-                    for (var id in colors[i]) {
-                        if (id === "colors") {
-                            name = colors[i][id];
+                        for (var id in colors[i]) {
+                            if (id === "colors") {
+                                name = colors[i][id];
+                            }
+                            else if (id === "yellowColor") {
+                                adjust.yellow = colors[i][id].value / 100;
+                            }
+                            else {
+                                adjust[id] = colors[i][id].value / 100;
+                            }
                         }
-                        else if (id === "yellowColor") {
-                            adjust.yellow = colors[i][id].value / 100;
-                        }
-                        else {
-                            adjust[id] = colors[i][id].value / 100;
-                        }
+
+                        sc[name] = adjust;
                     }
-
-                    sc[name] = adjust;
                 }
 
                 c.getLayer(layerName).selectiveColor(relative, sc);

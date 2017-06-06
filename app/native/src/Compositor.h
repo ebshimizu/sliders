@@ -900,8 +900,6 @@ namespace Comp {
   template<typename T>
   inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
   {
-    // !!! TODO: SELECTIVE COLOR HAS A SEPARATE MAP THAT ALSO NEEDS TO BE TEMPLATED TO GET THE RIGHT
-    // PARAMETERS IN THE RIGHT PLACE
     map<string, map<string, float>> data = l.getSelectiveColor();
 
     // convert to hsl
@@ -939,12 +937,12 @@ namespace Comp {
     wc = chroma / 1.0f;
 
     // hue - always 60 deg intervals
-    w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
+    w1 = 1 - ((hslColor._h - (interval * 60.0f)) / 60.0f);  // distance from low interval
     w2 = 1 - w1;
 
     // luma - measure distance from midtones, w3 is always midtone
     w3 = 1 - abs(hslColor._l - 0.5f);
-    w4 = w3 - 1;
+    w4 = 1 - w3;
 
     // do the adjustment
     Utils<T>::CMYKColorT cmykColor = Utils<T>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);

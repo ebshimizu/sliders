@@ -149,6 +149,8 @@ namespace Comp {
     // returns the next available variable index
     int prepExp(ExpContext& context, int start);
 
+    void prepExpParams(vector<double>& params);
+
     // For the expression context
     map<AdjustmentType, map<string, ExpStep> > _expAdjustments;
     map<string, map<string, ExpStep> > _expSelectiveColor;

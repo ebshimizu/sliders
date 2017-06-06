@@ -13,4 +13,8 @@ c.addLayer("3", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/te
 
 c.getLayer("2").opacity(50);
 
-c.computeExpContext(c.getContext(), 164, 139, "compTest");
+//c.computeExpContext(c.getContext(), 164, 139, "compTest");
+c.render().save("test.png");
+
+// expected: 0, 0, 0, 0
+test.runAllTest(c, "results.png");

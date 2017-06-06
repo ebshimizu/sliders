@@ -16,6 +16,10 @@ namespace Comp {
   vector<double> linearBurn(vector<double> params);
   vector<double> colorDodge(vector<double> params);
   vector<double> linearLight(vector<double> params);
+  vector<double> lighten(vector<double> params);
+  vector<double> color(vector<double> params);
+  vector<double> darken(vector<double> params);
+  vector<double> pinLight(vector<double> params);
 
   // test function
   vector<double> compTest(const vector<double> &params);

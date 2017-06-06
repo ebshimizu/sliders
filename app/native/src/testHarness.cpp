@@ -132,6 +132,98 @@ vector<double> linearLight(vector<double> params)
   return { light * Sa + Dc * (1 - Sa) };
 }
 
+vector<double> lighten(vector<double> params)
+{
+  double Dca = params[0];
+  double Sca = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Sca > Dca) {
+    return { Sca + Dca * (1 - Sa) };
+  }
+  else {
+    return { Dca + Sca * (1 - Da) };
+  }
+}
+
+vector<double> color(vector<double> params)
+{
+  Utils<double>::RGBColorT src, dest;
+  dest._r = params[0];
+  dest._g = params[1];
+  dest._b = params[2];
+  src._r = params[3];
+  src._g = params[4];
+  src._b = params[5];
+  double Da = params[6];
+  double Sa = params[7];
+
+  if (Da == 0) {
+    src._r *= Sa;
+    src._g *= Sa;
+    src._b *= Sa;
+
+    return { src._r, src._g, src._b };
+  }
+
+  if (Sa == 0) {
+    dest._r *= Da;
+    dest._g *= Da;
+    dest._b *= Da;
+
+    return { dest._r, dest._g, dest._b };
+  }
+
+  // color keeps dest luma and keeps top hue and chroma
+  Utils<double>::HSYColorT dc = Utils<double>::RGBToHSY(dest);
+  Utils<double>::HSYColorT sc = Utils<double>::RGBToHSY(src);
+  dc._h = sc._h;
+  dc._s = sc._s;
+
+  Utils<double>::RGBColorT res = Utils<double>::HSYToRGB(dc);
+
+  // actually have to blend here...
+  res._r = res._r * Sa + dest._r * Da * (1 - Sa);
+  res._g = res._g * Sa + dest._g * Da * (1 - Sa);
+  res._b = res._b * Sa + dest._b * Da * (1 - Sa);
+
+  return { res._r, res._g, res._b };
+}
+
+vector<double> darken(vector<double> params)
+{
+  double Dca = params[0];
+  double Sca = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Sca > Dca) {
+    return { Dca + Sca * (1 - Da) };
+  }
+  else {
+    return { Sca + Dca * (1 - Sa) };
+  }
+}
+
+vector<double> pinLight(vector<double> params)
+{
+  double Dca = params[0];
+  double Sca = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Da == 0)
+    return { Sca };
+
+  if (Sca < 0.5f) {
+    return darken({ Dca, Sca * 2, Da, Sa });
+  }
+  else {
+    return lighten({ Dca, 2 * (Sca - 0.5f), Da, Sa });
+  }
+}
+
   // This function must be used on full size images
 double compare(Compositor* c, int x, int y) {
   int width, height;

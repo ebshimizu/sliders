@@ -801,8 +801,8 @@ namespace Comp {
 
     // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
     c._h = c._h + h;
-    c._s = c._s + s / 100.0f;
-    c._l = c._l + l / 100.0f;
+    c._s = c._s + (s / 100.0f);
+    c._l = c._l + (l / 100.0f);
 
     // convert back
     Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);

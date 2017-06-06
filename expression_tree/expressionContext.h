@@ -110,12 +110,22 @@ struct ExpContext
 
 	vector<ExpStep> callFunc(const string &functionName, const vector<ExpStep> &params)
 	{
+		vector<ExpStep> fixedParams = params;
+
+		for (int i = 0; i < params.size(); i++)
+		{
+			if (params[i].context == nullptr)
+			{
+				fixedParams[i] = registerConstant(params[i].value);
+			}
+		}
+
 		if (functions.count(functionName) == 0)
 		{
 			cout << "Function not found: " << functionName << endl;
 		}
 		const FunctionInfo &info = functions[functionName];
-		ExpStepData callStepData = ExpStepData::makeFunctionCall(info.globalIndex, params);
+		ExpStepData callStepData = ExpStepData::makeFunctionCall(info.globalIndex, fixedParams);
 		addStep(callStepData);
 
 		vector<ExpStep> result;

@@ -12,13 +12,16 @@ namespace Comp {
 vector<double> cvtT(vector<double> params)
 {
   vector<double> res;
+  if (params[1] == 0)
+    return { 0 };
+
   double v = params[0] / params[1];
   res.push_back((v > 1) ? 1 : (v < 0) ? 0 : v);
   return res;
 }
 
   // This function must be used on full size images
-bool compare(Compositor* c, int x, int y) {
+double compare(Compositor* c, int x, int y) {
   int width, height;
 
   width = c->getLayer(0).getImage()->getWidth();
@@ -27,7 +30,7 @@ bool compare(Compositor* c, int x, int y) {
   int index = clamp(x, 0, width) + clamp(y, 0, height) * width;
 
   Context ctx = c->getNewContext();
-  
+
   // to actually test this we need to give the compTest function the parameters in the same order 
   // they were created in.
   vector<double> params;
@@ -48,19 +51,17 @@ bool compare(Compositor* c, int x, int y) {
 
   // the test harness result
   vector<double> res = compTest(params);
+  double l2 = sqrt(pow(pix._r - res[0], 2) + pow(pix._g - res[1], 2) + pow(pix._b - res[2], 2) + pow(pix._a - res[3], 2));
 
   stringstream ss;
-  ss << "Test Results for (" << x << "," << y <<")\n";
+  ss << "Test Results for (" << x << "," << y << ")\n";
+  ss << "L2 Error: " << l2 << endl;
   ss << "Render: (" << pix._r << "," << pix._g << "," << pix._b << "," << pix._a << ")\n";
   ss << "Generated Func: (" << res[0] << "," << res[1] << "," << res[2] << "," << res[3] << ")\n";
 
   getLogger()->log(ss.str());
 
-  // lets compare in int space
-  return ((int)(pix._r * 255) == (int)res[0] &&
-    (int)(pix._g * 255) == (int)res[1] &&
-    (int)(pix._b * 255) == (int)res[2] &&
-    (int)(pix._a * 255) == (int)res[3]);
+  return l2;
 }
 
 void compareAll(Compositor* c, string filename) {
@@ -76,18 +77,12 @@ void compareAll(Compositor* c, string filename) {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       int index = x + y * width;
-      if (compare(c, x, y)) {
-        data[index * 4] = 0;
-        data[index * 4 + 1] = 255;
-        data[index * 4 + 2] = 0;
-        data[index * 4 + 3] = 255;
-      }
-      else {
-        data[index * 4] = 255;
-        data[index * 4 + 1] = 0;
-        data[index * 4 + 2] = 0;
-        data[index * 4 + 3] = 255;
-      }
+      double err = compare(c, x, y);
+
+      data[index * 4] = 255 * err;
+      data[index * 4 + 1] = 0;
+      data[index * 4 + 2] = 0;
+      data[index * 4 + 3] = 255;
     }
   }
   

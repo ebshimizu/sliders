@@ -476,6 +476,10 @@ namespace Comp {
   template<typename T>
   inline T Compositor::cvtT(T px, T a)
   {
+    // 0 alpha special case
+    if (a == 0)
+      return 0;
+
     T v = px / a;
     return (v > 1) ? 1 : (v < 0) ? 0 : v;
   }
@@ -483,7 +487,6 @@ namespace Comp {
   template<>
   inline ExpStep Compositor::cvtT(ExpStep px, ExpStep a)
   {
-    ExpStep v = px / a;
     vector<ExpStep> res = px.context->callFunc("cvtT", px, a);
     return res[0];
   }
@@ -1265,7 +1268,6 @@ namespace Comp {
       // alphas
       ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
       ExpStep aa = compPx._a;
-      aa.context = layerPx._a.context;
       ExpStep ad = aa + ab - aa * ab;
 
       compPx._a = ad;

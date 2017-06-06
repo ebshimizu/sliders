@@ -9,6 +9,7 @@ author: Evan Shimizu
 #include "Image.h"
 #include "Compositor.h"
 #include "util.h"
+#include "testHarness.h"
 
 #include <nan.h>
 
@@ -21,6 +22,8 @@ void log(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void setLogLocation(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void setLogLevel(const Nan::FunctionCallbackInfo<v8::Value>& info);
 void hardware_concurrency(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void runTest(const Nan::FunctionCallbackInfo<v8::Value>& info);
+void runAllTest(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
 class ImageWrapper : public Nan::ObjectWrap {
 public:
@@ -120,6 +123,7 @@ class CompositorWrapper : public Nan::ObjectWrap {
 public:
   static void Init(v8::Local<v8::Object> exports);
 
+  Comp::Compositor* _compositor;
 private:
   explicit CompositorWrapper();
   ~CompositorWrapper();
@@ -149,8 +153,6 @@ private:
   static void resetImages(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void computeExpContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
-
-  Comp::Compositor* _compositor;
 };
 
 class RenderWorker : public Nan::AsyncWorker {

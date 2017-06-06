@@ -6,8 +6,19 @@
 //
 inline ExpStep operator + (const ExpStep &a, const ExpStep &b)
 {
-  ExpContext *context = (a.context != nullptr) ? a.context : b.context;
-	return context->addStep( ExpStepData(ExpOpType::add, a.stepIndex, b.stepIndex) );
+  if (a.context == nullptr && b.context == nullptr) {
+    return ExpStep(a.value + b.value);
+  }
+  if (a.context == nullptr) {
+    ExpStep aStep = b.context->registerConstant(a.value);
+    return aStep + b;
+  }
+  if (b.context == nullptr) {
+    ExpStep bStep = a.context->registerConstant(b.value);
+    return a + bStep;
+  }
+
+	return a.context->addStep( ExpStepData(ExpOpType::add, a.stepIndex, b.stepIndex) );
 }
 
 inline ExpStep operator + (const ExpStep &a, double b)
@@ -27,8 +38,19 @@ inline ExpStep operator + (double a, const ExpStep &b)
 //
 inline ExpStep operator * (const ExpStep &a, const ExpStep &b)
 {
-  ExpContext *context = (a.context != nullptr) ? a.context : b.context;
-  return context->addStep(ExpStepData(ExpOpType::multiply, a.stepIndex, b.stepIndex));
+  if (a.context == nullptr && b.context == nullptr) {
+    return ExpStep(a.value * b.value);
+  }
+  if (a.context == nullptr) {
+    ExpStep aStep = b.context->registerConstant(a.value);
+    return aStep * b;
+  }
+  if (b.context == nullptr) {
+    ExpStep bStep = a.context->registerConstant(b.value);
+    return a * bStep;
+  }
+
+  return a.context->addStep(ExpStepData(ExpOpType::multiply, a.stepIndex, b.stepIndex));
 }
 
 inline ExpStep operator * (const ExpStep &a, double b)
@@ -48,8 +70,19 @@ inline ExpStep operator * (double a, const ExpStep &b)
 //
 inline ExpStep operator - (const ExpStep &a, const ExpStep &b)
 {
-  ExpContext *context = (a.context != nullptr) ? a.context : b.context;
-	return context->addStep(ExpStepData(ExpOpType::subtract, a.stepIndex, b.stepIndex));
+  if (a.context == nullptr && b.context == nullptr) {
+    return ExpStep(a.value - b.value);
+  }
+  if (a.context == nullptr) {
+    ExpStep aStep = b.context->registerConstant(a.value);
+    return aStep - b;
+  }
+  if (b.context == nullptr) {
+    ExpStep bStep = a.context->registerConstant(b.value);
+    return a - bStep;
+  }
+
+	return a.context->addStep(ExpStepData(ExpOpType::subtract, a.stepIndex, b.stepIndex));
 }
 
 inline ExpStep operator - (const ExpStep &a, double b)
@@ -69,8 +102,19 @@ inline ExpStep operator - (double a, const ExpStep &b)
 //
 inline ExpStep operator / (const ExpStep &a, const ExpStep &b)
 {
-  ExpContext *context = (a.context != nullptr) ? a.context : b.context;
-	return context->addStep(ExpStepData(ExpOpType::divide, a.stepIndex, b.stepIndex));
+  if (a.context == nullptr && b.context == nullptr) {
+    return ExpStep(a.value / b.value);
+  }
+  if (a.context == nullptr) {
+    ExpStep aStep = b.context->registerConstant(a.value);
+    return aStep / b;
+  }
+  if (b.context == nullptr) {
+    ExpStep bStep = a.context->registerConstant(b.value);
+    return a / bStep;
+  }
+
+	a.context->addStep(ExpStepData(ExpOpType::divide, a.stepIndex, b.stepIndex));
 }
 
 inline ExpStep operator / (const ExpStep &a, double b)

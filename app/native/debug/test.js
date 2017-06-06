@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 function inherits(target, source) {
   for (var k in source.prototype)
     target.prototype[k] = source.prototype[k];
@@ -13,4 +15,10 @@ c.addLayer("3", "C:/Users/eshimizu/Dropbox/Documents/research/sliders_project/te
 
 c.getLayer("2").opacity(50);
 
-c.computeExpContext(c.getContext(), 164, 139, "shapesTest");
+//c.computeExpContext(c.getContext(), 164, 139, "compTest");
+//fs.createReadStream('compTest.cpp').pipe(fs.createWriteStream('../src/compTest.cpp'));
+
+//c.render().save("test.png");
+
+test.runAllTest(c, "results.png");
+//test.runTest(c, 150, 150);

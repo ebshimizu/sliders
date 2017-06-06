@@ -341,6 +341,29 @@ namespace Comp {
     return index;
   }
 
+  void Layer::prepExpParams(vector<double>& params)
+  {
+    params.push_back(_opacity);
+
+    for (auto a : _adjustments) {
+      for (auto p : a.second) {
+        params.push_back(p.second);
+      }
+    }
+
+    if (_adjustments.count(SELECTIVE_COLOR) > 0) {
+      // selective color
+      vector<string> channels = { "reds", "yellows", "greens", "cyans", "blues", "magentas", "neutrals", "blacks", "whites" };
+      vector<string> names = { "cyan", "magenta", "yellow", "black" };
+
+      for (auto c : channels) {
+        for (auto p : names) {
+          params.push_back(_selectiveColor[c][p]);
+        }
+      }
+    }
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

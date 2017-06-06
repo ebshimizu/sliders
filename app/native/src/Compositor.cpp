@@ -605,13 +605,13 @@ namespace Comp {
     // get the result
     Utils<ExpStep>::RGBAColorT res = renderPixel<ExpStep>(c, px, size);
 
-    ctx.registerResult(res._r, 0);
-    ctx.registerResult(res._g, 1);
-    ctx.registerResult(res._b, 2);
-    ctx.registerResult(res._a, 3);
+    ctx.registerResult(res._r, 0, "R");
+    ctx.registerResult(res._g, 1, "G");
+    ctx.registerResult(res._b, 2, "B");
+    ctx.registerResult(res._a, 3, "A");
 
     vector<string> sc = ctx.toSourceCode(functionName, false);
-    ofstream file(functionName + ".txt");
+    ofstream file(functionName + ".cpp");
     for (auto &s : sc) {
       file << s << endl;
     }

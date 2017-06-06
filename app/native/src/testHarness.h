@@ -13,6 +13,9 @@ namespace Comp {
   vector<double> hardLight(vector<double> params);
   vector<double> softLight(vector<double> params);
   vector<double> linearDodgeAlpha(vector<double> params);
+  vector<double> linearBurn(vector<double> params);
+  vector<double> colorDodge(vector<double> params);
+  vector<double> linearLight(vector<double> params);
 
   // test function
   vector<double> compTest(const vector<double> &params);

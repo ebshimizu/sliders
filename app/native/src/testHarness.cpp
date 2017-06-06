@@ -81,6 +81,57 @@ vector<double> linearDodgeAlpha(vector<double> params)
   return { (aa + ab > 1) ?  1 : (aa + ab) };
 }
 
+vector<double> linearBurn(vector<double> params)
+{
+  double Dc = params[0];
+  double Sc = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Da == 0)
+    return { Sc };
+
+  double burn = Dc + Sc - 1;
+
+  // normal blend
+  return { burn * Sa + Dc * (1 - Sa) };
+}
+
+vector<double> colorDodge(vector<double> params)
+{
+  double Dca = params[0];
+  double Sca = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Sca == Sa && Dca == 0) {
+    return { Sca * (1 - Da) };
+  }
+  else if (Sca == Sa) {
+    return { Sa * Da + Sca * (1 - Da) + Dca * (1 - Sa) };
+  }
+  else if (Sca < Sa) {
+    return { Sa * Da * min(1.0, Dca / Da * Sa / (Sa - Sca)) + Sca * (1 - Da) + Dca * (1 - Sa) };
+  }
+
+  // probably never get here but compiler is yelling at me
+  return { 0 };
+}
+
+vector<double> linearLight(vector<double> params)
+{
+  double Dc = params[0];
+  double Sc = params[1];
+  double Da = params[2];
+  double Sa = params[3];
+
+  if (Da == 0)
+    return { Sc };
+
+  double light = Dc + 2 * Sc - 1;
+  return { light * Sa + Dc * (1 - Sa) };
+}
+
   // This function must be used on full size images
 double compare(Compositor* c, int x, int y) {
   int width, height;
@@ -140,7 +191,7 @@ void compareAll(Compositor* c, string filename) {
       int index = x + y * width;
       double err = compare(c, x, y);
 
-      data[index * 4] = 255 * err;
+      data[index * 4] = (unsigned char)(255 * err * 100);
       data[index * 4 + 1] = 0;
       data[index * 4 + 2] = 0;
       data[index * 4 + 3] = 255;

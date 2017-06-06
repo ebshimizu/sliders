@@ -593,7 +593,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::colorDodge<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -612,7 +612,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::linearBurn<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
+    vector<ExpStep> res = Sc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
     return res[0];
   }
 
@@ -628,7 +628,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::linearLight<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
+    vector<ExpStep> res = Sc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
     return res[0];
   }
 
@@ -685,7 +685,7 @@ namespace Comp {
     params.push_back(Da);
     params.push_back(Sa);
 
-    vector<ExpStep> res = Da.context->callFunc("color", params);
+    vector<ExpStep> res = Sa.context->callFunc("color", params);
     Utils<ExpStep>::RGBColorT c;
     c._r = res[0];
     c._g = res[1];
@@ -707,7 +707,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::lighten<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("lighten", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("lighten", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -724,7 +724,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::darken<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("darken", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("darken", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -744,7 +744,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::pinLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
     return res[0];
   }
 

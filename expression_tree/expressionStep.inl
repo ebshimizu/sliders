@@ -114,7 +114,7 @@ inline ExpStep operator / (const ExpStep &a, const ExpStep &b)
     return a / bStep;
   }
 
-	a.context->addStep(ExpStepData(ExpOpType::divide, a.stepIndex, b.stepIndex));
+	return a.context->addStep(ExpStepData(ExpOpType::divide, a.stepIndex, b.stepIndex));
 }
 
 inline ExpStep operator / (const ExpStep &a, double b)

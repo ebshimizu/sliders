@@ -191,11 +191,12 @@ inline ExpStepData::ExpStepData(ExpOpType _op, int _operand0Step)
 	operand0Step = _operand0Step;
 }
 
-inline ExpStepData ExpStepData::makeParameter(const string &paramName, double defaultValue, int _parameterIndex)
+inline ExpStepData ExpStepData::makeParameter(const string &paramName, double defaultValue, int _parameterSlot, int _parameterIndex)
 {
 	ExpStepData result;
 	result.type = ExpStepType::parameter;
 	result.value = defaultValue;
+	result.parameterSlot = _parameterSlot;
 	result.parameterIndex = _parameterIndex;
 	result.name = paramName;
 	return result;

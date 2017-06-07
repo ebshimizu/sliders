@@ -26,7 +26,6 @@ struct ExpContext
 
 	ExpContext()
 	{
-		parameterCount = 0;
 		resultCount = 0;
 	}
 
@@ -37,11 +36,10 @@ struct ExpContext
 		return ExpStep(this, newStep.stepIndex);
 	}
 
-	ExpStep registerParam(int paramIndex, string paramName, double unusedDefaultValue = numeric_limits<double>::max())
+	ExpStep registerParam(int paramSlot, int paramIndex, string paramName, double unusedDefaultValue = numeric_limits<double>::max())
 	{
-		ExpStepData step = ExpStepData::makeParameter(paramName, unusedDefaultValue, parameterCount);
+		ExpStepData step = ExpStepData::makeParameter(paramName, unusedDefaultValue, paramSlot, paramIndex);
 		addStep(step);
-		parameterCount = max(parameterCount, paramIndex + 1);
 		return ExpStep(this, step.stepIndex);
 	}
 
@@ -153,7 +151,7 @@ struct ExpContext
 		const string indent = "    ";
 		const string vectorType = "vector<" + floatType + ">";
 		vector<string> result;
-		result.push_back(vectorType + " " + functionName + "(const " + vectorType + " &params)");
+		result.push_back(vectorType + " " + functionName + "(const " + vectorType + " &paramsA, const " + vectorType + " &paramsB)");
 		result.push_back("{");
 		result.push_back(indent + vectorType + " result(" + to_string(resultCount) + ");");
 		result.push_back(indent);
@@ -178,7 +176,7 @@ struct ExpContext
 	map<string, FunctionInfo> functions;
 	vector<string> functionList;
 	vector<ExpStepData> steps;
-	int parameterCount, resultCount;
+	int resultCount;
 };
 
 #include "expressionStep.inl"

@@ -69,3 +69,8 @@ expression_tree/x64/*
 app/native/debug/compositor.log
 /ceres
 /expression_tree/Release
+/ceres_harness/*.opendb
+/ceres_harness/*.db
+/ceres_harness/.vs/ceresHarness/v14/*.suo
+/ceres_harness/x64/Release
+/ceres_harness/x64/Debug

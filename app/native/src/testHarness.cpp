@@ -1,14 +1,14 @@
 #include "Compositor.h"
-#include "testHarness.h"
 #include "ceresFunctions.h"
+#include "testHarness.h"
 
 namespace Comp {
+
+#include "compTest.h"
 
 // ! Here the generated function is called. For testing purposes, this framework will
 // assume a fixed name for the function being called
 // Name is required to be: compTest()
-
-#include "compTest.cpp"
 
   // This function must be used on full size images
 double compare(Compositor* c, int x, int y) {
@@ -23,24 +23,25 @@ double compare(Compositor* c, int x, int y) {
 
   // to actually test this we need to give the compTest function the parameters in the same order 
   // they were created in.
-  vector<double> params;
+  vector<double> paramsA;
+  vector<double> paramsB;
 
   for (auto l : ctx) {
     // layer colors
     auto p = l.second.getImage()->getPixel(index);
-    params.push_back(p._r);
-    params.push_back(p._g);
-    params.push_back(p._b);
-    params.push_back(p._a);
+    paramsA.push_back(p._r);
+    paramsA.push_back(p._g);
+    paramsA.push_back(p._b);
+    paramsA.push_back(p._a);
 
-    l.second.prepExpParams(params);
+    l.second.prepExpParams(paramsB);
   }
 
   // the rendered pixel
   RGBAColor pix = c->renderPixel<float>(ctx, index);
 
   // the test harness result
-  vector<double> res = compTest(params);
+  vector<double> res = compTest(paramsA, paramsB);
   double l2 = sqrt(pow(pix._r - res[0], 2) + pow(pix._g - res[1], 2) + pow(pix._b - res[2], 2) + pow(pix._a - res[3], 2));
 
   stringstream ss;

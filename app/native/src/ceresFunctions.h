@@ -1,4 +1,5 @@
 #include "Compositor.h"
+#pragma once
 
 namespace Comp {
   // Functions for the compTest to actually use

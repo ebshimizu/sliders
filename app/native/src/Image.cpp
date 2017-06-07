@@ -20,7 +20,13 @@ namespace Comp {
     _h = h;
 
     string decoded = base64_decode(data);
-    _data = vector<unsigned char>(decoded.begin(), decoded.end());
+    vector<unsigned char> pngData = vector<unsigned char>(decoded.begin(), decoded.end());
+
+    unsigned int error = lodepng::decode(_data, _w, _h, pngData);
+
+    if (error) {
+      getLogger()->log("Error interpreting base64 data. Potentitally fatal.", Comp::ERR);
+    }
   }
 
   Image::Image(const Image & other)
@@ -134,6 +140,7 @@ namespace Comp {
     _vars._r = context.registerParam(0, name + "_r", c._r);
     _vars._g = context.registerParam(0, name + "_g", c._g);
     _vars._b = context.registerParam(0, name + "_b", c._b);
+
     _vars._a = context.registerParam(0, name + "_a", c._a);
 
     return index + 4;

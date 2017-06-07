@@ -627,7 +627,7 @@ namespace Comp {
 
     getLogger()->log("Saving file");
 
-    vector<string> sc = ctx.toSourceCode(functionName, false);
+    vector<string> sc = ctx.toSourceCode(functionName);
     ofstream file(functionName + ".cpp");
     for (auto &s : sc) {
       file << s << endl;

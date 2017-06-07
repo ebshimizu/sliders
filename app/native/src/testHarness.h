@@ -1,4 +1,5 @@
 #include "Compositor.h"
+#pragma once
 
 /*
 Functions for testing generated code. They are placed in the main project for easier access
@@ -7,9 +8,6 @@ used to call the functions)
 */
 
 namespace Comp {
-  // test function
-  vector<double> compTest(const vector<double> &params);
-
   // compares the test function against the compositor settings at the given pixel
   double compare(Compositor* c, int x, int y);
 

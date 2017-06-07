@@ -110,7 +110,7 @@ struct ExpContext
 	{
 		vector<ExpStep> fixedParams = params;
 
-		for (int i = 0; i < params.size(); i++)
+		for (size_t i = 0; i < params.size(); i++)
 		{
 			if (params[i].context == nullptr)
 			{
@@ -145,12 +145,14 @@ struct ExpContext
 		return values.back();
 	}
 
-	vector<string> toSourceCode(const string &functionName, bool useFloat) const
+	vector<string> toSourceCode(const string &functionName) const
 	{
-		const string floatType = useFloat ? "float" : "double";
+		//const string floatType = useFloat ? "float" : "double";
+		const string floatType = "T";
 		const string indent = "    ";
 		const string vectorType = "vector<" + floatType + ">";
 		vector<string> result;
+		result.push_back("template <class T>");
 		result.push_back(vectorType + " " + functionName + "(const " + vectorType + " &paramsA, const " + vectorType + " &paramsB)");
 		result.push_back("{");
 		result.push_back(indent + vectorType + " result(" + to_string(resultCount) + ");");
@@ -159,12 +161,12 @@ struct ExpContext
 		{
 			if (s.type == ExpStepType::functionCall)
 			{
-				for(const string &line : s.toSourceCode(*this, useFloat))
+				for(const string &line : s.toSourceCode(*this))
 					result.push_back(indent + line + ";");
 			}
 			else
 			{
-				result.push_back(indent + s.toSourceCode(useFloat) + ";");
+				result.push_back(indent + s.toSourceCode() + ";");
 			}
 		}
 		result.push_back(indent);

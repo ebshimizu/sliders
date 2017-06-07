@@ -81,7 +81,7 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 
 		if (testIndex == 0)
 		{
-			vector<string> sourceCode = context.toSourceCode(functionName, false);
+			vector<string> sourceCode = context.toSourceCode(functionName);
 			ofstream file(functionName + ".txt");
 			for (auto &s : sourceCode)
 			{

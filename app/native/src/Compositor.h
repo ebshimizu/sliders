@@ -806,9 +806,9 @@ namespace Comp {
 
     // convert back
     Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);
-    adjPx._r = c2._r;
-    adjPx._g = c2._g;
-    adjPx._b = c2._b;
+    adjPx._r = clamp<T>(c2._r, 0, 1);
+    adjPx._g = clamp<T>(c2._g, 0, 1);
+    adjPx._b = clamp<T>(c2._b, 0, 1);
   }
 
   template<typename T>
@@ -1244,6 +1244,8 @@ namespace Comp {
       if (!l._visible)
         continue;
 
+      getLogger()->log("Compositing layer " + l.getName());
+
       Utils<ExpStep>::RGBAColorT layerPx;
 
       // handle adjustment layers
@@ -1315,7 +1317,7 @@ namespace Comp {
         // special override for alpha here
 
         //linearDodgeAlpha(aa, ab) = { return (aa + ab > 1) ? 1 : (aa + ab); }
-        vector<ExpStep> res = aa.context->callFunc("linearDodgeAlpha", aa, ab);
+        vector<ExpStep> res = ab.context->callFunc("linearDodgeAlpha", aa, ab);
         ad = res[0];
         compPx._a = ad;
 

@@ -315,7 +315,7 @@ namespace Comp {
     int index = start;
     string pfx = "x_" + _name + "_";
 
-    _expOpacity = context.registerParam(index, pfx + "_opacity", _opacity);
+    _expOpacity = context.registerParam(index, pfx + "opacity", _opacity);
     index++;
 
     for (auto a : _adjustments) {

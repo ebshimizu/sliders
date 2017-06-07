@@ -22,8 +22,15 @@ namespace Comp {
   vector<double> pinLight(vector<double> params);
   vector<double> RGBToHSL(vector<double> params);
   vector<double> HSLToRGB(vector<double> params);
+  vector<double> RGBToHSY(vector<double> params);
+  vector<double> HSYToRGB(vector<double> params);
   vector<double> levels(vector<double> params);
   vector<double> clamp(vector<double> params);
+  vector<double> selectiveColor(vector<double> params);
+  double colorBalance(double px, double shadow, double mid, double high);
+  vector<double> colorBalanceAdjust(vector<double> params);
+  vector<double> photoFilter(vector<double> params);
+  vector<double> lighterColorizeAdjust(vector<double> params);
 
   // test function
   vector<double> compTest(const vector<double> &params);

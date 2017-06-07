@@ -69,8 +69,8 @@ void TestApp::testFunction2(function<ExpStep(ExpStep, ExpStep)>& funcE, function
 		ExpContext context;
 		context.registerFunc("RGToHSV", 2, 3);
 
-		ExpStep x0E = context.registerParam(0, "x0", x0D);
-		ExpStep x1E = context.registerParam(0, "x1", x1D);
+		ExpStep x0E = context.registerParam(0, 0, "x0", x0D);
+		ExpStep x1E = context.registerParam(1, 1, "x1", x1D);
 
 		//ExpStep vE = x0E + x1E;
 

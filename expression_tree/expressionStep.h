@@ -128,8 +128,8 @@ struct ExpStepData
 	// unary operator constructor
 	ExpStepData(ExpOpType _op, int _operand0Step);
 
-	// parameter constructor
-	static ExpStepData makeParameter(const string &paramName, double defaultValue, int _parameterIndex);
+	// parameter constructor. parameterSlotIndex should be 0 or 1.
+	static ExpStepData makeParameter(const string &paramName, double defaultValue, int _parameterSlotIndex, int _parameterIndex);
 
 	// result constructor
 	static ExpStepData makeResult(const string &resultName, int stepIndex, int resultIndex);
@@ -209,7 +209,12 @@ struct ExpStepData
 		}
 		else if (type == ExpStepType::parameter)
 		{
-			return assignment + "params[" + to_string(parameterIndex) + "]; // " + name;
+			if (parameterSlot == 0)
+				return assignment + "paramsA[" + to_string(parameterIndex) + "]; // " + name;
+			else if (parameterSlot == 1)
+				return assignment + "paramsB[" + to_string(parameterIndex) + "]; // " + name;
+			else
+				return "error";
 		}
 		else if (type == ExpStepType::result)
 		{
@@ -245,6 +250,7 @@ struct ExpStepData
 	double value;
 
 	// valid for variables
+	int parameterSlot;
 	int parameterIndex;
 	int resultIndex;
 	string name;

@@ -231,9 +231,10 @@ inline ExpStepData ExpStepData::makeFunctionOutput(int funcStepIndex, int output
 	return result;
 }
 
-inline vector<string> ExpStepData::toSourceCode(const ExpContext &parent, bool useFloat) const
+inline vector<string> ExpStepData::toSourceCode(const ExpContext &parent) const
 {
-	const string floatType = useFloat ? "float" : "double";
+	//const string floatType = useFloat ? "float" : "double";
+	const string floatType = "T";
 	vector<string> result;
 	if (type == ExpStepType::functionCall)
 	{

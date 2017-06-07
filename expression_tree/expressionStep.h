@@ -199,9 +199,10 @@ struct ExpStepData
 		}
 	}
 
-	string toSourceCode(bool useFloat) const
+	string toSourceCode() const
 	{
-		const string floatType = useFloat ? "float" : "double";
+		//const string floatType = useFloat ? "float" : "double";
+		const string floatType = "T";
 		const string assignment = "const " + floatType + " s" + to_string(stepIndex) + " = ";
 		if (type == ExpStepType::constant)
 		{
@@ -242,7 +243,7 @@ struct ExpStepData
 		return "invalid";
 	}
 
-	vector<string> toSourceCode(const ExpContext & parent, bool useFloat) const;
+	vector<string> toSourceCode(const ExpContext & parent) const;
 
 	ExpStepType type;
 	

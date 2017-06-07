@@ -67,3 +67,5 @@ expression_tree/x64/*
 /expression_tree/f1.txt
 /expression_tree/f2.txt
 app/native/debug/compositor.log
+/ceres
+/expression_tree/Release

@@ -74,3 +74,4 @@ app/native/debug/compositor.log
 /ceres_harness/.vs/ceresHarness/v14/*.suo
 /ceres_harness/x64/Release
 /ceres_harness/x64/Debug
+app/darkroom/compTest.cpp

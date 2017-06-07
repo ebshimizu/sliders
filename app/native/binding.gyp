@@ -21,6 +21,7 @@
 		        "src/util.cpp",
 				"src/testHarness.h",
 				"src/testHarness.cpp",
+				"src/ceresFunctions.h",
 				"../../expression_tree/expressionContext.h"
 			],
 			"include_dirs" : [

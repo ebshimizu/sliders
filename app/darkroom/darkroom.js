@@ -1423,7 +1423,7 @@ function addAdjustmentToLayer(name, adjType) {
         c.getLayer(name).colorBalance(false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
     else if (adjType === 7) {
-        c.getLayer(name).addPhotoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
+        c.getLayer(name).photoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
     }
     else if (adjType === 8) {
         c.getLayer(name).colorize(1, 1, 1, 1);
@@ -1719,27 +1719,29 @@ function importLayers(doc, path) {
             else if (type === "SELECTIVECOLOR") {
                 adjustment = metadata[layerName].SELECTIVECOLOR;
  
-                var relative = (adjustment.method === "relative") ? true : false;
+                var relative = (adjustment.method === "absolute") ? false : true;
                 colors = adjustment.colorCorrection;
                 var sc = {};
 
-                for (i = 0; i < colors.length; i++) {
-                    var name;
-                    var adjust = {};
+                if (colors !== undefined) {
+                    for (i = 0; i < colors.length; i++) {
+                        var name;
+                        var adjust = {};
 
-                    for (var id in colors[i]) {
-                        if (id === "colors") {
-                            name = colors[i][id];
+                        for (var id in colors[i]) {
+                            if (id === "colors") {
+                                name = colors[i][id];
+                            }
+                            else if (id === "yellowColor") {
+                                adjust.yellow = colors[i][id].value / 100;
+                            }
+                            else {
+                                adjust[id] = colors[i][id].value / 100;
+                            }
                         }
-                        else if (id === "yellowColor") {
-                            adjust.yellow = colors[i][id].value / 100;
-                        }
-                        else {
-                            adjust[id] = colors[i][id].value / 100;
-                        }
+
+                        sc[name] = adjust;
                     }
-
-                    sc[name] = adjust;
                 }
 
                 c.getLayer(layerName).selectiveColor(relative, sc);
@@ -3026,8 +3028,10 @@ function canvasMousemove(e, elem) {
 }
 
 function canvasMouseup(e, elem) {
-    if (settings.maskTool === "rect") {
-        g_paths[g_pathIndex].finished = true;
+    if (g_isPainting) {
+        if (settings.maskTool === "rect") {
+            g_paths[g_pathIndex].finished = true;
+        }
     }
 
     g_isPainting = false;

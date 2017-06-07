@@ -594,7 +594,7 @@ namespace Comp {
     // create variables (they get stored in the layer and image structures)
     int index = 0;
     
-    for (auto l : c) {
+    for (auto& l : c) {
       // create layer pixel vars
       index = _imageData[l.first][size]->initExp(ctx, l.first, index, px);
 

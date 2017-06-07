@@ -564,7 +564,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::softLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("softLight", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("softLight", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -593,7 +593,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::colorDodge<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("colorDodge", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -612,7 +612,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::linearBurn<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
+    vector<ExpStep> res = Sc.context->callFunc("linearBurn", Dc, Sc, Da, Sa);
     return res[0];
   }
 
@@ -628,7 +628,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::linearLight<ExpStep>(ExpStep Dc, ExpStep Sc, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
+    vector<ExpStep> res = Sc.context->callFunc("linearLight", Dc, Sc, Da, Sa);
     return res[0];
   }
 
@@ -685,7 +685,7 @@ namespace Comp {
     params.push_back(Da);
     params.push_back(Sa);
 
-    vector<ExpStep> res = Da.context->callFunc("color", params);
+    vector<ExpStep> res = Sa.context->callFunc("color", params);
     Utils<ExpStep>::RGBColorT c;
     c._r = res[0];
     c._g = res[1];
@@ -707,7 +707,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::lighten<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("lighten", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("lighten", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -724,7 +724,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::darken<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("darken", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("darken", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -744,7 +744,7 @@ namespace Comp {
 
   template<>
   inline ExpStep Compositor::pinLight<ExpStep>(ExpStep Dca, ExpStep Sca, ExpStep Da, ExpStep Sa) {
-    vector<ExpStep> res = Dca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
+    vector<ExpStep> res = Sca.context->callFunc("pinLight", Dca, Sca, Da, Sa);
     return res[0];
   }
 
@@ -801,8 +801,8 @@ namespace Comp {
 
     // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
     c._h = c._h + h;
-    c._s = c._s + s / 100.0f;
-    c._l = c._l + l / 100.0f;
+    c._s = c._s + (s / 100.0f);
+    c._l = c._l + (l / 100.0f);
 
     // convert back
     Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);
@@ -900,8 +900,6 @@ namespace Comp {
   template<typename T>
   inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
   {
-    // !!! TODO: SELECTIVE COLOR HAS A SEPARATE MAP THAT ALSO NEEDS TO BE TEMPLATED TO GET THE RIGHT
-    // PARAMETERS IN THE RIGHT PLACE
     map<string, map<string, float>> data = l.getSelectiveColor();
 
     // convert to hsl
@@ -939,12 +937,12 @@ namespace Comp {
     wc = chroma / 1.0f;
 
     // hue - always 60 deg intervals
-    w1 = 1 - ((hslColor._h - interval * 60.0f) / 60.0f);  // distance from low interval
+    w1 = 1 - ((hslColor._h - (interval * 60.0f)) / 60.0f);  // distance from low interval
     w2 = 1 - w1;
 
     // luma - measure distance from midtones, w3 is always midtone
     w3 = 1 - abs(hslColor._l - 0.5f);
-    w4 = w3 - 1;
+    w4 = 1 - w3;
 
     // do the adjustment
     Utils<T>::CMYKColorT cmykColor = Utils<T>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);

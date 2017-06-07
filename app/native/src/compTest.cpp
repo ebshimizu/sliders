@@ -1,4 +1,4 @@
 vector<double> compTest(const vector<double> &params)
 {
-  return 0;
+  return { 0 };
 }

@@ -27,6 +27,7 @@ struct ExpContext
 	ExpContext()
 	{
 		resultCount = 0;
+    _paramCounts.resize(2, 0);
 	}
 
 	ExpStep registerConstant(double value)
@@ -36,9 +37,10 @@ struct ExpContext
 		return ExpStep(this, newStep.stepIndex);
 	}
 
-	ExpStep registerParam(int paramSlot, int paramIndex, string paramName, double unusedDefaultValue = numeric_limits<double>::max())
+	ExpStep registerParam(int paramSlot, string paramName, double unusedDefaultValue = numeric_limits<double>::max())
 	{
-		ExpStepData step = ExpStepData::makeParameter(paramName, unusedDefaultValue, paramSlot, paramIndex);
+		ExpStepData step = ExpStepData::makeParameter(paramName, unusedDefaultValue, paramSlot, _paramCounts[paramSlot]);
+    _paramCounts[paramSlot]++;
 		addStep(step);
 		return ExpStep(this, step.stepIndex);
 	}
@@ -176,6 +178,7 @@ struct ExpContext
 	map<string, FunctionInfo> functions;
 	vector<string> functionList;
 	vector<ExpStepData> steps;
+  vector<int> _paramCounts;
 	int resultCount;
 };
 

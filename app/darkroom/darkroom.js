@@ -158,6 +158,7 @@ function initUI() {
     $("#clearCanvasCmd").click(() => { clearCanvas(); });
     $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
+    $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -2142,6 +2143,11 @@ function contextToJSON(ctx) {
     }
 
     return layers;
+}
+
+function generateCeresCode() {
+    c.computeExpContext(c.getContext(), 0, 0, "compTest");
+    showStatusMsg("", "OK", "Ceres Code Generation Complete")
 }
 
 /*===========================================================================*/

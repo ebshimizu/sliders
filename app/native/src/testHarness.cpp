@@ -237,6 +237,18 @@ vector<double> HSLToRGB(vector<double> params)
   return { res._r, res._g, res._b };
 }
 
+vector<double> RGBToHSY(vector<double> params)
+{
+  auto res = Utils<double>::RGBToHSY(params[0], params[1], params[2]);
+  return { res._h, res._s, res._y };
+}
+
+vector<double> HSYToRGB(vector<double> params)
+{
+  auto res = Utils<double>::HSYToRGB(params[0], params[1], params[2]);
+  return { res._r, res._g, res._b };
+}
+
 vector<double> levels(vector<double> params)
 {
   double px = params[0];
@@ -261,6 +273,216 @@ vector<double> levels(vector<double> params)
 vector<double> clamp(vector<double> params)
 {
   return { clamp<double>(params[0], params[1], params[2]) };
+}
+
+vector<double> selectiveColor(vector<double> params)
+{
+  RGBColor adjPx;
+  adjPx._r = params[0];
+  adjPx._g = params[1];
+  adjPx._b = params[2];
+
+  map<string, map<string, float>> data;
+  data["blacks"]["black"] = params[3];
+  data["blacks"]["cyan"] = params[4];
+  data["blacks"]["magenta"] = params[5];
+  data["blacks"]["yellow"] = params[6];
+  data["blues"]["black"] = params[7];
+  data["blues"]["cyan"] = params[8];
+  data["blues"]["magenta"] = params[9];
+  data["blues"]["yellow"] = params[10];
+  data["cyans"]["black"] = params[11];
+  data["cyans"]["cyan"] = params[12];
+  data["cyans"]["magenta"] = params[13];
+  data["cyans"]["yellow"] = params[14];
+  data["greens"]["black"] = params[15];
+  data["greens"]["cyan"] = params[16];
+  data["greens"]["magenta"] = params[17];
+  data["greens"]["yellow"] = params[18];
+  data["magentas"]["black"] = params[19];
+  data["magnetas"]["cyan"] = params[20];
+  data["magentas"]["magenta"] = params[21];
+  data["magentas"]["yellow"] = params[22];
+  data["neutrals"]["black"] = params[23];
+  data["neutrals"]["cyan"] = params[24];
+  data["neutrals"]["magenta"] = params[25];
+  data["neutrals"]["yellow"] = params[26];
+  data["reds"]["black"] = params[27];
+  data["reds"]["cyan"] = params[28];
+  data["reds"]["magenta"] = params[29];
+  data["reds"]["yellow"] = params[30];
+  data["whites"]["black"] = params[31];
+  data["whites"]["cyan"] = params[32];
+  data["whites"]["magenta"] = params[33];
+  data["whites"]["yellow"] = params[34];
+  data["yellows"]["black"] = params[35];
+  data["yellows"]["cyan"] = params[36];
+  data["yellows"]["magenta"] = params[37];
+  data["yellows"]["yellow"] = params[38];
+
+  // convert to hsl
+  Utils<double>::HSLColorT hslColor = Utils<double>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
+  double chroma = max(adjPx._r, max(adjPx._g, adjPx._b)) - min(adjPx._r, min(adjPx._g, adjPx._b));
+
+  // determine which set of parameters we're using to adjust
+  // determine chroma interval
+  int interval = (int)(hslColor._h / 60);
+  string c1, c2, c3, c4;
+  c1 = intervalNames[interval];
+
+  if (interval == 5) {
+    // wrap around for magenta
+    c2 = intervalNames[0];
+  }
+  else {
+    c2 = intervalNames[interval + 1];
+  }
+
+  c3 = "neutrals";
+
+  // non-chromatic colors
+  if (hslColor._l < 0.5) {
+    c4 = "blacks";
+  }
+  else {
+    c4 = "whites";
+  }
+
+  // compute weights
+  double w1, w2, w3, w4, wc;
+
+  // chroma
+  wc = chroma / 1.0f;
+
+  // hue - always 60 deg intervals
+  w1 = 1 - ((hslColor._h - (interval * 60.0f)) / 60.0f);  // distance from low interval
+  w2 = 1 - w1;
+
+  // luma - measure distance from midtones, w3 is always midtone
+  w3 = 1 - abs(hslColor._l - 0.5f);
+  w4 = 1 - w3;
+
+  // do the adjustment
+  Utils<double>::CMYKColorT cmykColor = Utils<double>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);
+
+  // we assume relative is true always here.
+  //if (adj["relative"] > 0) {
+    // relative
+  cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+  cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+  cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+  cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+  //}
+  //else {
+    // absolute
+  //  cmykColor._c += (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
+  //  cmykColor._m += (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
+  //  cmykColor._y += (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
+  //  cmykColor._k += (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+  //}
+
+  Utils<double>::RGBColorT res = Utils<double>::CMYKToRGB(cmykColor);
+  adjPx._r = clamp<double>(res._r, 0, 1);
+  adjPx._g = clamp<double>(res._g, 0, 1);
+  adjPx._b = clamp<double>(res._b, 0, 1);
+
+  return { adjPx._r, adjPx._g, adjPx._b };
+}
+
+double colorBalance(double px, double shadow, double mid, double high)
+{
+  double a = 0.25f;
+  double b = 0.333f;
+  double scale = 0.7f;
+
+  double s = shadow * (clamp<double>((px - b) / -a + 0.5f, 0, 1.0f) * scale);
+  double m = mid * (clamp<double>((px - b) / a + 0.5f, 0, 1.0f) * clamp<double>((px + b - 1.0f) / -a + 0.5f, 0, 1.0f) * scale);
+  double h = high * (clamp<double>((px + b - 1.0f) / a + 0.5f, 0, 1.0f) * scale);
+
+  return clamp<double>(px + s + m + h, 0, 1.0);
+}
+
+vector<double> colorBalanceAdjust(vector<double> params)
+{
+  Utils<double>::RGBColorT adjPx;
+  adjPx._r = params[0];
+  adjPx._g = params[1];
+  adjPx._b = params[2];
+
+  Utils<double>::RGBColorT balanced;
+  balanced._r = colorBalance(adjPx._r, params[3], params[6], params[9]);
+  balanced._g = colorBalance(adjPx._g, params[4], params[7], params[10]);
+  balanced._b = colorBalance(adjPx._b, params[5], params[8], params[11]);
+
+  // assume preserve luma true
+  //if (adj["preserveLuma"] > 0) {
+  Utils<double>::HSLColorT l = Utils<double>::RGBToHSL(balanced);
+  double originalLuma = 0.5f * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+  balanced = Utils<double>::HSLToRGB(l._h, l._s, originalLuma);
+  //}
+
+  adjPx._r = clamp<double>(balanced._r, 0, 1);
+  adjPx._g = clamp<double>(balanced._g, 0, 1);
+  adjPx._b = clamp<double>(balanced._b, 0, 1);
+
+  return { adjPx._r, adjPx._g, adjPx._b };
+}
+
+vector<double> photoFilter(vector<double> params)
+{
+  Utils<double>::RGBColorT adjPx;
+  adjPx._r = params[0];
+  adjPx._g = params[1];
+  adjPx._b = params[2];
+
+  double d = params[3];
+  double fr = adjPx._r * params[4];
+  double fg = adjPx._g * params[5];
+  double fb = adjPx._b * params[6];
+
+  // assuming preserve luma always
+  //if (adj["preserveLuma"] > 0) {
+  Utils<double>::HSLColorT l = Utils<double>::RGBToHSL(fr, fg, fb);
+  double originalLuma = 0.5 * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+  Utils<double>::RGBColorT rgb = Utils<double>::HSLToRGB(l._h, l._s, originalLuma);
+  fr = rgb._r;
+  fg = rgb._g;
+  fb = rgb._b;
+  //}
+
+  // weight by density
+  adjPx._r = clamp<double>(fr * d + adjPx._r * (1 - d), 0, 1);
+  adjPx._g = clamp<double>(fg * d + adjPx._g * (1 - d), 0, 1);
+  adjPx._b = clamp<double>(fb * d + adjPx._b * (1 - d), 0, 1);
+
+  return { adjPx._r, adjPx._g, adjPx._b };
+}
+
+vector<double> lighterColorizeAdjust(vector<double> params)
+{
+  Utils<double>::RGBColorT adjPx;
+  adjPx._r = params[0];
+  adjPx._g = params[1];
+  adjPx._b = params[2];
+
+  double sr = params[3];
+  double sg = params[4];
+  double sb = params[5];
+  double a = params[6];
+  double y = 0.299f * sr + 0.587f * sg + 0.114f * sb;
+
+  double yp = 0.299f * adjPx._r + 0.587f * adjPx._g + 0.114f * adjPx._b;
+
+  adjPx._r = (yp > y) ? adjPx._r : sr;
+  adjPx._g = (yp > y) ? adjPx._g : sg;
+  adjPx._b = (yp > y) ? adjPx._b : sb;
+
+  // blend the resulting colors according to alpha
+  adjPx._r = clamp<double>(adjPx._r * a + adjPx._r * (1 - a), 0, 1);
+  adjPx._g = clamp<double>(adjPx._g * a + adjPx._g * (1 - a), 0, 1);
+  adjPx._b = clamp<double>(adjPx._b * a + adjPx._b * (1 - a), 0, 1);
+
+  return { adjPx._r, adjPx._g, adjPx._b };
 }
 
   // This function must be used on full size images

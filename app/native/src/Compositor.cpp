@@ -557,6 +557,8 @@ namespace Comp {
 
   void Compositor::computeExpContext(Context & c, int px, string functionName, string size)
   {
+    getLogger()->log("Starting code generation...");
+
     if (size == "") {
       size = "full";
     }
@@ -595,26 +597,43 @@ namespace Comp {
     int index = 0;
     
     for (auto& l : c) {
-      // create layer pixel vars
-      index = _imageData[l.first][size]->initExp(ctx, l.first, index, px);
+      if (!l.second._visible)
+        continue;
+
+      if (_imageData.count(l.first) > 0) {
+        getLogger()->log("Initializing pixel data for " + l.first);
+
+        // create layer pixel vars
+        index = _imageData[l.first][size]->initExp(ctx, l.first, index, px);
+      }
+
+      getLogger()->log("Initializing layer data for " + l.first);
 
       // create layer adjustment vars
       index = l.second.prepExp(ctx, index);
     }
 
+    getLogger()->log("Context initialized");
+
     // get the result
     Utils<ExpStep>::RGBAColorT res = renderPixel<ExpStep>(c, px, size);
+
+    getLogger()->log("Trace complete");
 
     ctx.registerResult(res._r, 0, "R");
     ctx.registerResult(res._g, 1, "G");
     ctx.registerResult(res._b, 2, "B");
     ctx.registerResult(res._a, 3, "A");
 
+    getLogger()->log("Saving file");
+
     vector<string> sc = ctx.toSourceCode(functionName, false);
     ofstream file(functionName + ".cpp");
     for (auto &s : sc) {
       file << s << endl;
     }
+
+    getLogger()->log("Code Generation Complete");
   }
 
   void Compositor::computeExpContext(Context & c, int x, int y, string functionName, string size)

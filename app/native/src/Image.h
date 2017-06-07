@@ -35,6 +35,9 @@ namespace Comp {
     // loads an image from a file
     Image(string filename);
 
+    // loads from base64 string
+    Image(unsigned int w, unsigned int h, string& data);
+
     // copy constructor
     Image(const Image& other);
 

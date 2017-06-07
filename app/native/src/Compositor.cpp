@@ -655,6 +655,38 @@ namespace Comp {
     computeExpContext(c, index, functionName, size);
   }
 
+  void Compositor::setMaskLayer(string layerName, shared_ptr<Image> img)
+  {
+    if (_searchRunning) {
+      getLogger()->log("Unable to modify mask layers while search is running", Comp::WARN);
+      return;
+    }
+
+    _maskLayers[layerName] = img;
+  }
+
+  shared_ptr<Image> Compositor::getMaskLayer(string layerName)
+  {
+    if (_maskLayers.count(layerName) > 0)
+      return _maskLayers[layerName];
+
+    return nullptr;
+  }
+
+  void Compositor::deleteMaskLayer(string layerName)
+  {
+    if (_maskLayers.count(layerName) > 0) {
+      _maskLayers.erase(layerName);
+    }
+
+    return;
+  }
+
+  void Compositor::clearMask()
+  {
+    _maskLayers.clear();
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

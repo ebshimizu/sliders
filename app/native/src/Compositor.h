@@ -122,6 +122,11 @@ namespace Comp {
     void computeExpContext(Context& c, int px, string functionName, string size = "");
     void computeExpContext(Context& c, int x, int y, string functionName, string size = "");
 
+    void setMaskLayer(string layerName, shared_ptr<Image> img);
+    shared_ptr<Image> getMaskLayer(string layerName);
+    void deleteMaskLayer(string layerName);
+    void clearMask();
+
   private:
     void addLayer(string name);
 
@@ -285,6 +290,11 @@ namespace Comp {
     // Associated settings: "useVisibleLayersOnly"
     // Used by modes: RANDOM
     set<string> _affectedLayers;
+
+    // Bitmaps of each mask layer present in the interface
+    // Note: at some point this might need to be converted to an object to handle different types of constraints
+    // right now its meant to just be color
+    map<string, shared_ptr<Image> > _maskLayers;
   };
 
   template<typename T>

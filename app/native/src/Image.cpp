@@ -14,6 +14,15 @@ namespace Comp {
     loadFromFile(filename);
   }
 
+  Image::Image(unsigned int w, unsigned int h, string & data)
+  {
+    _w = w;
+    _h = h;
+
+    string decoded = base64_decode(data);
+    _data = vector<unsigned char>(decoded.begin(), decoded.end());
+  }
+
   Image::Image(const Image & other)
   {
     _w = other._w;

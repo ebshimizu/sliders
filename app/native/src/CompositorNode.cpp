@@ -1150,6 +1150,10 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "setContext", setContext);
   Nan::SetPrototypeMethod(tpl, "resetImages", resetImages);
   Nan::SetPrototypeMethod(tpl, "computeExpContext", computeExpContext);
+  Nan::SetPrototypeMethod(tpl, "setMaskLayer", setMaskLayer);
+  Nan::SetPrototypeMethod(tpl, "getMaskLayer", getMaskLayer);
+  Nan::SetPrototypeMethod(tpl, "deleteMaskLayer", deleteMaskLayer);
+  Nan::SetPrototypeMethod(tpl, "clearMask", clearMask);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1725,6 +1729,79 @@ void CompositorWrapper::computeExpContext(const Nan::FunctionCallbackInfo<v8::Va
 
     c->_compositor->computeExpContext(ctx->_context, x, y, funcName, size);
   }
+}
+
+void CompositorWrapper::setMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // input should be string string (base64)
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.setMaskLayer");
+
+  if (info[0]->IsString() && info[1]->IsInt32() && info[2]->IsInt32() && info[3]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string name(*val0);
+
+    int w = info[1]->Int32Value();
+    int h = info[2]->Int32Value();
+
+    v8::String::Utf8Value val1(info[3]->ToString());
+    string data(*val1);
+
+    shared_ptr<Comp::Image> img = shared_ptr<Comp::Image>(new Comp::Image(w, h, data));
+    c->_compositor->setMaskLayer(name, img);
+  }
+  else {
+    Nan::ThrowError("compositor.setMaskLayer(name:string, w:int, h:int, data:string) argument error");
+  }
+}
+
+void CompositorWrapper::getMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getMaskLayer");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string name(*val0);
+
+    shared_ptr<Comp::Image> img = c->_compositor->getMaskLayer(name);
+
+    if (img == nullptr) {
+      info.GetReturnValue().Set(Nan::New(Nan::Null));
+      return;
+    }
+
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img.get()), Nan::New(true) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("compositor.getMaskLayer(name:string) argument error");
+  }
+
+}
+
+void CompositorWrapper::deleteMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getMaskLayer");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string name(*val0);
+
+    c->_compositor->deleteMaskLayer(name);
+  }
+}
+
+void CompositorWrapper::clearMask(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getMaskLayer");
+
+  c->_compositor->clearMask();
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

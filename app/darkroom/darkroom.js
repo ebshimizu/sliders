@@ -3116,6 +3116,40 @@ function repaint() {
     g_canvasUpdated = true;
 }
 
+// Dumps the mask layers to the back end compositor
+function syncMaskState() {
+    c.clearMask();
+
+    for (var l in g_constraintLayers) {
+        // turn all layers off
+        for (var l2 in g_constraintLayers) {
+            if (l === l2)
+                continue;
+
+            g_constraintLayers[l2].active = false;
+        }
+
+        var layer = g_constraintLayers[l];
+        layer.active = true;
+        g_canvasUpdated = false;
+        repaint();
+
+        var canvas = $('#maskCanvas');
+        // dump the canvas data to a string
+        var data = canvas[0].toDataURL('image/png').substring(22);
+        var name = l;
+
+        c.setMaskLayer(name, parseInt(canvas.attr("width")), parseInt(canvas.attr("height")), data);
+    }
+
+    // restore visibility
+    for (var l in g_constraintLayers)
+        g_constraintLayers[l].active = true;
+
+    g_canvasUpdated;
+    repaint();
+}
+
 // converts screen coordinates to internal canvas coordinates
 function screenToCanvas(sX, sY, w, h, sW, sH) {
     // the canvas is positioned centered and scaled to fit

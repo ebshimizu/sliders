@@ -4,7 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const saveVersion = 0.2;
+const saveVersion = 0.21;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -1920,6 +1920,23 @@ function loadLayers(doc, path) {
     initSearch();
     renderImage("loadLayers()");
     initCanvas();
+
+    // load layers
+    if (doc.mask !== undefined) {
+        g_activeConstraintLayer = doc.mask.activeConstraintLayer;
+        g_paths = doc.mask.paths;
+        g_pathIndex = doc.mask.pathIndex;
+        g_constraintLayers = doc.mask.constraintLayers;
+        g_canvasUpdated = false;
+
+        $('#constraintLayerMenu .menu').html('');
+        // update controls 
+        for (var l in g_constraintLayers) {
+            $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + l + '">' + l + '</div>');
+        }
+
+        $('#constraintLayerMenu .text').html(g_activeConstraintLayer);
+    }
 }
 
 // saves the document in an easier to load format
@@ -1970,6 +1987,13 @@ function save(file) {
     }
 
     out.layers = layers;
+
+    // mask data
+    out.mask = {};
+    out.mask.paths = g_paths;
+    out.mask.pathIndex = g_pathIndex;
+    out.mask.constraintLayers = g_constraintLayers;
+    out.mask.activeConstraintLayer = g_activeConstraintLayer;
 
     fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
         if (err) {

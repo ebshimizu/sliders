@@ -330,6 +330,18 @@ function initUI() {
     $("#maskCanvas").mouseout(function (e) { canvasMouseup(e, this); });
 
     // mask tools
+    $('#maskOpacitySlider .slider').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 1,
+        min: 0,
+        step: 0.001,
+        value: 1,
+        change: function (event, ui) {
+            $('#imageContainer #mask canvas').css("opacity", ui.value);
+        }
+    });
+
     $('#mask-paint').click(function () {
         settings.maskTool = "paint";
         $('#mask-paint').addClass("active");
@@ -3090,48 +3102,50 @@ function repaint() {
     g_ctx.lineJoin = "round";
 
     for (var p in g_paths) {
-        var layer = g_constraintLayers[g_paths[p].layer];
+        if (g_paths[p] !== null) {
+            var layer = g_constraintLayers[g_paths[p].layer];
 
-        if (!layer.active)
-            continue;
+            if (!layer.active)
+                continue;
 
-        if (g_paths[p].mode == "mask") {
-            g_ctx.strokeStyle = layer.colorStr;
-            g_ctx.fillStyle = layer.colorStr;
-            g_ctx.globalCompositeOperation = "source-over";
-        }
-        else if (g_paths[p].mode == "erase") {
-            g_ctx.strokeStyle = "#000000";
-            g_ctx.fillStyle = "#000000";
-            g_ctx.globalCompositeOperation = "destination-out";
-        }
-
-        if (g_paths[p].type === "paint") {
-            g_ctx.beginPath();
-            g_ctx.moveTo(g_paths[p].pts[0].x, g_paths[p].pts[0].y);
-
-            for (var i = 0; i < g_paths[p].pts.length; i++) {
-                g_ctx.lineTo(g_paths[p].pts[i].x, g_paths[p].pts[i].y);
+            if (g_paths[p].mode == "mask") {
+                g_ctx.strokeStyle = layer.colorStr;
+                g_ctx.fillStyle = layer.colorStr;
+                g_ctx.globalCompositeOperation = "source-over";
+            }
+            else if (g_paths[p].mode == "erase") {
+                g_ctx.strokeStyle = "#000000";
+                g_ctx.fillStyle = "#000000";
+                g_ctx.globalCompositeOperation = "destination-out";
             }
 
-            g_ctx.stroke();
-        }
-        else if (g_paths[p].type == "rect") {
-            // compute rectangle args here, need top left and width height
-            if (g_paths[p].pt2 !== undefined) {
-                var x = (g_paths[p].pt1.x < g_paths[p].pt2.x) ? g_paths[p].pt1.x : g_paths[p].pt2.x;
-                var y = (g_paths[p].pt1.y < g_paths[p].pt2.y) ? g_paths[p].pt1.y : g_paths[p].pt2.y;
+            if (g_paths[p].type === "paint") {
+                g_ctx.beginPath();
+                g_ctx.moveTo(g_paths[p].pts[0].x, g_paths[p].pts[0].y);
 
-                var w = Math.abs(g_paths[p].pt1.x - g_paths[p].pt2.x);
-                var h = Math.abs(g_paths[p].pt1.y - g_paths[p].pt2.y);
-
-                if (g_paths[p].finished) {
-                    g_ctx.fillRect(x, y, w, h);
+                for (var i = 0; i < g_paths[p].pts.length; i++) {
+                    g_ctx.lineTo(g_paths[p].pts[i].x, g_paths[p].pts[i].y);
                 }
-                else {
-                    g_ctx.beginPath();
-                    g_ctx.rect(x, y, w, h);
-                    g_ctx.stroke();
+
+                g_ctx.stroke();
+            }
+            else if (g_paths[p].type == "rect") {
+                // compute rectangle args here, need top left and width height
+                if (g_paths[p].pt2 !== undefined) {
+                    var x = (g_paths[p].pt1.x < g_paths[p].pt2.x) ? g_paths[p].pt1.x : g_paths[p].pt2.x;
+                    var y = (g_paths[p].pt1.y < g_paths[p].pt2.y) ? g_paths[p].pt1.y : g_paths[p].pt2.y;
+
+                    var w = Math.abs(g_paths[p].pt1.x - g_paths[p].pt2.x);
+                    var h = Math.abs(g_paths[p].pt1.y - g_paths[p].pt2.y);
+
+                    if (g_paths[p].finished) {
+                        g_ctx.fillRect(x, y, w, h);
+                    }
+                    else {
+                        g_ctx.beginPath();
+                        g_ctx.rect(x, y, w, h);
+                        g_ctx.stroke();
+                    }
                 }
             }
         }

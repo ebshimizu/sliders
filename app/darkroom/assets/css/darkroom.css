@@ -9,6 +9,10 @@ body p {
     color: #1b1c1d;
 }
 
+body .ui.basic.modal p {
+    color: #dcddde;
+}
+
 #layerContainer {
 	padding: 5px;
 	width: 30%;
@@ -148,7 +152,9 @@ body p {
 	background: #FFFFFF;
 }
 
-#layerControls .parameter .ui-slider {
+#layerControls .parameter .ui-slider,
+#maskOpacitySlider .ui-slider
+{
 	background: #000000;
 }
 
@@ -228,7 +234,6 @@ body p {
 	left: 0;
 	z-index: 3;
 	cursor: crosshair;
-    opacity: 0.5;
 }
 
 #imageContainer .segment {
@@ -371,7 +376,7 @@ body p {
 }
 
 #renderQueueTab {
-    height: calc(100% - 80px);
+    height: 100%;
     overflow-y: auto;
 }
 
@@ -462,4 +467,18 @@ body p {
 
 #imgStatusBar .right.floated.buttons {
     margin-left: 5px;
+}
+
+#maskOpacitySlider {
+    width: 200px;
+    position: absolute;
+    display: block;
+    right: 175px;
+    top: 5px;
+}
+
+#maskOpacitySlider .slider {
+    width: 120px;
+    float: right;
+    margin-top: 5px;
 }

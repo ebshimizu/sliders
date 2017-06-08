@@ -206,14 +206,14 @@ struct ExpStepData
 		const string assignment = "const " + floatType + " s" + to_string(stepIndex) + " = ";
 		if (type == ExpStepType::constant)
 		{
-			return assignment + to_string(value);
+			return assignment + "(T)" + to_string(value);
 		}
 		else if (type == ExpStepType::parameter)
 		{
 			if (parameterSlot == 0)
-				return assignment + "paramsA[" + to_string(parameterIndex) + "]; // " + name;
+				return assignment + "(T) paramsA[" + to_string(parameterIndex) + "]; // " + name;
 			else if (parameterSlot == 1)
-				return assignment + "paramsB[" + to_string(parameterIndex) + "]; // " + name;
+				return assignment + "(T) paramsB[" + to_string(parameterIndex) + "]; // " + name;
 			else
 				return "error";
 		}

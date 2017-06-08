@@ -6,11 +6,11 @@ namespace Comp {
   template<class T>
   vector<T> cvtT(vector<T> params) {
     vector<T> res;
-    if (params[1] == 0)
-      return { 0 };
+    if (params[1] == 0.0)
+      return { (T) 0 };
 
     T v = params[0] / params[1];
-    res.push_back((v > 1) ? 1 : (v < 0) ? 0 : v);
+    res.push_back((v > 1.0) ? (T)1.0 : (v < 0.0) ? (T)0.0 : v);
     return res;
   }
 

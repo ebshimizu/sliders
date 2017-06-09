@@ -7,3 +7,6 @@
 [submodule "app/darkroom/assets/semantic-ui-range"]
 	path = app/darkroom/assets/semantic-ui-range
 	url = https://github.com/tyleryasaka/semantic-ui-range.git
+[submodule "app/native/src/third_party/json"]
+	path = app/native/src/third_party/json
+	url = https://github.com/nlohmann/json.git

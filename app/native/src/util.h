@@ -23,6 +23,11 @@ using namespace std;
 #include "../../../expression_tree/expressionContext.h"
 
 namespace Comp {
+  enum ParamType {
+    FREE_PARAM = 0,
+    LAYER_PIXEL = 1
+  };
+
   static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };
 
   template <typename T>

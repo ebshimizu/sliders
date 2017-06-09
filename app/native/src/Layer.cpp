@@ -315,12 +315,12 @@ namespace Comp {
     int index = start;
     string pfx = "x_" + _name + "_";
 
-    _expOpacity = context.registerParam(1, pfx + "opacity", _opacity);
+    _expOpacity = context.registerParam(ParamType::FREE_PARAM, pfx + "opacity", _opacity);
     index++;
 
     for (auto a : _adjustments) {
       for (auto params : a.second) {
-        _expAdjustments[a.first][params.first] = context.registerParam(1, pfx + params.first, params.second);
+        _expAdjustments[a.first][params.first] = context.registerParam(ParamType::FREE_PARAM, pfx + params.first, params.second);
         index++;
       }
     }
@@ -332,7 +332,7 @@ namespace Comp {
 
       for (auto c : channels) {
         for (auto p : params) {
-          _expSelectiveColor[c][p] = context.registerParam(1, pfx + "sc_" + c + "_" + p, _selectiveColor[c][p]);
+          _expSelectiveColor[c][p] = context.registerParam(ParamType::FREE_PARAM, pfx + "sc_" + c + "_" + p, _selectiveColor[c][p]);
           index++;
         }
       }

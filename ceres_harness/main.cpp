@@ -2,6 +2,9 @@
 #include "main.h"
 #include "ceresFunctions.h"
 
+using namespace Comp;
+#include "compTest.h"
+
 class App
 {
 public:
@@ -16,10 +19,10 @@ void App::go()
 }
 
 template<class T>
-struct RGBColorT
+struct cRGBColorT
 {
-	RGBColorT() {}
-	RGBColorT(T _x, T _y, T _z)
+	cRGBColorT() {}
+	cRGBColorT(T _x, T _y, T _z)
 	{
 		x = _x;
 		y = _y;
@@ -29,13 +32,13 @@ struct RGBColorT
 	{
 		return x * x + y * y + z * z;
 	}
-	RGBColorT operator * (T v)
+	cRGBColorT operator * (T v)
 	{
 		return RGBColorT(v * x, v * y, v * z);
 	}
-	RGBColorT operator + (const RGBColorT &v)
+	cRGBColorT operator + (const cRGBColorT &v)
 	{
-		return RGBColorT(x + v.x, y + v.y, z + v.z);
+		return cRGBColorT(x + v.x, y + v.y, z + v.z);
 	}
 	const T& operator [](int k) const
 	{
@@ -47,40 +50,41 @@ struct RGBColorT
 	T x, y, z;
 };
 
-typedef RGBColorT<double> RGBColor;
+typedef cRGBColorT<double> cRGBColor;
 
 template<class T>
-RGBColorT<T> evalLayerColor(const T* const params, const vector<float> &layerValues)
+vector<T> evalLayerColor(const T* const params, const vector<double> &layerValues)
 {
-	return RGBColorT<T>(params[0] * params[3], params[1] * params[3], params[2] * params[3]);
+  return compTest<T>(params, layerValues);
 }
 
 struct CostTerm
 {
 	static const int ResidualCount = 3;
-	static const int ParameterCount = 4;
+	static const int ParameterCount = 11;
 
-	CostTerm(const vector<float> &_layerValues, float _weight, const RGBColor &_targetColor)
+	CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor)
 		: layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {}
 
 	template <typename T>
 	bool operator()(const T* const params, T* residuals) const
 	{
-		RGBColorT<T> color = evalLayerColor(params, layerValues);
-		residuals[0] = (color[0] - T(targetColor.x)) * T(weight);
-		residuals[1] = (color[1] - T(targetColor.y)) * T(weight);
-		residuals[2] = (color[2] - T(targetColor.z)) * T(weight);
+    // color is RGBA, right now compare vs premult RGB
+		vector<T> color = evalLayerColor(params, layerValues);
+		residuals[0] = (color[0] * color[3] - T(targetColor.x)) * T(weight);
+		residuals[1] = (color[1] * color[3] - T(targetColor.y)) * T(weight);
+		residuals[2] = (color[2] * color[3] - T(targetColor.z)) * T(weight);
 		return true;
 	}
 
-	static ceres::CostFunction* Create(const vector<float> &layerValues, float weight, const RGBColor &targetColor)
+	static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
 	{
 		return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, CostTerm::ParameterCount>(
 			new CostTerm(layerValues, weight, targetColor)));
 	}
 
-	vector<float> layerValues;
-	RGBColor targetColor;
+	vector<double> layerValues;
+	cRGBColor targetColor;
 	float weight;
 };
 
@@ -93,11 +97,11 @@ void App::testOptimizer()
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
 	//    fit = (x(i, j) - constraints(i, j)) * w_fitSqrt
-	for (int pixel = 0; pixel < 5; pixel++)
+	for (int pixel = 0; pixel < 1; pixel++)
 	{
-		vector<float> layerValues(3); // not currently used
+    vector<double> layerValues = { 0, 174.0 / 255.0, 239.0 / 255.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0 }; // not currently used
 		const float pixelWeight = 1.0f;
-		RGBColor targetColor(0.5f, 0.5f, 0.5f);
+		cRGBColor targetColor(1.0, 0, 0);
 		ceres::CostFunction* costFunction = CostTerm::Create(layerValues, pixelWeight, targetColor);
 		problem.AddResidualBlock(costFunction, NULL, allParams.data());
 	}
@@ -153,6 +157,11 @@ void App::testOptimizer()
 	double cost = -1.0;
 	problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
 	cout << "Cost*2 end: " << cost * 2 << endl;
+
+  // params
+  for (int i = 0; i < allParams.size(); i++) {
+    cout << "p[" << i << "]: " << allParams[i] << "\n";
+  }
 
 	cout << summary.FullReport() << endl;
 

@@ -72,6 +72,7 @@ namespace Comp {
 
     // get the specified pixel
     RGBAColor getPixel(int index);
+    RGBAColor getPixel(int x, int y);
 
     int initExp(ExpContext& context, string name, int index, int pxPos);
 

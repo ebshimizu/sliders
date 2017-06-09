@@ -384,7 +384,7 @@ namespace Comp {
         param["adjustmentType"] = a.first;
         param["adjustmentName"] = p.first;
         param["value"] = p.second;
-        paramList.push_back(opacity);
+        paramList.push_back(param);
       }
     }
 

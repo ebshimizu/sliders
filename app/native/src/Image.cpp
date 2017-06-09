@@ -134,6 +134,11 @@ namespace Comp {
     return c;
   }
 
+  RGBAColor Image::getPixel(int x, int y)
+  {
+    return getPixel(x + y * _w);
+  }
+
   int Image::initExp(ExpContext& context, string name, int index, int pxPos)
   {
     RGBAColor c = getPixel(pxPos);

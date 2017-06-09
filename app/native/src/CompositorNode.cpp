@@ -1154,6 +1154,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getMaskLayer", getMaskLayer);
   Nan::SetPrototypeMethod(tpl, "deleteMaskLayer", deleteMaskLayer);
   Nan::SetPrototypeMethod(tpl, "clearMask", clearMask);
+  Nan::SetPrototypeMethod(tpl, "paramsToCeres", paramsToCeres);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1802,6 +1803,64 @@ void CompositorWrapper::clearMask(const Nan::FunctionCallbackInfo<v8::Value>& in
   nullcheck(c->_compositor, "compositor.getMaskLayer");
 
   c->_compositor->clearMask();
+}
+
+void CompositorWrapper::paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // lots of parsing going on here
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.paramsToCeres");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("paramsToCeres requires a context to evaluate");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  if (info[1]->IsArray() && info[2]->IsArray() && info[3]->IsArray() && info[4]->IsString()) {
+    // points
+    vector<Comp::Point> pts;
+
+    v8::Local<v8::Array> ptsArr = info[1].As<v8::Array>();
+    for (int i = 0; i < ptsArr->Length(); i++) {
+      v8::Local<v8::Object> pt = ptsArr->Get(i).As<v8::Object>();
+      pts.push_back(Comp::Point(pt->Get(Nan::New("x").ToLocalChecked())->NumberValue(),
+        pt->Get(Nan::New("y").ToLocalChecked())->NumberValue()));
+    }
+
+    // colors
+    vector<Comp::RGBColor> colors;
+    v8::Local<v8::Array> colorArr = info[2].As<v8::Array>();
+    for (int i = 0; i < colorArr->Length(); i++) {
+      v8::Local<v8::Object> color = colorArr->Get(i).As<v8::Object>();
+
+      Comp::RGBColor c;
+      c._r = color->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+      c._g = color->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+      c._b = color->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+      colors.push_back(c);
+    }
+
+    // weights
+    vector<double> weights;
+    v8::Local<v8::Array> weightArr = info[3].As<v8::Array>();
+    for (int i = 0; i < weightArr->Length(); i++) {
+      weights.push_back(weightArr->Get(i)->NumberValue());
+    }
+
+    // output
+    v8::String::Utf8Value val4(info[4]->ToString());
+    string out(*val4);
+
+    c->_compositor->paramsToCeres(ctx->_context, pts, colors, weights, out);
+  }
+  else {
+    Nan::ThrowError("paramsToCeres(object:Context, pts:object[], targets:object[], weights:double[], outputFile:string) argument error");
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

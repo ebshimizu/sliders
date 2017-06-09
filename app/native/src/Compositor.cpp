@@ -693,12 +693,67 @@ namespace Comp {
   void Compositor::paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,
     vector<double> weights, string outputPath)
   {
-    // gather parameter info
+    if (pts.size() != targetColor.size() || pts.size() != weights.size()) {
+      getLogger()->log("paramsToCeres requires the same number of points, targets, and weights.", ERR);
+      return;
+    }
+
     nlohmann::json freeParams = nlohmann::json::array();
 
-    for (auto l : _layerOrder) {
+    for (auto& l : _layerOrder) {
+      // gather parameter info
       c[l].addParams(freeParams);
     }
+
+    nlohmann::json residuals = nlohmann::json::array();
+
+    // gather layer color info
+    for (int i = 0; i < pts.size(); i++) {
+      Point& p = pts[i];
+
+      int x = (int)p._x;
+      int y = (int)p._y;
+
+      nlohmann::json pixel;
+      pixel["x"] = x;
+      pixel["y"] = y;
+      pixel["flat"] = x + y * c.begin()->second.getImage()->getWidth();
+
+      nlohmann::json tc;
+      tc["r"] = targetColor[i]._r;
+      tc["g"] = targetColor[i]._g;
+      tc["b"] = targetColor[i]._b;
+
+      // layer pixel colors
+      nlohmann::json layers = nlohmann::json::array();
+      for (auto& l : _layerOrder) {
+        RGBAColor color = c[l].getImage()->getPixel(x, y);
+
+        nlohmann::json layerColor;
+        layerColor["r"] = color._r;
+        layerColor["g"] = color._g;
+        layerColor["b"] = color._b;
+        layerColor["a"] = color._a;
+        layerColor["name"] = l;
+        layers.push_back(layerColor);
+      }
+
+      nlohmann::json residual;
+      residual["pixel"] = pixel;
+      residual["layers"] = layers;
+      residual["target"] = tc;
+      residual["weight"] = weights[i];
+
+      residuals.push_back(residual);
+    }
+
+    nlohmann::json data;
+    data["params"] = freeParams;
+    data["residuals"] = residuals;
+
+    // write json to file
+    ofstream file(outputPath);
+    file << data.dump(4);
   }
 
   void Compositor::addLayer(string name)

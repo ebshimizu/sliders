@@ -17,6 +17,7 @@ author: Evan Shimizu
 #include <map>
 #include <algorithm>
 #include <fstream>
+#include "third_party/json/src/json.hpp"
 
 using namespace std;
 
@@ -48,6 +49,10 @@ namespace Comp {
     float _x;
     float _y;
   };
+
+  // loads data from a json file into the proper ceres formats, then returns the json object
+  nlohmann::json loadCeresData(string file, vector<double>& params, vector<vector<double> >& layerPixels,
+    vector<vector<double> >& targets, vector<double>& weights);
 
   // a curve here is implemented as a cubic hermite spline
   class Curve {

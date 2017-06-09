@@ -4,6 +4,7 @@
 
 using namespace Comp;
 #include "compTest.h"
+#include "util.cpp"
 
 class App
 {
@@ -92,7 +93,12 @@ void App::testOptimizer()
 {
 	Problem problem;
 
-	vector<double> allParams(CostTerm::ParameterCount);
+	vector<double> allParams;
+  vector<vector<double> > layerValues;
+  vector<vector<double> > targetColors;
+  vector<double> weights;
+
+  nlohmann::json data = loadCeresData("../app/native/debug_build/ceres.json", allParams, layerValues, targetColors, weights);
 
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)

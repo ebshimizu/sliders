@@ -4,7 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const saveVersion = 0.21;
+const saveVersion = 0.22;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -913,7 +913,7 @@ function bindStandardEvents(name, layer) {
         }
     });
 
-    bindLayerParamControl(name, layer, "opacity", layer.opacity(), "", { "uiHandler" : handleParamChange });
+    bindLayerParamControl(name, layer, "opacity", layer.opacity() * 100, "", { "uiHandler" : handleParamChange });
 }
 
 function bindSectionEvents(name, layer) {
@@ -1458,7 +1458,7 @@ function createShadowState(tree, order) {
     // populate modifiers
     for (var i = 0; i < order.length; i++) {
         var layer = c.getLayer(order[i]);
-        modifiers[order[i]] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() };
+        modifiers[order[i]] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : layer.visible(), 'opacity' : layer.opacity() * 100 };
     }
 }
 
@@ -1801,7 +1801,7 @@ function importLayers(doc, path) {
         // update properties
         var cLayer = c.getLayer(layerName);
         cLayer.blendMode(blendModes[layer.blendMode]);
-        cLayer.opacity(layer.opacity);
+        cLayer.opacity(layer.opacity / 100);
         cLayer.visible(layer.visible);
 
         insertLayerElem(layerName, sets);
@@ -1916,6 +1916,8 @@ function loadLayers(doc, path) {
         for (var name in data) {
             regenLayerControls(name);
         }
+
+        showStatusMsg("Check parameter values and re-import if needed.", "INFO", "Loaded Older Save Version " + ver);
     }
     else {
         // bind events
@@ -2177,7 +2179,7 @@ function contextToJSON(ctx) {
             }
         }
     }
-
+    
     return layers;
 }
 
@@ -2196,9 +2198,9 @@ function handleParamChange(layerName, ui) {
 
     if (paramName == "opacity") {
         // update the modifiers and compute acutual value
-        modifiers[layerName].opacity = ui.value;
+        modifiers[layerName].opacity = ui.value / 100;
 
-        c.getLayer(layerName).opacity(ui.value * (modifiers[layerName].groupOpacity / 100));
+        c.getLayer(layerName).opacity((ui.value / 100) * (modifiers[layerName].groupOpacity / 100));
 
         // find associated value box and dump the value there
         $(ui.handle).parent().next().find("input").val(String(ui.value));
@@ -2453,7 +2455,7 @@ function updateChildOpacity(doc, val) {
             modifiers[key].groupOpacity = val;
 
             // update the layer state
-            c.getLayer(key).opacity((modifiers[key].groupOpacity / 100) * modifiers[key].opacity);
+            c.getLayer(key).opacity((modifiers[key].groupOpacity / 100) * (modifiers[key].opacity / 100));
         }
         else {
             // not a layer
@@ -2690,7 +2692,7 @@ function updateLayerControls() {
         var layer = layers[layerName];
 
         // general controls
-        updateSliderControl(layerName, "opacity", "", layer.opacity());
+        updateSliderControl(layerName, "opacity", "", layer.opacity() * 100);
         
         // visibility
         var button = $('button[layerName="' + layerName + '"]');
@@ -2805,7 +2807,7 @@ function updateColorControl(name, section, adj) {
 
 function resetShadowState() {
     for (var name in modifiers) {
-        modifiers[name] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : c.getLayer(name).visible(), 'opacity' : c.getLayer(name).opacity() };
+        modifiers[name] = { 'groupOpacity' : 100, 'groupVisible' : true, 'visible' : c.getLayer(name).visible(), 'opacity' : c.getLayer(name).opacity() * 100 };
     }
 }
 

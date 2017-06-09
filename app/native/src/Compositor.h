@@ -355,7 +355,7 @@ namespace Comp {
       // blend the layer
       // a = background, b = new layer
       // alphas
-      T ab = layerPx._a * (l.getOpacity() / 100.0f);
+      T ab = layerPx._a * l.getOpacity();
       T aa = compPx._a;
       T ad = aa + ab - aa * ab;
 
@@ -1297,7 +1297,7 @@ namespace Comp {
       // blend the layer
       // a = background, b = new layer
       // alphas
-      ExpStep ab = layerPx._a * (l.getOpacity() / 100.0f);
+      ExpStep ab = layerPx._a * l.getOpacity();
       ExpStep aa = compPx._a;
       ExpStep ad = aa + ab - aa * ab;
 

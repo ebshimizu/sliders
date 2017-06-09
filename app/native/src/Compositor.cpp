@@ -244,7 +244,7 @@ namespace Comp {
         // pixel data is a flat array, rgba interlaced format
         // a = background, b = new layer
         // alphas
-        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * (l.getOpacity() / 100.0f);
+        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * l.getOpacity();
         float aa = compPx[i * 4 + 3] / 255.0f;
         float ad = aa + ab - aa * ab;
 

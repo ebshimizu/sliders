@@ -91,7 +91,7 @@ namespace Comp {
 
   void Layer::setOpacity(float val)
   {
-    _opacity = (val > 100) ? 100 : ((val < 0) ? 0 : val);
+    _opacity = clamp<float>(val, 0, 1);
   }
 
   string Layer::getName()
@@ -107,7 +107,7 @@ namespace Comp {
   void Layer::reset()
   {
     _mode = BlendMode::NORMAL;
-    _opacity = 100;
+    _opacity = 1;
     _visible = true;
   }
 
@@ -414,7 +414,7 @@ namespace Comp {
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;
-    _opacity = 100;
+    _opacity = 1;
     _visible = true;
 
     _image = source;

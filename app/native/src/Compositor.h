@@ -119,13 +119,28 @@ namespace Comp {
     // resets images to full white alpha 1
     void resetImages(string name);
 
+    // computes a function for use in the ceres optimizer
     void computeExpContext(Context& c, int px, string functionName, string size = "");
     void computeExpContext(Context& c, int x, int y, string functionName, string size = "");
 
+    // functions for manipulating the mask / constraints from the UI
     void setMaskLayer(string layerName, shared_ptr<Image> img);
     shared_ptr<Image> getMaskLayer(string layerName);
     void deleteMaskLayer(string layerName);
     void clearMask();
+
+    /*
+    outputs a json file containing the following:
+     - freeParams
+        An array of objects containing information about the parameters used by the optimizer
+        Fields: paramName, paramID, layerName, adjustmentType, adjustmentName, selectiveColor.channel, selectiveColor.channel.value, value
+     - layerColors
+        An array of objects contining information about the layer colors, the target colors,
+        and the weights of each color. These are the points at which the residuals are calculated.
+        Fields: pixel.x, pixel.y, pixel.flat, array of layer color info (needs consistent order), targetColor, weight
+    */
+    void paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,
+      vector<double> weights, string outputPath);
 
   private:
     void addLayer(string name);

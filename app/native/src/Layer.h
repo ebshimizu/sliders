@@ -8,6 +8,7 @@ author: Evan Shimizu
 #include "Logger.h"
 #include "Image.h"
 #include "util.h"
+#include "third_party/json/src/json.hpp"
 
 #include <map>
 
@@ -41,7 +42,8 @@ namespace Comp {
     PHOTO_FILTER = 7,     // params: Lab color, density
     COLORIZE = 8,         // special case of a particular action output. Colors a layer based on specified color and alpha like the COLOR blend mode
     LIGHTER_COLORIZE = 9, // also a special case like colorize but this does the Lighter Color blend mode
-    OVERWRITE_COLOR = 10  // also a special case. literally just replaces the layer with this solid color
+    OVERWRITE_COLOR = 10, // also a special case. literally just replaces the layer with this solid color
+    OPACITY = 1000        // special category for indicating layer opacity param, used in data transfer
   };
 
   class Layer {
@@ -149,7 +151,11 @@ namespace Comp {
     // returns the next available variable index
     int prepExp(ExpContext& context, int start);
 
+    // for the test harness, fill in params in the proper order
     void prepExpParams(vector<double>& params);
+
+    // for ceres parameter export
+    void addParams(nlohmann::json& paramList);
 
     // For the expression context
     map<AdjustmentType, map<string, ExpStep> > _expAdjustments;

@@ -364,6 +364,53 @@ namespace Comp {
     }
   }
 
+  void Layer::addParams(nlohmann::json & paramList)
+  {
+    // opacity, then adjustments in std::map order (numeric ascending -> alphabetical)
+    nlohmann::json opacity;
+    opacity["layerName"] = _name;
+    opacity["paramID"] = paramList.size();
+    opacity["adjustmentType"] = AdjustmentType::OPACITY;
+    opacity["adjustmentName"] = "opacity";
+    opacity["value"] = _opacity;
+    paramList.push_back(opacity);
+
+    // regular adjustments
+    for (auto a : _adjustments) {
+      for (auto p : a.second) {
+        nlohmann::json param;
+        param["layerName"] = _name;
+        param["paramID"] = paramList.size();
+        param["adjustmentType"] = a.first;
+        param["adjustmentName"] = p.first;
+        param["value"] = p.second;
+        paramList.push_back(opacity);
+      }
+    }
+
+    // selective color
+    if (_adjustments.count(SELECTIVE_COLOR) > 0) {
+      vector<string> channels = { "reds", "yellows", "greens", "cyans", "blues", "magentas", "neutrals", "blacks", "whites" };
+      vector<string> names = { "cyan", "magenta", "yellow", "black" };
+      
+      for (auto c : channels) {
+        for (auto p : names) {
+          nlohmann::json param;
+          param["layerName"] = _name;
+          param["paramID"] = paramList.size();
+          param["adjustmentType"] = SELECTIVE_COLOR;
+          param["adjustmentName"] = "selectiveColor";
+          param["value"] = _selectiveColor[c][p];
+
+          param["selectiveColor"] = nlohmann::json::object();
+          param["selectiveColor"]["channel"] = c;
+          param["selectiveColor"]["color"] = p;
+          paramList.push_back(param);
+        }
+      }
+    }
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;

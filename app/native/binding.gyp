@@ -14,6 +14,7 @@
 				"src/third_party/lodepng/lodepng.cpp",
 				"src/third_party/cpp-base64/base64.cpp",
 				"src/third_party/stb_image_resize.h",
+				"src/third_party/json/src/json.hpp",
 		        "src/addon.cpp",
 		        "src/Layer.h",
 		        "src/Layer.cpp",

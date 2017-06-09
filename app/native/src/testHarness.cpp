@@ -26,15 +26,17 @@ double compare(Compositor* c, int x, int y) {
   vector<double> paramsA;
   vector<double> paramsB;
 
-  for (auto l : ctx) {
+  for (auto name : c->getLayerOrder()) {
+    Layer& l = ctx[name];
+
     // layer colors
-    auto p = l.second.getImage()->getPixel(index);
+    auto p = l.getImage()->getPixel(index);
     paramsA.push_back(p._r);
     paramsA.push_back(p._g);
     paramsA.push_back(p._b);
     paramsA.push_back(p._a);
 
-    l.second.prepExpParams(paramsB);
+    l.prepExpParams(paramsB);
   }
 
   // the rendered pixel

@@ -1,4 +1,5 @@
 #include "Compositor.h"
+#include "third_party/json/src/json.hpp"
 
 namespace Comp {
   Compositor::Compositor() : _searchRunning(false)
@@ -596,21 +597,23 @@ namespace Comp {
     // create variables (they get stored in the layer and image structures)
     int index = 0;
     
-    for (auto& l : c) {
-      if (!l.second._visible)
+    for (auto& name : _layerOrder) {
+      Layer& l = c[name];
+
+      if (!l._visible)
         continue;
 
-      if (_imageData.count(l.first) > 0) {
-        getLogger()->log("Initializing pixel data for " + l.first);
+      if (_imageData.count(name) > 0) {
+        getLogger()->log("Initializing pixel data for " + name);
 
         // create layer pixel vars
-        index = _imageData[l.first][size]->initExp(ctx, l.first, index, px);
+        index = _imageData[name][size]->initExp(ctx, name, index, px);
       }
 
-      getLogger()->log("Initializing layer data for " + l.first);
+      getLogger()->log("Initializing layer data for " + name);
 
       // create layer adjustment vars
-      index = l.second.prepExp(ctx, index);
+      index = l.prepExp(ctx, index);
     }
 
     getLogger()->log("Context initialized");
@@ -685,6 +688,17 @@ namespace Comp {
   void Compositor::clearMask()
   {
     _maskLayers.clear();
+  }
+
+  void Compositor::paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,
+    vector<double> weights, string outputPath)
+  {
+    // gather parameter info
+    nlohmann::json freeParams = nlohmann::json::array();
+
+    for (auto l : _layerOrder) {
+      c[l].addParams(freeParams);
+    }
   }
 
   void Compositor::addLayer(string name)

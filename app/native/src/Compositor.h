@@ -142,6 +142,12 @@ namespace Comp {
     void paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,
       vector<double> weights, string outputPath);
 
+    /*
+    Imports a ceres results file (should be the same format as paramsToCeres) and into
+    a new context
+    */
+    Context ceresToContext(string file);
+
   private:
     void addLayer(string name);
 

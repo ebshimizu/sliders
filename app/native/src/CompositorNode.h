@@ -157,6 +157,7 @@ private:
   static void deleteMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void clearMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void ceresToContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

@@ -756,6 +756,32 @@ namespace Comp {
     file << data.dump(4);
   }
 
+  Context Compositor::ceresToContext(string file)
+  {
+    nlohmann::json data;
+    ifstream input(file);
+    input >> data;
+
+    Context c = getNewContext();
+
+    for (int i = 0; i < data["params"].size(); i++) {
+      auto param = data["params"][i];
+      string layerName = param["layerName"].get<string>();
+
+      if (param["adjustmentType"] == AdjustmentType::OPACITY) {
+        c[layerName].setOpacity(param["value"].get<float>());
+      }
+      else if (param["adjustmentType"] == AdjustmentType::SELECTIVE_COLOR) {
+        c[layerName].setSelectiveColorChannel(param["selectiveColor"]["channel"], param["selectiveColor"]["param"], param["value"]);
+      }
+      else {
+        c[layerName].addAdjustment((AdjustmentType)param["adjustmentType"].get<int>(), param["adjustmentName"].get<string>(), param["value"].get<float>());
+      }
+    }
+
+    return c;
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

@@ -103,6 +103,13 @@ void App::testOptimizer()
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
 	//    fit = (x(i, j) - constraints(i, j)) * w_fitSqrt
+  for (int i = 0; i < targetColors.size(); i++) {
+    cRGBColor target(targetColors[i][0], targetColors[i][1], targetColors[i][2]);
+    ceres::CostFunction* costFunction = CostTerm::Create(layerValues[i], weights[i], target);
+    problem.AddResidualBlock(costFunction, NULL, allParams.data());
+  }
+
+  /*
 	for (int pixel = 0; pixel < 1; pixel++)
 	{
     vector<double> layerValues = { 0, 174.0 / 255.0, 239.0 / 255.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0 }; // not currently used
@@ -111,6 +118,7 @@ void App::testOptimizer()
 		ceres::CostFunction* costFunction = CostTerm::Create(layerValues, pixelWeight, targetColor);
 		problem.AddResidualBlock(costFunction, NULL, allParams.data());
 	}
+  */
 
 	cout << "Solving..." << endl;
 
@@ -171,6 +179,13 @@ void App::testOptimizer()
 
 	cout << summary.FullReport() << endl;
 
+  // re-export
+  for (int i = 0; i < allParams.size(); i++) {
+    data["params"][i]["value"] = allParams[i];
+  }
+
+  ofstream out("ceres_results.json");
+  out << data.dump(4);
 }
 
 void main()

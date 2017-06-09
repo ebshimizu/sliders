@@ -1155,6 +1155,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteMaskLayer", deleteMaskLayer);
   Nan::SetPrototypeMethod(tpl, "clearMask", clearMask);
   Nan::SetPrototypeMethod(tpl, "paramsToCeres", paramsToCeres);
+  Nan::SetPrototypeMethod(tpl, "ceresToContext", ceresToContext);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1807,7 +1808,6 @@ void CompositorWrapper::clearMask(const Nan::FunctionCallbackInfo<v8::Value>& in
 
 void CompositorWrapper::paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
-  // lots of parsing going on here
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.paramsToCeres");
 
@@ -1860,6 +1860,29 @@ void CompositorWrapper::paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>
   }
   else {
     Nan::ThrowError("paramsToCeres(object:Context, pts:object[], targets:object[], weights:double[], outputFile:string) argument error");
+  }
+}
+
+void CompositorWrapper::ceresToContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.ceresToContext");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string file(*val0);
+
+    Comp::Context ctx = c->_compositor->ceresToContext(file);
+
+    // context object
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("ceresToContext(file:string) argument error");
   }
 }
 

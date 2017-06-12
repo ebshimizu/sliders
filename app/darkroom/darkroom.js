@@ -955,12 +955,12 @@ function bindLevelsEvents(name, sectionName, layer) {
 }
 
 function bindExposureEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "exposure", layer.getAdjustment(adjType.EXPOSURE).exposure, sectionName,
-        { "range" : false, "max" : 20, "min" : -20, "step" : 0.1, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType.EXPOSURE).offset, sectionName,
+    bindLayerParamControl(name, layer, "exposure", (layer.getAdjustment(adjType.EXPOSURE).exposure - 0.5) * 10, sectionName,
+        { "range" : false, "max" : 5, "min" : -5, "step" : 0.1, "uiHandler" : handleExposureParamChange });
+    bindLayerParamControl(name, layer, "offset", layer.getAdjustment(adjType.EXPOSURE).offset - 0.5, sectionName,
         { "range" : false, "max" : 0.5, "min" : -0.5, "step" : 0.01, "uiHandler" : handleExposureParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType.EXPOSURE).gamma, sectionName,
-        { "range" : false, "max" : 9.99, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
+    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType.EXPOSURE).gamma * 10, sectionName,
+        { "range" : false, "max" : 10, "min" : 0.01, "step" : 0.01, "uiHandler" : handleExposureParamChange });
 }
 
 function bindColorBalanceEvents(name, sectionName, layer) {
@@ -1426,7 +1426,7 @@ function addAdjustmentToLayer(name, adjType) {
     }
     // curves omitted
     else if (adjType === 3) {
-        c.getLayer(name).addExposureAdjustment(0, 0, 1);
+        c.getLayer(name).addExposureAdjustment(0.5, 0.5, 1 / 10);
     }
     // gradient map omitted
     else if (adjType === 5) {
@@ -1713,7 +1713,8 @@ function importLayers(doc, path) {
             else if (type === "EXPOSURE") {
                 adjustment = metadata[layerName].EXPOSURE;
 
-                c.getLayer(layerName).addExposureAdjustment(adjustment.exposure, adjustment.offset, adjustment.gammaCorrection);
+                // import format should have exposure [-20, 20]
+                c.getLayer(layerName).addExposureAdjustment((adjustment.exposure / 40), adjustment.offset + 0.5, adjustment.gammaCorrection / 10);
             }
             else if (type === "GRADIENTMAP") {
                 adjustment = metadata[layerName].GRADIENTMAP;
@@ -2251,13 +2252,13 @@ function handleExposureParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "exposure") {
-        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "exposure", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "exposure", (ui.value / 10) + 0.5);
     }
     else if (paramName === "offset") {
-        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "offset", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "offset", ui.value + 0.5);
     }
     else if (paramName === "gamma") {
-        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "gamma", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "gamma", ui.value / 10);
     }
 
     // find associated value box and dump the value there
@@ -2734,9 +2735,9 @@ function updateLayerControls() {
             }
             else if (type === 3) {
                 // exposure
-                updateSliderControl(layerName, "exposure", "Exposure", adj.exposure);
-                updateSliderControl(layerName, "offset", "Exposure", adj.offset);
-                updateSliderControl(layerName, "gamma", "Exposure", adj.gamma);
+                updateSliderControl(layerName, "exposure", "Exposure", (adj.exposure - 0.5) * 10);
+                updateSliderControl(layerName, "offset", "Exposure", adj.offset - 0.5);
+                updateSliderControl(layerName, "gamma", "Exposure", adj.gamma * 10);
             }
             else if (type === 4) {
                 // gradient

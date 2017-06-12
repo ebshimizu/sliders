@@ -907,9 +907,9 @@ namespace Comp {
   template<typename T>
   inline void Compositor::exposureAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
-    T exposure = adj["exposure"];
-    T offset = adj["offset"];
-    T gamma = adj["gamma"];
+    T exposure = (adj["exposure"] - 0.5f) * 10;
+    T offset = adj["offset"] - 0.5f;
+    T gamma = adj["gamma"] * 10;
 
     adjPx._r = clamp<T>(pow(adjPx._r * pow(2, exposure) + offset, 1 / gamma), 0.0, 1.0);
     adjPx._g = clamp<T>(pow(adjPx._g * pow(2, exposure) + offset, 1 / gamma), 0.0, 1.0);

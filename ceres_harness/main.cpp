@@ -3,7 +3,7 @@
 #include "ceresFunctions.h"
 
 using namespace Comp;
-#include "compTest.h"
+#include "ceresFunc.h"
 #include "util.cpp"
 
 class App
@@ -56,13 +56,12 @@ typedef cRGBColorT<double> cRGBColor;
 template<class T>
 vector<T> evalLayerColor(const T* const params, const vector<double> &layerValues)
 {
-  return compTest<T>(params, layerValues);
+  return ceresFunc<T>(params, layerValues);
 }
 
 struct CostTerm
 {
 	static const int ResidualCount = 3;
-	static const int ParameterCount = 11;
 
 	CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor)
 		: layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {}
@@ -80,7 +79,7 @@ struct CostTerm
 
 	static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
 	{
-		return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, CostTerm::ParameterCount>(
+		return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, ceresFunc_paramACount>(
 			new CostTerm(layerValues, weight, targetColor)));
 	}
 

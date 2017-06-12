@@ -155,11 +155,11 @@ struct ExpContext
 		const string vectorType = "vector<" + floatType + ">";
 		vector<string> result;
     result.push_back("static const int " + functionName + "_paramACount = " + to_string(_paramCounts[0]) + ";");
-    result.push_back("static const int " + functionName + "_paramBCount = " + to_string(_paramCounts[1]) + ";");
+    result.push_back("static const int " + functionName + "_paramBCount = " + to_string(_paramCounts[1]) + ";\n");
 
 		result.push_back("template <class T>");
 		//result.push_back(vectorType + " " + functionName + "(const " + vectorType + " &paramsA, const " + vectorType + " &paramsB)");
-		result.push_back("vector<T> compTest(const T* const paramsA, const vector<double> &paramsB)");
+		result.push_back("vector<T> " + functionName + "(const T* const paramsA, const vector<double> &paramsB)");
 		result.push_back("{");
 		result.push_back(indent + vectorType + " result(" + to_string(resultCount) + ");");
 		result.push_back(indent);

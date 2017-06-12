@@ -4,7 +4,7 @@
 
 namespace Comp {
 
-#include "compTest.h"
+#include "ceresFunc.h"
 
 // ! Here the generated function is called. For testing purposes, this framework will
 // assume a fixed name for the function being called
@@ -43,7 +43,7 @@ double compare(Compositor* c, int x, int y) {
   RGBAColor pix = c->renderPixel<float>(ctx, index);
 
   // the test harness result
-  vector<double> res = compTest(paramsA.data(), paramsB);
+  vector<double> res = ceresFunc(paramsA.data(), paramsB);
   double l2 = sqrt(pow(pix._r - res[0], 2) + pow(pix._g - res[1], 2) + pow(pix._b - res[2], 2) + pow(pix._a - res[3], 2));
 
   stringstream ss;

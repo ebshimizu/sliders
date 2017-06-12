@@ -82,13 +82,13 @@ namespace Comp {
     T Da = params[2];
     T Sa = params[3];
 
-    if (Da == 0)
+    if (Da == (T)0)
       return { Sc };
 
-    T burn = Dc + Sc - 1;
+    T burn = Dc + Sc - (T)1;
 
     // normal blend
-    return { burn * Sa + Dc * (1 - Sa) };
+    return { burn * Sa + Dc * ((T)1 - Sa) };
   }
 
   template<class T>

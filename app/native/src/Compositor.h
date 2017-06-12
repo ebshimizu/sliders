@@ -72,6 +72,9 @@ namespace Comp {
     // number of layers present in the compositor
     int size();
 
+    int getWidth(string size = "");
+    int getHeight(string size = "");
+
     // Render the primary context
     // since the render functions do hit the js interface, images are allocated and 
     // memory is explicity handled to prevent scope issues

@@ -9,14 +9,14 @@ using namespace Comp;
 class App
 {
 public:
-	void go();
+	void go(string loadFrom, string saveTo);
 
-	void testOptimizer();
+	void testOptimizer(string loadFrom, string saveTo);
 };
 
-void App::go()
+void App::go(string loadFrom, string saveTo)
 {
-	testOptimizer();
+	testOptimizer(loadFrom, saveTo);
 }
 
 template<class T>
@@ -88,7 +88,7 @@ struct CostTerm
 	float weight;
 };
 
-void App::testOptimizer()
+void App::testOptimizer(string loadFrom, string saveTo)
 {
 	Problem problem;
 
@@ -97,7 +97,7 @@ void App::testOptimizer()
   vector<vector<double> > targetColors;
   vector<double> weights;
 
-  nlohmann::json data = loadCeresData("../app/native/debug_build/ceres.json", allParams, layerValues, targetColors, weights);
+  nlohmann::json data = loadCeresData(loadFrom, allParams, layerValues, targetColors, weights);
 
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
@@ -183,14 +183,14 @@ void App::testOptimizer()
     data["params"][i]["value"] = allParams[i];
   }
 
-  ofstream out("ceres_results.json");
+  ofstream out(saveTo);
   out << data.dump(4);
 }
 
-void main()
+void main(int argc, char* argv[])
 {
 	App app;
-	app.go();
+	app.go(string(argv[1]), string(argv[2]));
 
 	cin.get();
 }

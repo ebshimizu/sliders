@@ -169,6 +169,28 @@ namespace Comp {
     return (int)_primary.size();
   }
 
+  int Compositor::getWidth(string size)
+  {
+    if (size == "")
+      size = "full";
+
+    if (_imageData.size() == 0)
+      return 0;
+    
+    return _imageData.begin()->second[size]->getWidth();
+  }
+
+  int Compositor::getHeight(string size)
+  {
+    if (size == "")
+      size = "full";
+
+    if (_imageData.size() == 0)
+      return 0;
+
+    return _imageData.begin()->second[size]->getHeight();
+  }
+
   Image* Compositor::render(string size)
   {
     return render(getNewContext(), size);
@@ -600,7 +622,7 @@ namespace Comp {
     for (auto& name : _layerOrder) {
       Layer& l = c[name];
 
-      if (!l._visible)
+      if (l.isAdjustmentLayer())
         continue;
 
       if (_imageData.count(name) > 0) {
@@ -717,7 +739,7 @@ namespace Comp {
       nlohmann::json pixel;
       pixel["x"] = x;
       pixel["y"] = y;
-      pixel["flat"] = x + y * c.begin()->second.getImage()->getWidth();
+      pixel["flat"] = x + y * getWidth();
 
       nlohmann::json tc;
       tc["r"] = targetColor[i]._r;
@@ -727,6 +749,10 @@ namespace Comp {
       // layer pixel colors
       nlohmann::json layers = nlohmann::json::array();
       for (auto& l : _layerOrder) {
+        // adjustment layers have no pixel data
+        if (_imageData.count(l) == 0)
+          continue;
+
         RGBAColor color = c[l].getImage()->getPixel(x, y);
 
         nlohmann::json layerColor;

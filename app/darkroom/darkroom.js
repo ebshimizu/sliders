@@ -456,6 +456,7 @@ function initUI() {
 
     // ceres debug
     $('#ceresAddPoint').click(() => { selectDebugConstraint(); });
+    $('#exportToCeres').click(() => { sendToCeres(); });
 
     cp = new ColorPicker({
         noAlpha: true,
@@ -3228,7 +3229,21 @@ function generateCeresCode() {
 }
 
 function sendToCeres() {
-    c.paramsToCeres(c.getContext(), [{ "x": 184, "y": 184 }], [{ "r": 1, "g": 0, "b": 0 }], [1], "ceres.json");
+    // arrange params
+    var pts = [];
+    var targets = [];
+    var weights = [];
+
+    for (var id in g_ceresDebugConstraints) {
+        var data = g_ceresDebugConstraints[id];
+
+        pts.push({ 'x': data.x, 'y': data.y });
+        targets.push(data.color);
+        weights.push(1);        // all weights are 1 right now
+    }
+
+    c.paramsToCeres(c.getContext(), pts, targets, weights, "ceres.json");
+    showStatusMsg("Exported to ./ceres.json", "OK", "Ceres Data File Exported");
 }
 
 function selectDebugConstraint() {

@@ -264,6 +264,7 @@
             <div class="ui top attached inverted grey mini menu">
                 <a class="item active" data-tab="first">Search Settings</a>
                 <a class="item" data-tab="second">Render Queue</a>
+                <a class="item" data-tab="ceresDebug">Ceres Testing</a>
             </div>
             <div class="ui top attached inverted segment" id="sampleControlsSegment">
                 <div class="ui tab active" data-tab="first">
@@ -316,6 +317,17 @@
                     <h3 class="ui inverted header">Render Queue</h3>
                     <div class="ui relaxed inverted list" id="renderQueue">
 
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="ceresDebug" id="debugConstraintTab">
+                    <h3 class="ui inverted header">Ceres Testing Settings</h3>
+                    <div class="ui inverted button">Export To Ceres</div>
+                    <div class="ui inverted button">Run Ceres</div>
+                    <div class="ui inverted button">Import From Ceres</div>
+                    <div class="ui inverted button" id="ceresAddPoint">Add Point</div>
+                    <div class="ui inverted divider"></div>
+                    <div class="ui divided inverted list" id="debugCeresConstraints">
+                        
                     </div>
                 </div>
             </div>

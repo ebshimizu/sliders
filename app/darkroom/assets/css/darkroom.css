@@ -375,7 +375,7 @@ body .ui.basic.modal p {
     height: calc(100% - 180px);
 }
 
-#renderQueueTab {
+#renderQueueTab, #debugConstraintTab {
     height: 100%;
     overflow-y: auto;
 }

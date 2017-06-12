@@ -4,7 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
-const saveVersion = 0.22;
+const saveVersion = 0.23;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -453,6 +453,9 @@ function initUI() {
     });
 
     $('#mask-tools').hide();
+
+    // ceres debug
+    $('#ceresAddPoint').click(() => { selectDebugConstraint(); });
 
     cp = new ColorPicker({
         noAlpha: true,
@@ -2184,11 +2187,6 @@ function contextToJSON(ctx) {
     return layers;
 }
 
-function generateCeresCode() {
-    c.computeExpContext(c.getContext(), 0, 0, "compTest");
-    showStatusMsg("", "OK", "Ceres Code Generation Complete")
-}
-
 /*===========================================================================*/
 /* UI Callbacks                                                              */
 /*===========================================================================*/
@@ -2961,6 +2959,7 @@ const g_constraintModesStrings = {
     0: "Full Color",
     1: "Hue"
 }
+var g_ceresDebugPickPoint = false;
 
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
@@ -3030,6 +3029,13 @@ function initCanvas() {
 }
 
 function canvasMousedown(e, elem) {
+    if (g_ceresDebugPickPoint === true) {
+        g_ceresDebugPickPoint = false;
+        // callback to add ceres point
+        var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+        addDebugConstraint(pt.x, pt.y);
+    }
+
     if (g_activeConstraintLayer === null) {
         showStatusMsg("Create a constraint layer first.", "ERROR", "Cannot Draw Constraint")
         return;
@@ -3206,4 +3212,97 @@ function screenToCanvas(sX, sY, w, h, sW, sH) {
 
     // return point
     return { x: ((sX - xOffset) / actualW) * w, y: ((sY - yOffset) / actualH) * h };
+}
+
+/*===========================================================================*/
+/* Ceres Optimizer                                                           */
+/*===========================================================================*/
+
+g_ceresDebugConstraints = {};
+g_ceresDebugPtIndex = 0;
+
+function generateCeresCode() {
+    c.computeExpContext(c.getContext(), 0, 0, "ceresFunc");
+    fs.createReadStream('ceresFunc.h').pipe(fs.createWriteStream('../native/src/ceresFunc.h'));
+    showStatusMsg("", "OK", "Ceres Code Generation Complete")
+}
+
+function sendToCeres() {
+    c.paramsToCeres(c.getContext(), [{ "x": 184, "y": 184 }], [{ "r": 1, "g": 0, "b": 0 }], [1], "ceres.json");
+}
+
+function selectDebugConstraint() {
+    // selects a point on the canvas and creates a constraint in the list
+    g_ceresDebugPickPoint = true;
+    $('#ceresAddPoint').addClass('disabled');
+}
+
+function addDebugConstraint(x, y) {
+    // i guess this works to truncate to int?
+    x = ~~x;
+    y = ~~y;
+
+    var html = '<div class="item" pt-id="' + g_ceresDebugPtIndex + '">';
+    html += '<div class="right floated content">';
+    html += '<div class="ui mini button target">Target</div>';
+    html += '<div class="ui mini red icon right floated button delete"><i class="erase icon"></i></div>';
+    html += '</div>';
+    html += '<div class="content">';
+    html += '<div class="header">x: ' + x + ', y: ' + y + '</div></div></div>';
+
+    var data = { 'id': g_ceresDebugPtIndex, 'x': x, 'y': y, 'color': { 'r': 1, 'g': 1, 'b': 1 } };
+    var id = data.id;
+    g_ceresDebugConstraints[g_ceresDebugPtIndex] = data;
+    g_ceresDebugPtIndex++;
+
+    $('#debugCeresConstraints').append(html);
+
+    // event bindings
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .delete').click(() => {
+        delete g_ceresDebugConstraints[id];
+        $('#debugCeresConstraints .item[pt-id="' + id + '"]').remove();
+    });
+
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').click(() => {
+        if ($('#colorPicker').hasClass('hidden')) {
+            // move color picker to spot
+            var offset = $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').offset();
+            var width = $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').width();
+            var height = $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').height();
+
+            var c = g_ceresDebugConstraints[id].color;
+            cp.setColor({ "r": c.r * 255, "g": c.g * 255, "b": c.b * 255 }, 'rgb');
+            cp.startRender();
+
+            if (offset.top + height + $('#colorPicker').height() > $('body').height()) {
+                $('#colorPicker').css({ "left": offset.left - $('#colorPicker').width() + width * 2, top: offset.top - $('#colorPicker').height() });
+            }
+            else {
+                $('#colorPicker').css({ "left": offset.left - $('#colorPicker').width() + width * 2, top: offset.top + height + 18 });
+            }
+
+            // assign callbacks to update proper color
+            cp.color.options.actionCallback = function (e, action) {
+                console.log(action);
+                if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+                    var color = cp.color.colors.rgb;
+                    g_ceresDebugConstraints[id].color.r = color.r;
+                    g_ceresDebugConstraints[id].color.g = color.g;
+                    g_ceresDebugConstraints[id].color.b = color.b;
+                    g_canvasUpdated = false;
+
+                    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').css({ "background-color": "#" + cp.color.colors.HEX });
+                }
+            };
+
+            $('#colorPicker').addClass('visible');
+            $('#colorPicker').removeClass('hidden');
+        }
+        else {
+            $('#colorPicker').addClass('hidden');
+            $('#colorPicker').removeClass('visible');
+        }
+    });
+
+    $('#ceresAddPoint').removeClass('disabled');
 }

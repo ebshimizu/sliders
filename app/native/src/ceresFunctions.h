@@ -21,11 +21,11 @@ namespace Comp {
     T alpha1 = params[2];
     T alpha2 = params[3];
 
-    if (2 * a <= alpha1) {
-      return { b * a * 2 + b * (1 - alpha1) + a * (1 - alpha2) };
+    if ((T)2 * a <= alpha1) {
+      return { b * a * (T)2 + b * ((T)1 - alpha1) + a * ((T)1 - alpha2) };
     }
     else {
-      return { b * (1 + alpha1) + a * (1 + alpha2) - 2 * a * b - alpha1 * alpha2 };
+      return { b * ((T)1 + alpha1) + a * ((T)1 + alpha2) - (T)2 * a * b - alpha1 * alpha2 };
     }
   }
 
@@ -72,7 +72,7 @@ namespace Comp {
     T aa = params[0];
     T ab = params[1];
 
-    return { (aa + ab > 1) ? 1 : (aa + ab) };
+    return { (aa + ab > (T)1) ? (T)1 : (aa + ab) };
   }
 
   template<class T>

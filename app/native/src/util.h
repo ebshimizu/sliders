@@ -42,6 +42,13 @@ namespace Comp {
     return res[0];
   }
 
+  template <typename T>
+  inline T fmodt(T val, T mod) {
+    T div = floor(val / mod);
+    T rem = val - (mod * div);
+    return rem;
+  }
+
   class Point {
   public:
     Point(float x, float y) : _x(x), _y(y) {}
@@ -150,28 +157,28 @@ namespace Comp {
     T cmax = max(r, max(g, b));
     T cmin = min(r, min(g, b));
 
-    hsl._l = (cmax + cmin) / 2;
+    hsl._l = (cmax + cmin) / (T)2;
 
     if (cmax == cmin) {
-      hsl._h = 0;
-      hsl._s = 0;
+      hsl._h = (T)0;
+      hsl._s = (T)0;
     }
     else {
       T d = cmax - cmin;
 
-      hsl._s = (hsl._l == 1) ? 0 : d / (1 - abs(2 * hsl._l - 1));
+      hsl._s = (hsl._l == (T)1) ? (T)0 : d / ((T)1 - abs((T)2 * hsl._l - (T)1));
 
       if (cmax == r) {
-        hsl._h = (T)fmod((g - b) / d, 6);
+        hsl._h = (T)fmodt((g - b) / d, (T)6);
       }
       else if (cmax == g) {
-        hsl._h = (b - r) / d + 2;
+        hsl._h = (b - r) / d + (T)2;
       }
       else if (cmax == b) {
-        hsl._h = (r - g) / d + 4;
+        hsl._h = (r - g) / d + (T)4;
       }
 
-      hsl._h *= 60;
+      hsl._h *= (T)60;
     }
 
     return hsl;
@@ -201,51 +208,51 @@ namespace Comp {
     RGBColorT rgb;
 
     // h needs to be positive
-    while (h < 0) {
-      h += 360;
+    while (h < (T)0) {
+      h += (T)360;
     }
 
     // but not greater than 360 so
-    h = (T)fmod(h, 360);
-    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
-    l = (l > 1) ? 1 : (l < 0) ? 0 : l;
+    h = (T)fmodt(h, (T)360);
+    s = (s > (T)1) ? (T)1 : (s < (T)0) ? (T)0 : s;
+    l = (l > (T)1) ? (T)1 : (l < (T)0) ? (T)0 : l;
 
-    T c = (1 - abs(2 * l - 1)) * s;
-    T hp = h / 60;
-    T x = c * (T)(1 - abs(fmod(hp, 2) - 1));
+    T c = ((T)1 - abs((T)2 * l - (T)1)) * s;
+    T hp = h / (T)60;
+    T x = c * (T)((T)1 - abs(fmodt(hp, (T)2) - (T)1));
 
-    if (0 <= hp && hp < 1) {
+    if ((T)0 <= hp && hp < (T)1) {
       rgb._r = c;
       rgb._g = x;
-      rgb._b = 0;
+      rgb._b = (T)0;
     }
-    else if (1 <= hp && hp < 2) {
+    else if ((T)1 <= hp && hp < (T)2) {
       rgb._r = x;
       rgb._g = c;
-      rgb._b = 0;
+      rgb._b = (T)0;
     }
-    else if (2 <= hp && hp < 3) {
-      rgb._r = 0;
+    else if ((T)2 <= hp && hp < (T)3) {
+      rgb._r = (T)0;
       rgb._g = c;
       rgb._b = x;
     }
-    else if (3 <= hp && hp < 4) {
-      rgb._r = 0;
+    else if ((T)3 <= hp && hp < (T)4) {
+      rgb._r = (T)0;
       rgb._g = x;
       rgb._b = c;
     }
-    else if (4 <= hp && hp < 5) {
+    else if ((T)4 <= hp && hp < (T)5) {
       rgb._r = x;
-      rgb._g = 0;
+      rgb._g = (T)0;
       rgb._b = c;
     }
-    else if (5 <= hp && hp < 6) {
+    else if ((T)5 <= hp && hp < (T)6) {
       rgb._r = c;
-      rgb._g = 0;
+      rgb._g = (T)0;
       rgb._b = x;
     }
 
-    float m = l - 0.5f * c;
+    T m = l - (T)0.5 * c;
 
     rgb._r = rgb._r + m;
     rgb._g = rgb._g + m;
@@ -282,13 +289,13 @@ namespace Comp {
       h += 360;
     }
 
-    h = (T)fmod(h, 360);
+    h = (T)fmodt(h, 360);
     s = (s > 1) ? 1 : (s < 0) ? 0 : s;
     y = (y > 1) ? 1 : (y < 0) ? 0 : y;
 
     T c = s;
     T hp = h / 60;
-    T x = c * (T)(1 - abs(fmod(hp, 2) - 1));
+    T x = c * (T)(1 - abs(fmodt(hp, 2) - 1));
 
     if (0 <= hp && hp < 1) {
       rgb._r = c;

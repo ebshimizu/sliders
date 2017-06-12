@@ -410,9 +410,9 @@ namespace Comp {
     adjPx._b = params[2];
 
     Utils<T>::RGBColorT balanced;
-    balanced._r = colorBalance(adjPx._r, params[3], params[6], params[9]);
-    balanced._g = colorBalance(adjPx._g, params[4], params[7], params[10]);
-    balanced._b = colorBalance(adjPx._b, params[5], params[8], params[11]);
+    balanced._r = colorBalance(adjPx._r, (params[3] - 0.5) * 2, (params[6] - 0.5) * 2, (params[9] - 0.5) * 2);
+    balanced._g = colorBalance(adjPx._g, (params[4] - 0.5) * 2, (params[7] - 0.5) * 2, (params[10] - 0.5) * 2);
+    balanced._b = colorBalance(adjPx._b, (params[5] - 0.5) * 2, (params[8] - 0.5) * 2, (params[11] - 0.5) * 2);
 
     // assume preserve luma true
     //if (adj["preserveLuma"] > 0) {

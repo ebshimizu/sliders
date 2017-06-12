@@ -1031,9 +1031,9 @@ namespace Comp {
   inline void Compositor::colorBalanceAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
     Utils<T>::RGBColorT balanced;
-    balanced._r = colorBalance(adjPx._r, adj["shadowR"], adj["midR"], adj["highR"]);
-    balanced._g = colorBalance(adjPx._g, adj["shadowG"], adj["midG"], adj["highG"]);
-    balanced._b = colorBalance(adjPx._b, adj["shadowB"], adj["midB"], adj["highB"]);
+    balanced._r = colorBalance(adjPx._r, (adj["shadowR"] - 0.5f) * 2, (adj["midR"] - 0.5f) * 2, (adj["highR"] - 0.5f) * 2);
+    balanced._g = colorBalance(adjPx._g, (adj["shadowG"] - 0.5f) * 2, (adj["midG"] - 0.5f) * 2, (adj["highG"] - 0.5f) * 2);
+    balanced._b = colorBalance(adjPx._b, (adj["shadowB"] - 0.5f) * 2, (adj["midB"] - 0.5f) * 2, (adj["highB"] - 0.5f) * 2);
 
     if (adj["preserveLuma"] > 0) {
       Utils<T>::HSLColorT l = Utils<T>::RGBToHSL(balanced);

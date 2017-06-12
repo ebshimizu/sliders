@@ -964,23 +964,23 @@ function bindExposureEvents(name, sectionName, layer) {
 }
 
 function bindColorBalanceEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "shadow R", layer.getAdjustment(adjType.COLOR_BALANCE).shadowR, sectionName,
+    bindLayerParamControl(name, layer, "shadow R", (layer.getAdjustment(adjType.COLOR_BALANCE).shadowR - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow G", layer.getAdjustment(adjType.COLOR_BALANCE).shadowG, sectionName,
+    bindLayerParamControl(name, layer, "shadow G", (layer.getAdjustment(adjType.COLOR_BALANCE).shadowG - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "shadow B", layer.getAdjustment(adjType.COLOR_BALANCE).shadowB, sectionName,
+    bindLayerParamControl(name, layer, "shadow B", (layer.getAdjustment(adjType.COLOR_BALANCE).shadowB - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid R", layer.getAdjustment(adjType.COLOR_BALANCE).midR, sectionName,
+    bindLayerParamControl(name, layer, "mid R", (layer.getAdjustment(adjType.COLOR_BALANCE).midR - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid G", layer.getAdjustment(adjType.COLOR_BALANCE).midG, sectionName,
+    bindLayerParamControl(name, layer, "mid G", (layer.getAdjustment(adjType.COLOR_BALANCE).midG - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "mid B", layer.getAdjustment(adjType.COLOR_BALANCE).midB, sectionName,
+    bindLayerParamControl(name, layer, "mid B", (layer.getAdjustment(adjType.COLOR_BALANCE).midB - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight R", layer.getAdjustment(adjType.COLOR_BALANCE).highR, sectionName,
+    bindLayerParamControl(name, layer, "highlight R", (layer.getAdjustment(adjType.COLOR_BALANCE).highR - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight G", layer.getAdjustment(adjType.COLOR_BALANCE).highG, sectionName,
+    bindLayerParamControl(name, layer, "highlight G", (layer.getAdjustment(adjType.COLOR_BALANCE).highG - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
-    bindLayerParamControl(name, layer, "highlight B", layer.getAdjustment(adjType.COLOR_BALANCE).highB, sectionName,
+    bindLayerParamControl(name, layer, "highlight B", (layer.getAdjustment(adjType.COLOR_BALANCE).highB - 0.5) * 2, sectionName,
         { "range" : false, "max" : 1, "min" : -1, "step" : 0.01, "uiHandler" : handleColorBalanceParamChange });
     
     bindToggleControl(name, sectionName, layer, "preserveLuma", "COLOR_BALANCE");
@@ -1433,7 +1433,7 @@ function addAdjustmentToLayer(name, adjType) {
         c.getLayer(name).selectiveColor(false, {});
     }
     else if (adjType === 6) {
-        c.getLayer(name).colorBalance(false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        c.getLayer(name).colorBalance(false, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5);
     }
     else if (adjType === 7) {
         c.getLayer(name).photoFilter({preserveLuma: true, r: 1, g: 1, b: 1, density: 1 });
@@ -1763,10 +1763,10 @@ function importLayers(doc, path) {
             else if (type === "COLORBALANCE") {
                 adjustment = metadata[layerName].COLORBALANCE;
 
-                c.getLayer(layerName).colorBalance(adjustment.preserveLuminosity, adjustment.shadowLevels[0] / 100,
-                    adjustment.shadowLevels[1] / 100, adjustment.shadowLevels[2] / 100,
-                    adjustment.midtoneLevels[0] / 100, adjustment.midtoneLevels[1] / 100, adjustment.midtoneLevels[2] / 100,
-                    adjustment.highlightLevels[0] / 100, adjustment.highlightLevels[1] / 100, adjustment.highlightLevels[2] / 100);
+                c.getLayer(layerName).colorBalance(adjustment.preserveLuminosity, (adjustment.shadowLevels[0] / 200) + 0.5,
+                    (adjustment.shadowLevels[1] / 200) + 0.5, (adjustment.shadowLevels[2] / 200) + 0.5,
+                    (adjustment.midtoneLevels[0] / 200) + 0.5, (adjustment.midtoneLevels[1] / 200) + 0.5, (adjustment.midtoneLevels[2] / 200) + 0.5,
+                    (adjustment.highlightLevels[0] / 200) + 0.5, (adjustment.highlightLevels[1] / 200) + 0.5, (adjustment.highlightLevels[2] / 200) + 0.5);
             }
             else if (type === "PHOTOFILTER") {
                 adjustment = metadata[layerName].PHOTOFILTER;
@@ -2269,31 +2269,31 @@ function handleColorBalanceParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName === "shadow R") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowR", (ui.value / 2) + 0.5);
     }
     else if (paramName === "shadow G") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowG", (ui.value / 2) + 0.5);
     }
     else if (paramName === "shadow B") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowB", (ui.value / 2) + 0.5);
     }
     else if (paramName === "mid R") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midR", (ui.value / 2) + 0.5);
     }
     else if (paramName === "mid G") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midG", (ui.value / 2) + 0.5);
     }
     else if (paramName === "mid B") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "midB", (ui.value / 2) + 0.5);
     }
     else if (paramName === "highlight R") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highR", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highR", (ui.value / 2) + 0.5);
     }
     else if (paramName === "highlight G") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highG", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highG", (ui.value / 2) + 0.5);
     }
     else if (paramName === "highlight B") {
-        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highB", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "highB", (ui.value / 2) + 0.5);
     }
 
     // find associated value box and dump the value there

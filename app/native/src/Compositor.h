@@ -849,13 +849,13 @@ namespace Comp {
     // all of these keys should exist. if they don't there could be problems...
     T inMin = adj["inMin"];
     T inMax = adj["inMax"];
-    T gamma = adj["gamma"];
+    T gamma = (adj["gamma"] * 10);
     T outMin = adj["outMin"];
     T outMax = adj["outMax"];
 
-    adjPx._r = clamp<T>(levels(adjPx._r, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
-    adjPx._g = clamp<T>(levels(adjPx._g, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
-    adjPx._b = clamp<T>(levels(adjPx._b, inMin / 255, inMax / 255, gamma, outMin / 255, outMax / 255), 0.0, 1.0);
+    adjPx._r = clamp<T>(levels(adjPx._r, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
+    adjPx._g = clamp<T>(levels(adjPx._g, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
+    adjPx._b = clamp<T>(levels(adjPx._b, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
   }
 
   template<typename T>
@@ -1198,12 +1198,13 @@ namespace Comp {
   inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {
     vector<unsigned char>& img = adjLayer->getData();
 
+    // gamma is between 0 and 10 usually
     // so sometimes these values are missing and we should use defaults.
     float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
-    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 255;
+    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 1;
     float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
     float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
-    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 255;
+    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 1;
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor layerPx = adjLayer->getPixel(i);

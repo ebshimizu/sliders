@@ -101,7 +101,7 @@ namespace Comp {
     // these functions overwrite existing values by default
     void addAdjustment(AdjustmentType type, string param, float val);
     void addHSLAdjustment(float hue, float sat, float light);
-    void addLevelsAdjustment(float inMin, float inMax, float gamma = 1, float outMin = 0, float outMax = 255);
+    void addLevelsAdjustment(float inMin, float inMax, float gamma = (1.0f / 10.0f), float outMin = 0, float outMax = 1);
     void addCurvesChannel(string channel, Curve curve);
     void deleteCurvesChannel(string channel);
     Curve getCurveChannel(string channel);

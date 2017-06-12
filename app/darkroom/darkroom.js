@@ -942,15 +942,15 @@ function bindHSLEvents(name, sectionName, layer) {
 }
 
 function bindLevelsEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "inMin", layer.getAdjustment(adjType.LEVELS).inMin, sectionName,
+    bindLayerParamControl(name, layer, "inMin", (layer.getAdjustment(adjType.LEVELS).inMin * 255), sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "inMax", layer.getAdjustment(adjType.LEVELS).inMax, sectionName,
+    bindLayerParamControl(name, layer, "inMax", (layer.getAdjustment(adjType.LEVELS).inMax * 255), sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "gamma", layer.getAdjustment(adjType.LEVELS).gamma, sectionName,
+    bindLayerParamControl(name, layer, "gamma", (layer.getAdjustment(adjType.LEVELS).gamma * 10), sectionName,
         { "range" : false, "max" : 10, "min" : 0, "step" : 0.01, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMin", layer.getAdjustment(adjType.LEVELS).outMin, sectionName,
+    bindLayerParamControl(name, layer, "outMin", (layer.getAdjustment(adjType.LEVELS).outMin * 255), sectionName,
         { "range" : "min", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
-    bindLayerParamControl(name, layer, "outMax", layer.getAdjustment(adjType.LEVELS).outMax, sectionName,
+    bindLayerParamControl(name, layer, "outMax", (layer.getAdjustment(adjType.LEVELS).outMax * 255), sectionName,
         { "range" : "max", "max" : 255, "min" : 0, "step" : 1, "uiHandler" : handleLevelsParamChange });
 }
 
@@ -1422,7 +1422,7 @@ function addAdjustmentToLayer(name, adjType) {
         c.getLayer(name).addHSLAdjustment(0.5, 0.5, 0.5);
     }
     else if (adjType === 1) {
-        c.getLayer(name).addLevelsAdjustment(0, 255);
+        c.getLayer(name).addLevelsAdjustment(0, 1);
     }
     // curves omitted
     else if (adjType === 3) {
@@ -1684,11 +1684,11 @@ function importLayers(doc, path) {
                     levelsData = adjustment.adjustment[0];
                 }
 
-                var inMin = ("input" in levelsData) ? levelsData.input[0] : 0;
-                var inMax = ("input" in levelsData) ? levelsData.input[1] : 255;
-                var gamma = ("gamma" in levelsData) ? levelsData.gamma : 1;
-                var outMin = ("output" in levelsData) ? levelsData.output[0] : 0;
-                var outMax = ("output" in levelsData) ? levelsData.output[1] : 255;
+                var inMin = ("input" in levelsData) ? levelsData.input[0] / 255 : 0;
+                var inMax = ("input" in levelsData) ? levelsData.input[1] / 255 : 1;
+                var gamma = ("gamma" in levelsData) ? levelsData.gamma / 10 : 1;
+                var outMin = ("output" in levelsData) ? levelsData.output[0] / 255 : 0;
+                var outMax = ("output" in levelsData) ? levelsData.output[1] / 255 : 1;
 
                 c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
             }
@@ -2228,19 +2228,19 @@ function handleLevelsParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName == "inMin") {
-        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMin", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMin", ui.value / 255);
     }
     else if (paramName == "inMax") {
-        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMax", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMax", ui.value / 255);
     }
     else if (paramName == "gamma") {
-        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "gamma", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "gamma", ui.value / 10);
     }
     else if (paramName == "outMin") {
-        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMin", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMin", ui.value / 255);
     }
     else if (paramName == "outMax") {
-        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMax", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.LEVELS, "outMax", ui.value / 255);
     }
 
     // find associated value box and dump the value there
@@ -2722,11 +2722,11 @@ function updateLayerControls() {
             }
             else if (type === 1) {
                 // levels
-                updateSliderControl(layerName, "inMin", "Levels", adj.inMin);
-                updateSliderControl(layerName, "inMax", "Levels", adj.inMax);
-                updateSliderControl(layerName, "gamma", "Levels", adj.gamma);
-                updateSliderControl(layerName, "outMin", "Levels", adj.outMin);
-                updateSliderControl(layerName, "outMax", "Levels", adj.outMax);
+                updateSliderControl(layerName, "inMin", "Levels", adj.inMin * 255);
+                updateSliderControl(layerName, "inMax", "Levels", adj.inMax * 255);
+                updateSliderControl(layerName, "gamma", "Levels", adj.gamma * 10);
+                updateSliderControl(layerName, "outMin", "Levels", adj.outMin * 255);
+                updateSliderControl(layerName, "outMax", "Levels", adj.outMax * 255);
             }
             else if (type === 2) {
                 // curves

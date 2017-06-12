@@ -547,9 +547,9 @@ void LayerRef::addLevelsAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& i
 
   float inMin = (float)info[0]->NumberValue();
   float inMax = (float)info[1]->NumberValue();
-  float gamma = (info[2]->IsNumber()) ? (float)info[2]->NumberValue() : 1.0f;
+  float gamma = (info[2]->IsNumber()) ? (float)info[2]->NumberValue() : (1.0f / 10);
   float outMin = (info[3]->IsNumber()) ? (float)info[3]->NumberValue() : 0;
-  float outMax = (info[4]->IsNumber()) ? (float)info[4]->NumberValue() : 255.0f;
+  float outMax = (info[4]->IsNumber()) ? (float)info[4]->NumberValue() : 1.0f;
 
   layer->_layer->addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
 }

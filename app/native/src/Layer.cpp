@@ -178,14 +178,14 @@ namespace Comp {
 
     if (inMin > inMax) {
       inMin = inMax;
-      inMax = inMin + 10;
-      inMax = (inMax > 255) ? 255 : inMax;
+      inMax = inMin + .01;
+      inMax = (inMax > 1) ? 1 : inMax;
     }
 
     if (outMin > outMax) {
       outMin = outMax;
-      outMax = outMin + 10;
-      outMax = (outMax > 255) ? 255 : outMax;
+      outMax = outMin + .01;
+      outMax = (outMax > 1) ? 1 : outMax;
     }
 
     _adjustments[AdjustmentType::LEVELS]["inMin"] = inMin;

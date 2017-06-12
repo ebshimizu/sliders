@@ -1018,13 +1018,13 @@ function bindOverwriteColorEvents(name, sectionName, layer) {
 
 function bindSelectiveColorEvents(name, sectionName, layer) {
     // parameter controls
-    bindLayerParamControl(name, layer, "cyan", layer.selectiveColorChannel("reds", "cyan"), sectionName,
+    bindLayerParamControl(name, layer, "cyan", (layer.selectiveColorChannel("reds", "cyan") - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
-    bindLayerParamControl(name, layer, "magenta", layer.selectiveColorChannel("reds", "magenta"), sectionName,
+    bindLayerParamControl(name, layer, "magenta", (layer.selectiveColorChannel("reds", "magenta") - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
-    bindLayerParamControl(name, layer, "yellow", layer.selectiveColorChannel("reds", "yellow"), sectionName,
+    bindLayerParamControl(name, layer, "yellow", (layer.selectiveColorChannel("reds", "yellow") - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
-    bindLayerParamControl(name, layer, "black", layer.selectiveColorChannel("reds", "black"), sectionName,
+    bindLayerParamControl(name, layer, "black", (layer.selectiveColorChannel("reds", "black") - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.01, "uiHandler" : handleSelectiveColorParamChange });
 
     $('.tabMenu[layerName="' + name + '"][sectionName="' + sectionName + '"]').dropdown('set selected', 0);
@@ -1037,7 +1037,7 @@ function bindSelectiveColorEvents(name, sectionName, layer) {
                 s = 'div[sectionName="' + sectionName +'"] .paramSlider[layerName="' + name + '"][paramName="' + params[j] +  '"]';
                 i = 'div[sectionName="' + sectionName +'"] .paramInput[layerName="' + name + '"][paramName="' + params[j] +  '"] input';
 
-                var val = layer.selectiveColorChannel(text, params[j]) * 100;
+                var val = (layer.selectiveColorChannel(text, params[j]) - 0.5) * 200;
                 $(s).slider({value: val });
                 $(i).val(String(val.toFixed(2)));
             }
@@ -1747,10 +1747,10 @@ function importLayers(doc, path) {
                                 name = colors[i][id];
                             }
                             else if (id === "yellowColor") {
-                                adjust.yellow = colors[i][id].value / 100;
+                                adjust.yellow = (colors[i][id].value / 200) + 0.5;
                             }
                             else {
-                                adjust[id] = colors[i][id].value / 100;
+                                adjust[id] = (colors[i][id].value / 200) + 0.5;
                             }
                         }
 
@@ -2348,7 +2348,7 @@ function handleSelectiveColorParamChange(layerName, ui) {
     var channel = $(ui.handle).parent().parent().parent().find('.text').html();
     var paramName = $(ui.handle).parent().attr("paramName");
 
-    c.getLayer(layerName).selectiveColorChannel(channel, paramName, ui.value / 100);
+    c.getLayer(layerName).selectiveColorChannel(channel, paramName, (ui.value / 200) + 0.5);
 
     $(ui.handle).parent().next().find("input").val(String(ui.value));
 }
@@ -2748,10 +2748,10 @@ function updateLayerControls() {
                 // need to detect which option is currently selected
                 var activeChannel = $('.tabMenu[layerName="' + layerName + '"][sectionName="Selective Color"]').dropdown('get text');
                 var sc = layer.selectiveColor()[activeChannel];
-                updateSliderControl(layerName, "cyan", "Selective Color", sc.cyan * 100);
-                updateSliderControl(layerName, "magenta", "Selective Color", sc.magenta * 100);
-                updateSliderControl(layerName, "yellow", "Selective Color", sc.yellow * 100);
-                updateSliderControl(layerName, "black", "Selective Color", sc.black * 100);
+                updateSliderControl(layerName, "cyan", "Selective Color", (sc.cyan - 0.5) * 200);
+                updateSliderControl(layerName, "magenta", "Selective Color", (sc.magenta - 0.5) * 200);
+                updateSliderControl(layerName, "yellow", "Selective Color", (sc.yellow - 0.5) * 200);
+                updateSliderControl(layerName, "black", "Selective Color", (sc.black - 0.5) * 200);
             }
             else if (type === 6) {
                 // color balance

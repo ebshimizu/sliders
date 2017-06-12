@@ -238,6 +238,15 @@ namespace Comp {
   float Layer::getSelectiveColorChannel(string channel, string param)
   {
     // fairly sure it just creates defaults if the keys don't exist so should be fine
+    if (_selectiveColor.count(channel) == 0) {
+      _selectiveColor[channel][param] = 0.5;
+    }
+
+    if (_selectiveColor[channel].count(param) == 0) {
+      _selectiveColor[channel][param] = 0.5;
+      return 0.5;
+    }
+
     return _selectiveColor[channel][param];
   }
 

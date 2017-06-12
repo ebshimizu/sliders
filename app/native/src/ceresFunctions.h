@@ -314,6 +314,12 @@ namespace Comp {
     data["yellows"]["magenta"] = params[37];
     data["yellows"]["yellow"] = params[38];
 
+    for (auto& c : data) {
+      for (auto& p : c.second) {
+        p.second = (p.second - 0.5) * 2;
+      }
+    }
+
     // convert to hsl
     Utils<T>::HSLColorT hslColor = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
     T chroma = max(adjPx._r, max(adjPx._g, adjPx._b)) - min(adjPx._r, min(adjPx._g, adjPx._b));

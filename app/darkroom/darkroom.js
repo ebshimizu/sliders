@@ -933,11 +933,11 @@ function bindSectionEvents(name, layer) {
 }
 
 function bindHSLEvents(name, sectionName, layer) {
-    bindLayerParamControl(name, layer, "hue", layer.getAdjustment(adjType.HSL).hue, sectionName,
+    bindLayerParamControl(name, layer, "hue", (layer.getAdjustment(adjType.HSL).hue - 0.5) * 360, sectionName,
         { "range" : false, "max" : 180, "min" : -180, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "saturation", layer.getAdjustment(adjType.HSL).sat, sectionName,
+    bindLayerParamControl(name, layer, "saturation", (layer.getAdjustment(adjType.HSL).sat - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
-    bindLayerParamControl(name, layer, "lightness", layer.getAdjustment(adjType.HSL).light, sectionName,
+    bindLayerParamControl(name, layer, "lightness", (layer.getAdjustment(adjType.HSL).light - 0.5) * 200, sectionName,
         { "range" : false, "max" : 100, "min" : -100, "step" : 0.1, "uiHandler" : handleHSLParamChange });
 }
 
@@ -1419,7 +1419,7 @@ function genAddAdjustmentButton(name) {
 // the UI should probably regenerate the relevant controls
 function addAdjustmentToLayer(name, adjType) {
     if (adjType === 0) {
-        c.getLayer(name).addHSLAdjustment(0, 0, 0);
+        c.getLayer(name).addHSLAdjustment(0.5, 0.5, 0.5);
     }
     else if (adjType === 1) {
         c.getLayer(name).addLevelsAdjustment(0, 255);
@@ -1673,7 +1673,7 @@ function importLayers(doc, path) {
                 }
 
                 // need to extract adjustment params here
-                c.getLayer(layerName).addHSLAdjustment(hslData.hue, hslData.saturation, hslData.lightness);
+                c.getLayer(layerName).addHSLAdjustment((hslData.hue / 360) + 0.5, (hslData.saturation / 200) + 0.5, (hslData.lightness / 200) + 0.5);
             }
             if (type === "LEVELS") {
                 adjustment = metadata[layerName].LEVELS;
@@ -2211,14 +2211,13 @@ function handleHSLParamChange(layerName, ui) {
     var paramName = $(ui.handle).parent().attr("paramName");
 
     if (paramName == "hue") {
-        c.getLayer(layerName).addAdjustment(adjType.HSL, "hue", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "hue", (ui.value / 360) + 0.5);
     }
     else if (paramName == "saturation") {
-        c.getLayer(layerName).addAdjustment(adjType.HSL, "sat", ui.value);
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "sat", (ui.value / 200) + 0.5);
     }
     else if (paramName == "lightness") {
-        c.getLayer(layerName).addAdjustment(adjType.HSL, "light", ui.value);
-
+        c.getLayer(layerName).addAdjustment(adjType.HSL, "light", (ui.value / 200) + 0.5);
     }
 
     // find associated value box and dump the value there
@@ -2717,9 +2716,9 @@ function updateLayerControls() {
             var adj = layer.getAdjustment(type);
 
             if (type === 0) {
-                updateSliderControl(layerName, "hue", "Hue/Saturation", adj.hue);
-                updateSliderControl(layerName, "saturation", "Hue/Saturation", adj.sat);
-                updateSliderControl(layerName, "lightness", "Hue/Saturation", adj.light);
+                updateSliderControl(layerName, "hue", "Hue/Saturation", (adj.hue + 0.5) * 360);
+                updateSliderControl(layerName, "saturation", "Hue/Saturation", (adj.sat - 0.5) * 200);
+                updateSliderControl(layerName, "lightness", "Hue/Saturation", (adj.light - 0.5) * 200);
             }
             else if (type === 1) {
                 // levels

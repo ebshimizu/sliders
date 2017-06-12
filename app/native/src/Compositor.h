@@ -824,16 +824,17 @@ namespace Comp {
   template<typename T>
   inline void Compositor::hslAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
+    // all params are between 0 and 1
     T h = adj["hue"];
     T s = adj["sat"];
     T l = adj["light"];
 
     Utils<T>::HSLColorT c = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
 
-    // modify hsl. h is in degrees, and s and l will be out of 100 due to how photoshop represents that
-    c._h = c._h + h;
-    c._s = c._s + (s / 100.0f);
-    c._l = c._l + (l / 100.0f);
+    // modify hsl
+    c._h = c._h + ((h - 0.5f) * 360);
+    c._s = c._s + (s - 0.5f) * 2;
+    c._l = c._l + (l - 0.5f) * 2;
 
     // convert back
     Utils<T>::RGBColorT c2 = Utils<T>::HSLToRGB(c);

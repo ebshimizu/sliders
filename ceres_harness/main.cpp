@@ -108,6 +108,11 @@ void App::testOptimizer(string loadFrom, string saveTo)
     problem.AddResidualBlock(costFunction, NULL, allParams.data());
   }
 
+  for (int i = 0; i < allParams.size(); i++) {
+    problem.SetParameterLowerBound(allParams.data(), i, 0);
+    problem.SetParameterUpperBound(allParams.data(), i, 1);
+  }
+
   /*
 	for (int pixel = 0; pixel < 1; pixel++)
 	{

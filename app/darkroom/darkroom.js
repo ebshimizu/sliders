@@ -160,6 +160,7 @@ function initUI() {
     $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
     $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
+    $('#clearSamples').click(() => { $('#sampleWrapper').empty(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -461,6 +462,7 @@ function initUI() {
     $('#exportToCeres').click(() => { sendToCeres(); });
     $('#runCeres').click(() => { runCeres(); });
     $('#importFromCeres').click(() => { importFromCeres(); });
+    $('#ceresRoundtrip').click(() => { ceresAll(); });
 
     cp = new ColorPicker({
         noAlpha: true,
@@ -3228,10 +3230,44 @@ function screenToCanvas(sX, sY, w, h, sW, sH) {
 g_ceresDebugConstraints = {};
 g_ceresDebugPtIndex = 0;
 
+function ceresAll() {
+    sendToCeres();
+
+    // specialized run ceres function
+    runCeres((error, stdout, stderr) => {
+        console.log(stderr);
+        console.log(stdout);
+
+        if (error) {
+            showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
+            console.log(error);
+        }
+        else {
+            showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
+            importFromCeres();
+        }
+    });
+}
+
 function generateCeresCode() {
     c.computeExpContext(c.getContext(), 0, 0, "ceresFunc");
     fs.createReadStream('ceresFunc.h').pipe(fs.createWriteStream('../native/src/ceresFunc.h'));
-    showStatusMsg("", "OK", "Ceres Code Generation Complete")
+    showStatusMsg("Beginning Ceres compilation...", "OK", "Ceres Code Generation Complete")
+    $('#runCeres').addClass("disabled");
+
+    child_process.exec('"./ceresCompile.bat"', (error, stdout, stderr) => {
+        console.log(stderr);
+        console.log(stdout);
+
+        if (error) {
+            showStatusMsg("Check console log for details", "ERROR", "Ceres Compilation Failure");
+            console.log(error);
+        }
+        else {
+            showStatusMsg("See console log for details.", "OK", "Ceres Compilation Complete");
+            $('#runCeres').removeClass("disabled");
+        }
+    });
 }
 
 function sendToCeres() {
@@ -3252,24 +3288,28 @@ function sendToCeres() {
     showStatusMsg("Exported to ./ceres.json", "OK", "Ceres Data File Exported");
 }
 
-function runCeres() {
+function runCeres(callback) {
     // invokes the ceres command line application
     var cmd = '"../../ceres_harness/x64/Debug/ceresHarness.exe" ./ceres.json ./ceres_result.json';
 
+    if (callback === undefined) {
+        callback = (error, stdout, stderr) => {
+            console.log(stderr);
+            console.log(stdout);
+
+            if (error) {
+                showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
+                console.log(error);
+            }
+            else {
+                showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
+            }
+        };
+    }
+
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
-    child_process.exec(cmd, (error, stdout, stderr) => {
-        console.log(stderr);
-        console.log(stdout);
-        
-        if (error) {
-            showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
-            console.log(error);
-        }
-        else {
-            showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
-        }        
-    });
+    child_process.exec(cmd, callback);
 }
 
 function importFromCeres() {

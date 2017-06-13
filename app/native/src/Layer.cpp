@@ -167,9 +167,9 @@ namespace Comp {
 
   void Layer::addHSLAdjustment(float hue, float sat, float light)
   {
-    _adjustments[AdjustmentType::HSL]["hue"] = hue;
-    _adjustments[AdjustmentType::HSL]["sat"] = sat;
-    _adjustments[AdjustmentType::HSL]["light"] = light;
+    _adjustments[AdjustmentType::HSL]["hue"] = clamp<float>(hue, 0, 1);
+    _adjustments[AdjustmentType::HSL]["sat"] = clamp<float>(sat, 0, 1);
+    _adjustments[AdjustmentType::HSL]["light"] = clamp<float>(light, 0, 1);
   }
 
   void Layer::addLevelsAdjustment(float inMin, float inMax, float gamma, float outMin, float outMax)
@@ -188,11 +188,11 @@ namespace Comp {
       outMax = (outMax > 1) ? 1 : outMax;
     }
 
-    _adjustments[AdjustmentType::LEVELS]["inMin"] = inMin;
-    _adjustments[AdjustmentType::LEVELS]["inMax"] = inMax;
-    _adjustments[AdjustmentType::LEVELS]["gamma"] = gamma;
-    _adjustments[AdjustmentType::LEVELS]["outMin"] = outMin;
-    _adjustments[AdjustmentType::LEVELS]["outMax"] = outMax;
+    _adjustments[AdjustmentType::LEVELS]["inMin"] = clamp<float>(inMin, 0, 1);
+    _adjustments[AdjustmentType::LEVELS]["inMax"] = clamp<float>(inMax, 0, 1);
+    _adjustments[AdjustmentType::LEVELS]["gamma"] = clamp<float>(gamma, 0, 1);
+    _adjustments[AdjustmentType::LEVELS]["outMin"] = clamp<float>(outMin, 0, 1);
+    _adjustments[AdjustmentType::LEVELS]["outMax"] = clamp<float>(outMax, 0, 1);
   }
 
   void Layer::addCurvesChannel(string channel, Curve curve)
@@ -218,9 +218,9 @@ namespace Comp {
 
   void Layer::addExposureAdjustment(float exp, float offset, float gamma)
   {
-    _adjustments[AdjustmentType::EXPOSURE]["exposure"] = exp;
-    _adjustments[AdjustmentType::EXPOSURE]["offset"] = offset;
-    _adjustments[AdjustmentType::EXPOSURE]["gamma"] = gamma;
+    _adjustments[AdjustmentType::EXPOSURE]["exposure"] = clamp<float>(exp, 0, 1);
+    _adjustments[AdjustmentType::EXPOSURE]["offset"] = clamp<float>(offset, 0, 1);
+    _adjustments[AdjustmentType::EXPOSURE]["gamma"] = clamp<float>(gamma, 0, 1);
   }
 
   void Layer::addGradientAdjustment(Gradient grad)
@@ -260,48 +260,48 @@ namespace Comp {
     float highR, float highG, float highB)
   {
     _adjustments[AdjustmentType::COLOR_BALANCE]["preserveLuma"] = preserveLuma ? 1.0f : 0;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowR"] = shadowR;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowG"] = shadowG;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowB"] = shadowB;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["midR"] = midR;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["midG"] = midG;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["midB"] = midB;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["highR"] = highR;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["highG"] = highG;
-    _adjustments[AdjustmentType::COLOR_BALANCE]["highB"] = highB;
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowR"] = clamp<float>(shadowR, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowG"] = clamp<float>(shadowG, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["shadowB"] = clamp<float>(shadowB, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midR"] = clamp<float>(midR, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midG"] = clamp<float>(midG, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["midB"] = clamp<float>(midB, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highR"] = clamp<float>(highR, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highG"] = clamp<float>(highG, 0, 1);
+    _adjustments[AdjustmentType::COLOR_BALANCE]["highB"] = clamp<float>(highB, 0, 1);
   }
 
   void Layer::addPhotoFilterAdjustment(bool preserveLuma, float r, float g, float b, float d)
   {
-    _adjustments[AdjustmentType::PHOTO_FILTER]["r"] = r;
-    _adjustments[AdjustmentType::PHOTO_FILTER]["g"] = g;
-    _adjustments[AdjustmentType::PHOTO_FILTER]["b"] = b;
-    _adjustments[AdjustmentType::PHOTO_FILTER]["density"] = d;
+    _adjustments[AdjustmentType::PHOTO_FILTER]["r"] = clamp<float>(r, 0, 1);
+    _adjustments[AdjustmentType::PHOTO_FILTER]["g"] = clamp<float>(g, 0, 1);
+    _adjustments[AdjustmentType::PHOTO_FILTER]["b"] = clamp<float>(b, 0, 1);
+    _adjustments[AdjustmentType::PHOTO_FILTER]["density"] = clamp<float>(d, 0, 1);
     _adjustments[AdjustmentType::PHOTO_FILTER]["preserveLuma"] = preserveLuma ? 1.0f : 0;
   }
 
   void Layer::addColorAdjustment(float r, float g, float b, float a)
   {
-    _adjustments[AdjustmentType::COLORIZE]["r"] = r;
-    _adjustments[AdjustmentType::COLORIZE]["g"] = g;
-    _adjustments[AdjustmentType::COLORIZE]["b"] = b;
-    _adjustments[AdjustmentType::COLORIZE]["a"] = a;
+    _adjustments[AdjustmentType::COLORIZE]["r"] = clamp<float>(r, 0, 1);
+    _adjustments[AdjustmentType::COLORIZE]["g"] = clamp<float>(g, 0, 1);
+    _adjustments[AdjustmentType::COLORIZE]["b"] = clamp<float>(b, 0, 1);
+    _adjustments[AdjustmentType::COLORIZE]["a"] = clamp<float>(a, 0, 1);
   }
 
   void Layer::addLighterColorAdjustment(float r, float g, float b, float a)
   {
-    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["r"] = r;
-    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["g"] = g;
-    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["b"] = b;
-    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["a"] = a;
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["r"] = clamp<float>(r, 0, 1);
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["g"] = clamp<float>(g, 0, 1);
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["b"] = clamp<float>(b, 0, 1);
+    _adjustments[AdjustmentType::LIGHTER_COLORIZE]["a"] = clamp<float>(a, 0, 1);
   }
 
   void Layer::addOverwriteColorAdjustment(float r, float g, float b, float a)
   {
-    _adjustments[AdjustmentType::OVERWRITE_COLOR]["r"] = r;
-    _adjustments[AdjustmentType::OVERWRITE_COLOR]["g"] = g;
-    _adjustments[AdjustmentType::OVERWRITE_COLOR]["b"] = b;
-    _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = a;
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["r"] = clamp<float>(r, 0, 1);
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["g"] = clamp<float>(g, 0, 1);
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["b"] = clamp<float>(b, 0, 1);
+    _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = clamp<float>(a, 0, 1);
   }
 
   map<string, map<string, float>> Layer::getSelectiveColor()

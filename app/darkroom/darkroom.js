@@ -399,6 +399,7 @@ function initUI() {
             cp.setColor({ "r": layer.color.r * 255, "g": layer.color.g * 255, "b": layer.color.b * 255 }, 'rgb');
             cp.startRender();
 
+            $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
             if (offset.top + $(this).height() + $('#colorPicker').height() > $('body').height()) {
                 $('#colorPicker').css({ "left": offset.left, top: offset.top - $('#colorPicker').height() });
             }
@@ -1127,6 +1128,7 @@ function bindColorPickerControl(selector, adjustmentType, layer) {
             cp.setColor({"r" : adj.r * 255, "g" : adj.g * 255, "b" : adj.b * 255}, 'rgb');
             cp.startRender();
 
+            $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
             if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
                 $('#colorPicker').css({"right": "10px", top: offset.top - $('#colorPicker').height()});
             } 
@@ -3321,6 +3323,7 @@ function addDebugConstraint(x, y) {
             cp.setColor({ "r": c.r * 255, "g": c.g * 255, "b": c.b * 255 }, 'rgb');
             cp.startRender();
 
+            $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
             if (offset.top + height + $('#colorPicker').height() > $('body').height()) {
                 $('#colorPicker').css({ "left": offset.left - $('#colorPicker').width() + width * 2, top: offset.top - $('#colorPicker').height() });
             }

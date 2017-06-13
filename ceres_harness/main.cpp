@@ -192,5 +192,5 @@ void main(int argc, char* argv[])
 	App app;
 	app.go(string(argv[1]), string(argv[2]));
 
-	cin.get();
+	//cin.get();
 }

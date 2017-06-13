@@ -4,6 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
+var child_process = require('child_process');
 const saveVersion = 0.23;
 const versionString = "0.1";
 
@@ -457,6 +458,7 @@ function initUI() {
     // ceres debug
     $('#ceresAddPoint').click(() => { selectDebugConstraint(); });
     $('#exportToCeres').click(() => { sendToCeres(); });
+    $('#runCeres').click(() => { runCeres(); });
 
     cp = new ColorPicker({
         noAlpha: true,
@@ -3035,6 +3037,7 @@ function canvasMousedown(e, elem) {
         // callback to add ceres point
         var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
         addDebugConstraint(pt.x, pt.y);
+        return;
     }
 
     if (g_activeConstraintLayer === null) {
@@ -3244,6 +3247,26 @@ function sendToCeres() {
 
     c.paramsToCeres(c.getContext(), pts, targets, weights, "ceres.json");
     showStatusMsg("Exported to ./ceres.json", "OK", "Ceres Data File Exported");
+}
+
+function runCeres() {
+    // invokes the ceres command line application
+    var cmd = '"../../ceres_harness/x64/Debug/ceresHarness.exe" ./ceres.json ./ceres_result.json';
+
+    showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
+
+    child_process.exec(cmd, (error, stdout, stderr) => {
+        console.log(stderr);
+        console.log(stdout);
+        
+        if (error) {
+            showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
+            console.log(error);
+        }
+        else {
+            showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
+        }        
+    });
 }
 
 function selectDebugConstraint() {

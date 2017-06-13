@@ -31,12 +31,12 @@ double compare(Compositor* c, int x, int y) {
 
     // layer colors
     auto p = l.getImage()->getPixel(index);
-    paramsA.push_back(p._r);
-    paramsA.push_back(p._g);
-    paramsA.push_back(p._b);
-    paramsA.push_back(p._a);
+    paramsB.push_back(p._r);
+    paramsB.push_back(p._g);
+    paramsB.push_back(p._b);
+    paramsB.push_back(p._a);
 
-    l.prepExpParams(paramsB);
+    l.prepExpParams(paramsA);
   }
 
   // the rendered pixel

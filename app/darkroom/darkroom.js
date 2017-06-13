@@ -459,6 +459,7 @@ function initUI() {
     $('#ceresAddPoint').click(() => { selectDebugConstraint(); });
     $('#exportToCeres').click(() => { sendToCeres(); });
     $('#runCeres').click(() => { runCeres(); });
+    $('#importFromCeres').click(() => { importFromCeres(); });
 
     cp = new ColorPicker({
         noAlpha: true,
@@ -3267,6 +3268,14 @@ function runCeres() {
             showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
         }        
     });
+}
+
+function importFromCeres() {
+    // get context
+    var ceresCtx = c.ceresToContext("./ceres_result.json");
+
+    // append to results for inspection
+    processNewSample(c.renderContext(ceresCtx), ceresCtx, {});
 }
 
 function selectDebugConstraint() {

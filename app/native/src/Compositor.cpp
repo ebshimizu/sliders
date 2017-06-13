@@ -622,10 +622,7 @@ namespace Comp {
     for (auto& name : _layerOrder) {
       Layer& l = c[name];
 
-      if (l.isAdjustmentLayer())
-        continue;
-
-      if (_imageData.count(name) > 0) {
+      if (_imageData.count(name) > 0 && !l.isAdjustmentLayer()) {
         getLogger()->log("Initializing pixel data for " + name);
 
         // create layer pixel vars

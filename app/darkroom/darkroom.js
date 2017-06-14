@@ -3344,6 +3344,7 @@ function addDebugConstraint(x, y) {
     html += '<div class="right floated content">';
     html += '<div class="ui mini button target">Target</div>';
     html += '<div class="ui mini red icon right floated button delete"><i class="erase icon"></i></div>';
+    html += '<div class="ui mini right floated icon button useCurrent" data-content="Use Current Pixel Color"><i class="eyedropper icon"></i></div>';
     html += '</div>';
     html += '<div class="content">';
     html += '<div class="header">x: ' + x + ', y: ' + y + '</div></div></div>';
@@ -3359,6 +3360,18 @@ function addDebugConstraint(x, y) {
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .delete').click(() => {
         delete g_ceresDebugConstraints[id];
         $('#debugCeresConstraints .item[pt-id="' + id + '"]').remove();
+    });
+
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .useCurrent').popup();
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .useCurrent').click(() => {
+        var constraint = g_ceresDebugConstraints[id];
+        var currentColor = c.renderPixel(c.getContext(), constraint.x, constraint.y);
+
+        g_ceresDebugConstraints[id].color.r = currentColor.r;
+        g_ceresDebugConstraints[id].color.g = currentColor.g;
+        g_ceresDebugConstraints[id].color.b = currentColor.b;
+
+        $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').css({ "background-color": "rgb(" + ~~(currentColor.r * 255) + "," + ~~(currentColor.g * 255) + "," + ~~(currentColor.b * 255) + ")" });
     });
 
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').click(() => {
@@ -3388,7 +3401,6 @@ function addDebugConstraint(x, y) {
                     g_ceresDebugConstraints[id].color.r = color.r;
                     g_ceresDebugConstraints[id].color.g = color.g;
                     g_ceresDebugConstraints[id].color.b = color.b;
-                    g_canvasUpdated = false;
 
                     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').css({ "background-color": "#" + cp.color.colors.HEX });
                 }

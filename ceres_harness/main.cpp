@@ -129,6 +129,10 @@ void App::testOptimizer(string loadFrom, string saveTo)
   }
 
   for (int i = 0; i < allParams.size(); i++) {
+    if (data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
+      data["params"][i]["adjustmentName"] == "hue")
+      continue;
+
     problem.SetParameterLowerBound(allParams.data(), i, 0);
     problem.SetParameterUpperBound(allParams.data(), i, 1);
   }

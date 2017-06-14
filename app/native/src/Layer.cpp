@@ -167,7 +167,7 @@ namespace Comp {
 
   void Layer::addHSLAdjustment(float hue, float sat, float light)
   {
-    _adjustments[AdjustmentType::HSL]["hue"] = clamp<float>(hue, 0, 1);
+    _adjustments[AdjustmentType::HSL]["hue"] = fmodf(hue, 1);
     _adjustments[AdjustmentType::HSL]["sat"] = clamp<float>(sat, 0, 1);
     _adjustments[AdjustmentType::HSL]["light"] = clamp<float>(light, 0, 1);
   }

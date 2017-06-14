@@ -389,15 +389,11 @@ function initUI() {
     });
 
     $('#setConstraintLayerColor').click(function () {
-        if (g_activeConstraintLayer === null)
-            return;
-
         if ($('#colorPicker').hasClass('hidden')) {
             // move color picker to spot
             var offset = $(this).offset();
 
-            var layer = g_constraintLayers[g_activeConstraintLayer];
-            cp.setColor({ "r": layer.color.r * 255, "g": layer.color.g * 255, "b": layer.color.b * 255 }, 'rgb');
+            cp.setColor(g_currentColor, 'hex');
             cp.startRender();
 
             $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
@@ -412,11 +408,7 @@ function initUI() {
             cp.color.options.actionCallback = function (e, action) {
                 console.log(action);
                 if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
-                    var color = cp.color.colors.rgb;
-                    layer.color.r = color.r;
-                    layer.color.g = color.g;
-                    layer.color.b = color.b;
-                    layer.colorStr = "#" + cp.color.colors.HEX;
+                    g_currentColor = cp.color.colors.HEX;
                     g_canvasUpdated = false;
 
                     $('#setConstraintLayerColor').css({ "background-color": "#" + cp.color.colors.HEX });
@@ -431,6 +423,7 @@ function initUI() {
             $('#colorPicker').removeClass('visible');
         }
     });
+    $('#setConstraintLayerColor').css({ "background-color": "#" + g_currentColor });
 
     $('#newConstraintLayer').click(function () {
         $('#newConstraintLayerModal').modal({
@@ -1961,6 +1954,12 @@ function loadLayers(doc, path) {
             $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + l + '">' + l + '</div>');
         }
 
+        // prune paths, some may be null for some reason
+        for (var p in g_paths) {
+            if (g_paths[p] === null)
+                delete g_paths[p];
+        }
+
         $('#constraintLayerMenu .text').html(g_activeConstraintLayer);
     }
 }
@@ -2963,15 +2962,17 @@ var g_pathIndex = 0;
 var g_canvasUpdated = true;
 var g_constraintLayers = {};
 var g_activeConstraintLayer = null;
+var g_currentColor = "FFFFFF";
 const g_constraintModesStrings = {
     0: "Full Color",
-    1: "Hue"
+    1: "Hue",
+    2: "Fixed"
 }
 var g_ceresDebugPickPoint = false;
 
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
-    g_constraintLayers[name] = { "name": name, "mode": mode, "colorStr": "#FFFFFF", "color": { "r": 1, "g": 1, "b": 1 }, "active" : true };
+    g_constraintLayers[name] = { "name": name, "mode": mode, "active" : true };
 
     // add to menu
     $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
@@ -3059,11 +3060,11 @@ function canvasMousedown(e, elem) {
     var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
     
     if (settings.maskTool === "paint") {
-        g_paths[g_pathIndex] = { type: "paint", pts: [], layer: g_activeConstraintLayer };
+        g_paths[g_pathIndex] = { type: "paint", pts: [], layer: g_activeConstraintLayer, color: g_currentColor };
         g_paths[g_pathIndex].pts.push(pt);
     }
     else if (settings.maskTool == "rect") {
-        g_paths[g_pathIndex] = { type: "rect", pt1: pt, finished: false, layer: g_activeConstraintLayer };
+        g_paths[g_pathIndex] = { type: "rect", pt1: pt, finished: false, layer: g_activeConstraintLayer, color: g_currentColor };
     }
 
     g_paths[g_pathIndex].mode = settings.maskMode;
@@ -3126,8 +3127,8 @@ function repaint() {
                 continue;
 
             if (g_paths[p].mode == "mask") {
-                g_ctx.strokeStyle = layer.colorStr;
-                g_ctx.fillStyle = layer.colorStr;
+                g_ctx.strokeStyle = '#' + g_paths[p].color;
+                g_ctx.fillStyle = '#' + g_paths[p].color;
                 g_ctx.globalCompositeOperation = "source-over";
             }
             else if (g_paths[p].mode == "erase") {

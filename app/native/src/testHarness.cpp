@@ -14,8 +14,8 @@ namespace Comp {
 double compare(Compositor* c, int x, int y) {
   int width, height;
 
-  width = c->getLayer(0).getImage()->getWidth();
-  height = c->getLayer(0).getImage()->getHeight();
+  width = c->getWidth();
+  height = c->getHeight();
 
   int index = clamp(x, 0, width) + clamp(y, 0, height) * width;
 
@@ -29,12 +29,17 @@ double compare(Compositor* c, int x, int y) {
   for (auto name : c->getLayerOrder()) {
     Layer& l = ctx[name];
 
-    // layer colors
-    auto p = l.getImage()->getPixel(index);
-    paramsB.push_back(p._r);
-    paramsB.push_back(p._g);
-    paramsB.push_back(p._b);
-    paramsB.push_back(p._a);
+    if (!l._visible)
+      continue;
+
+    if (!l.isAdjustmentLayer()) {
+      // layer colors
+      auto p = l.getImage()->getPixel(index);
+      paramsB.push_back(p._r);
+      paramsB.push_back(p._g);
+      paramsB.push_back(p._b);
+      paramsB.push_back(p._a);
+    }
 
     l.prepExpParams(paramsA);
   }
@@ -60,8 +65,8 @@ double compare(Compositor* c, int x, int y) {
 void compareAll(Compositor* c, string filename) {
   int width, height;
 
-  width = c->getLayer(0).getImage()->getWidth();
-  height = c->getLayer(0).getImage()->getHeight();
+  width = c->getWidth();
+  height = c->getHeight();
 
   Image img(width, height);
 

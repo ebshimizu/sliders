@@ -1697,7 +1697,7 @@ function importLayers(doc, path) {
 
                 var inMin = ("input" in levelsData) ? levelsData.input[0] / 255 : 0;
                 var inMax = ("input" in levelsData) ? levelsData.input[1] / 255 : 1;
-                var gamma = ("gamma" in levelsData) ? levelsData.gamma / 10 : 1;
+                var gamma = ("gamma" in levelsData) ? levelsData.gamma / 10 : 0.1;
                 var outMin = ("output" in levelsData) ? levelsData.output[0] / 255 : 0;
                 var outMax = ("output" in levelsData) ? levelsData.output[1] / 255 : 1;
 
@@ -3243,7 +3243,7 @@ function ceresAll() {
             console.log(error);
         }
         else {
-            showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
+            showStatusMsg("Output results to ./codegen/ceres_result.json", "OK", "Ceres Execution Complete");
             importFromCeres();
         }
     });
@@ -3252,20 +3252,29 @@ function ceresAll() {
 function generateCeresCode() {
     c.computeExpContext(c.getContext(), 0, 0, "ceresFunc");
     fs.createReadStream('ceresFunc.h').pipe(fs.createWriteStream('../native/src/ceresFunc.h'));
+    fs.unlink('ceresFunc.h', (exc) => { if (exc) console.log(exc); });
     showStatusMsg("Beginning Ceres compilation...", "OK", "Ceres Code Generation Complete")
-    $('#runCeres').addClass("disabled");
+    $('#runCeres').addClass("loading");
+    $('#ceresRoundtrip').addClass("loading");
 
-    child_process.exec('"./ceresCompile.bat"', (error, stdout, stderr) => {
+    child_process.exec('"./codegen/ceresCompile.bat"', (error, stdout, stderr) => {
         console.log(stderr);
         console.log(stdout);
 
         if (error) {
             showStatusMsg("Check console log for details", "ERROR", "Ceres Compilation Failure");
             console.log(error);
+            $('#runCeres').removeClass("loading");
+            $('#runCeres').addClass("disabled");
+            $('#ceresRoundtrip').removeClass("loading");
+            $('#ceresRoundtrip').addClass("disabled");
         }
         else {
             showStatusMsg("See console log for details.", "OK", "Ceres Compilation Complete");
+            $('#runCeres').removeClass("loading");
             $('#runCeres').removeClass("disabled");
+            $('#ceresRoundtrip').removeClass("loading");
+            $('#ceresRoundtrip').removeClass("disabled");
         }
     });
 }
@@ -3284,13 +3293,13 @@ function sendToCeres() {
         weights.push(1);        // all weights are 1 right now
     }
 
-    c.paramsToCeres(c.getContext(), pts, targets, weights, "ceres.json");
-    showStatusMsg("Exported to ./ceres.json", "OK", "Ceres Data File Exported");
+    c.paramsToCeres(c.getContext(), pts, targets, weights, "./codegen/ceres.json");
+    showStatusMsg("Exported to ./codegen/ceres.json", "OK", "Ceres Data File Exported");
 }
 
 function runCeres(callback) {
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/Debug/ceresHarness.exe" ./ceres.json ./ceres_result.json';
+    var cmd = '"../../ceres_harness/x64/Debug/ceresHarness.exe" ./codegen/ceres.json ./codegen/ceres_result.json';
 
     if (callback === undefined) {
         callback = (error, stdout, stderr) => {
@@ -3302,7 +3311,7 @@ function runCeres(callback) {
                 console.log(error);
             }
             else {
-                showStatusMsg("Output results to ./ceres_result.json", "OK", "Ceres Execution Complete");
+                showStatusMsg("Output results to ./codegen/ceres_result.json", "OK", "Ceres Execution Complete");
             }
         };
     }
@@ -3314,7 +3323,7 @@ function runCeres(callback) {
 
 function importFromCeres() {
     // get context
-    var ceresCtx = c.ceresToContext("./ceres_result.json");
+    var ceresCtx = c.ceresToContext("./codegen/ceres_result.json");
 
     // append to results for inspection
     processNewSample(c.renderContext(ceresCtx), ceresCtx, {});

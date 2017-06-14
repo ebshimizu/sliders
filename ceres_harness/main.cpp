@@ -74,8 +74,28 @@ struct CostTerm
 		residuals[0] = (color[0] * color[3] - T(targetColor.x)) * T(weight);
 		residuals[1] = (color[1] * color[3] - T(targetColor.y)) * T(weight);
 		residuals[2] = (color[2] * color[3] - T(targetColor.z)) * T(weight);
+
+    //if (!residuals[0].v.allFinite() || !residuals[1].v.allFinite() || !residuals[2].v.allFinite()) {
+      //cout << "Nan";
+      //while (true) {
+      //  vector<T> color2 = evalLayerColor(params, layerValues);
+      //}
+    //}
+
 		return true;
 	}
+
+  template<>
+  bool operator()<double>(const double* const params, double* residuals) const
+  {
+    // color is RGBA, right now compare vs premult RGB
+    vector<double> color = evalLayerColor(params, layerValues);
+    residuals[0] = (color[0] * color[3] - (double)(targetColor.x)) * (weight);
+    residuals[1] = (color[1] * color[3] - (double)(targetColor.y)) * (weight);
+    residuals[2] = (color[2] * color[3] - (double)(targetColor.z)) * (weight);
+
+    return true;
+  }
 
 	static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
 	{
@@ -112,6 +132,13 @@ void App::testOptimizer(string loadFrom, string saveTo)
     problem.SetParameterLowerBound(allParams.data(), i, 0);
     problem.SetParameterUpperBound(allParams.data(), i, 1);
   }
+
+  vector<double> res;
+  double cost2;
+  vector<double> grad;
+  ceres::CRSMatrix jac;
+
+  //problem.Evaluate(Problem::EvaluateOptions(), &cost2, &res, &grad, &jac);
 
   /*
 	for (int pixel = 0; pixel < 1; pixel++)

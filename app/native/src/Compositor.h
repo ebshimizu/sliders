@@ -867,6 +867,12 @@ namespace Comp {
     // input remapping
     T out = min(max(px - inMin, (T)0.0f) / (inMax - inMin), (T)1.0f);
 
+    if (inMax == inMin)
+      out = (T)1;
+
+    if (gamma < 1e-6)
+      gamma = 1e-6;   // clamp to small
+
     // gamma correction
     out = pow(out, 1 / gamma);
 
@@ -1211,7 +1217,7 @@ namespace Comp {
     // so sometimes these values are missing and we should use defaults.
     float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
     float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 1;
-    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 1;
+    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 0.1;
     float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
     float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 1;
 

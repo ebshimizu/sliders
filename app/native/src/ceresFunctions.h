@@ -51,19 +51,19 @@ namespace Comp {
     T Da = params[2];
     T Sa = params[3];
 
-    T m = (Da == 0) ? 0 : Dca / Da;
+    T m = (Da == (T)0) ? (T)0 : Dca / Da;
 
-    if (2 * Sca <= Sa) {
-      return { Dca * (Sa + (2 * Sca - Sa) * (1 - m)) + Sca * (1 - Da) + Dca * (1 - Sa) };
+    if ((T)2 * Sca <= Sa) {
+      return { Dca * (Sa + ((T)2 * Sca - Sa) * ((T)1 - m)) + Sca * ((T)1 - Da) + Dca * ((T)1 - Sa) };
     }
-    else if (2 * Sca > Sa && 4 * Dca <= Da) {
-      return { Da * (2 * Sca - Sa) * (16 * m * m * m - 12 * m * m - 3 * m) + Sca - Sca * Da + Dca };
+    else if ((T)2 * Sca > Sa && (T)4 * Dca <= Da) {
+      return { Da * ((T)2 * Sca - Sa) * ((T)16 * m * m * m - (T)12 * m * m - (T)3 * m) + Sca - Sca * Da + Dca };
     }
-    else if (2 * Sca > Sa && 4 * Dca > Da) {
-      return { Da * (2 * Sca - Sa) * (sqrt(m) - m) + Sca - Sca * Da + Dca };
+    else if ((T)2 * Sca > Sa && (T)4 * Dca > Da) {
+      return { Da * ((T)2 * Sca - Sa) * (sqrt(m) - m) + Sca - Sca * Da + Dca };
     }
     else {
-      return { Sca + Dca * (1 - Sa) };
+      return { Sca + Dca * ((T)1 - Sa) };
     }
   }
 
@@ -134,10 +134,10 @@ namespace Comp {
     T Sa = params[3];
 
     if (Sca > Dca) {
-      return { Sca + Dca * (1 - Sa) };
+      return { Sca + Dca * ((T)1 - Sa) };
     }
     else {
-      return { Dca + Sca * (1 - Da) };
+      return { Dca + Sca * ((T)1 - Da) };
     }
   }
 
@@ -253,10 +253,20 @@ namespace Comp {
     T outMax = params[5];
 
     // input remapping
-    T out = min(max(px - inMin, 0.0) / (inMax - inMin), 1.0);
+    T out = min(max(px - inMin, (T)0.0) / (inMax - inMin), (T)1.0);
 
-    // gamma correction
-    out = pow(out, 1 / gamma);
+    if (inMax == inMin) {
+      out = (T)1;
+    }
+
+    if (out > (T)0) {
+      // gamma correction
+      if (gamma < (T)1e-6) {
+        gamma = (T)1e-6; // just stick this at some really small value
+      }
+
+      out = pow(out, (T)1 / gamma);
+    }
 
     // output remapping
     out = out * (outMax - outMin) + outMin;

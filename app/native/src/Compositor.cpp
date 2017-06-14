@@ -622,6 +622,10 @@ namespace Comp {
     for (auto& name : _layerOrder) {
       Layer& l = c[name];
 
+      // skip invisible layers
+      if (!l._visible)
+        continue;
+
       if (_imageData.count(name) > 0 && !l.isAdjustmentLayer()) {
         getLogger()->log("Initializing pixel data for " + name);
 
@@ -720,6 +724,9 @@ namespace Comp {
     nlohmann::json freeParams = nlohmann::json::array();
 
     for (auto& l : _layerOrder) {
+      if (!c[l]._visible)
+        continue;
+
       // gather parameter info
       c[l].addParams(freeParams);
     }
@@ -748,6 +755,10 @@ namespace Comp {
       for (auto& l : _layerOrder) {
         // adjustment layers have no pixel data
         if (_imageData.count(l) == 0)
+          continue;
+
+        // skip invisible
+        if (!c[l]._visible)
           continue;
 
         RGBAColor color = c[l].getImage()->getPixel(x, y);

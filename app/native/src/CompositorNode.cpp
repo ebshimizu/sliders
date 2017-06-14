@@ -1156,6 +1156,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "clearMask", clearMask);
   Nan::SetPrototypeMethod(tpl, "paramsToCeres", paramsToCeres);
   Nan::SetPrototypeMethod(tpl, "ceresToContext", ceresToContext);
+  Nan::SetPrototypeMethod(tpl, "renderPixel", renderPixel);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1883,6 +1884,36 @@ void CompositorWrapper::ceresToContext(const Nan::FunctionCallbackInfo<v8::Value
   }
   else {
     Nan::ThrowError("ceresToContext(file:string) argument error");
+  }
+}
+
+void CompositorWrapper::renderPixel(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.ceresToContext");
+
+  if (info[0]->IsObject() && info[1]->IsInt32() && info[2]->IsInt32()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    int x = info[1]->Int32Value();
+    int y = info[2]->Int32Value();
+
+    Comp::RGBAColor px = c->_compositor->renderPixel<float>(ctx->_context, x, y);
+
+    v8::Local<v8::Object> color = Nan::New<v8::Object>();
+    color->Set(Nan::New("r").ToLocalChecked(), Nan::New(px._r));
+    color->Set(Nan::New("g").ToLocalChecked(), Nan::New(px._g));
+    color->Set(Nan::New("b").ToLocalChecked(), Nan::New(px._b));
+    color->Set(Nan::New("a").ToLocalChecked(), Nan::New(px._a));
+
+    info.GetReturnValue().Set(color);
+  }
+  else {
+    Nan::ThrowError("renderPixel(context:object, x:int, y:int) argument error");
   }
 }
 

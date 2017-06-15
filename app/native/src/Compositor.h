@@ -16,6 +16,7 @@ author: Evan Shimizu
 #include "Image.h"
 #include "Layer.h"
 #include "util.h"
+#include "ConstraintData.h"
 
 using namespace std;
 
@@ -126,11 +127,8 @@ namespace Comp {
     void computeExpContext(Context& c, int px, string functionName, string size = "");
     void computeExpContext(Context& c, int x, int y, string functionName, string size = "");
 
-    // functions for manipulating the mask / constraints from the UI
-    void setMaskLayer(string layerName, shared_ptr<Image> img);
-    shared_ptr<Image> getMaskLayer(string layerName);
-    void deleteMaskLayer(string layerName);
-    void clearMask();
+    // returns the constraint data for modification
+    ConstraintData& getConstraintData();
 
     /*
     outputs a json file containing the following:
@@ -318,7 +316,7 @@ namespace Comp {
     // Bitmaps of each mask layer present in the interface
     // Note: at some point this might need to be converted to an object to handle different types of constraints
     // right now its meant to just be color
-    map<string, shared_ptr<Image> > _maskLayers;
+    ConstraintData _constraints;
   };
 
   template<typename T>

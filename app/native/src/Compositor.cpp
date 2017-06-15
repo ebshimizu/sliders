@@ -479,6 +479,7 @@ namespace Comp {
       stopSearch();
     }
 
+    _constraints._locked = true;
     _searchThreads.clear();
     _searchThreads.resize(threads);
 
@@ -547,6 +548,7 @@ namespace Comp {
       getLogger()->log(ss.str(), LogLevel::INFO);
     }
 
+    _constraints._locked = false;
     getLogger()->log("Search stopped");
     return;
   }
@@ -679,38 +681,6 @@ namespace Comp {
     int index = clamp(x, 0, width) + clamp(y, 0, height) * width;
 
     computeExpContext(c, index, functionName, size);
-  }
-
-  void Compositor::setMaskLayer(string layerName, shared_ptr<Image> img)
-  {
-    if (_searchRunning) {
-      getLogger()->log("Unable to modify mask layers while search is running", Comp::WARN);
-      return;
-    }
-
-    _maskLayers[layerName] = img;
-  }
-
-  shared_ptr<Image> Compositor::getMaskLayer(string layerName)
-  {
-    if (_maskLayers.count(layerName) > 0)
-      return _maskLayers[layerName];
-
-    return nullptr;
-  }
-
-  void Compositor::deleteMaskLayer(string layerName)
-  {
-    if (_maskLayers.count(layerName) > 0) {
-      _maskLayers.erase(layerName);
-    }
-
-    return;
-  }
-
-  void Compositor::clearMask()
-  {
-    _maskLayers.clear();
   }
 
   void Compositor::paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,

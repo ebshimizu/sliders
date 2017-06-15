@@ -1740,18 +1740,19 @@ void CompositorWrapper::setMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>&
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.setMaskLayer");
 
-  if (info[0]->IsString() && info[1]->IsInt32() && info[2]->IsInt32() && info[3]->IsString()) {
+  if (info[0]->IsString() && info[1]->IsInt32() && info[2]->IsInt32() && info[3]->IsInt32() && info[4]->IsString()) {
     v8::String::Utf8Value val0(info[0]->ToString());
     string name(*val0);
 
-    int w = info[1]->Int32Value();
-    int h = info[2]->Int32Value();
+    Comp::ConstraintType type = (Comp::ConstraintType)info[1]->Int32Value();
+    int w = info[2]->Int32Value();
+    int h = info[3]->Int32Value();
 
-    v8::String::Utf8Value val1(info[3]->ToString());
+    v8::String::Utf8Value val1(info[4]->ToString());
     string data(*val1);
 
     shared_ptr<Comp::Image> img = shared_ptr<Comp::Image>(new Comp::Image(w, h, data));
-    c->_compositor->setMaskLayer(name, img);
+    c->_compositor->getConstraintData().setMaskLayer(name, img, type);
   }
   else {
     Nan::ThrowError("compositor.setMaskLayer(name:string, w:int, h:int, data:string) argument error");
@@ -1767,7 +1768,7 @@ void CompositorWrapper::getMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>&
     v8::String::Utf8Value val0(info[0]->ToString());
     string name(*val0);
 
-    shared_ptr<Comp::Image> img = c->_compositor->getMaskLayer(name);
+    shared_ptr<Comp::Image> img = c->_compositor->getConstraintData().getMaskLayer(name);
 
     if (img == nullptr) {
       info.GetReturnValue().Set(Nan::New(Nan::Null));
@@ -1795,7 +1796,7 @@ void CompositorWrapper::deleteMaskLayer(const Nan::FunctionCallbackInfo<v8::Valu
     v8::String::Utf8Value val0(info[0]->ToString());
     string name(*val0);
 
-    c->_compositor->deleteMaskLayer(name);
+    c->_compositor->getConstraintData().deleteMaskLayer(name);
   }
 }
 
@@ -1804,7 +1805,7 @@ void CompositorWrapper::clearMask(const Nan::FunctionCallbackInfo<v8::Value>& in
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.getMaskLayer");
 
-  c->_compositor->clearMask();
+  c->_compositor->getConstraintData().deleteAllData().
 }
 
 void CompositorWrapper::paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>& info)

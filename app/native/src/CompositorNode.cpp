@@ -1768,7 +1768,7 @@ void CompositorWrapper::getMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>&
     v8::String::Utf8Value val0(info[0]->ToString());
     string name(*val0);
 
-    shared_ptr<Comp::Image> img = c->_compositor->getConstraintData().getMaskLayer(name);
+    shared_ptr<Comp::Image> img = c->_compositor->getConstraintData().getRawInput(name);
 
     if (img == nullptr) {
       info.GetReturnValue().Set(Nan::New(Nan::Null));
@@ -1805,7 +1805,7 @@ void CompositorWrapper::clearMask(const Nan::FunctionCallbackInfo<v8::Value>& in
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.getMaskLayer");
 
-  c->_compositor->getConstraintData().deleteAllData().
+  c->_compositor->getConstraintData().deleteAllData();
 }
 
 void CompositorWrapper::paramsToCeres(const Nan::FunctionCallbackInfo<v8::Value>& info)

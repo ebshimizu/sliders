@@ -17,7 +17,7 @@ void ConstraintData::setMaskLayer(string layerName, shared_ptr<Image> img, Const
     return;
   }
 
-  _rawInput[layerName] = image;
+  _rawInput[layerName] = img;
   _type[layerName] = type;
 }
 

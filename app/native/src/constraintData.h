@@ -7,7 +7,7 @@ using namespace std;
 
 namespace Comp {
   enum ConstraintType {
-    COLOR = 0,
+    TARGET_COLOR = 0,
     HUE = 1,
     FIXED = 2
   };

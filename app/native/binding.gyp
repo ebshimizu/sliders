@@ -23,7 +23,10 @@
 				"src/testHarness.h",
 				"src/testHarness.cpp",
 				"src/ceresFunctions.h",
-				"../../expression_tree/expressionContext.h"
+				"src/constraintData.h",
+				"src/constraintData.cpp",
+				"../../expression_tree/expressionContext.h",
+				"../../expression_tree/expressionStep.h"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

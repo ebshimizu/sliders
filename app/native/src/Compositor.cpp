@@ -683,6 +683,11 @@ namespace Comp {
     computeExpContext(c, index, functionName, size);
   }
 
+  ConstraintData& Compositor::getConstraintData()
+  {
+    return _constraints;
+  }
+
   void Compositor::paramsToCeres(Context& c, vector<Point> pts, vector<RGBColor> targetColor,
     vector<double> weights, string outputPath)
   {

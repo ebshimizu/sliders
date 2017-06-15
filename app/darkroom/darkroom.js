@@ -3194,7 +3194,7 @@ function syncMaskState() {
         // dump the canvas data to a string
         var data = canvas[0].toDataURL('image/png').substring(22);
         var name = l;
-        var type = layer.type;
+        var type = layer.mode;
 
         c.setMaskLayer(name, type, parseInt(canvas.attr("width")), parseInt(canvas.attr("height")), data);
     }

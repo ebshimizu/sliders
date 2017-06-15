@@ -1755,7 +1755,7 @@ void CompositorWrapper::setMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>&
     c->_compositor->getConstraintData().setMaskLayer(name, img, type);
   }
   else {
-    Nan::ThrowError("compositor.setMaskLayer(name:string, w:int, h:int, data:string) argument error");
+    Nan::ThrowError("compositor.setMaskLayer(name:string, type:int, w:int, h:int, data:string) argument error");
   }
 }
 

@@ -74,6 +74,12 @@ namespace Comp {
     RGBAColor getPixel(int index);
     RGBAColor getPixel(int x, int y);
 
+    // checks for pixel equality within the same image
+    bool pxEq(int x1, int y1, int x2, int y2);
+
+    void setPixel(int x, int y, float r, float g, float b, float a);
+    void setPixel(int x, int y, RGBAColor color);
+
     int initExp(ExpContext& context, string name, int index, int pxPos);
 
     // i don't think the exp step cares really where the pixel comes from?

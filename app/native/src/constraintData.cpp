@@ -2,7 +2,7 @@
 
 namespace Comp {
 
-ConstraintData::ConstraintData() : _locked(false)
+ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false)
 {
 }
 
@@ -51,6 +51,142 @@ void ConstraintData::deleteAllData()
 
   _rawInput.clear();
   _type.clear();
+}
+
+vector<PixelConstraint> ConstraintData::getPixelConstraints(Context & c)
+{
+  auto flattened = flatten();
+  vector<ConnectedComponent> cc = computeConnectedComponents(flattened.second, flattened.first);
+
+  return vector<PixelConstraint>();
+}
+
+pair<Grid2D<ConstraintType>, shared_ptr<Image>> ConstraintData::flatten()
+{
+  // assume rawInput here actually has something in it. This function won't
+  // be called otherwise, since the getPixelConstraints should just return basically
+  // nothing.
+  int w = _rawInput.begin()->second->getWidth();
+  int h = _rawInput.begin()->second->getHeight();
+
+  shared_ptr<Image> flattenedImg = shared_ptr<Image>(new Image(w, h));
+  Grid2D<ConstraintType> constraintMap(w, h);
+  constraintMap.clear(ConstraintType::NO_CONSTRAINT_DEFINED);
+
+  // first we should input all color constraints. the order here is going to be
+  // alphabetical due to map sorting. If at some point we want layer ordering
+  // another vector will need to be added to this.
+  for (auto& t : _type) {
+    // just overwrite the colors in the flattened image if alpha > 0
+    // if the width and heights aren't equal this is going to crash so just don't do that
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        // if the pixel we're looking at is already fixed, nothing can overwrite that
+        if (constraintMap(x, y) == ConstraintType::FIXED)
+          continue;
+
+        RGBAColor c = _rawInput[t.first]->getPixel(x, y);
+
+        // alpha 0 indicates nothing was drawn in the specified area
+        if (c._a > 0) {
+          // we discard the alpha channel from these things since it appears that the canvas
+          // actually dithers for us
+          flattenedImg->setPixel(x, y, c._r, c._g, c._b, 1);
+          constraintMap(x, y) = t.second;
+        }
+      }
+    }
+  }
+
+  if (_verboseDebugMode)
+  {
+    flattenedImg->save("pxConstraint_flattened.png");
+    getLogger()->log(constraintMap.toString(), LogLevel::DBG);
+  }
+
+  return pair<Grid2D<ConstraintType>, shared_ptr<Image>>(constraintMap, flattenedImg);
+}
+
+vector<ConnectedComponent> ConstraintData::computeConnectedComponents(shared_ptr<Image> pixels, Grid2D<ConstraintType>& typeMap)
+{
+  vector<ConnectedComponent> ccs;
+
+  shared_ptr<Image> pxLog = shared_ptr<Image>(new Image(pixels->getWidth(), pixels->getHeight()));
+  Grid2D<int> visited(pxLog->getWidth(), pxLog->getHeight());
+  visited.clear(0);
+  int componentID = 0;
+
+  // basically does a dfs at every pixel. if the pixel has already been visited we skip it
+  // (each pixel only visited once). The dfs will record which pixels it visits in a new image.
+  // pixels are considered connected and the dfs will affect them if they are a) the same type
+  // and b) (for color only so far) the same color
+  for (int y = 0; y < pixels->getHeight(); y++) {
+    for (int x = 0; x < pixels->getWidth(); x++) {
+      if (visited(x, y) == 0) {
+        // start a DFS from this point with a new log image
+        shared_ptr<Image> component = shared_ptr<Image>(new Image(pixels->getWidth(), pixels->getHeight()));
+        recordedDFS(x, y, visited, component, pixels, typeMap);
+
+        // add a new connected component
+        ConnectedComponent newComp;
+        newComp._id = componentID;
+        newComp._pixels = component;
+        newComp._type = typeMap(x, y);
+
+        ccs.push_back(newComp);
+        componentID++;
+      }
+    }
+  }
+
+  if (_verboseDebugMode) {
+    // save components
+    for (auto& c : ccs) {
+      c._pixels->save("pxConstraint_component" + to_string(c._id) + ".png");
+      getLogger()->log("Component " + to_string(c._id) + " has type " + to_string(c._type), Comp::DBG);
+    }
+  }
+
+  return ccs;
+}
+
+void ConstraintData::recordedDFS(int originX, int originY, Grid2D<int>& visited, shared_ptr<Image>& pxLog,
+  shared_ptr<Image>& src, Grid2D<ConstraintType>& typeMap)
+{
+  // stack based dfs
+  vector<pair<int, int>> stack;
+  stack.push_back(pair<int, int>(originX, originY));
+
+  while (stack.size() != 0) {
+    pair<int, int> current = stack.back();
+    stack.pop_back();
+
+    int x = current.first;
+    int y = current.second;
+
+    // on entering, we assume this is the first time we've seen this pixel
+    visited(x, y) = 1;
+    pxLog->setPixel(x, y, 1, 1, 1, 1);
+
+    ConstraintType t = typeMap(x, y);
+    RGBAColor c = src->getPixel(x, y);
+
+    vector<pair<int, int>> neighbors = { { x + 1, y },{ x - 1, y },{ x, y + 1 },{ x, y - 1 } };
+
+    for (auto& n : neighbors) {
+      // bounds check
+      if (n.first < 0 || n.first >= pxLog->getWidth() || n.second < 0 || n.second >= pxLog->getHeight())
+        continue;
+
+      // type and already visited check.
+      if (visited(n.first, n.second) == 0 && t == typeMap(n.first, n.second)) {
+        // color equality check (if using target color)
+        if ((t == TARGET_COLOR && src->pxEq(x, y, n.first, n.second)) || t != TARGET_COLOR) {
+          stack.push_back(pair<int, int>(n.first, n.second));
+        }
+      }
+    }
+  }
 }
 
 }

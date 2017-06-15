@@ -139,6 +139,31 @@ namespace Comp {
     return getPixel(x + y * _w);
   }
 
+  bool Image::pxEq(int x1, int y1, int x2, int y2)
+  {
+    int index1 = (x1 + y1 * _w) * 4;
+    int index2 = (x2 + y2 * _w) * 4;
+
+    return (_data[index1] == _data[index2] &&
+      _data[index1 + 1] == _data[index2 + 1] &&
+      _data[index1 + 2] == _data[index2 + 2] &&
+      _data[index1 + 3] == _data[index2 + 3]);
+  }
+
+  void Image::setPixel(int x, int y, float r, float g, float b, float a)
+  {
+    int index = (x + y * _w )* 4;
+    _data[index] = (unsigned char)(r * 255);
+    _data[index + 1] = (unsigned char)(g * 255);
+    _data[index + 2] = (unsigned char)(b * 255);
+    _data[index + 3] = (unsigned char)(a * 255);
+  }
+
+  void Image::setPixel(int x, int y, RGBAColor color)
+  {
+    setPixel(x, y, color._r, color._g, color._b, color._a);
+  }
+
   int Image::initExp(ExpContext& context, string name, int index, int pxPos)
   {
     RGBAColor c = getPixel(pxPos);

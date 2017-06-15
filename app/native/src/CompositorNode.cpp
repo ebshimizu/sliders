@@ -1157,6 +1157,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "paramsToCeres", paramsToCeres);
   Nan::SetPrototypeMethod(tpl, "ceresToContext", ceresToContext);
   Nan::SetPrototypeMethod(tpl, "renderPixel", renderPixel);
+  Nan::SetPrototypeMethod(tpl, "getPixelConstraints", getPixelConstraints);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1916,6 +1917,20 @@ void CompositorWrapper::renderPixel(const Nan::FunctionCallbackInfo<v8::Value>& 
   else {
     Nan::ThrowError("renderPixel(context:object, x:int, y:int) argument error");
   }
+}
+
+void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.ceresToContext");
+
+  if (info[0]->IsBoolean()) {
+    c->_compositor->getConstraintData()._verboseDebugMode = info[0]->BooleanValue();
+  }
+
+  // this function is a work in progress, used currently to call functions for debugging the
+  // constraint generation methods
+  c->_compositor->getConstraintData().getPixelConstraints(c->_compositor->getNewContext());
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

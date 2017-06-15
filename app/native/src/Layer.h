@@ -194,4 +194,6 @@ namespace Comp {
     // pointer to image data, stored in compositor
     shared_ptr<Image> _image;
   };
+
+  typedef map<string, Layer> Context;
 }

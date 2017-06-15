@@ -24,6 +24,8 @@ using namespace std;
 #include "../../../expression_tree/expressionContext.h"
 
 namespace Comp {
+  const string version = "0.1";
+
   enum ParamType {
     FREE_PARAM = 0,
     LAYER_PIXEL = 1
@@ -75,6 +77,97 @@ namespace Comp {
     template <typename T>
     T eval(T x);
   };
+
+  // class that stores a vector but allows access as a grid
+  template<typename T>
+  class Grid2D {
+  public:
+    Grid2D(int width, int height);
+    ~Grid2D();
+
+    T& operator()(int x, int y);
+
+    void clear(T val);
+
+    int width();
+    int height();
+    size_t size();
+
+    string toString();
+  private:
+    vector<T> _data;
+
+    int _width;
+    int _height;
+  };
+
+  template<typename T>
+  inline Grid2D<T>::Grid2D(int width, int height) : _width(width), _height(height)
+  {
+    _data.resize(width * height);
+  }
+
+  template<typename T>
+  inline Grid2D<T>::~Grid2D()
+  {
+  }
+
+  template<typename T>
+  inline T & Grid2D<T>::operator()(int x, int y)
+  {
+    int flat = x + y * _width;
+
+    if (flat > _data.size()) {
+      throw exception("Index out of range in Grid2D");
+    }
+
+    return _data[x + y * _width];
+  }
+
+  template<typename T>
+  inline void Grid2D<T>::clear(T val)
+  {
+    for (int i = 0; i < _data.size(); i++)
+      _data[i] = val;
+  }
+
+  template<typename T>
+  inline int Grid2D<T>::width()
+  {
+    return _width;
+  }
+
+  template<typename T>
+  inline int Grid2D<T>::height()
+  {
+    return _height;
+  }
+
+  template<typename T>
+  inline size_t Grid2D<T>::size()
+  {
+    return _data.size();
+  }
+
+  template<typename T>
+  inline string Grid2D<T>::toString()
+  {
+    stringstream ss;
+    ss << "Dumping Grid w: " << _width << " h: " << _height << "\n";
+
+    for (int y = 0; y < _height; y++) {
+      ss << "Row " << y << ":\t";
+      for (int x = 0; x < _width; x++) {
+        if (x != 0)
+          ss << ", ";
+        
+        ss << this->operator()(x, y);
+      }
+      ss << "\n";
+    }
+
+    return ss.str();
+  }
 
   // utility functions for converting between color spaces
   template<typename T>

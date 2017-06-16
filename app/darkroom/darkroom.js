@@ -161,6 +161,7 @@ function initUI() {
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
     $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
     $('#clearSamples').click(() => { $('#sampleWrapper').empty(); });
+    $('#extractConstraints').click(() => { extractConstraints(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -372,7 +373,7 @@ function initUI() {
         action: function (text, value, element) {
             setActiveConstraintLayer(value);
             $('#constraintLayerMenu .text').html(text);
-            $('#setConstraintLayerColor').css({ "background-color": g_constraintLayers[g_activeConstraintLayer].colorStr });
+            //$('#setConstraintLayerColor').css({ "background-color": g_constraintLayers[g_activeConstraintLayer].colorStr });
             $(this).dropdown('hide');
         }
     });
@@ -2981,6 +2982,7 @@ function newConstraintLayer(name, mode) {
 function setActiveConstraintLayer(name) {
     if (name in g_constraintLayers) {
         g_activeConstraintLayer = name;
+        $('#constraintModeMenu').dropdown('set selected', '' + g_constraintLayers[name].mode);
     }
 }
 
@@ -3203,8 +3205,26 @@ function syncMaskState() {
     for (var l in g_constraintLayers)
         g_constraintLayers[l].active = true;
 
-    g_canvasUpdated;
+    g_canvasUpdated = false;
     repaint();
+    setActiveConstraintLayer(g_activeConstraintLayer);
+}
+
+function extractConstraints() {
+    showStatusMsg("Computing constraints from current mask", "", "Constraint Extraction Started");
+
+    deleteAllDebugConstraints();
+    syncMaskState();
+
+    // for now debugging is on
+    var constraints = c.getPixelConstraints(true);
+
+    for (var i in constraints) {
+        var constraint = constraints[i];
+        addDebugConstraint(constraint.pt.x, constraint.pt.y, constraint.color);
+    }
+
+    showStatusMsg("Constraints shown in the Ceres Testing panel", "OK", "Constraint Extraction Complete");
 }
 
 // converts screen coordinates to internal canvas coordinates
@@ -3337,7 +3357,15 @@ function selectDebugConstraint() {
     $('#ceresAddPoint').addClass('disabled');
 }
 
-function addDebugConstraint(x, y) {
+function deleteAllDebugConstraints() {
+    for (var id in g_ceresDebugConstraints) {
+        $('#debugCeresConstraints .item[pt-id="' + id + '"]').remove();
+    }
+
+    g_ceresDebugConstraints = {};
+}
+
+function addDebugConstraint(x, y, color) {
     // i guess this works to truncate to int?
     x = ~~x;
     y = ~~y;
@@ -3352,6 +3380,11 @@ function addDebugConstraint(x, y) {
     html += '<div class="header">x: ' + x + ', y: ' + y + '</div></div></div>';
 
     var data = { 'id': g_ceresDebugPtIndex, 'x': x, 'y': y, 'color': { 'r': 1, 'g': 1, 'b': 1 } };
+
+    if (color !== undefined) {
+        data.color = color;
+    }
+
     var id = data.id;
     g_ceresDebugConstraints[g_ceresDebugPtIndex] = data;
     g_ceresDebugPtIndex++;
@@ -3418,4 +3451,5 @@ function addDebugConstraint(x, y) {
     });
 
     $('#ceresAddPoint').removeClass('disabled');
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').css({ "background-color": "rgb(" + ~~(data.color.r * 255) + "," + ~~(data.color.g * 255) + "," + ~~(data.color.b * 255) + ")" });
 }

@@ -51,13 +51,18 @@ namespace Comp {
     return rem;
   }
 
-  class Point {
+  template <typename T>
+  class PointT {
   public:
-    Point(float x, float y) : _x(x), _y(y) {}
+    PointT(T x, T y) : _x(x), _y(y) {}
+    PointT() : _x(0), _y(0) {}
 
     float _x;
     float _y;
   };
+
+  typedef PointT<float> Point;
+  typedef PointT<int> Pointi;
 
   // loads data from a json file into the proper ceres formats, then returns the json object
   nlohmann::json loadCeresData(string file, vector<double>& params, vector<vector<double> >& layerPixels,

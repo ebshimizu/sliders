@@ -3,6 +3,9 @@
 #include "Image.h"
 #include "util.h"
 #include "Layer.h"
+#include <random>
+#include <set>
+#include <queue>
 
 using namespace std;
 
@@ -23,6 +26,34 @@ namespace Comp {
     int _id;
     ConstraintType _type;
     shared_ptr<Image> _pixels;
+  };
+
+  struct AssignmentAttempt {
+    double _score;
+    Pointi _pt;
+  };
+
+  bool operator<(const AssignmentAttempt &a, const AssignmentAttempt &b)
+  {
+    return (a._score < b._score);
+  }
+
+  class Superpixel {
+  public:
+    Superpixel(RGBAColor color, Pointi seed, int id);
+    ~Superpixel();
+
+    void addPixel(Pointi pt);
+    double dist(RGBAColor color, Pointi pt);
+
+    int getID();
+    Pointi getSeed();
+
+  private:
+    vector<Pointi> _pts;
+    Pointi _seed;
+    RGBAColor _seedColor;
+    int _id;
   };
 
   class ConstraintData {
@@ -54,14 +85,25 @@ namespace Comp {
     // should probably disable for most runs of this program
     bool _verboseDebugMode;
   private:
-    // TODO: implement functions
     // flattens the layers down such that each constraint type applies to exactly one pixel
     pair<Grid2D<ConstraintType>, shared_ptr<Image> > flatten();
+
+    // computes connected components (i.e. regions that are adjacent, have same type, and same color if applicable)
     vector<ConnectedComponent> computeConnectedComponents(shared_ptr<Image> pixels, Grid2D<ConstraintType>& typeMap);
 
+    // performs a dfs search from a specific point to determine the connected components
     void recordedDFS(int x, int y, Grid2D<int>& visited, shared_ptr<Image>& pxLog,
       shared_ptr<Image>& src, Grid2D<ConstraintType>& typeMap);
-    // vector<Superpixels> extractSuperpixels(vector<ConnectedComponent>, float pixelDensity);
+
+    // extracts superpixels from connected components
+    vector<Superpixel> extractSuperpixels(ConnectedComponent component, int numSeeds);
+
+    // adds pixels to the superpixels
+    void growSuperpixels(vector<Superpixel>& superpixels, shared_ptr<Image>& src, Grid2D<int>& assignmentState);
+
+    // assigns a single pixel to the superpixel
+    void assignPixel(Superpixel& sp, shared_ptr<Image>& src, Grid2D<int>& assignmentState,
+      priority_queue<AssignmentAttempt>& queue, Pointi& pt);
 
     //void computeConnectedComponents();
     // auto extractSuperpixels();

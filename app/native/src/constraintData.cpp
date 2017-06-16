@@ -2,6 +2,30 @@
 
 namespace Comp {
 
+Superpixel::Superpixel(RGBAColor color, Pointi seed, int id) :
+  _seedColor(color), _seed(seed), _id(id)
+{
+}
+
+Superpixel::~Superpixel()
+{
+}
+
+void Superpixel::addPixel(Pointi pt)
+{
+  _pts.push_back(pt);
+}
+
+int Superpixel::getID()
+{
+  return _id;
+}
+
+Pointi Superpixel::getSeed()
+{
+  return _seed;
+}
+
 ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false)
 {
 }
@@ -187,6 +211,77 @@ void ConstraintData::recordedDFS(int originX, int originY, Grid2D<int>& visited,
       }
     }
   }
+}
+
+vector<Superpixel> ConstraintData::extractSuperpixels(ConnectedComponent component, int numSeeds)
+{
+  // initialize a grid of the assignment state and then pick seeds for the superpixels
+  // assignment state is organized as follows:
+  // -1: unassigned, -2: out of bounds, >0: assigned to superpixel n
+  shared_ptr<Image> px = component._pixels;
+  Grid2D<int> assignmentState(px->getWidth(), px->getHeight());
+  vector<Pointi> coords;
+
+  for (int y = 0; y < px->getHeight(); y++) {
+    for (int x = 0; x < px->getWidth(); x++) {
+      if (px->getPixel(x, y)._a > 0) {
+        // if part of the component, add to coordinate list and assignment state
+        assignmentState(x, y) = -1;
+        coords.push_back(Pointi(x, y));
+      }
+      else {
+        assignmentState(x, y) = -2;
+      }
+    }
+  }
+
+  if (numSeeds > coords.size()) {
+    // TODO: return superpixels for each pixel in here since there are more seeds than pixels
+  }
+
+  // pick random points to be the things
+  mt19937 rng(random_device());
+  uniform_int_distribution<int> dist(0, coords.size());
+  set<int> picked;
+  vector<Superpixel> superpixels;
+
+  while (picked.size() < numSeeds) {
+    int i = dist(rng);
+
+    if (picked.count(i) == 0) {
+      picked.insert(i);
+      Pointi seed = coords[i];
+      Superpixel newSp(px->getPixel(seed._x, seed._y), seed, picked.size() - 1);
+      superpixels.push_back(newSp);
+    }
+  }
+
+  // have seeds, run superpixel extraction
+  growSuperpixels(superpixels, px, assignmentState);
+}
+
+void ConstraintData::growSuperpixels(vector<Superpixel>& superpixels, shared_ptr<Image>& src, Grid2D<int>& assignmentState)
+{
+  priority_queue<AssignmentAttempt> queue;
+
+  // insert seeds
+  for (int i = 0; i < superpixels.size(); i++) {
+    assignPixel(superpixels[i], src, assignmentState, queue, superpixels[i].getSeed());
+  }
+}
+
+void ConstraintData::assignPixel(Superpixel & sp, shared_ptr<Image>& src, Grid2D<int>& assignmentState,
+  priority_queue<AssignmentAttempt>& queue, Pointi & pt)
+{
+  // -1 indicates unassigned, if the state is already assigned or is out of bouds, return
+  if (assignmentState(pt._x, pt._y) != -1) {
+    return;
+  }
+  assignmentState(pt._x, pt._y) = sp.getID();
+  sp.addPixel(pt);
+
+  // add neighbors
+
 }
 
 }

@@ -3,7 +3,7 @@
 namespace Comp {
 
 Superpixel::Superpixel(RGBAColor color, Pointi seed, int id) :
-  _seedColor(color), _seed(seed), _id(id)
+  _seedColor(color), _seed(seed), _id(id) 
 {
 }
 
@@ -16,9 +16,70 @@ void Superpixel::addPixel(Pointi pt)
   _pts.push_back(pt);
 }
 
+double Superpixel::dist(RGBAColor color, Pointi pt)
+{
+  float scaledPtx = (pt._x / (float)_w) * _xyScale;
+  float scaledPty = (pt._y / (float)_h) * _xyScale;
+  float scaledSeedx = (_seed._x / (float)_w) * _xyScale;
+  float scaledSeedy = (_seed._y / (float)_h) * _xyScale;
+
+  return sqrt(
+    pow(scaledPtx - scaledSeedx, 2) +
+    pow(scaledPty - scaledSeedy, 2) +
+    pow(color._r * color._a - _seedColor._r * _seedColor._a, 2) +
+    pow(color._g * color._a - _seedColor._g * _seedColor._a, 2) +
+    pow(color._b * color._a - _seedColor._b * _seedColor._a, 2)
+  );
+}
+
+void Superpixel::setScale(float xy, int w, int h)
+{
+  _xyScale = xy;
+  _w = w;
+  _h = h;
+}
+
+void Superpixel::recenter()
+{
+  Point center;
+
+  for (auto& p : _pts) {
+    center._x += p._x;
+    center._y += p._y;
+  }
+
+  center._x /= float(_pts.size());
+  center._y /= float(_pts.size());
+
+  Pointi bestCoord = _pts[0];
+  float bestDistSq = 100000000.0f;
+  for (auto &p : _pts)
+  {
+    float curDistSq = sqrt(pow(center._x - p._x, 2) + pow(center._y - p._y, 2));
+    if (curDistSq < bestDistSq)
+    {
+      bestDistSq = curDistSq;
+      bestCoord = p;
+    }
+  }
+
+  _seed = bestCoord;
+}
+
+void Superpixel::reset(shared_ptr<Image>& src)
+{
+  _pts.clear();
+  _seedColor = src->getPixel(_seed._x, _seed._y);
+}
+
 int Superpixel::getID()
 {
   return _id;
+}
+
+void Superpixel::setID(int id)
+{
+  _id = id;
 }
 
 Pointi Superpixel::getSeed()
@@ -26,7 +87,7 @@ Pointi Superpixel::getSeed()
   return _seed;
 }
 
-ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false)
+ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false), _superpixelIters(5)
 {
 }
 
@@ -77,12 +138,75 @@ void ConstraintData::deleteAllData()
   _type.clear();
 }
 
-vector<PixelConstraint> ConstraintData::getPixelConstraints(Context & c)
+vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_ptr<Image>& currentRender)
 {
   auto flattened = flatten();
   vector<ConnectedComponent> cc = computeConnectedComponents(flattened.second, flattened.first);
 
-  return vector<PixelConstraint>();
+  vector<Superpixel> superpixels;
+  for (auto& c : cc) {
+    auto res = extractSuperpixels(c, 15, currentRender);
+    for (auto& sp : res) {
+      sp._constraintID = c._id;
+      sp.setID(sp.getID() + superpixels.size());
+      superpixels.push_back(sp);
+    }
+  }
+
+  if (_verboseDebugMode) {
+    // draw the superpixels
+    Image spImg(flattened.second->getWidth(), flattened.second->getHeight());
+    for (auto& sp : superpixels) {
+      // color assignment
+      // each constraint has a hue range and a specific value associated with it
+      // saturation and hue are allowed to vary within a particular constraint to show
+      // the pixel boundaries
+      float baseHue = (360 / 4) * cc[sp._constraintID]._type;
+
+      float hue = baseHue + (30 / 3) * (sp.getID() % 10);
+      float sat = 1 - (0.1f * ((sp.getID() / 10) % 10));
+      float val = 0.5f;
+
+      RGBColor spColor = Utils<float>::HSLToRGB(hue, sat, val);
+
+      for (auto& p : sp.getPoints()) {
+        spImg.setPixel(p._x, p._y, spColor._r, spColor._g, spColor._b, 1);
+      }
+    }
+
+    currentRender->save("pxConstraint_src.png");
+    spImg.save("pxConstraint_superpixels.png");
+  }
+
+  // process superpixels into constraints
+  vector<PixelConstraint> constraints;
+  for (auto& sp : superpixels) {
+    PixelConstraint pc;
+    pc._pt = Point(sp.getSeed()._x, sp.getSeed()._y);
+
+    if (cc[sp._constraintID]._type == TARGET_COLOR) {
+      RGBAColor c = flattened.second->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+      RGBColor cmult;
+      cmult._r = c._r * c._a;
+      cmult._g = c._g * c._a;
+      cmult._b = c._b * c._a;
+
+      pc._color = cmult;
+    }
+    else if (cc[sp._constraintID]._type == FIXED || cc[sp._constraintID]._type == NO_CONSTRAINT_DEFINED) {
+      RGBAColor c = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+      RGBColor cmult;
+      cmult._r = c._r * c._a;
+      cmult._g = c._g * c._a;
+      cmult._b = c._b * c._a;
+
+      pc._color = cmult;
+    }
+
+    constraints.push_back(pc);
+  }
+
+  return constraints;
 }
 
 pair<Grid2D<ConstraintType>, shared_ptr<Image>> ConstraintData::flatten()
@@ -213,18 +337,18 @@ void ConstraintData::recordedDFS(int originX, int originY, Grid2D<int>& visited,
   }
 }
 
-vector<Superpixel> ConstraintData::extractSuperpixels(ConnectedComponent component, int numSeeds)
+vector<Superpixel> ConstraintData::extractSuperpixels(ConnectedComponent& component, int numSeeds, shared_ptr<Image>& px)
 {
   // initialize a grid of the assignment state and then pick seeds for the superpixels
   // assignment state is organized as follows:
   // -1: unassigned, -2: out of bounds, >0: assigned to superpixel n
-  shared_ptr<Image> px = component._pixels;
   Grid2D<int> assignmentState(px->getWidth(), px->getHeight());
   vector<Pointi> coords;
+  shared_ptr<Image> ccBounds = component._pixels;
 
   for (int y = 0; y < px->getHeight(); y++) {
     for (int x = 0; x < px->getWidth(); x++) {
-      if (px->getPixel(x, y)._a > 0) {
+      if (ccBounds->getPixel(x, y)._a > 0) {
         // if part of the component, add to coordinate list and assignment state
         assignmentState(x, y) = -1;
         coords.push_back(Pointi(x, y));
@@ -235,15 +359,23 @@ vector<Superpixel> ConstraintData::extractSuperpixels(ConnectedComponent compone
     }
   }
 
+  vector<Superpixel> superpixels;
   if (numSeeds > coords.size()) {
-    // TODO: return superpixels for each pixel in here since there are more seeds than pixels
+    for (int i = 0; i < coords.size(); i++) {
+      Superpixel newSp(px->getPixel(coords[i]._x, coords[i]._y), coords[i], i);
+      superpixels.push_back(newSp);
+    }
+
+    return superpixels;
   }
 
+  Grid2D<int> initState = assignmentState;
+
   // pick random points to be the things
-  mt19937 rng(random_device());
-  uniform_int_distribution<int> dist(0, coords.size());
+  random_device rd;
+  mt19937 rng(rd());
+  uniform_int_distribution<int> dist(0, coords.size() - 1);
   set<int> picked;
-  vector<Superpixel> superpixels;
 
   while (picked.size() < numSeeds) {
     int i = dist(rng);
@@ -252,12 +384,49 @@ vector<Superpixel> ConstraintData::extractSuperpixels(ConnectedComponent compone
       picked.insert(i);
       Pointi seed = coords[i];
       Superpixel newSp(px->getPixel(seed._x, seed._y), seed, picked.size() - 1);
+      newSp.setScale(1.5, px->getWidth(), px->getHeight());
       superpixels.push_back(newSp);
     }
   }
 
-  // have seeds, run superpixel extraction
+  for (int i = 0; i < _superpixelIters; i++) {
+    // have seeds, run superpixel extraction
+    growSuperpixels(superpixels, px, assignmentState);
+
+    // recenter
+    for (auto& sp : superpixels) {
+      sp.recenter();
+      sp.reset(px);
+    }
+
+    // reinit
+    assignmentState = initState;
+
+    if (_verboseDebugMode) {
+      getLogger()->log("Superpixel centers after iteration " + to_string(i), LogLevel::DBG);
+
+      for (auto& sp : superpixels) {
+        Pointi seed = sp.getSeed();
+        getLogger()->log("ID " + to_string(sp.getID()) + ": (" + to_string(seed._x) + "," + to_string(seed._y) + ")", LogLevel::DBG);
+      }
+    }
+  }
+
+  // run one more time
   growSuperpixels(superpixels, px, assignmentState);
+  for (auto& sp : superpixels)
+    sp.recenter();
+
+  if (_verboseDebugMode) {
+    getLogger()->log("Superpixel centers after final iteration", LogLevel::DBG);
+
+    for (auto& sp : superpixels) {
+      Pointi seed = sp.getSeed();
+      getLogger()->log("ID " + to_string(sp.getID()) + ": (" + to_string(seed._x) + "," + to_string(seed._y) + ")", LogLevel::DBG);
+    }
+  }
+
+  return superpixels;
 }
 
 void ConstraintData::growSuperpixels(vector<Superpixel>& superpixels, shared_ptr<Image>& src, Grid2D<int>& assignmentState)
@@ -267,6 +436,12 @@ void ConstraintData::growSuperpixels(vector<Superpixel>& superpixels, shared_ptr
   // insert seeds
   for (int i = 0; i < superpixels.size(); i++) {
     assignPixel(superpixels[i], src, assignmentState, queue, superpixels[i].getSeed());
+  }
+
+  while (!queue.empty()) {
+    AssignmentAttempt aa = queue.top();
+    queue.pop();
+    assignPixel(superpixels[aa._superpixelID], src, assignmentState, queue, aa._pt);
   }
 }
 
@@ -300,6 +475,13 @@ void ConstraintData::assignPixel(Superpixel & sp, shared_ptr<Image>& src, Grid2D
 bool ConstraintData::isValid(int x, int y, int width, int height)
 {
   return (x > 0 && x < width && y > 0 && y < height);
+}
+
+bool operator<(const AssignmentAttempt & a, const AssignmentAttempt & b)
+{
+  // note that this is reversed here just because I'm lazy and don't want
+  // to replace the priority queue type with a really long templated type name
+  return (a._score > b._score);
 }
 
 }

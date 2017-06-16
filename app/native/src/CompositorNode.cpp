@@ -1930,7 +1930,31 @@ void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::
 
   // this function is a work in progress, used currently to call functions for debugging the
   // constraint generation methods
-  c->_compositor->getConstraintData().getPixelConstraints(c->_compositor->getNewContext());
+  Comp::Context ctx = c->_compositor->getNewContext();
+  auto constraints = c->_compositor->getConstraintData().getPixelConstraints(ctx, shared_ptr<Comp::Image>(c->_compositor->render(ctx)));
+
+  // put into javascript objects
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  for (int i = 0; i < constraints.size(); i++) {
+    auto& c = constraints[i];
+
+    v8::Local<v8::Object> constraint = Nan::New<v8::Object>();
+    v8::Local<v8::Object> loc = Nan::New<v8::Object>();
+    v8::Local<v8::Object> color = Nan::New<v8::Object>();
+
+    loc->Set(Nan::New("x").ToLocalChecked(), Nan::New(c._pt._x));
+    loc->Set(Nan::New("y").ToLocalChecked(), Nan::New(c._pt._y));
+    constraint->Set(Nan::New("pt").ToLocalChecked(), loc);
+
+    color->Set(Nan::New("r").ToLocalChecked(), Nan::New(c._color._r));
+    color->Set(Nan::New("g").ToLocalChecked(), Nan::New(c._color._g));
+    color->Set(Nan::New("b").ToLocalChecked(), Nan::New(c._color._b));
+    constraint->Set(Nan::New("color").ToLocalChecked(), color);
+
+    ret->Set(Nan::New(i), constraint);
+  }
+
+  info.GetReturnValue().Set(ret);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

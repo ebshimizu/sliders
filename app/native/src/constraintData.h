@@ -34,10 +34,7 @@ namespace Comp {
     int _superpixelID;
   };
 
-  bool operator<(const AssignmentAttempt &a, const AssignmentAttempt &b)
-  {
-    return (a._score < b._score);
-  }
+  bool operator<(const AssignmentAttempt &a, const AssignmentAttempt &b);
 
   class Superpixel {
   public:
@@ -46,15 +43,25 @@ namespace Comp {
 
     void addPixel(Pointi pt);
     double dist(RGBAColor color, Pointi pt);
+    void setScale(float xy, int w, int h);
+    void recenter();
+    void reset(shared_ptr<Image>& src);
 
     int getID();
+    void setID(int id);
     Pointi getSeed();
+    vector<Pointi> getPoints() { return _pts; }
+    int _constraintID;
 
   private:
     vector<Pointi> _pts;
     Pointi _seed;
     RGBAColor _seedColor;
     int _id;
+
+    float _xyScale;
+    int _w;
+    int _h;
   };
 
   class ConstraintData {
@@ -76,7 +83,7 @@ namespace Comp {
     void deleteAllData();
 
     // computes the pixel constraints from the current state of the raw input and specified constraint types
-    vector<PixelConstraint> getPixelConstraints(Context& c);
+    vector<PixelConstraint> getPixelConstraints(Context& c, shared_ptr<Image>& currentRender);
 
     // if the constraint data is locked, no changes can occur
     // typically this will be locked down during a search
@@ -85,6 +92,10 @@ namespace Comp {
     // If enabled, this will output a bunch of intermediate files for debugging.
     // should probably disable for most runs of this program
     bool _verboseDebugMode;
+
+    // number of iterations to use for superpixel extraction
+    // defaults to 5
+    int _superpixelIters;
   private:
     // flattens the layers down such that each constraint type applies to exactly one pixel
     pair<Grid2D<ConstraintType>, shared_ptr<Image> > flatten();
@@ -97,7 +108,7 @@ namespace Comp {
       shared_ptr<Image>& src, Grid2D<ConstraintType>& typeMap);
 
     // extracts superpixels from connected components
-    vector<Superpixel> extractSuperpixels(ConnectedComponent component, int numSeeds);
+    vector<Superpixel> extractSuperpixels(ConnectedComponent& component, int numSeeds, shared_ptr<Image>& px);
 
     // adds pixels to the superpixels
     void growSuperpixels(vector<Superpixel>& superpixels, shared_ptr<Image>& src, Grid2D<int>& assignmentState);

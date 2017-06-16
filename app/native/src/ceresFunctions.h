@@ -281,12 +281,12 @@ namespace Comp {
 
   template<class T>
   vector<T> selectiveColor(vector<T> params) {
-    RGBColor adjPx;
-    adjPx._r = params[0];
-    adjPx._g = params[1];
-    adjPx._b = params[2];
+    Utils<T>::RGBColorT adjPx;
+    adjPx._r = (T)params[0];
+    adjPx._g = (T)params[1];
+    adjPx._b = (T)params[2];
 
-    map<string, map<string, float>> data;
+    map<string, map<string, T>> data;
     data["blacks"]["black"] = params[3];
     data["blacks"]["cyan"] = params[4];
     data["blacks"]["magenta"] = params[5];
@@ -326,7 +326,7 @@ namespace Comp {
 
     for (auto& c : data) {
       for (auto& p : c.second) {
-        p.second = (p.second - 0.5) * 2;
+        p.second = (p.second - (T)0.5) * (T)2;
       }
     }
 
@@ -336,22 +336,38 @@ namespace Comp {
 
     // determine which set of parameters we're using to adjust
     // determine chroma interval
-    int interval = (int)(hslColor._h / 60);
+    T interval = floor(hslColor._h / (T)60);
     string c1, c2, c3, c4;
-    c1 = intervalNames[interval];
 
-    if (interval == 5) {
-      // wrap around for magenta
-      c2 = intervalNames[0];
+    if (interval >= (T)0 && interval < (T)1) {
+      c1 = intervalNames[0];
+      c2 = intervalNames[1];
     }
-    else {
-      c2 = intervalNames[interval + 1];
+    if (interval >= (T)1 && interval < (T)2) {
+      c1 = intervalNames[1];
+      c2 = intervalNames[2];
+    }
+    if (interval >= (T)2 && interval < (T)3) {
+      c1 = intervalNames[2];
+      c2 = intervalNames[3];
+    }
+    if (interval >= (T)3 && interval < (T)4) {
+      c1 = intervalNames[3];
+      c2 = intervalNames[4];
+    }
+    if (interval >= (T)4 && interval < (T)5) {
+      c1 = intervalNames[4];
+      c2 = intervalNames[5];
+    }
+    if (interval >= (T)5 && interval < (T)6) {
+      c1 = intervalNames[5];
+      c2 = intervalNames[0];
     }
 
     c3 = "neutrals";
 
     // non-chromatic colors
-    if (hslColor._l < 0.5) {
+    if (hslColor._l < (T)0.5) {
       c4 = "blacks";
     }
     else {
@@ -362,15 +378,15 @@ namespace Comp {
     T w1, w2, w3, w4, wc;
 
     // chroma
-    wc = chroma / 1.0f;
+    wc = chroma / (T)1.0f;
 
     // hue - always 60 deg intervals
-    w1 = 1 - ((hslColor._h - (interval * 60.0f)) / 60.0f);  // distance from low interval
-    w2 = 1 - w1;
+    w1 = (T)1 - ((hslColor._h - (interval * (T)60.0f)) / (T)60.0f);  // distance from low interval
+    w2 = (T)1 - w1;
 
     // luma - measure distance from midtones, w3 is always midtone
-    w3 = 1 - abs(hslColor._l - 0.5f);
-    w4 = 1 - w3;
+    w3 = (T)1 - abs(hslColor._l - (T)0.5f);
+    w4 = (T)1 - w3;
 
     // do the adjustment
     Utils<T>::CMYKColorT cmykColor = Utils<T>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);
@@ -378,10 +394,10 @@ namespace Comp {
     // we assume relative is true always here.
     //if (adj["relative"] > 0) {
     // relative
-    cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
-    cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
-    cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * (1 - wc);
-    cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * (1 - wc);
+    cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * ((T)1 - wc);
+    cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * ((T)1 - wc);
+    cmykColor._y += cmykColor._y * (w1 * data[c1]["yellow"] + w2 * data[c2]["yellow"]) * wc + (w3 * data[c3]["yellow"] + w4 * data[c4]["yellow"]) * ((T)1 - wc);
+    cmykColor._k += cmykColor._k * (w1 * data[c1]["black"] + w2 * data[c2]["black"]) * wc + (w3 * data[c3]["black"] + w4 * data[c4]["black"]) * ((T)1 - wc);
     //}
     //else {
     // absolute
@@ -392,9 +408,9 @@ namespace Comp {
     //}
 
     Utils<T>::RGBColorT res = Utils<T>::CMYKToRGB(cmykColor);
-    adjPx._r = clamp<T>(res._r, 0, 1);
-    adjPx._g = clamp<T>(res._g, 0, 1);
-    adjPx._b = clamp<T>(res._b, 0, 1);
+    adjPx._r = clamp<T>(res._r, (T)0, (T)1);
+    adjPx._g = clamp<T>(res._g, (T)0, (T)1);
+    adjPx._b = clamp<T>(res._b, (T)0, (T)1);
 
     return { adjPx._r, adjPx._g, adjPx._b };
   }

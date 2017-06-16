@@ -458,9 +458,9 @@ namespace Comp {
   {
     RGBColorT rgb;
 
-    rgb._r = (1 - c) * (1 - k);
-    rgb._g = (1 - m) * (1 - k);
-    rgb._b = (1 - y) * (1 - k);
+    rgb._r = ((T)1 - c) * ((T)1 - k);
+    rgb._g = ((T)1 - m) * ((T)1 - k);
+    rgb._b = ((T)1 - y) * ((T)1 - k);
 
     return rgb;
   }
@@ -553,18 +553,18 @@ namespace Comp {
   inline typename Utils<T>::CMYKColorT Utils<T>::RGBToCMYK(T r, T g, T b)
   {
     CMYKColorT c;
-    c._k = 1 - max(r, max(g, b));
+    c._k = (T)1 - max(r, max(g, b));
 
-    if (c._k == 1) {
-      c._m = 0;
-      c._y = 0;
-      c._c = 0;
+    if (c._k == (T)1) {
+      c._m = (T)0;
+      c._y = (T)0;
+      c._c = (T)0;
       return c;
     }
 
-    c._c = (1 - r - c._k) / (1 - c._k);
-    c._m = (1 - g - c._k) / (1 - c._k);
-    c._y = (1 - b - c._k) / (1 - c._k);
+    c._c = ((T)1 - r - c._k) / ((T)1 - c._k);
+    c._m = ((T)1 - g - c._k) / ((T)1 - c._k);
+    c._y = ((T)1 - b - c._k) / ((T)1 - c._k);
 
     return c;
   }

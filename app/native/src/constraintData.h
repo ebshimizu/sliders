@@ -31,6 +31,7 @@ namespace Comp {
   struct AssignmentAttempt {
     double _score;
     Pointi _pt;
+    int _superpixelID;
   };
 
   bool operator<(const AssignmentAttempt &a, const AssignmentAttempt &b)
@@ -105,8 +106,7 @@ namespace Comp {
     void assignPixel(Superpixel& sp, shared_ptr<Image>& src, Grid2D<int>& assignmentState,
       priority_queue<AssignmentAttempt>& queue, Pointi& pt);
 
-    //void computeConnectedComponents();
-    // auto extractSuperpixels();
+    bool isValid(int x, int y, int width, int height);
 
     map<string, shared_ptr<Image> > _rawInput;
     map<string, ConstraintType> _type;

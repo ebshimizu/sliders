@@ -281,7 +281,25 @@ void ConstraintData::assignPixel(Superpixel & sp, shared_ptr<Image>& src, Grid2D
   sp.addPixel(pt);
 
   // add neighbors
+  vector<int> dx = { -1, 1, 0, 0 };
+  vector<int> dy = { 0, 0, -1, 1 };
+  for (int i = 0; i < dx.size(); i++) {
+    Pointi npt(pt._x + dx[i], pt._y + dy[i]);
 
+    // if point is in bounds and also not yet assigned, add it to the queue
+    if (isValid(npt._x, npt._y, src->getWidth(), src->getHeight()) && assignmentState(npt._x, npt._y) == -1) {
+      AssignmentAttempt newEntry;
+      newEntry._pt = npt;
+      newEntry._score = sp.dist(src->getPixel(npt._x, npt._y), npt);
+      newEntry._superpixelID = sp.getID();
+      queue.push(newEntry);
+    }
+  }
+}
+
+bool ConstraintData::isValid(int x, int y, int width, int height)
+{
+  return (x > 0 && x < width && y > 0 && y < height);
 }
 
 }

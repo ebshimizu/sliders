@@ -2933,7 +2933,7 @@ function processNewSample(img, ctx, meta) {
     // eventually we will need references to each context element in order
     // to render the images at full size
     g_sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
-    $('#sampleContainer #sampleWrapper').append(createSampleContainer(img, sampleId));
+    $('#sampleContainer #sampleWrapper').append(createSampleContainer(img, sampleId, meta));
 
     // bind the dimmer
     $('#sampleContainer .sample[sampleId="' + sampleId + '"] .image').dimmer({
@@ -2957,7 +2957,7 @@ function processNewSample(img, ctx, meta) {
     }
 }
 
-function createSampleContainer(img, id) {
+function createSampleContainer(img, id, meta) {
     var html = '<div class="ui card sample" sampleId="' + id + '">';
     html += '<div class="ui dimmable image">';
 
@@ -2965,7 +2965,9 @@ function createSampleContainer(img, id) {
     html += createSampleControls(id);
 
     // metadata display
-    //html += '<div class="ui black left ribbon label"></div>'
+    for (var key in meta) {
+        html += '<div class="ui black left ribbon label" metadata-key="' + key + '">' + key + ": " + meta[key].toFixed(5) + "</div>";
+    }
     
     // id display
     html += '<div class="ui black small floating circular label sampleId">' + id + '</div>';

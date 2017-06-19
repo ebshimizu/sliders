@@ -1875,14 +1875,28 @@ void CompositorWrapper::ceresToContext(const Nan::FunctionCallbackInfo<v8::Value
     v8::String::Utf8Value val0(info[0]->ToString());
     string file(*val0);
 
-    Comp::Context ctx = c->_compositor->ceresToContext(file);
+    map<string, float> metadata;
+
+    Comp::Context ctx = c->_compositor->ceresToContext(file, metadata);
 
     // context object
     const int argc = 1;
     v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
     v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+    v8::Local<v8::Object> context = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
 
-    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+    // metadta object
+    v8::Local<v8::Object> meta = Nan::New<v8::Object>();
+    for (auto& kvp : metadata) {
+      meta->Set(Nan::New(kvp.first).ToLocalChecked(), Nan::New(kvp.second));
+    }
+
+    // return object
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+    ret->Set(Nan::New("context").ToLocalChecked(), context);
+    ret->Set(Nan::New("metadata").ToLocalChecked(), meta);
+
+    info.GetReturnValue().Set(ret);
   }
   else {
     Nan::ThrowError("ceresToContext(file:string) argument error");

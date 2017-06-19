@@ -3396,10 +3396,10 @@ function runCeres(callback) {
 
 function importFromCeres() {
     // get context
-    var ceresCtx = c.ceresToContext("./codegen/ceres_result.json");
+    var ceresData = c.ceresToContext("./codegen/ceres_result.json");
 
     // append to results for inspection
-    processNewSample(c.renderContext(ceresCtx), ceresCtx, {});
+    processNewSample(c.renderContext(ceresData.context), ceresData.context, ceresData.metadata);
 }
 
 function selectDebugConstraint() {

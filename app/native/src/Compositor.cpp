@@ -765,7 +765,7 @@ namespace Comp {
     file << data.dump(4);
   }
 
-  Context Compositor::ceresToContext(string file)
+  Context Compositor::ceresToContext(string file, map<string, float>& metadata)
   {
     nlohmann::json data;
     ifstream input(file);
@@ -787,6 +787,9 @@ namespace Comp {
         c[layerName].addAdjustment((AdjustmentType)param["adjustmentType"].get<int>(), param["adjustmentName"].get<string>(), param["value"].get<float>());
       }
     }
+
+    float score = data["score"];
+    metadata.insert(make_pair("score", score));
 
     return c;
   }

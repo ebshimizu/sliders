@@ -143,8 +143,9 @@ namespace Comp {
     /*
     Imports a ceres results file (should be the same format as paramsToCeres) and into
     a new context
+    If not null, metadata will import the extra data contained in the file
     */
-    Context ceresToContext(string file);
+    Context ceresToContext(string file, map<string, float>& metadata);
 
   private:
     void addLayer(string name);

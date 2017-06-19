@@ -20,12 +20,15 @@ namespace Comp {
   struct PixelConstraint {
     Point _pt;
     RGBColor _color;
+    float _weight;
+    ConstraintType _type;
   };
 
   struct ConnectedComponent {
     int _id;
     ConstraintType _type;
     shared_ptr<Image> _pixels;
+    int _pixelCount;
   };
 
   struct AssignmentAttempt {
@@ -96,6 +99,15 @@ namespace Comp {
     // number of iterations to use for superpixel extraction
     // defaults to 5
     int _superpixelIters;
+
+    // superpixel budgets, density is pixels per sample point
+    int _unconstDensity;
+    int _constDensity;
+
+    // weights for different groups of pixels
+    float _totalUnconstrainedWeight;
+    float _totalConstrainedWeight;
+
   private:
     // flattens the layers down such that each constraint type applies to exactly one pixel
     pair<Grid2D<ConstraintType>, shared_ptr<Image> > flatten();

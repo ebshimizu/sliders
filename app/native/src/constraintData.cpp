@@ -87,7 +87,8 @@ Pointi Superpixel::getSeed()
   return _seed;
 }
 
-ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false), _superpixelIters(5)
+ConstraintData::ConstraintData() : _locked(false), _verboseDebugMode(false), _superpixelIters(5),
+  _unconstDensity(1000), _constDensity(250), _totalUnconstrainedWeight(1), _totalConstrainedWeight(4)
 {
 }
 
@@ -143,9 +144,46 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
   auto flattened = flatten();
   vector<ConnectedComponent> cc = computeConnectedComponents(flattened.second, flattened.first);
 
+  int totalConstrained = 0;
+  int totalUnconstrained = 0;
+
+  // cound the pixels in each component
+  for (auto& c : cc) {
+    auto& data = c._pixels->getData();
+    c._pixelCount = 0;
+    for (int i = 0; i < data.size() / 4; i++) {
+      // alpha 1 indicates pixel belongs to the specified component
+      if (data[i * 4 + 3] == 255)
+        c._pixelCount++;
+    }
+
+    if (c._type == NO_CONSTRAINT_DEFINED) {
+      totalUnconstrained += c._pixelCount;
+    }
+    else {
+      totalConstrained += c._pixelCount;
+    }
+
+    if (_verboseDebugMode) {
+      getLogger()->log("Component " + to_string(c._id) + " size: " + to_string(c._pixelCount), Comp::DBG);
+    }
+  }
+
   vector<Superpixel> superpixels;
   for (auto& c : cc) {
-    auto res = extractSuperpixels(c, 15, currentRender);
+    int budget;
+
+    if (c._type == NO_CONSTRAINT_DEFINED) {
+      budget = (int) (c._pixelCount / _unconstDensity);
+    }
+    else {
+      budget = (int) (c._pixelCount / _constDensity);
+    }
+
+    if (budget == 0)
+      budget = 1;
+
+    auto res = extractSuperpixels(c, budget, currentRender);
     for (auto& sp : res) {
       sp._constraintID = c._id;
       sp.setID(sp.getID() + superpixels.size());
@@ -179,10 +217,14 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
   }
 
   // process superpixels into constraints
+  int unconstr = 0;
+  int constr = 0;
+
   vector<PixelConstraint> constraints;
   for (auto& sp : superpixels) {
     PixelConstraint pc;
     pc._pt = Point(sp.getSeed()._x, sp.getSeed()._y);
+    pc._type = cc[sp._constraintID]._type;
 
     if (cc[sp._constraintID]._type == TARGET_COLOR) {
       RGBAColor c = flattened.second->getPixel(sp.getSeed()._x, sp.getSeed()._y);
@@ -203,7 +245,24 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
       pc._color = cmult;
     }
 
+    if (cc[sp._constraintID]._type == NO_CONSTRAINT_DEFINED) {
+      unconstr++;
+    }
+    else {
+      constr++;
+    }
+
     constraints.push_back(pc);
+  }
+
+  // weight calculations
+  for (int i = 0; i < constraints.size(); i++) {
+    if (constraints[i]._type == NO_CONSTRAINT_DEFINED) {
+      constraints[i]._weight = _totalUnconstrainedWeight / unconstr;
+    }
+    else {
+      constraints[i]._weight = _totalConstrainedWeight / constr;
+    }
   }
 
   return constraints;
@@ -235,10 +294,9 @@ pair<Grid2D<ConstraintType>, shared_ptr<Image>> ConstraintData::flatten()
 
         RGBAColor c = _rawInput[t.first]->getPixel(x, y);
 
-        // alpha 0 indicates nothing was drawn in the specified area
-        if (c._a > 0) {
-          // we discard the alpha channel from these things since it appears that the canvas
-          // actually dithers for us
+        // the canvas anti-aliases so to prevent the constraint generator from generating
+        // 1000s of disconnected regions, we discard all pixels with less than 1 alpha
+        if (c._a == 1) {
           flattenedImg->setPixel(x, y, c._r, c._g, c._b, 1);
           constraintMap(x, y) = t.second;
         }

@@ -43,7 +43,8 @@ var settings = {
     "unconstrainedDensity": 1000,
     "constrainedDensity": 100,
     "unconstrainedWeight": 1,
-    "constrainedWeight" : 4
+    "constrainedWeight": 4,
+    "ceresConfig": "Release"
 };
 
 // global settings vars
@@ -180,6 +181,20 @@ function initUI() {
 
         settings.renderSize = $(this).attr("internal");
         renderImage("#renderSize click callback");
+    });
+
+    // render size options
+    $('#ceresBuildMode a.item').click(function () {
+        // reset icon status
+        var links = $('#ceresBuildMode a.item');
+        for (var i = 0; i < links.length; i++) {
+            $(links[i]).html($(links[i]).attr("name"));
+        }
+
+        // add icon to selected
+        $(this).prepend('<i class="checkmark icon"></i>');
+
+        settings.ceresConfig = $(this).attr("name");
     });
 
     $('#sampleRenderSize a.item').click(function () {
@@ -515,6 +530,9 @@ function loadSettings() {
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
     $('#sampleThreads a.item[name="' + settings.sampleThreads + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
+
+    $('#ceresBuildMode a.item').removeClass("selected");
+    $('#ceresBuildMode a.item[name="' + settings.ceresConfig + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
 
     if (settings.search.useVisibleLayersOnly)
         $('#useVisibleLayersOnly').checkbox('set checked');
@@ -3312,7 +3330,7 @@ function generateCeresCode() {
     $('#runCeres').addClass("loading");
     $('#ceresRoundtrip').addClass("loading");
 
-    child_process.exec('"./codegen/ceresCompile.bat"', (error, stdout, stderr) => {
+    child_process.exec('"./codegen/ceresCompile.bat" ' + settings.ceresConfig, (error, stdout, stderr) => {
         console.log(stderr);
         console.log(stdout);
 
@@ -3354,7 +3372,7 @@ function sendToCeres() {
 
 function runCeres(callback) {
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/Debug/ceresHarness.exe" ./codegen/ceres.json ./codegen/ceres_result.json';
+    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" ./codegen/ceres.json ./codegen/ceres_result.json';
 
     if (callback === undefined) {
         callback = (error, stdout, stderr) => {

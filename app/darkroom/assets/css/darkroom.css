@@ -482,3 +482,7 @@ body .ui.basic.modal p {
     float: right;
     margin-top: 5px;
 }
+
+#debugConstraintTab .grid {
+    width: 100%;
+}

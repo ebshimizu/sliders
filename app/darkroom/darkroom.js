@@ -39,7 +39,11 @@ var settings = {
         "modifyLayerBlendModes" : 0,
         "mode" : 1
     },
-    "maxResults" : 100
+    "maxResults": 100,
+    "unconstrainedDensity": 1000,
+    "constrainedDensity": 100,
+    "unconstrainedWeight": 1,
+    "constrainedWeight" : 4
 };
 
 // global settings vars
@@ -247,6 +251,22 @@ function initUI() {
     $('#maxSamples input').change(function () {
         settings.maxResults = parseInt($(this).val());
         g_sideboardID += settings.maxResults;
+    });
+
+    $('#udensity input').change(function () {
+        settings.unconstrainedDensity = parseInt($(this).val());
+    });
+
+    $('#cdensity input').change(function () {
+        settings.constrainedDensity = parseInt($(this).val());
+    });
+
+    $('#uweight input').change(function () {
+        settings.unconstrainedWeight = parseInt($(this).val());
+    });
+
+    $('#cweight input').change(function () {
+        settings.constrainedWeight = parseInt($(this).val());
     });
 
     // search settings
@@ -508,6 +528,11 @@ function loadSettings() {
 
     $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
     $('#maxSamples input').val(settings.maxResults);
+
+    $('#udensity input').val(settings.unconstrainedDensity);
+    $('#cdensity input').val(settings.constrainedDensity);
+    $('#uweight input').val(settings.unconstrainedWeight);
+    $('#cweight input').val(settings.constrainedWeight);
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -3217,11 +3242,19 @@ function extractConstraints() {
     syncMaskState();
 
     // for now debugging is on
-    var constraints = c.getPixelConstraints(true);
+    var constraints = c.getPixelConstraints({
+        "detailedLog": true,
+        "unconstrainedDensity": settings.unconstrainedDensity,
+        "constrainedDensity": settings.constrainedDensity,
+        "unconstrainedWeight": settings.unconstrainedWeight,
+        "constrainedWeight": settings.constrainedWeight
+    });
+
+    console.log("Returned " + constraints.length + " samples.");
 
     for (var i in constraints) {
         var constraint = constraints[i];
-        addDebugConstraint(constraint.pt.x, constraint.pt.y, constraint.color);
+        addDebugConstraint(constraint.pt.x, constraint.pt.y, constraint.color, constraint.weight);
     }
 
     showStatusMsg("Constraints shown in the Ceres Testing panel", "OK", "Constraint Extraction Complete");
@@ -3312,7 +3345,7 @@ function sendToCeres() {
 
         pts.push({ 'x': data.x, 'y': data.y });
         targets.push(data.color);
-        weights.push(1);        // all weights are 1 right now
+        weights.push(data.weight);        // all weights are 1 right now
     }
 
     c.paramsToCeres(c.getContext(), pts, targets, weights, "./codegen/ceres.json");
@@ -3358,32 +3391,36 @@ function selectDebugConstraint() {
 }
 
 function deleteAllDebugConstraints() {
-    for (var id in g_ceresDebugConstraints) {
-        $('#debugCeresConstraints .item[pt-id="' + id + '"]').remove();
-    }
+    $('#debugCeresConstraints').html('');
 
     g_ceresDebugConstraints = {};
 }
 
-function addDebugConstraint(x, y, color) {
+function addDebugConstraint(x, y, color, weight) {
     // i guess this works to truncate to int?
     x = ~~x;
     y = ~~y;
 
+    var data = { 'id': g_ceresDebugPtIndex, 'x': x, 'y': y, 'color': { 'r': 1, 'g': 1, 'b': 1 } };
+    data.weight = 1;
+
+    if (color !== undefined) {
+        data.color = color;
+    }
+
+    if (weight !== undefined) {
+        data.weight = weight;
+    }
+
     var html = '<div class="item" pt-id="' + g_ceresDebugPtIndex + '">';
     html += '<div class="right floated content">';
+    html += '<div class="ui mini input"><input type="text" /></div>';
     html += '<div class="ui mini button target">Target</div>';
     html += '<div class="ui mini red icon right floated button delete"><i class="erase icon"></i></div>';
     html += '<div class="ui mini right floated icon button useCurrent" data-content="Use Current Pixel Color"><i class="eyedropper icon"></i></div>';
     html += '</div>';
     html += '<div class="content">';
     html += '<div class="header">x: ' + x + ', y: ' + y + '</div></div></div>';
-
-    var data = { 'id': g_ceresDebugPtIndex, 'x': x, 'y': y, 'color': { 'r': 1, 'g': 1, 'b': 1 } };
-
-    if (color !== undefined) {
-        data.color = color;
-    }
 
     var id = data.id;
     g_ceresDebugConstraints[g_ceresDebugPtIndex] = data;
@@ -3392,6 +3429,11 @@ function addDebugConstraint(x, y, color) {
     $('#debugCeresConstraints').append(html);
 
     // event bindings
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] input').change(() => {
+        g_ceresDebugConstraints[g_ceresDebugPtIndex].weight = parseFloat($(this).val());
+    });
+    $('#debugCeresConstraints .item[pt-id="' + data.id + '"] input').val(data.weight);
+
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .delete').click(() => {
         delete g_ceresDebugConstraints[id];
         $('#debugCeresConstraints .item[pt-id="' + id + '"]').remove();

@@ -323,14 +323,67 @@
                 </div>
                 <div class="ui tab" data-tab="ceresDebug" id="debugConstraintTab">
                     <h3 class="ui inverted header">Ceres Testing Settings</h3>
-                    <div class="ui inverted button" id="ceresRoundtrip">Export and Run Ceres</div>
-                    <div class="ui inverted button" id="ceresAddPoint">Add Point</div>
-                    <div class="ui inverted button" id="extractConstraints">Extract Constraints</div>
-                    <div class="ui inverted divider"></div>
-                    <div class="ui inverted button" id="exportToCeres">Export To Ceres</div>
-                    <div class="ui inverted button" id="runCeres">Run Ceres</div>
-                    <div class="ui inverted button" id="importFromCeres">Import From Ceres</div>
-                    <div class="ui inverted divider"></div>
+                    <div class="ui grid">
+                        <div class="three column row">
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="ceresRoundtrip">Export and Run Ceres</div>
+                            </div>
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="ceresAddPoint">Add Point</div>
+                            </div>
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="extractConstraints">Extract Constraints</div>
+                            </div>
+                        </div>
+                        <div class="three column row">
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="exportToCeres">Export To Ceres</div>
+                            </div>
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="runCeres">Run Ceres</div>
+                            </div>
+                            <div class="column">
+                                <div class="ui mini fluid inverted button" id="importFromCeres">Import From Ceres</div>
+                            </div>
+                        </div>
+                        <div class="two column row">
+                            <div class="column">
+                                <div class="ui fluid labeled input" id="udensity">
+                                    <div class="ui label">
+                                        Unconstrained Density
+                                    </div>
+                                    <input type="text" placeholder="400">
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="ui fluid labeled input" id="cdensity">
+                                    <div class="ui label">
+                                        Constrained Density
+                                    </div>
+                                    <input type="text" placeholder="40">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="two column row">
+                            <div class="column">
+                                <div class="ui fluid labeled input" id="uweight">
+                                    <div class="ui label">
+                                        Unconstrained Weight
+                                    </div>
+                                    <input type="text" placeholder="400">
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="ui fluid labeled input" id="cweight">
+                                    <div class="ui label">
+                                        Constrained Weight
+                                    </div>
+                                    <input type="text" placeholder="40">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui divider"></div>
                     <div class="ui divided inverted list" id="debugCeresConstraints">
                         
                     </div>

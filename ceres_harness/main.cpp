@@ -218,6 +218,7 @@ void App::testOptimizer(string loadFrom, string saveTo)
   for (int i = 0; i < allParams.size(); i++) {
     data["params"][i]["value"] = allParams[i];
   }
+  data["score"] = cost;
 
   ofstream out(saveTo);
   out << data.dump(4);

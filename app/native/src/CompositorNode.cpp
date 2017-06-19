@@ -1924,8 +1924,28 @@ void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.ceresToContext");
 
-  if (info[0]->IsBoolean()) {
-    c->_compositor->getConstraintData()._verboseDebugMode = info[0]->BooleanValue();
+  if (info[0]->IsObject()) {
+    v8::Local<v8::Object> opt = info[0].As<v8::Object>();
+
+    if (opt->Get(Nan::New("detailedLog").ToLocalChecked())->IsBoolean()) {
+      c->_compositor->getConstraintData()._verboseDebugMode = opt->Get(Nan::New("detailedLog").ToLocalChecked())->BooleanValue();
+    }
+
+    if (opt->Get(Nan::New("unconstrainedDensity").ToLocalChecked())->IsInt32()) {
+      c->_compositor->getConstraintData()._unconstDensity = opt->Get(Nan::New("unconstrainedDensity").ToLocalChecked())->Int32Value();
+    }
+
+    if (opt->Get(Nan::New("constrainedDensity").ToLocalChecked())->IsInt32()) {
+      c->_compositor->getConstraintData()._constDensity = opt->Get(Nan::New("constrainedDensity").ToLocalChecked())->Int32Value();
+    }
+
+    if (opt->Get(Nan::New("unconstrainedWeight").ToLocalChecked())->IsNumber()) {
+      c->_compositor->getConstraintData()._totalUnconstrainedWeight = opt->Get(Nan::New("unconstrainedWeight").ToLocalChecked())->NumberValue();
+    }
+
+    if (opt->Get(Nan::New("constrainedWeight").ToLocalChecked())->IsNumber()) {
+      c->_compositor->getConstraintData()._totalConstrainedWeight = opt->Get(Nan::New("constrainedWeight").ToLocalChecked())->NumberValue();
+    }
   }
 
   // this function is a work in progress, used currently to call functions for debugging the
@@ -1950,6 +1970,8 @@ void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::
     color->Set(Nan::New("g").ToLocalChecked(), Nan::New(c._color._g));
     color->Set(Nan::New("b").ToLocalChecked(), Nan::New(c._color._b));
     constraint->Set(Nan::New("color").ToLocalChecked(), color);
+
+    constraint->Set(Nan::New("weight").ToLocalChecked(), Nan::New(c._weight));
 
     ret->Set(Nan::New(i), constraint);
   }

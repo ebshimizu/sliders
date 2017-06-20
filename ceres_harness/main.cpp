@@ -3,7 +3,7 @@
 #include "ceresFunctions.h"
 
 using namespace Comp;
-#include "ceresFunc.h"
+#include <ceresFunc.h>
 #include "util.cpp"
 
 class App
@@ -147,9 +147,9 @@ void App::setupOptimizer(string loadFrom, string saveTo)
     _problem.SetParameterUpperBound(_allParams.data(), i, 1);
   }
 
-  runOptimizerOnce();
-  exportSolution("ceres_result.json");
-  //randomReinit();
+  //runOptimizerOnce();
+  //exportSolution("ceres_result.json");
+  randomReinit();
 }
 
 double App::runOptimizerOnce()
@@ -207,12 +207,12 @@ double App::runOptimizerOnce()
   cout << "Cost*2 end: " << cost * 2 << endl;
 
   // params
-  for (int i = 0; i < _allParams.size(); i++) {
-    cout << "p[" << i << "]: " << _allParams[i] << "\n";
-  }
+  //for (int i = 0; i < _allParams.size(); i++) {
+  //  cout << "p[" << i << "]: " << _allParams[i] << "\n";
+  //}
 
   _data["score"] = cost;
-  cout << summary.FullReport() << endl;
+  //cout << summary.FullReport() << endl;
 
   return cost;
 }
@@ -236,7 +236,7 @@ void App::randomReinit()
 {
   // threshold for being best global solution
   float minEps = 1e-3;
-  int maxIters = 25;
+  int maxIters = 100;
   float pctParams = 0.2;
   float sigma = 0.25;
   int paramsToJitter = (int) (pctParams * _allParams.size());

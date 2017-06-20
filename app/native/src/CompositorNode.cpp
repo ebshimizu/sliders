@@ -1409,8 +1409,8 @@ void CompositorWrapper::renderContext(const Nan::FunctionCallbackInfo<v8::Value>
   ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
 
   string size = "";
-  if (info[0]->IsString()) {
-    v8::String::Utf8Value val0(info[0]->ToString());
+  if (info[1]->IsString()) {
+    v8::String::Utf8Value val0(info[1]->ToString());
     size = string(*val0);
   }
 

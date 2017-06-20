@@ -3,10 +3,10 @@
 const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
-var fs = require('fs');
+var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.23;
+const saveVersion = 0.24;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -116,21 +116,25 @@ const searchModeStrings = {
 // kickoff the render loop.
 window.requestAnimationFrame(repaint);
 
-var watcher = chokidar.watch("./ceresOut");
-
-watcher.on('change', function (filename, stats) {
-    // existence check (delete or add)
-    fs.access(filename, fs.constants.F_OK, (err) => {
-        if (!err) {
-            // this directory should have just json files in it soooo let's just load them
-            // and hopefully it won't crash
-            var ceresData = c.ceresToContext(filename);
-
-            // append to results for inspection
-            processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata);
-        }
-    });
+var watcher = chokidar.watch("./ceresOut", {
+    "ignoreInitial": true,
+    "awaitWriteFinish": {
+        stabilityThreshold: 250,
+        pollInterval: 50
+    }
 });
+
+watcher.on('add', function (filename, stats) {
+    console.log("Processing file " + filename);
+
+    // this directory should have just json files in it soooo let's just load them
+    // and hopefully it won't crash
+    var ceresData = c.ceresToContext(filename);
+
+    // append to results for inspection
+    processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata);
+});
+
 
 /*===========================================================================*/
 /* Initialization                                                            */
@@ -1912,7 +1916,6 @@ function loadLayers(doc, path) {
     // when loading an existing darkroom file we have some things already filled in
     // so we just load them from disk
     modifiers = doc.modifiers;
-
     docTree = doc.docTree;
 
     // we can skip metadata creation
@@ -2001,6 +2004,11 @@ function loadLayers(doc, path) {
     renderImage("loadLayers()");
     initCanvas();
 
+    if (ver > 0.23) {
+        settings = doc.settings;
+        loadSettings();
+    }
+
     // load layers
     if (doc.mask !== undefined) {
         g_activeConstraintLayer = doc.mask.activeConstraintLayer;
@@ -2080,6 +2088,9 @@ function save(file) {
     out.mask.pathIndex = g_pathIndex;
     out.mask.constraintLayers = g_constraintLayers;
     out.mask.activeConstraintLayer = g_activeConstraintLayer;
+
+    //settings
+    out.settings = settings;
 
     fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
         if (err) {
@@ -2783,7 +2794,8 @@ function updateLayerControls() {
             var adj = layer.getAdjustment(type);
 
             if (type === 0) {
-                updateSliderControl(layerName, "hue", "Hue/Saturation", (adj.hue - 0.5) * 360);
+                // hue wraps. let javascript handle the fmod op
+                updateSliderControl(layerName, "hue", "Hue/Saturation", ((adj.hue % 1) - 0.5) * 360);
                 updateSliderControl(layerName, "saturation", "Hue/Saturation", (adj.sat - 0.5) * 200);
                 updateSliderControl(layerName, "lightness", "Hue/Saturation", (adj.light - 0.5) * 200);
             }
@@ -3390,6 +3402,10 @@ function sendToCeres() {
 }
 
 function runCeres(callback) {
+    // clears the output dir first. The UI expects all results to be new files, due to potential
+    // access problems and crashes if an existing file is updated
+    fs.emptyDirSync("./ceresOut");
+
     // invokes the ceres command line application
     var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" ./codegen/ceres.json ./ceresOut/';
 
@@ -3410,7 +3426,7 @@ function runCeres(callback) {
 
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
-    child_process.exec(cmd, callback);
+    child_process.exec(cmd, { "maxBuffer": 1000 * 1024 }, callback);
 }
 
 function importFromCeres() {
@@ -3467,7 +3483,7 @@ function addDebugConstraint(x, y, color, weight) {
 
     // event bindings
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] input').change(() => {
-        g_ceresDebugConstraints[g_ceresDebugPtIndex].weight = parseFloat($(this).val());
+        g_ceresDebugConstraints[data.id].weight = parseFloat($('#debugCeresConstraints .item[pt-id="' + data.id + '"] input').val());
     });
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] input').val(data.weight);
 

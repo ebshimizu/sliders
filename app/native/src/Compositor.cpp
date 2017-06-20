@@ -770,7 +770,10 @@ namespace Comp {
     nlohmann::json data;
     ifstream input(file);
 
+    getLogger()->log("Reading data from " + file);
+
     if (!input.is_open()) {
+      getLogger()->log("File not open. Aborting...");
       return getNewContext();
     }
 
@@ -778,9 +781,13 @@ namespace Comp {
 
     Context c = getNewContext();
 
+    getLogger()->log("Importing parameters...");
+
     for (int i = 0; i < data["params"].size(); i++) {
       auto param = data["params"][i];
       string layerName = param["layerName"].get<string>();
+
+      getLogger()->log("Importing parameter " + param["adjustmentName"].get<string>() + " for layer " + layerName);
 
       if (param["adjustmentType"] == AdjustmentType::OPACITY) {
         c[layerName].setOpacity(param["value"].get<float>());
@@ -793,8 +800,11 @@ namespace Comp {
       }
     }
 
+    getLogger()->log("Importing Metadata...");
     float score = data["score"];
     metadata.insert(make_pair("score", score));
+
+    getLogger()->log("Import complete.");
 
     return c;
   }

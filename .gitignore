@@ -78,3 +78,5 @@ app/darkroom/compTest.cpp
 ceres_harness/.vs/*
 expression_tree/.vs/*
 app/darkroom/ceresOut/*
+app/darkroom/pxConstraint*
+app/darkroom/codegen/*.json

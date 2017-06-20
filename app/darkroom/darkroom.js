@@ -4,6 +4,7 @@ const comp = require('../native/build/Release/compositor');
 var events = require('events');
 var {dialog, app} = require('electron').remote;
 var fs = require('fs');
+var chokidar = require('chokidar');
 var child_process = require('child_process');
 const saveVersion = 0.23;
 const versionString = "0.1";
@@ -114,6 +115,22 @@ const searchModeStrings = {
 
 // kickoff the render loop.
 window.requestAnimationFrame(repaint);
+
+var watcher = chokidar.watch("./ceresOut");
+
+watcher.on('change', function (filename, stats) {
+    // existence check (delete or add)
+    fs.access(filename, fs.constants.F_OK, (err) => {
+        if (!err) {
+            // this directory should have just json files in it soooo let's just load them
+            // and hopefully it won't crash
+            var ceresData = c.ceresToContext(filename);
+
+            // append to results for inspection
+            processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata);
+        }
+    });
+});
 
 /*===========================================================================*/
 /* Initialization                                                            */
@@ -3318,8 +3335,8 @@ function ceresAll() {
             console.log(error);
         }
         else {
-            showStatusMsg("Output results to ./codegen/ceres_result.json", "OK", "Ceres Execution Complete");
-            importFromCeres();
+            showStatusMsg("Output results to ./ceresOut", "OK", "Ceres Execution Complete");
+            //importFromCeres();
         }
     });
 }
@@ -3374,7 +3391,7 @@ function sendToCeres() {
 
 function runCeres(callback) {
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" ./codegen/ceres.json ./codegen/ceres_result.json';
+    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" ./codegen/ceres.json ./ceresOut/';
 
     if (callback === undefined) {
         callback = (error, stdout, stderr) => {
@@ -3401,7 +3418,7 @@ function importFromCeres() {
     var ceresData = c.ceresToContext("./codegen/ceres_result.json");
 
     // append to results for inspection
-    processNewSample(c.renderContext(ceresData.context), ceresData.context, ceresData.metadata);
+    processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata);
 }
 
 function selectDebugConstraint() {

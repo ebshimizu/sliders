@@ -8,6 +8,7 @@
 #include <map>
 #include <algorithm>
 #include <fstream>
+#include <random>
 
 #include "ceres/ceres.h"
 #include "glog/logging.h"
@@ -18,6 +19,4 @@ using ceres::CostFunction;
 using ceres::Problem;
 using ceres::Solver;
 using ceres::Solve;
-using namespace std;
-
 using namespace std;

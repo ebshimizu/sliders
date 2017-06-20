@@ -77,3 +77,4 @@ app/native/debug/compositor.log
 app/darkroom/compTest.cpp
 ceres_harness/.vs/*
 expression_tree/.vs/*
+app/darkroom/ceresOut/*

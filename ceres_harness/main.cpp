@@ -11,12 +11,24 @@ class App
 public:
 	void go(string loadFrom, string saveTo);
 
-	void testOptimizer(string loadFrom, string saveTo);
+	void setupOptimizer(string loadFrom, string saveTo);
+  double runOptimizerOnce();
+
+  void exportSolution(string filename);
+
+  // runs the optimization multiple times, tracking solution quality and randomizing
+  // parameters to try to find better solutions
+  void randomReinit();
+
+  vector<double> _allParams;
+  Problem _problem;
+  nlohmann::json _data;
+  string _outDir;
 };
 
 void App::go(string loadFrom, string saveTo)
 {
-	testOptimizer(loadFrom, saveTo);
+	setupOptimizer(loadFrom, saveTo);
 }
 
 template<class T>
@@ -108,16 +120,14 @@ struct CostTerm
 	float weight;
 };
 
-void App::testOptimizer(string loadFrom, string saveTo)
+void App::setupOptimizer(string loadFrom, string saveTo)
 {
-	Problem problem;
-
-	vector<double> allParams;
   vector<vector<double> > layerValues;
   vector<vector<double> > targetColors;
   vector<double> weights;
+  _outDir = saveTo;
 
-  nlohmann::json data = loadCeresData(loadFrom, allParams, layerValues, targetColors, weights);
+  _data = loadCeresData(loadFrom, _allParams, layerValues, targetColors, weights);
 
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
@@ -125,103 +135,163 @@ void App::testOptimizer(string loadFrom, string saveTo)
   for (int i = 0; i < targetColors.size(); i++) {
     cRGBColor target(targetColors[i][0], targetColors[i][1], targetColors[i][2]);
     ceres::CostFunction* costFunction = CostTerm::Create(layerValues[i], weights[i], target);
-    problem.AddResidualBlock(costFunction, NULL, allParams.data());
+    _problem.AddResidualBlock(costFunction, NULL, _allParams.data());
   }
 
-  for (int i = 0; i < allParams.size(); i++) {
-    if (data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
-      data["params"][i]["adjustmentName"] == "hue")
+  for (int i = 0; i < _allParams.size(); i++) {
+    if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
+      _data["params"][i]["adjustmentName"] == "hue")
       continue;
 
-    problem.SetParameterLowerBound(allParams.data(), i, 0);
-    problem.SetParameterUpperBound(allParams.data(), i, 1);
+    _problem.SetParameterLowerBound(_allParams.data(), i, 0);
+    _problem.SetParameterUpperBound(_allParams.data(), i, 1);
   }
 
-  vector<double> res;
-  double cost2;
-  vector<double> grad;
-  ceres::CRSMatrix jac;
+  runOptimizerOnce();
+  exportSolution("ceres_result.json");
+  //randomReinit();
+}
 
-  //problem.Evaluate(Problem::EvaluateOptions(), &cost2, &res, &grad, &jac);
+double App::runOptimizerOnce()
+{
+  cout << "Solving..." << endl;
 
-  /*
-	for (int pixel = 0; pixel < 1; pixel++)
-	{
-    vector<double> layerValues = { 0, 174.0 / 255.0, 239.0 / 255.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0 }; // not currently used
-		const float pixelWeight = 1.0f;
-		cRGBColor targetColor(1.0, 0, 0);
-		ceres::CostFunction* costFunction = CostTerm::Create(layerValues, pixelWeight, targetColor);
-		problem.AddResidualBlock(costFunction, NULL, allParams.data());
-	}
-  */
+  Solver::Options options;
+  Solver::Summary summary;
 
-	cout << "Solving..." << endl;
+  const bool performanceTest = false;
+  options.minimizer_progress_to_stdout = !performanceTest;
 
-	Solver::Options options;
-	Solver::Summary summary;
+  //faster methods
+  options.num_threads = 7;
+  options.num_linear_solver_threads = 7;
+  //options.linear_solver_type = ceres::LinearSolverType::SPARSE_NORMAL_CHOLESKY; //7.2s
+  //options.trust_region_strategy_type = ceres::TrustRegionStrategyType::DOGLEG;
+  //options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR; //10.0s
 
-	const bool performanceTest = false;
-	options.minimizer_progress_to_stdout = !performanceTest;
+  //slower methods
+  //options.linear_solver_type = ceres::LinearSolverType::ITERATIVE_SCHUR; //40.6s
+  //options.linear_solver_type = ceres::LinearSolverType::CGNR; //46.9s
 
-	//faster methods
-	options.num_threads = 7;
-	options.num_linear_solver_threads = 7;
-	//options.linear_solver_type = ceres::LinearSolverType::SPARSE_NORMAL_CHOLESKY; //7.2s
-	//options.trust_region_strategy_type = ceres::TrustRegionStrategyType::DOGLEG;
-	//options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR; //10.0s
+  //options.min_linear_solver_iterations = linearIterationMin;
+  options.max_num_iterations = 10000;
+  options.function_tolerance = 0.1;
+  options.gradient_tolerance = 1e-4 * options.function_tolerance;
 
-	//slower methods
-	//options.linear_solver_type = ceres::LinearSolverType::ITERATIVE_SCHUR; //40.6s
-	//options.linear_solver_type = ceres::LinearSolverType::CGNR; //46.9s
+  //options.min_lm_diagonal = 1.0f;
+  //options.min_lm_diagonal = options.max_lm_diagonal;
+  //options.max_lm_diagonal = 10000000.0;
 
-	//options.min_linear_solver_iterations = linearIterationMin;
-	options.max_num_iterations = 10000;
-	options.function_tolerance = 0.1;
-	options.gradient_tolerance = 1e-4 * options.function_tolerance;
+  //problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
+  //cout << "Cost*2 start: " << cost << endl;
 
-	//options.min_lm_diagonal = 1.0f;
-	//options.min_lm_diagonal = options.max_lm_diagonal;
-	//options.max_lm_diagonal = 10000000.0;
+  Solve(options, &_problem, &summary);
 
-	//problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
-	//cout << "Cost*2 start: " << cost << endl;
+  cout << "Solver used: " << summary.linear_solver_type_used << endl;
+  cout << "Minimizer iters: " << summary.iterations.size() << endl;
 
-	Solve(options, &problem, &summary);
+  double iterationTotalTime = 0.0;
+  int totalLinearItereations = 0;
+  for (auto &i : summary.iterations)
+  {
+    iterationTotalTime += i.iteration_time_in_seconds;
+    totalLinearItereations += i.linear_solver_iterations;
+    cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
+  }
 
-	cout << "Solver used: " << summary.linear_solver_type_used << endl;
-	cout << "Minimizer iters: " << summary.iterations.size() << endl;
+  cout << "Total iteration time: " << iterationTotalTime << endl;
+  cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
 
-	double iterationTotalTime = 0.0;
-	int totalLinearItereations = 0;
-	for (auto &i : summary.iterations)
-	{
-		iterationTotalTime += i.iteration_time_in_seconds;
-		totalLinearItereations += i.linear_solver_iterations;
-		cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
-	}
-
-	cout << "Total iteration time: " << iterationTotalTime << endl;
-	cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
-
-	double cost = -1.0;
-	problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
-	cout << "Cost*2 end: " << cost * 2 << endl;
+  double cost = -1.0;
+  _problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
+  cout << "Cost*2 end: " << cost * 2 << endl;
 
   // params
-  for (int i = 0; i < allParams.size(); i++) {
-    cout << "p[" << i << "]: " << allParams[i] << "\n";
+  for (int i = 0; i < _allParams.size(); i++) {
+    cout << "p[" << i << "]: " << _allParams[i] << "\n";
   }
 
-	cout << summary.FullReport() << endl;
+  _data["score"] = cost;
+  cout << summary.FullReport() << endl;
 
+  return cost;
+}
+
+void App::exportSolution(string filename)
+{
   // re-export
-  for (int i = 0; i < allParams.size(); i++) {
-    data["params"][i]["value"] = allParams[i];
+  for (int i = 0; i < _allParams.size(); i++) {
+    _data["params"][i]["value"] = _allParams[i];
   }
-  data["score"] = cost;
 
-  ofstream out(saveTo);
-  out << data.dump(4);
+  string file(_outDir + filename);
+  cout << "Writing file to " << file << "\n";
+
+  //remove(file.c_str());
+  ofstream out(_outDir + filename);
+  out << _data.dump(4);
+}
+
+void App::randomReinit()
+{
+  // threshold for being best global solution
+  float minEps = 1e-3;
+  int maxIters = 25;
+  float pctParams = 0.2;
+  float sigma = 0.25;
+  int paramsToJitter = (int) (pctParams * _allParams.size());
+
+  // rng things
+  random_device rd;
+  mt19937 gen(rd());
+  normal_distribution<double> dist(0, sigma);
+
+  vector<int> paramIndices;
+  for (int i = 0; i < _allParams.size(); i++)
+    paramIndices.push_back(i);
+
+  // store initial state
+  vector<double> initParams = _allParams;
+
+  // run problem from initial state
+  double bestSoFar = runOptimizerOnce();
+  vector<double> bestParams = _allParams;
+  exportSolution("ceresSolution_0.json");
+
+  for (int i = 0; i < maxIters; i++) {
+    // randomize x% of params from previous solution and re-run
+    // everything is clamped between 0 and 1 except hue right now
+    shuffle(paramIndices.begin(), paramIndices.end(), gen);
+
+    for (int j = 0; j < paramsToJitter; j++) {
+      int index = paramIndices[j];
+
+      _allParams[index] += dist(gen);
+      
+      if (_data["params"][index]["adjustmentType"] == Comp::AdjustmentType::HSL &&
+        _data["params"][index]["adjustmentName"] == "hue") {
+        continue;
+      }
+      else {
+        _allParams[index] = clamp(0.0, 1.0, _allParams[index]);
+      }
+    }
+
+    // re-run optimizer
+    double newScore = runOptimizerOnce();
+
+    if (newScore < bestSoFar) {
+      bestSoFar = newScore;
+      bestParams = _allParams;
+      exportSolution("ceresSolution_" + to_string(i) + ".json");
+    }
+    else {
+      // if not better, do a reset
+      _allParams = bestParams;
+    }
+  }
+
+  cout << "Best found: " << bestSoFar;
 }
 
 void main(int argc, char* argv[])

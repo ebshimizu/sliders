@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "compositor": "file:../native/build/Release/compositor",
-    "semantic-ui": "^2.2.7"
+    "semantic-ui": "^2.2.7",
+    "chokidar": "^1.7.0"
   }
 }

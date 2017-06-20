@@ -769,6 +769,11 @@ namespace Comp {
   {
     nlohmann::json data;
     ifstream input(file);
+
+    if (!input.is_open()) {
+      return getNewContext();
+    }
+
     input >> data;
 
     Context c = getNewContext();

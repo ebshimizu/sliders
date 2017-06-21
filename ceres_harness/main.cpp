@@ -9,10 +9,18 @@ using namespace Comp;
 class App
 {
 public:
-	void go(string loadFrom, string saveTo);
+  // available modes:
+  // - single (runs optimizer exactly once)
+  // - jitter (random jitter around found solutions)
+  // - eval (evaluates the given scene and returns the same scene with a score)
+	void go(string mode, string loadFrom, string saveTo);
 
 	void setupOptimizer(string loadFrom, string saveTo);
   double runOptimizerOnce();
+
+  // evaluates the problem objective function once and outputs a file
+  // containing the same input scene with a score field
+  double eval();
 
   void exportSolution(string filename);
 
@@ -26,9 +34,22 @@ public:
   string _outDir;
 };
 
-void App::go(string loadFrom, string saveTo)
+void App::go(string mode, string loadFrom, string saveTo)
 {
 	setupOptimizer(loadFrom, saveTo);
+  
+  if (mode == "single") {
+    runOptimizerOnce();
+    exportSolution("ceres_result.json");
+  }
+  else if (mode == "jitter") {
+    randomReinit();
+  }
+  else if (mode == "eval") {
+    double score = eval();
+    _data["score"] = score;
+    exportSolution("ceres_score.json");
+  }
 }
 
 template<class T>
@@ -146,10 +167,6 @@ void App::setupOptimizer(string loadFrom, string saveTo)
     _problem.SetParameterLowerBound(_allParams.data(), i, 0);
     _problem.SetParameterUpperBound(_allParams.data(), i, 1);
   }
-
-  //runOptimizerOnce();
-  //exportSolution("ceres_result.json");
-  randomReinit();
 }
 
 double App::runOptimizerOnce()
@@ -213,6 +230,14 @@ double App::runOptimizerOnce()
 
   _data["score"] = cost;
   //cout << summary.FullReport() << endl;
+
+  return cost;
+}
+
+double App::eval()
+{
+  double cost;
+  _problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
 
   return cost;
 }
@@ -297,7 +322,7 @@ void App::randomReinit()
 void main(int argc, char* argv[])
 {
 	App app;
-	app.go(string(argv[1]), string(argv[2]));
+	app.go(string(argv[1]), string(argv[2]), string(argv[3]));
 
 	//cin.get();
 }

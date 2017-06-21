@@ -195,6 +195,7 @@ function initUI() {
     $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
     $('#clearSamples').click(() => { $('#sampleWrapper').empty(); });
     $('#extractConstraints').click(() => { extractConstraints(); });
+    $('#ceresEval').click(() => { ceresEval(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -3409,7 +3410,7 @@ function runCeres(callback) {
     fs.emptyDirSync("./ceresOut");
 
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" ./codegen/ceres.json ./ceresOut/';
+    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" jitter ./codegen/ceres.json ./ceresOut/';
 
     if (callback === undefined) {
         callback = (error, stdout, stderr) => {
@@ -3425,6 +3426,24 @@ function runCeres(callback) {
             }
         };
     }
+
+    showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
+
+    child_process.exec(cmd, { "maxBuffer": 1000 * 1024 }, callback);
+}
+
+function ceresEval() {
+    sendToCeres();
+    fs.emptyDirSync("./ceresOut");
+
+    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" eval ./codegen/ceres.json ./ceresOut/';
+
+    callback = (error, stdout, stderr) => {
+        if (error) {
+            showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
+            console.log(error);
+        }
+    };
 
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 

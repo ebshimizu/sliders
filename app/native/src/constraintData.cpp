@@ -235,6 +235,35 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
 
       pc._color = cmult;
     }
+    else if (cc[sp._constraintID]._type == TARGET_HUE) {
+      RGBAColor target = flattened.second->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+      RGBAColor base = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+
+      // extract the hue and then shift the base color to match the target hue.
+      HSYColor targetHSY = Utils<float>::RGBToHSY(target._r * target._a, target._g * target._a, target._b * target._a);
+      HSYColor baseHSY = Utils<float>::RGBToHSY(base._r * base._a, base._g * base._a, base._b * base._a);
+
+      baseHSY._h = targetHSY._h;
+      auto rgbRes = Utils<float>::HSYToRGB(baseHSY);
+      pc._color._r = clamp(rgbRes._r, 0.0f, 1.0f);
+      pc._color._g = clamp(rgbRes._g, 0.0f, 1.0f);
+      pc._color._b = clamp(rgbRes._b, 0.0f, 1.0f);
+    }
+    else if (cc[sp._constraintID]._type == TARGET_HUE_SAT) {
+      RGBAColor target = flattened.second->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+      RGBAColor base = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+
+      // extract the hue and saturation and then shift the base color to match the target hue.
+      HSYColor targetHSY = Utils<float>::RGBToHSY(target._r * target._a, target._g * target._a, target._b * target._a);
+      HSYColor baseHSY = Utils<float>::RGBToHSY(base._r * base._a, base._g * base._a, base._b * base._a);
+
+      baseHSY._h = targetHSY._h;
+      baseHSY._s = targetHSY._s;
+      auto rgbRes = Utils<float>::HSYToRGB(baseHSY);
+      pc._color._r = clamp(rgbRes._r, 0.0f, 1.0f);
+      pc._color._g = clamp(rgbRes._g, 0.0f, 1.0f);
+      pc._color._b = clamp(rgbRes._b, 0.0f, 1.0f);
+    }
     else if (cc[sp._constraintID]._type == FIXED || cc[sp._constraintID]._type == NO_CONSTRAINT_DEFINED) {
       RGBAColor c = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
       RGBColor cmult;
@@ -253,6 +282,22 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
     }
 
     constraints.push_back(pc);
+  }
+
+
+  if (_verboseDebugMode) {
+    // draw the superpixels again, this time color is the constraint color defined.
+    Image spImg(flattened.second->getWidth(), flattened.second->getHeight());
+    for (int i = 0; i < superpixels.size(); i++) {
+      // color assignment
+      RGBColor spColor = constraints[i]._color;
+
+      for (auto& p : superpixels[i].getPoints()) {
+        spImg.setPixel(p._x, p._y, spColor._r, spColor._g, spColor._b, 1);
+      }
+    }
+
+    spImg.save("pxConstraint_constraints.png");
   }
 
   // weight calculations
@@ -307,7 +352,7 @@ pair<Grid2D<ConstraintType>, shared_ptr<Image>> ConstraintData::flatten()
   if (_verboseDebugMode)
   {
     flattenedImg->save("pxConstraint_flattened.png");
-    getLogger()->log(constraintMap.toString(), LogLevel::DBG);
+    //getLogger()->log(constraintMap.toString(), LogLevel::DBG);
   }
 
   return pair<Grid2D<ConstraintType>, shared_ptr<Image>>(constraintMap, flattenedImg);
@@ -386,8 +431,13 @@ void ConstraintData::recordedDFS(int originX, int originY, Grid2D<int>& visited,
 
       // type and already visited check.
       if (visited(n.first, n.second) == 0 && t == typeMap(n.first, n.second)) {
-        // color equality check (if using target color)
-        if ((t == TARGET_COLOR && src->pxEq(x, y, n.first, n.second)) || t != TARGET_COLOR) {
+        // color equality check (if using target color or hue)
+        if (t == TARGET_COLOR || t == TARGET_HUE || t == TARGET_HUE_SAT) {
+          if (src->pxEq(x, y, n.first, n.second)) {
+            stack.push_back(pair<int, int>(n.first, n.second));
+          }
+        }
+        else {
           stack.push_back(pair<int, int>(n.first, n.second));
         }
       }

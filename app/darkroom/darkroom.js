@@ -109,6 +109,13 @@ const searchModeStrings = {
     4: "Non-Linear Least Squares"
 }
 
+const g_constraintModesStrings = {
+    0: "Full Color",
+    1: "Hue",
+    2: "Fixed",
+    4: "Hue and Saturation"
+}
+
 /*===========================================================================*/
 /* Recurring Events                                                         */
 /*===========================================================================*/
@@ -119,8 +126,8 @@ window.requestAnimationFrame(repaint);
 var watcher = chokidar.watch("./ceresOut", {
     "ignoreInitial": true,
     "awaitWriteFinish": {
-        stabilityThreshold: 250,
-        pollInterval: 50
+        stabilityThreshold: 500,
+        pollInterval: 100
     }
 });
 
@@ -3038,11 +3045,6 @@ var g_canvasUpdated = true;
 var g_constraintLayers = {};
 var g_activeConstraintLayer = null;
 var g_currentColor = "FFFFFF";
-const g_constraintModesStrings = {
-    0: "Full Color",
-    1: "Hue",
-    2: "Fixed"
-}
 var g_ceresDebugPickPoint = false;
 
 function newConstraintLayer(name, mode) {

@@ -12,9 +12,10 @@ using namespace std;
 namespace Comp {
   enum ConstraintType {
     TARGET_COLOR = 0,
-    HUE = 1,
+    TARGET_HUE = 1,
     FIXED = 2,
-    NO_CONSTRAINT_DEFINED = 3   // internal type (mostly)
+    NO_CONSTRAINT_DEFINED = 3,  // internal type (mostly)
+    TARGET_HUE_SAT = 4
   };
 
   struct PixelConstraint {

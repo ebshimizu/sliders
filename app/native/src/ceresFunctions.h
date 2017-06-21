@@ -477,9 +477,9 @@ namespace Comp {
     //}
 
     // weight by density
-    adjPx._r = clamp<T>(fr * d + adjPx._r * (1 - d), 0, 1);
-    adjPx._g = clamp<T>(fg * d + adjPx._g * (1 - d), 0, 1);
-    adjPx._b = clamp<T>(fb * d + adjPx._b * (1 - d), 0, 1);
+    adjPx._r = clamp<T>(fr * d + adjPx._r * ((T)1 - d), (T)0, (T)1);
+    adjPx._g = clamp<T>(fg * d + adjPx._g * ((T)1 - d), (T)0, (T)1);
+    adjPx._b = clamp<T>(fb * d + adjPx._b * ((T)1 - d), (T)0, (T)1);
 
     return { adjPx._r, adjPx._g, adjPx._b };
   }

@@ -793,7 +793,12 @@ namespace Comp {
         c[layerName].setOpacity(param["value"].get<float>());
       }
       else if (param["adjustmentType"] == AdjustmentType::SELECTIVE_COLOR) {
-        c[layerName].setSelectiveColorChannel(param["selectiveColor"]["channel"], param["selectiveColor"]["param"], param["value"]);
+        if (param["adjustmentName"].get<string>() == "relative") {
+          c[layerName].addAdjustment((AdjustmentType)param["adjustmentType"].get<int>(), param["adjustmentName"].get<string>(), param["value"].get<float>());
+        }
+        else {
+          c[layerName].setSelectiveColorChannel(param["selectiveColor"]["channel"], param["selectiveColor"]["color"], param["value"]);
+        }
       }
       else {
         c[layerName].addAdjustment((AdjustmentType)param["adjustmentType"].get<int>(), param["adjustmentName"].get<string>(), param["value"].get<float>());

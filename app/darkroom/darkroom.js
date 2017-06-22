@@ -545,6 +545,8 @@ function initUI() {
     $('#saveVersionLabel').html(saveVersion);
 }
 
+// Loads UI settings from the settings object. Assumes all settings in the object
+// are the ones that should be used (doesn't load from external sources in this function)
 function loadSettings() {
     if (settings.showSampleId) {
         $("#showSampleId").checkbox('check');
@@ -559,9 +561,11 @@ function loadSettings() {
 
     // select max threads / 2
     $("#sampleThreads a.item").removeClass("selected");
+    $('#sampleThreads i').remove();
     $('#sampleThreads a.item[name="' + settings.sampleThreads + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
 
     $('#ceresBuildMode a.item').removeClass("selected");
+    $('#ceresBuildMode i').remove();
     $('#ceresBuildMode a.item[name="' + settings.ceresConfig + '"]').addClass("selected").prepend('<i class="checkmark icon"></i>');
 
     if (settings.search.useVisibleLayersOnly)

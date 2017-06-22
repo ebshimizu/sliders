@@ -97,40 +97,29 @@ struct CostTerm
 	static const int ResidualCount = 3;
 
 	CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor)
-		: layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {}
+		: layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {
+    targetLabColor = Utils<float>::RGBToLab(targetColor.x, targetColor.y, targetColor.z);
+  }
 
 	template <typename T>
 	bool operator()(const T* const params, T* residuals) const
 	{
     // color is RGBA, right now compare vs premult RGB
 		vector<T> color = evalLayerColor(params, layerValues);
-		residuals[0] = (color[0] * color[3] - T(targetColor.x)) * T(weight);
-		residuals[1] = (color[1] * color[3] - T(targetColor.y)) * T(weight);
-		residuals[2] = (color[2] * color[3] - T(targetColor.z)) * T(weight);
+    //residuals[0] = (color[0] * color[3] - T(targetColor.x)) * (T)weight;
+    //residuals[1] = (color[1] * color[3] - T(targetColor.y)) * (T)weight;
+    //residuals[2] = (color[2] * color[3] - T(targetColor.z)) * (T)weight;
 
-    //if (!residuals[0].v.allFinite() || !residuals[1].v.allFinite() || !residuals[2].v.allFinite()) {
-      //cout << "Nan";
-      //while (true) {
-      //  vector<T> color2 = evalLayerColor(params, layerValues);
-      //}
-    //}
+    // lab space, CIE76
+    Utils<T>::LabColorT labColor = Utils<T>::RGBToLab(color[0] * color[3], color[1] * color[3], color[2] * color[3]);
+    residuals[0] = (labColor._L - (T)targetLabColor._L) * (T)weight;
+    residuals[1] = (labColor._a - (T)targetLabColor._a) * (T)weight;
+    residuals[2] = (labColor._b - (T)targetLabColor._b) * (T)weight;
 
 		return true;
 	}
 
-  template<>
-  bool operator()<double>(const double* const params, double* residuals) const
-  {
-    // color is RGBA, right now compare vs premult RGB
-    vector<double> color = evalLayerColor(params, layerValues);
-    residuals[0] = (color[0] * color[3] - (double)(targetColor.x)) * (weight);
-    residuals[1] = (color[1] * color[3] - (double)(targetColor.y)) * (weight);
-    residuals[2] = (color[2] * color[3] - (double)(targetColor.z)) * (weight);
-
-    return true;
-  }
-
-	static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
+  static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
 	{
 		return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, ceresFunc_paramACount>(
 			new CostTerm(layerValues, weight, targetColor)));
@@ -139,6 +128,7 @@ struct CostTerm
 	vector<double> layerValues;
 	cRGBColor targetColor;
 	float weight;
+  Utils<float>::LabColorT targetLabColor;
 };
 
 void App::setupOptimizer(string loadFrom, string saveTo)

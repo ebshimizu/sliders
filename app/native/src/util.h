@@ -210,6 +210,12 @@ namespace Comp {
       T _k;
     };
 
+    struct LabColorT {
+      T _L;
+      T _a;
+      T _b;
+    };
+
     static HSLColorT RGBToHSL(T r, T g, T b);
     static HSLColorT RGBToHSL(RGBColorT& c);
 
@@ -227,7 +233,11 @@ namespace Comp {
     static CMYKColorT RGBToCMYK(T r, T g, T b);
     static CMYKColorT RGBToCMYK(RGBColorT& c);
 
+    static LabColorT RGBToLab(T r, T g, T b);
+    static LabColorT RGBToLab(RGBColorT& c);
+
     static T rgbCompand(T x);
+    static T inverseRGBCompand(T x);
   };
 
   typedef Utils<float>::RGBColorT RGBColor;
@@ -589,12 +599,60 @@ namespace Comp {
   }
 
   template<typename T>
+  inline typename Utils<T>::LabColorT Utils<T>::RGBToLab(T r, T g, T b)
+  {
+    T rc = inverseRGBCompand(r);
+    T gc = inverseRGBCompand(g);
+    T bc = inverseRGBCompand(b);
+
+    // assuming sRGB color space with adapted D50 reference white (Lab is D50)
+    // manual matrix multiplication
+    T X = (T)0.4360747 * rc + (T)0.3850649 * gc + (T)0.1430804 * bc;
+    T Y = (T)0.2225045 * rc + (T)0.7168786 * gc + (T)0.0606169 * bc;
+    T Z = (T)0.0139322 * rc + (T)0.0971045 * gc + (T)0.7141733 * bc;
+
+    // ref white: D50 = 96.4212, 100.0, 82.5188
+    T e = (T)216 / (T)24389;
+    T k = (T)24389 / (T)27;
+
+    T xr = X / (T)0.964212;
+    T yr = Y / (T)1;
+    T zr = Z / (T)0.825188;
+
+    T fx = (xr > e) ? pow(xr, (T)(1.0 / 3.0)) : (k * xr + (T)16) / (T)116;
+    T fy = (yr > e) ? pow(yr, (T)(1.0 / 3.0)) : (k * yr + (T)16) / (T)116;
+    T fz = (zr > e) ? pow(zr, (T)(1.0 / 3.0)) : (k * zr + (T)16) / (T)116;
+
+    Utils<T>::LabColorT c;
+    c._L = (T)116 * fy - (T)16;
+    c._a = (T)500 * (fx - fy);
+    c._b = (T)200 * (fy - fz);
+
+    return c;
+  }
+
+  template<typename T>
+  inline typename Utils<T>::LabColorT Utils<T>::RGBToLab(RGBColorT& c)
+  {
+    return RGBToLab(c._r, c._g, c._b);
+  }
+
+  template<typename T>
   inline T Utils<T>::rgbCompand(T x)
   {
     if (x > 0.0031308)
       return 1.055 * pow(x, 1.0f / 2.4f) - 0.055;
     else
       return 12.92 * x;
+  }
+
+  template<typename T>
+  inline T Utils<T>::inverseRGBCompand(T x)
+  {
+    if (x <= 0.04045)
+      return x / 12.92;
+    else
+      return pow((x + 0.055) / 1.055, 2.4);
   }
 
   template<>

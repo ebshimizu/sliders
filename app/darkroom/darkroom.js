@@ -25,7 +25,8 @@ var cp;
 var msgId = 0, sampleId = 0;
 var g_sampleIndex = {};
 var g_sideboard = {};
-var g_sideboardID = 101;        // note: this is a huge hack to remove ID conflicts
+var g_sideboardID = 100001;        // note: this is a huge hack to remove ID conflicts
+var g_sideboardReserveStart = 100000;
 var maxThreads = comp.hardware_concurrency();
 var settings = {
     "showSampleId" : true,
@@ -139,7 +140,7 @@ watcher.on('add', function (filename, stats) {
     var ceresData = c.ceresToContext(filename);
 
     // append to results for inspection
-    processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata);
+    processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata, true);
 });
 
 
@@ -2678,7 +2679,7 @@ function showPreview(sample) {
         var myRenderID = g_renderID;
         addRenderLog(myRenderID, sampleId + ' full size preview', sampleId);
 
-        if (sampleId > settings.maxResults) {
+        if (sampleId > g_sideboardReserveStart) {
             // we want to render this sample now at high quality, async
             c.asyncRenderContext(g_sideboard[sampleId].context, settings.renderSize, function (err, img) {
                 // replace the relevant image tags
@@ -2975,10 +2976,12 @@ function stopSearch() {
     });
 }
 
-function processNewSample(img, ctx, meta) {
+function processNewSample(img, ctx, meta, force) {
     // discard sample if too many already in the results section
-    if (sampleId > settings.maxResults)
-        return;
+    if (force !== true) {
+        if (sampleId > settings.maxResults)
+            return;
+    }
 
     // eventually we will need references to each context element in order
     // to render the images at full size
@@ -3002,7 +3005,7 @@ function processNewSample(img, ctx, meta) {
     sampleId += 1;
 
     // if we have too many samples we should stop
-    if (sampleId > settings.maxResults) {
+    if (force !== true && sampleId > settings.maxResults) {
         stopSearch();
     }
 }

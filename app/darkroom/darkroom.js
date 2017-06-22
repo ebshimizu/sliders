@@ -2022,7 +2022,7 @@ function loadLayers(doc, path) {
         loadSettings();
     }
 
-    // load layers
+    // load mask layers
     if (doc.mask !== undefined) {
         g_activeConstraintLayer = doc.mask.activeConstraintLayer;
         g_paths = doc.mask.paths;
@@ -2035,6 +2035,10 @@ function loadLayers(doc, path) {
         for (var l in g_constraintLayers) {
             $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + l + '">' + l + '</div>');
         }
+        $('#constraintLayerMenu').dropdown('set selected', g_activeConstraintLayer);
+
+        if (g_constraintLayers[g_activeConstraintLayer] !== undefined)
+            $('#constraintModeMenu').dropdown('set selected', g_constraintLayers[g_activeConstraintLayer].mode);
 
         // prune paths, some may be null for some reason
         for (var p in g_paths) {

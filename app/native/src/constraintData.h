@@ -89,6 +89,11 @@ namespace Comp {
     // computes the pixel constraints from the current state of the raw input and specified constraint types
     vector<PixelConstraint> getPixelConstraints(Context& c, shared_ptr<Image>& currentRender);
 
+    // saves a debug image that computes the error for each constraint and renders it in a superpixel
+    // user should ensure that constraints are updated before calling this, though the function will try
+    // its best to not crash
+    void computeErrorMap(shared_ptr<Image>& currentRender, string filename);
+
     // if the constraint data is locked, no changes can occur
     // typically this will be locked down during a search
     bool _locked;
@@ -134,5 +139,8 @@ namespace Comp {
 
     map<string, shared_ptr<Image> > _rawInput;
     map<string, ConstraintType> _type;
+
+    vector<Superpixel> _extractedSuperpixels;
+    vector<PixelConstraint> _extractedConstraints;
   };
 }

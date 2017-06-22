@@ -196,6 +196,7 @@ function initUI() {
     $('#clearSamples').click(() => { $('#sampleWrapper').empty(); });
     $('#extractConstraints').click(() => { extractConstraints(); });
     $('#ceresEval').click(() => { ceresEval(); });
+    $('#computeError').click(() => { computeError(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -3448,6 +3449,14 @@ function ceresEval() {
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
     child_process.exec(cmd, { "maxBuffer": 1000 * 1024 }, callback);
+}
+
+function computeError() {
+    // send the current context to the back end to generate this
+    var ctx = c.getContext();
+    c.computeErrorMap(ctx, "error.png");
+
+    showStatusMsg("Output to ./error.png", "OK", "Error Map for Current Composition Exported");
 }
 
 function importFromCeres() {

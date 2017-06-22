@@ -1158,6 +1158,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "ceresToContext", ceresToContext);
   Nan::SetPrototypeMethod(tpl, "renderPixel", renderPixel);
   Nan::SetPrototypeMethod(tpl, "getPixelConstraints", getPixelConstraints);
+  Nan::SetPrototypeMethod(tpl, "computeErrorMap", computeErrorMap);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1936,7 +1937,7 @@ void CompositorWrapper::renderPixel(const Nan::FunctionCallbackInfo<v8::Value>& 
 void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
-  nullcheck(c->_compositor, "compositor.ceresToContext");
+  nullcheck(c->_compositor, "compositor.getPixelConstraints");
 
   if (info[0]->IsObject()) {
     v8::Local<v8::Object> opt = info[0].As<v8::Object>();
@@ -1991,6 +1992,31 @@ void CompositorWrapper::getPixelConstraints(const Nan::FunctionCallbackInfo<v8::
   }
 
   info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::computeErrorMap(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.computeErrorMap");
+
+  // to prevent error we render the image for the user here at full size (since the UI supports multiple sizes)
+  if (info[0]->IsObject() && info[1]->IsString()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value val0(info[1]->ToString());
+    string file(*val0);
+
+    shared_ptr<Comp::Image> render = shared_ptr<Comp::Image>(c->_compositor->render(ctx->_context));
+
+    c->_compositor->getConstraintData().computeErrorMap(render, file);
+  }
+  else {
+    Nan::ThrowError("computeErrorMap(context:object, filename:string) argument error");
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

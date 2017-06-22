@@ -160,6 +160,7 @@ private:
   static void ceresToContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void renderPixel(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getPixelConstraints(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void computeErrorMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

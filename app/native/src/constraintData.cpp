@@ -310,7 +310,45 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
     }
   }
 
+  // save constraints for future use
+  _extractedSuperpixels = superpixels;
+  _extractedConstraints = constraints;
+
   return constraints;
+}
+
+void ConstraintData::computeErrorMap(shared_ptr<Image>& currentRender, string filename)
+{
+  Image errorImg(currentRender->getWidth(), currentRender->getHeight());
+
+  for (int i = 0; i < _extractedSuperpixels.size(); i++) {
+    // get the target color
+    RGBColor target = _extractedConstraints[i]._color;
+    Point loc = _extractedConstraints[i]._pt;
+
+    // bounds check
+    if (loc._x < 0 || loc._x > currentRender->getWidth() || loc._y < 0 || loc._y > currentRender->getHeight())
+      continue;
+
+    // get the current color
+    RGBAColor rendered = currentRender->getPixel((int)loc._x, (int)loc._y);
+
+    // compute the difference
+    RGBColor errorColor;
+    errorColor._r = pow(rendered._r * rendered._a - target._r, 2);
+    errorColor._g = pow(rendered._g * rendered._a - target._g, 2);
+    errorColor._b = pow(rendered._b * rendered._a - target._b, 2);
+
+    // scaling?
+
+    // put the error per channel into the superpixel pixels
+    for (auto& p : _extractedSuperpixels[i].getPoints()) {
+      errorImg.setPixel(p._x, p._y, errorColor._r, errorColor._g, errorColor._b, 1);
+    }
+  }
+
+  // save
+  errorImg.save(filename);
 }
 
 pair<Grid2D<ConstraintType>, shared_ptr<Image>> ConstraintData::flatten()

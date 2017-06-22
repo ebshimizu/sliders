@@ -324,6 +324,7 @@ void ConstraintData::computeErrorMap(shared_ptr<Image>& currentRender, string fi
   for (int i = 0; i < _extractedSuperpixels.size(); i++) {
     // get the target color
     RGBColor target = _extractedConstraints[i]._color;
+    auto labTarget = Utils<float>::RGBToLab(target);
     Point loc = _extractedConstraints[i]._pt;
 
     // bounds check
@@ -332,18 +333,24 @@ void ConstraintData::computeErrorMap(shared_ptr<Image>& currentRender, string fi
 
     // get the current color
     RGBAColor rendered = currentRender->getPixel((int)loc._x, (int)loc._y);
+    auto labRendered = Utils<float>::RGBToLab(rendered._r * rendered._a, rendered._g * rendered._a, rendered._b * rendered._a);
 
-    // compute the difference
-    RGBColor errorColor;
-    errorColor._r = pow(rendered._r * rendered._a - target._r, 2);
-    errorColor._g = pow(rendered._g * rendered._a - target._g, 2);
-    errorColor._b = pow(rendered._b * rendered._a - target._b, 2);
+    // compute the difference and assign a color
+    Utils<float>::LabColorT errorColor;
+    errorColor._L = pow(labRendered._L - labTarget._L, 2);
+    errorColor._a = pow(labRendered._a - labTarget._a, 2);
+    errorColor._b = pow(labRendered._b - labTarget._b, 2);
 
     // scaling?
+    RGBColor displayColor;
+    float scaledErr = clamp(sqrt(errorColor._L + errorColor._a + errorColor._b) / 100, 0.0f, 1.0f);
+    displayColor._r = scaledErr;
+    displayColor._g = scaledErr;
+    displayColor._b = scaledErr;
 
     // put the error per channel into the superpixel pixels
     for (auto& p : _extractedSuperpixels[i].getPoints()) {
-      errorImg.setPixel(p._x, p._y, errorColor._r, errorColor._g, errorColor._b, 1);
+      errorImg.setPixel(p._x, p._y, displayColor._r, displayColor._g, displayColor._b, 1);
     }
   }
 

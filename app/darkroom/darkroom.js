@@ -2804,6 +2804,10 @@ function updateLayerControls() {
 
             if (type === 0) {
                 // hue wraps. let javascript handle the fmod op
+                if (adj.hue < 0) {
+                    adj.hue = 1 + (adj.hue % 1);
+                }
+
                 updateSliderControl(layerName, "hue", "Hue/Saturation", ((adj.hue % 1) - 0.5) * 360);
                 updateSliderControl(layerName, "saturation", "Hue/Saturation", (adj.sat - 0.5) * 200);
                 updateSliderControl(layerName, "lightness", "Hue/Saturation", (adj.light - 0.5) * 200);

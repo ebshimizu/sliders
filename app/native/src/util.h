@@ -31,7 +31,37 @@ namespace Comp {
     LAYER_PIXEL = 1
   };
 
+  enum AdjustmentType {
+    HSL = 0,              // expected params: hue [-180, 180], sat [-100, 100], light [-100, 100]
+    LEVELS = 1,           // expected params: inMin, inMax, gamma, outMin, outMax (all optional, [0-255])
+    CURVES = 2,           // Curves need more data, so the default map just contains a list of present channels
+    EXPOSURE = 3,         // params: exposure [-20, 20], offset [-0.5, 0.5], gamma [0.01, 9.99]
+    GRADIENT = 4,         // params: a gradient
+    SELECTIVE_COLOR = 5,  // params: a lot 9 channels: RYGCBMLNK each with 4 params CMYK
+    COLOR_BALANCE = 6,    // params: RGB shift for dark, mid, light tones (9 total)
+    PHOTO_FILTER = 7,     // params: Lab color, density
+    COLORIZE = 8,         // special case of a particular action output. Colors a layer based on specified color and alpha like the COLOR blend mode
+    LIGHTER_COLORIZE = 9, // also a special case like colorize but this does the Lighter Color blend mode
+    OVERWRITE_COLOR = 10, // also a special case. literally just replaces the layer with this solid color
+    OPACITY = 1000        // special category for indicating layer opacity param, used in data transfer
+  };
+
   static map<int, string> intervalNames = { {0, "reds"} , {1, "yellows" }, {2, "greens" }, {3, "cyans"}, {4, "blues" }, {5, "magentas" } };
+
+  // statistics about the difference between two different contexts.
+  class Stats {
+  public:
+    Stats(vector<double>& c1, vector<double>& c2, nlohmann::json& info);
+    ~Stats();
+
+    map<string, float> _paramChanges;
+    map<string, float> _summary;    // unsure of type for this
+
+    void computeStats(vector<double>& c1, vector<double>& c2, nlohmann::json& info);
+
+    // returns a string version of the values stored in _paramChanges
+    string detailedSummary();
+  };
 
   template <typename T>
   inline T clamp(T val, T mn, T mx) {

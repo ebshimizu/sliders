@@ -70,4 +70,98 @@ namespace Comp {
 
     return data;
   }
+
+  Stats::Stats(vector<double>& c1, vector<double>& c2, nlohmann::json & info)
+  {
+    computeStats(c1, c2, info);
+  }
+
+  Stats::~Stats() {
+
+  }
+
+  /*
+  Saving for use later. this function doesn't work in utils due to Context not being defined as well
+  as Layers not existing yet.
+
+  void Stats::computeStats(Context& c1, Context& c2) {
+    _paramChanges.clear();
+
+    // at the basic level, this is just pairwise differences between parameter
+    // values. Only differences above 0.01 are reported (1% changse are usually really not noticable)
+    for (auto& l : c2) {
+      string pfx = l.first + "_";
+
+      // opacity
+      float opdiff = l.second.getOpacity() - c1[l.first].getOpacity();
+
+      if (abs(opdiff) > 0.01) {
+        _paramChanges[pfx + "opacity"] = opdiff;
+      }
+
+      for (auto& a : l.second.getAdjustments()) {
+        // adjustment differences
+        for (auto& adj : l.second.getAdjustment(a)) {
+          float adjDiff = adj.second - c1[l.first].getAdjustment(a)[adj.first];
+
+          if (abs(adjDiff) > 0.01) {
+            _paramChanges[pfx + adj.first] = adjDiff;
+          }
+        }
+      }
+
+      // selective color
+      vector<string> channels = { "reds", "yellows", "greens", "cyans", "blues", "magentas", "neutrals", "blacks", "whites" };
+      vector<string> params = { "cyan", "magenta", "yellow", "black" };
+
+      for (auto c : channels) {
+        for (auto p : params) {
+          float adjDiff = l.second.getSelectiveColorChannel(c, p) - c1[l.first].getSelectiveColorChannel(c, p);
+
+          if (abs(adjDiff) > 0.01) {
+            _paramChanges[pfx + "sc_" + c + "_" + p] = adjDiff;
+          }
+        }
+      }
+    }
+  }
+  */
+
+  void Stats::computeStats(vector<double>& c1, vector<double>& c2, nlohmann::json & info)
+  {
+    // this function extracts some (hopefully meaningful) stats about what happened during
+    // an optimization pass. The json object is the configuration sent to ceres and
+    // is used to match the values in the vectors with semantically meaningful values
+    nlohmann::json paramInfo = info["params"];
+
+    for (int i = 0; i < c1.size(); i++) {
+      float diff = c2[i] - c1[i];
+
+      if (abs(diff) > 0.01) {
+        string name = paramInfo[i]["layerName"].get<string>() + "_" + paramInfo[i]["adjustmentName"].get<string>();
+
+        if (paramInfo[i]["adjustmentType"].get<int>() == AdjustmentType::SELECTIVE_COLOR) {
+          name += paramInfo[i]["selectiveColor"]["channel"].get<string>() + "_" + paramInfo[i]["selectiveColor"]["color"].get<string>();
+        }
+
+        _paramChanges[name] = diff;
+      }
+    }
+  }
+
+  string Stats::detailedSummary() {
+    string ret = "";
+
+    if (_paramChanges.size() > 0) {
+      for (auto& param : _paramChanges) {
+        ret += param.first + ":" + ((param.second > 0) ? " +" : " ") + to_string(param.second) + "\n";
+      }
+    }
+    else {
+      ret = "No Changes";
+    }
+
+    return ret;
+  }
+
 }

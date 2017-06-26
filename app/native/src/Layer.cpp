@@ -409,7 +409,13 @@ namespace Comp {
           param["paramID"] = paramList.size();
           param["adjustmentType"] = SELECTIVE_COLOR;
           param["adjustmentName"] = "selectiveColor";
-          param["value"] = _selectiveColor[c][p];
+
+          if (_selectiveColor.count(c) > 0 && _selectiveColor[c].count(p) > 0) {
+            param["value"] = _selectiveColor[c][p];
+          }
+          else {
+            param["value"] = 0.5;
+          }
 
           param["selectiveColor"] = nlohmann::json::object();
           param["selectiveColor"]["channel"] = c;

@@ -2,6 +2,7 @@
 #include "third_party/json/src/json.hpp"
 
 namespace Comp {
+
   Compositor::Compositor() : _searchRunning(false)
   {
   }

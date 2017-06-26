@@ -116,6 +116,21 @@ private:
   static void keys(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
+/* 
+class StatsWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> statsConstructor;
+
+  Comp::Stats _stats;
+
+private:
+  explicit StatsWrapper(Comp::Stats stats);
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+};
+*/
+
 void asyncSampleEvent(uv_work_t* req);
 void asyncNop(uv_work_t* req);
 

@@ -35,7 +35,7 @@ public:
   // - eval (evaluates the given scene and returns the same scene with a score)
   // - paramStats (parameter statitics computation)
   // - minimaStats (parameter statistics computation around the first found local minima)
-  // - multiMinimaStats (parameter statistics computation around all found local minima)
+  // - paramShiftTest (statistics computed by adjusting groups of parameters to see if adjusting a certain number is better)
   void go(string mode, string loadFrom, string saveTo);
 
   void setupOptimizer(string loadFrom, string saveTo);
@@ -52,13 +52,19 @@ public:
   void randomReinit();
 
   // computes some statistics for each parameter around the _initial configuration_ of the solver
-  void exportParamStats(string filename);
+  nlohmann::json exportParamStats(string filename);
 
   // computes some statistics for randomized values around the given local minima (assumed to be the state of _allParams)
   void exportMinimaStats(string filename);
 
+  // outputs some stats about how effective adjusting groups of parameters is to escape local minima
+  void paramShiftTest();
+
   // helper for stats
   void computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev);
+
+  // l2 distance between two vectors
+  double l2vector(vector<double>& x1, vector<double>& x2);
 
   vector<double> _allParams;
   Problem _problem;

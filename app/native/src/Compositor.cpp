@@ -807,8 +807,11 @@ namespace Comp {
     }
 
     getLogger()->log("Importing Metadata...");
-    float score = data["score"];
-    metadata.insert(make_pair("score", score));
+
+    if (data.count("score") > 0) {
+      float score = data["score"];
+      metadata.insert(make_pair("score", score));
+    }
 
     getLogger()->log("Import complete.");
 

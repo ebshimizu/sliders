@@ -20,6 +20,9 @@ void App::go(string mode, string loadFrom, string saveTo)
   else if (mode == "paramStats") {
     exportParamStats(_outDir);
   }
+  else if (mode == "paramShiftTest") {
+    paramShiftTest();
+  }
 }
 
 void App::setupOptimizer(string loadFrom, string saveTo)
@@ -59,13 +62,14 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 
 double App::runOptimizerOnce()
 {
-  cout << "Solving..." << endl;
+  //cout << "Solving..." << endl;
 
   Solver::Options options;
   Solver::Summary summary;
 
   const bool performanceTest = false;
-  options.minimizer_progress_to_stdout = !performanceTest;
+  options.minimizer_progress_to_stdout = false;
+  //options.minimizer_progress_to_stdout = !performanceTest;
 
   //faster methods
   options.num_threads = 7;
@@ -92,34 +96,34 @@ double App::runOptimizerOnce()
 
   Solve(options, &_problem, &summary);
 
-  cout << "Solver used: " << summary.linear_solver_type_used << endl;
-  cout << "Minimizer iters: " << summary.iterations.size() << endl;
+  //cout << "Solver used: " << summary.linear_solver_type_used << endl;
+  //cout << "Minimizer iters: " << summary.iterations.size() << endl;
 
-  double iterationTotalTime = 0.0;
-  int totalLinearItereations = 0;
-  for (auto &i : summary.iterations)
-  {
-    iterationTotalTime += i.iteration_time_in_seconds;
-    totalLinearItereations += i.linear_solver_iterations;
-    cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
-  }
+  //double iterationTotalTime = 0.0;
+  //int totalLinearItereations = 0;
+  //for (auto &i : summary.iterations)
+  //{
+  //  iterationTotalTime += i.iteration_time_in_seconds;
+  //  totalLinearItereations += i.linear_solver_iterations;
+  //  cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
+  //}
 
-  cout << "Total iteration time: " << iterationTotalTime << endl;
-  cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
+  //cout << "Total iteration time: " << iterationTotalTime << endl;
+  //cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
 
-  double cost = -1.0;
-  _problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
-  cout << "Cost*2 end: " << cost * 2 << endl;
+  //double cost = -1.0;
+  //_problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
+  //cout << "Cost*2 end: " << cost * 2 << endl;
 
   // params
   //for (int i = 0; i < _allParams.size(); i++) {
   //  cout << "p[" << i << "]: " << _allParams[i] << "\n";
   //}
 
-  _data["score"] = cost;
+  _data["score"] = summary.final_cost;
   //cout << summary.FullReport() << endl;
 
-  return cost;
+  return summary.final_cost;
 }
 
 double App::eval()
@@ -210,7 +214,7 @@ void App::randomReinit()
   cout << "Best found: " << bestSoFar;
 }
 
-void App::exportParamStats(string filename)
+nlohmann::json App::exportParamStats(string filename)
 {
   // compute a few stats about each parameter involved in the solver
   // what we're trying to find out:
@@ -227,14 +231,18 @@ void App::exportParamStats(string filename)
     double min = DBL_MAX;
     double max = DBL_MIN;
     double sum = 0;
+    double currentScore = eval();
+    double minLoc = 0;
 
     // with 100 trials we can just sort of scan the space real quick
-    for (int j = 0; j < 100; j++) {
+    for (int j = 0; j <= 100; j++) {
       _allParams[i] = j / 100.0;
       double score = eval();
 
-      if (score < min)
+      if (score < min) {
         min = score;
+        minLoc = j / 100.0;
+      }
       if (score > max)
         max = score;
 
@@ -256,6 +264,8 @@ void App::exportParamStats(string filename)
     varData["stdDev"] = stdDev;
     varData["min"] = min;
     varData["max"] = max;
+    varData["bestImprove"] = (min - currentScore);
+    varData["distToImprove"] = (minLoc - originalValue);
 
     // maximum useful range?
     out[i] = varData;
@@ -270,6 +280,8 @@ void App::exportParamStats(string filename)
 
   ofstream outFile(filename);
   outFile << out.dump(4);
+
+  return out;
 }
 
 void App::exportMinimaStats(string filename)
@@ -300,6 +312,7 @@ void App::exportMinimaStats(string filename)
 
   // store initial state
   vector<double> initParams = _allParams;
+  double initScore = eval();
 
   int numParams = _allParams.size() * n;
 
@@ -309,6 +322,7 @@ void App::exportMinimaStats(string filename)
   double max = DBL_MIN;
   double sum = 0;
   vector<double> scores;
+  int success = 0;  // number of times we were better than the minima
 
   // method 1
   // uniform 0-1 randomization on ~15% of all parameters
@@ -333,6 +347,12 @@ void App::exportMinimaStats(string filename)
     sum += score;
 
     scores.push_back(score);
+
+    if (score < initScore)
+      success++;
+
+    // reset
+    _allParams = initParams;
   }
 
   // compute stats
@@ -360,6 +380,135 @@ void App::exportMinimaStats(string filename)
   // 
 }
 
+void App::paramShiftTest()
+{
+  cout << "Starting parameter shift test\n";
+
+  // first determine how each of the parameters generally affect the objective
+  auto sens = exportParamStats(_outDir + "prelim_stats.json");
+  nlohmann::json trialResults;
+
+  // runs the solver once
+  double localMin = runOptimizerOnce();
+  exportSolution("initial_solution.json");
+
+  // rng things
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  vector<int> paramIndices;
+  for (int i = 0; i < _allParams.size(); i++)
+    paramIndices.push_back(i);
+
+  // store local min start state
+  vector<double> initParams = _allParams;
+
+  cout << "Initial minima found, starting randomization tests to escape with k=[1,10]\n";
+  cout << "Score: " << localMin << "\n";
+
+  // now we're in a local min
+  // we want to see how we can get out of here. This function will try out
+  // combinations of individual parameters and report the results.
+  // TODO: this needs a config file badly
+  for (int k = 1; k < 10; k++) {
+    cout << "\nStarting trial for k = " << k << "\n";
+
+    nlohmann::json trialData;
+    trialData["rndBetter"] = 0;
+    trialData["ceresBetter"] = 0;
+    trialData["timesNewMinimaFound"] = 0;
+    trialData["bestScore"] = localMin;
+    trialData["k"] = k;
+    trialData["n"] = 100;
+    vector<double> scores;
+    vector<double> ceresScores;
+    vector<double> distToStartOptima;
+    vector<double> bestParams = initParams;
+
+    for (int n = 0; n < 100; n++) {
+      // pick k random parameters to adjust
+      shuffle(paramIndices.begin(), paramIndices.end(), gen);
+
+      for (int i = 0; i < k; i++) {
+        // using the sensitivity stats, determine how to adjust them with a given random distribution
+        int paramId = paramIndices[i];
+
+        double maxImprovement = sens[paramId]["bestImprove"];
+        double improvementDist = sens[paramId]["distToImprove"];
+
+        // if the parameter exhibits no possible benefits, just adjust it a little since
+        // it's not expected to help at all
+        if (abs(maxImprovement) < 0.01) {
+          normal_distribution<double> dist(0, 0.05);
+
+          _allParams[i] += dist(gen);
+        }
+        // otherwise vary the param with a gaussian based on expected vairance in value
+        else {
+          normal_distribution<double> dist(0, abs(improvementDist));
+
+          _allParams[i] += dist(gen);
+        }
+
+        _allParams[i] = clamp(_allParams[i], 0.0, 1.0);
+      }
+
+      // check score
+      double rndScore = eval();
+
+      // run ceres, check score
+      double ceresScore = runOptimizerOnce();
+
+      // determine difference from this minima to starting minima
+      double dist = l2vector(_allParams, initParams);
+
+      cout << "[k=" << k << "][" << n << "/100]\t Score: " << rndScore << ", Opt. Score: " << ceresScore << ", Dist: " << dist << "\n";
+
+      // determine if we did better
+      if (rndScore < localMin) {
+        trialData["rndBetter"] = trialData["rndBetter"] + 1;
+      }
+
+      if (ceresScore < localMin) {
+        trialData["ceresBetter"] = trialData["ceresBetter"] = 1;
+      }
+
+      // determine if we're different than the old minima
+      // TODO: no idea what would be a good threshold, maybe just like set it to 0.1?
+      if (dist > 0.1) {
+        trialData["timesNewMinimaFound"] = trialData["timesNewMinimaFound"] + 1;
+      }
+
+      // track best score found
+      if (ceresScore < trialData["bestScore"]) {
+        trialData["bestScore"] = ceresScore;
+        bestParams = _allParams;
+        exportSolution("best_solution_" + to_string(k) + ".json");
+      }
+
+      // other stats
+      scores.push_back(rndScore);
+      ceresScores.push_back(ceresScore);
+      distToStartOptima.push_back(dist);
+
+      // reset for next run
+      _allParams = initParams;
+    }
+
+    // json object update
+    trialData["rndScores"] = scores;
+    trialData["ceresScores"] = ceresScores;
+    trialData["distToFirstOptima"] = distToStartOptima;
+    trialData["bestParams"] = bestParams;
+
+    trialResults.push_back(trialData);
+  }
+
+  ofstream outFile(_outDir + "full_result_summary.json");
+  outFile << trialResults.dump(4);
+}
+
 void App::computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev)
 {
   // compute stats
@@ -373,6 +522,17 @@ void App::computePopStats(vector<double>& vals, double& sum, double& mean, doubl
 
   var /= vals.size();
   stdDev = sqrt(var);
+}
+
+double App::l2vector(vector<double>& x1, vector<double>& x2)
+{
+  double sum = 0;
+  for (int i = 0; i < x1.size(); i++) {
+    double diff = x1[i] - x2[i];
+    sum += diff * diff;
+  }
+
+  return sqrt(sum);
 }
 
 void main(int argc, char* argv[])

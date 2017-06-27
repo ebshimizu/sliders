@@ -1,38 +1,5 @@
-
 #include "main.h"
-#include "ceresFunctions.h"
-
-using namespace Comp;
-#include <ceresFunc.h>
 #include "util.cpp"
-
-class App
-{
-public:
-  // available modes:
-  // - single (runs optimizer exactly once)
-  // - jitter (random jitter around found solutions)
-  // - eval (evaluates the given scene and returns the same scene with a score)
-	void go(string mode, string loadFrom, string saveTo);
-
-	void setupOptimizer(string loadFrom, string saveTo);
-  double runOptimizerOnce();
-
-  // evaluates the problem objective function once and outputs a file
-  // containing the same input scene with a score field
-  double eval();
-
-  void exportSolution(string filename);
-
-  // runs the optimization multiple times, tracking solution quality and randomizing
-  // parameters to try to find better solutions
-  void randomReinit();
-
-  vector<double> _allParams;
-  Problem _problem;
-  nlohmann::json _data;
-  string _outDir;
-};
 
 void App::go(string mode, string loadFrom, string saveTo)
 {
@@ -50,86 +17,10 @@ void App::go(string mode, string loadFrom, string saveTo)
     _data["score"] = score;
     exportSolution("ceres_score.json");
   }
-}
-
-template<class T>
-struct cRGBColorT
-{
-	cRGBColorT() {}
-	cRGBColorT(T _x, T _y, T _z)
-	{
-		x = _x;
-		y = _y;
-		z = _z;
-	}
-	T sqMagintude()
-	{
-		return x * x + y * y + z * z;
-	}
-	cRGBColorT operator * (T v)
-	{
-		return RGBColorT(v * x, v * y, v * z);
-	}
-	cRGBColorT operator + (const cRGBColorT &v)
-	{
-		return cRGBColorT(x + v.x, y + v.y, z + v.z);
-	}
-	const T& operator [](int k) const
-	{
-		if (k == 0) return x;
-		if (k == 1) return y;
-		if (k == 2) return z;
-		return x;
-	}
-	T x, y, z;
-};
-
-typedef cRGBColorT<double> cRGBColor;
-
-template<class T>
-vector<T> evalLayerColor(const T* const params, const vector<double> &layerValues)
-{
-  return ceresFunc<T>(params, layerValues);
-}
-
-struct CostTerm
-{
-	static const int ResidualCount = 3;
-
-	CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor)
-		: layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {
-    targetLabColor = Utils<float>::RGBToLab(targetColor.x, targetColor.y, targetColor.z);
+  else if (mode == "paramStats") {
+    exportParamStats(_outDir);
   }
-
-	template <typename T>
-	bool operator()(const T* const params, T* residuals) const
-	{
-    // color is RGBA, right now compare vs premult RGB
-		vector<T> color = evalLayerColor(params, layerValues);
-    //residuals[0] = (color[0] * color[3] - T(targetColor.x)) * (T)weight;
-    //residuals[1] = (color[1] * color[3] - T(targetColor.y)) * (T)weight;
-    //residuals[2] = (color[2] * color[3] - T(targetColor.z)) * (T)weight;
-
-    // lab space, CIE76
-    Utils<T>::LabColorT labColor = Utils<T>::RGBToLab(color[0] * color[3], color[1] * color[3], color[2] * color[3]);
-    residuals[0] = (labColor._L - (T)targetLabColor._L) * (T)weight;
-    residuals[1] = (labColor._a - (T)targetLabColor._a) * (T)weight;
-    residuals[2] = (labColor._b - (T)targetLabColor._b) * (T)weight;
-
-		return true;
-	}
-
-  static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
-	{
-		return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, ceresFunc_paramACount>(
-			new CostTerm(layerValues, weight, targetColor)));
-	}
-
-	vector<double> layerValues;
-	cRGBColor targetColor;
-	float weight;
-  Utils<float>::LabColorT targetLabColor;
-};
+}
 
 void App::setupOptimizer(string loadFrom, string saveTo)
 {
@@ -151,11 +42,18 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 
   for (int i = 0; i < _allParams.size(); i++) {
     if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
-      _data["params"][i]["adjustmentName"] == "hue")
-      continue;
-
-    _problem.SetParameterLowerBound(_allParams.data(), i, 0);
-    _problem.SetParameterUpperBound(_allParams.data(), i, 1);
+      _data["params"][i]["adjustmentName"] == "hue") {
+      _problem.SetParameterLowerBound(_allParams.data(), i, -1);
+      _problem.SetParameterUpperBound(_allParams.data(), i, 2);
+    }
+    //else if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::OPACITY) {
+    //  _problem.SetParameterLowerBound(_allParams.data(), i, 0.99);
+    //  _problem.SetParameterUpperBound(_allParams.data(), i, 1);
+    //}
+    else {
+      _problem.SetParameterLowerBound(_allParams.data(), i, 0);
+      _problem.SetParameterUpperBound(_allParams.data(), i, 1);
+    }
   }
 }
 
@@ -299,6 +197,9 @@ void App::randomReinit()
       bestSoFar = newScore;
       bestParams = _allParams;
       exportSolution("ceresSolution_" + to_string(i) + ".json");
+
+      Stats stats = Stats(initParams, bestParams, _data);
+      cout << stats.detailedSummary();
     }
     else {
       // if not better, do a reset
@@ -307,6 +208,171 @@ void App::randomReinit()
   }
 
   cout << "Best found: " << bestSoFar;
+}
+
+void App::exportParamStats(string filename)
+{
+  // compute a few stats about each parameter involved in the solver
+  // what we're trying to find out:
+  // - which parameters are most "influential" / "sensitive"
+  // - broad view of the parameter space
+  nlohmann::json out;
+
+  // single params
+  for (int i = 0; i < _allParams.size(); i++) {
+    cout << "Running stats for parameter " << i + 1 << " / " << _allParams.size() << "\n";
+
+    vector<double> scores;
+    double originalValue = _allParams[i];
+    double min = DBL_MAX;
+    double max = DBL_MIN;
+    double sum = 0;
+
+    // with 100 trials we can just sort of scan the space real quick
+    for (int j = 0; j < 100; j++) {
+      _allParams[i] = j / 100.0;
+      double score = eval();
+
+      if (score < min)
+        min = score;
+      if (score > max)
+        max = score;
+
+      scores.push_back(score);
+      sum += score;
+    }
+
+    // compute stats
+    double mean, var, stdDev;
+    computePopStats(scores, sum, mean, var, stdDev);
+
+    // output
+    nlohmann::json varData;
+    varData["adjustmentData"] = _data["params"][i];
+
+    varData["scores"] = scores;
+    varData["avg"] = mean;
+    varData["var"] = var;
+    varData["stdDev"] = stdDev;
+    varData["min"] = min;
+    varData["max"] = max;
+
+    // maximum useful range?
+    out[i] = varData;
+
+    // reset
+    _allParams[i] = originalValue;
+  }
+
+  cout << "Writing file to " << filename << "\n";
+
+  // single adjustments?
+
+  ofstream outFile(filename);
+  outFile << out.dump(4);
+}
+
+void App::exportMinimaStats(string filename)
+{
+  // computes some stats for various adjustment algorithms around a local minima
+  nlohmann::json out;
+
+  // stats to compute:
+  // - typical: avg, mean, stdDev, min, max
+  // - times jump was strictly better
+  // - distance from found minima (compare feature vectors)
+  // - some sort of stat representing the distance from minima + found score
+  // - how many times we escaped the attraction basin of this minima (expensive, runs ceres each time)
+  // - derivatives?
+  
+  float sigma = 0.25;
+  float n = 0.15;
+
+  // rng things
+  random_device rd;
+  mt19937 gen(rd());
+  normal_distribution<double> dist(0, sigma);
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  vector<int> paramIndices;
+  for (int i = 0; i < _allParams.size(); i++)
+    paramIndices.push_back(i);
+
+  // store initial state
+  vector<double> initParams = _allParams;
+
+  int numParams = _allParams.size() * n;
+
+  nlohmann::json method1;
+
+  double min = DBL_MAX;
+  double max = DBL_MIN;
+  double sum = 0;
+  vector<double> scores;
+
+  // method 1
+  // uniform 0-1 randomization on ~15% of all parameters
+  for (int runs = 0; runs < 100; runs++) {
+    // select parameters
+    shuffle(paramIndices.begin(), paramIndices.end(), gen);
+
+    for (int i = 0; i < numParams; i++) {
+      int index = paramIndices[i];
+
+      _allParams[index] = zeroOne(gen);
+    }
+
+    // eval the result
+    double score = eval();
+
+    if (score < min)
+      min = score;
+    if (score > max)
+      max = score;
+
+    sum += score;
+
+    scores.push_back(score);
+  }
+
+  // compute stats
+  double mean, var, stdDev;
+  computePopStats(scores, sum, mean, var, stdDev);
+
+  // method 2
+  // gaussian randomization on ~15% of all parameters, fixed sigma
+
+  // method 3
+  // uniform 0-1 randomization on 1 adjustment (group of parameters)
+
+  // method 4
+  // gaussian randomization on 1 adjustment, fixed sigma (group of parameters)
+
+  // method 5
+  // biased uniform 0-1 randomization on selected parameters
+  // this one would take info computed earlier and bias parameter selection towards parameters
+  // known to have a large influence on the overall image (determined by attribute score)
+
+  // method 6
+  // gaussian randomization on selected parameters (see method 5)
+
+  // method 7
+  // 
+}
+
+void App::computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev)
+{
+  // compute stats
+  mean = sum / vals.size();
+
+  // variance
+  var = 0;
+  for (auto& s : vals) {
+    var += (mean - s) * (mean - s);
+  }
+
+  var /= vals.size();
+  stdDev = sqrt(var);
 }
 
 void main(int argc, char* argv[])

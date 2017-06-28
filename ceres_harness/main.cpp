@@ -411,7 +411,7 @@ void App::paramShiftTest()
   // we want to see how we can get out of here. This function will try out
   // combinations of individual parameters and report the results.
   // TODO: this needs a config file badly
-  for (int k = 1; k < 10; k++) {
+  for (int k = 1; k <= (int)(_allParams.size() / 2); k++) {
     cout << "\nStarting trial for k = " << k << "\n";
 
     nlohmann::json trialData;
@@ -425,6 +425,7 @@ void App::paramShiftTest()
     vector<double> ceresScores;
     vector<double> distToStartOptima;
     vector<double> bestParams = initParams;
+    vector<double> improvedDiffs;
 
     for (int n = 0; n < 100; n++) {
       // pick k random parameters to adjust
@@ -446,7 +447,7 @@ void App::paramShiftTest()
         }
         // otherwise vary the param with a gaussian based on expected vairance in value
         else {
-          normal_distribution<double> dist(0, abs(improvementDist));
+          normal_distribution<double> dist(0, abs(improvementDist) / 2);
 
           _allParams[i] += dist(gen);
         }
@@ -466,18 +467,19 @@ void App::paramShiftTest()
       cout << "[k=" << k << "][" << n << "/100]\t Score: " << rndScore << ", Opt. Score: " << ceresScore << ", Dist: " << dist << "\n";
 
       // determine if we did better
-      if (rndScore < localMin) {
+      if (abs(rndScore - localMin) > 0.01 && rndScore < localMin) {
         trialData["rndBetter"] = trialData["rndBetter"] + 1;
       }
 
-      if (ceresScore < localMin) {
-        trialData["ceresBetter"] = trialData["ceresBetter"] = 1;
-      }
+      if (abs(ceresScore - localMin) > 0.01 && ceresScore < localMin) {
+        trialData["ceresBetter"] = trialData["ceresBetter"] + 1;
+        improvedDiffs.push_back(ceresScore - localMin);
 
-      // determine if we're different than the old minima
-      // TODO: no idea what would be a good threshold, maybe just like set it to 0.1?
-      if (dist > 0.1) {
-        trialData["timesNewMinimaFound"] = trialData["timesNewMinimaFound"] + 1;
+        // determine if we're different than the old minima
+        // TODO: no idea what would be a good threshold, maybe just like set it to 0.25?
+        if (dist > 0.25) {
+          trialData["timesNewMinimaFound"] = trialData["timesNewMinimaFound"] + 1;
+        }
       }
 
       // track best score found
@@ -502,11 +504,24 @@ void App::paramShiftTest()
     trialData["distToFirstOptima"] = distToStartOptima;
     trialData["bestParams"] = bestParams;
 
+    double avgDiff = 0;
+    for (auto& d : improvedDiffs) {
+      avgDiff += d;
+    }
+    trialData["improvedScores"] = improvedDiffs;
+    trialData["averageImprovement"] = avgDiff / improvedDiffs.size();
+
     trialResults.push_back(trialData);
   }
 
   ofstream outFile(_outDir + "full_result_summary.json");
   outFile << trialResults.dump(4);
+}
+
+void App::adjShiftTest()
+{
+  // this is very similar to param shift test but instead we group the parameters by which adjustments
+  // they belong to
 }
 
 void App::computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev)

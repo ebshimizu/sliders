@@ -60,6 +60,9 @@ public:
   // outputs some stats about how effective adjusting groups of parameters is to escape local minima
   void paramShiftTest();
 
+  // outputs some stats about of effective adjusting adjustments is to escape local minima
+  void adjShiftTest();
+
   // helper for stats
   void computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev);
 

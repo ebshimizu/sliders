@@ -63,6 +63,12 @@ public:
   // outputs some stats about of effective adjusting adjustments is to escape local minima
   void adjShiftTest();
 
+  // looks at the json data and returns groups of up to 4 parameters that make up
+  // an "adjustment group". Typically these are the entire adjustment, but some
+  // such as selective color have too many to keep as one group and are broken up
+  // into multiple sets
+  vector<vector<int> > getAdjGroups();
+
   // helper for stats
   void computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev);
 

@@ -23,6 +23,9 @@ void App::go(string mode, string loadFrom, string saveTo)
   else if (mode == "paramShiftTest") {
     paramShiftTest();
   }
+  else if (mode == "adjShiftTest") {
+    adjShiftTest();
+  }
 }
 
 void App::setupOptimizer(string loadFrom, string saveTo)
@@ -522,6 +525,176 @@ void App::adjShiftTest()
 {
   // this is very similar to param shift test but instead we group the parameters by which adjustments
   // they belong to
+  cout << "Starting parameter shift test\n";
+
+  // first determine how each of the adjustments generally affect the objective
+  auto sens = exportParamStats(_outDir + "prelim_stats.json");
+  nlohmann::json trialResults;
+
+  // runs the solver once
+  double localMin = runOptimizerOnce();
+  exportSolution("initial_solution.json");
+
+  // rng things
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  // store local min start state
+  vector<double> initParams = _allParams;
+
+  cout << "Initial minima found\n";
+  cout << "Score: " << localMin << "\n";
+
+  // collect parameter groups
+  vector<vector<int>> groups = getAdjGroups();
+
+  vector<int> groupIndices;
+  // organize
+  for (int i = 0; i < groups.size(); i++) {
+    groupIndices.push_back(i);
+  }
+
+  cout << "Identified " << groups.size() << " parameter groups\n";
+  cout << "Beginning adjustment shift test...\n";
+
+  for (int k = 1; k <= (int)(groups.size() / 2); k++) {
+    cout << "\nStarting trial for k = " << k << "\n";
+
+    nlohmann::json trialData;
+    trialData["rndBetter"] = 0;
+    trialData["ceresBetter"] = 0;
+    trialData["timesNewMinimaFound"] = 0;
+    trialData["bestScore"] = localMin;
+    trialData["k"] = k;
+    trialData["n"] = 100;
+    vector<double> scores;
+    vector<double> ceresScores;
+    vector<double> distToStartOptima;
+    vector<double> bestParams = initParams;
+    vector<double> improvedDiffs;
+
+    for (int n = 0; n < 100; n++) {
+      // pick k random parameter groups to adjust
+      shuffle(groupIndices.begin(), groupIndices.end(), gen);
+
+      for (int i = 0; i < k; i++) {
+        // using the sensitivity stats, determine how to adjust them with a given random distribution
+        for (auto& paramId : groups[groupIndices[i]]) {
+          double maxImprovement = sens[paramId]["bestImprove"];
+          double improvementDist = sens[paramId]["distToImprove"];
+
+          // if the parameter exhibits no possible benefits, just adjust it a little since
+          // it's not expected to help at all
+          if (abs(maxImprovement) < 0.01) {
+            normal_distribution<double> dist(0, 0.05);
+
+            _allParams[i] += dist(gen);
+          }
+          // otherwise vary the param with a gaussian based on expected vairance in value
+          else {
+            normal_distribution<double> dist(0, abs(improvementDist) / 2);
+
+            _allParams[i] += dist(gen);
+          }
+
+          _allParams[i] = clamp(_allParams[i], 0.0, 1.0);
+        }
+      }
+
+      // check score
+      double rndScore = eval();
+
+      // run ceres, check score
+      double ceresScore = runOptimizerOnce();
+
+      // determine difference from this minima to starting minima
+      double dist = l2vector(_allParams, initParams);
+
+      cout << "[k=" << k << "][" << n << "/100]\t Score: " << rndScore << ", Opt. Score: " << ceresScore << ", Dist: " << dist << "\n";
+
+      // determine if we did better
+      if (abs(rndScore - localMin) > 0.01 && rndScore < localMin) {
+        trialData["rndBetter"] = trialData["rndBetter"] + 1;
+      }
+
+      if (abs(ceresScore - localMin) > 0.01 && ceresScore < localMin) {
+        trialData["ceresBetter"] = trialData["ceresBetter"] + 1;
+        improvedDiffs.push_back(ceresScore - localMin);
+
+        // determine if we're different than the old minima
+        // TODO: no idea what would be a good threshold, maybe just like set it to 0.25?
+        if (dist > 0.25) {
+          trialData["timesNewMinimaFound"] = trialData["timesNewMinimaFound"] + 1;
+        }
+      }
+
+      // track best score found
+      if (ceresScore < trialData["bestScore"]) {
+        trialData["bestScore"] = ceresScore;
+        bestParams = _allParams;
+        exportSolution("best_solution_" + to_string(k) + ".json");
+      }
+
+      // other stats
+      scores.push_back(rndScore);
+      ceresScores.push_back(ceresScore);
+      distToStartOptima.push_back(dist);
+
+      // reset for next run
+      _allParams = initParams;
+    }
+
+    // json object update
+    trialData["rndScores"] = scores;
+    trialData["ceresScores"] = ceresScores;
+    trialData["distToFirstOptima"] = distToStartOptima;
+    trialData["bestParams"] = bestParams;
+
+    double avgDiff = 0;
+    for (auto& d : improvedDiffs) {
+      avgDiff += d;
+    }
+    trialData["improvedScores"] = improvedDiffs;
+    trialData["averageImprovement"] = avgDiff / improvedDiffs.size();
+
+    trialResults.push_back(trialData);
+  }
+
+  ofstream outFile(_outDir + "full_result_summary.json");
+  outFile << trialResults.dump(4);
+}
+
+vector<vector<int>> App::getAdjGroups()
+{
+  // theoretically all the adjustments in the json file are roughly grouped together
+  // we want to group parameters of same adjustment type and same layer name together
+  auto params = _data["params"];
+
+  vector<vector<int>> paramGroups;
+  string currentLayer = "";
+  int currentType = -1;
+  vector<int> currentGroup;
+
+  for (int i = 0; i < params.size(); i++) {
+    // need to check that params have same name, type, and then need to create a group
+    if (currentType == params[i]["adjustmentType"] && currentLayer == params[i]["layerName"]) {
+      currentGroup.push_back(params[i]["paramID"]);
+    }
+    else {
+      if (currentGroup.size() > 0) {
+        paramGroups.push_back(currentGroup);
+      }
+
+      // reset
+      currentGroup.clear();
+      currentLayer = params[i]["layerName"].get<string>();
+      currentType = params[i]["adjustmentType"];
+      currentGroup.push_back(params[i]["paramID"]);
+    }
+  }
+
+  return paramGroups;
 }
 
 void App::computePopStats(vector<double>& vals, double& sum, double& mean, double& var, double& stdDev)

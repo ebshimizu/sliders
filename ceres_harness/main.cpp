@@ -26,6 +26,9 @@ void App::go(string mode, string loadFrom, string saveTo)
   else if (mode == "adjShiftTest") {
     adjShiftTest();
   }
+  else if (mode == "random") {
+    randomize();
+  }
 }
 
 void App::setupOptimizer(string loadFrom, string saveTo)
@@ -663,6 +666,71 @@ void App::adjShiftTest()
 
   ofstream outFile(_outDir + "full_result_summary.json");
   outFile << trialResults.dump(4);
+}
+
+void App::randomize()
+{
+  // just randomize the parameters and start tracking which minima we encounter
+  // rng things
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  vector<double> scores;
+  vector<vector<double> > minima;
+  vector<int> minimaCount;
+  vector<double> minimaScores;
+  double best = DBL_MAX;
+
+  // 1000 random trials
+  for (int n = 0; n < 1000; n++) {
+    // randomize all parameters
+    for (int i = 0; i < _allParams.size(); i++) {
+      _allParams[i] = zeroOne(gen);
+    }
+
+    double startScore = eval();
+    double score = runOptimizerOnce();
+
+    cout << "[" << n << "/1000]\tScore: " << startScore << " -> " << score << "\n";
+
+    scores.push_back(score);
+    
+    // check distances to existing minima
+    bool addNewMinima = true;
+    for (int i = 0; i < minima.size(); i++) {
+      double dist = l2vector(_allParams, minima[i]);
+
+      if (dist < 1) {
+        addNewMinima = false;
+        minimaCount[i] = minimaCount[i] + 1;
+        break;
+      }
+    }
+
+    if (addNewMinima) {
+      minima.push_back(_allParams);
+      minimaCount.push_back(1);
+      minimaScores.push_back(score);
+
+      if (score < best) {
+        best = score;
+        exportSolution("best_solution.json");
+      }
+      //exportSolution("minima_" + to_string(minima.size()) + ".json");
+    }
+  }
+
+  // output scores n stuff
+  nlohmann::json data;
+  data["scores"] = scores;
+  data["minima"] = minima;
+  data["minimaCount"] = minimaCount;
+  data["minimaScores"] = minimaScores;
+  data["minimaFound"] = minima.size();
+
+  ofstream outFile(_outDir + "randomization_summary.json");
+  outFile << data.dump(4);
 }
 
 vector<vector<int>> App::getAdjGroups()

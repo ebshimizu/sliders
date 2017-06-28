@@ -36,6 +36,7 @@ public:
   // - paramStats (parameter statitics computation)
   // - minimaStats (parameter statistics computation around the first found local minima)
   // - paramShiftTest (statistics computed by adjusting groups of parameters to see if adjusting a certain number is better)
+  // - random (randomly samples the space of parameters and tracks the frequency of each minima encountered.
   void go(string mode, string loadFrom, string saveTo);
 
   void setupOptimizer(string loadFrom, string saveTo);
@@ -62,6 +63,11 @@ public:
 
   // outputs some stats about of effective adjusting adjustments is to escape local minima
   void adjShiftTest();
+
+  // randomizes the parameters and tracks which minima are found and how often
+  // Intended to give a sense of how common various solutions are and how rare
+  // stumbling into the proper location is
+  void randomize();
 
   // looks at the json data and returns groups of up to 4 parameters that make up
   // an "adjustment group". Typically these are the entire adjustment, but some

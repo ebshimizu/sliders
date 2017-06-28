@@ -69,6 +69,9 @@ public:
   // stumbling into the proper location is
   void randomize();
 
+  // levels has a requirement that min < max, figure out if we have any here
+  void computeLtConstraints();
+
   // looks at the json data and returns groups of up to 4 parameters that make up
   // an "adjustment group". Typically these are the entire adjustment, but some
   // such as selective color have too many to keep as one group and are broken up
@@ -85,6 +88,9 @@ public:
   Problem _problem;
   nlohmann::json _data;
   string _outDir;
+
+  // indicates that first should always be less than second
+  map<int, int> _ltConstraints;
 };
 
 template<class T>

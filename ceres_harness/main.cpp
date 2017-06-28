@@ -40,6 +40,9 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 
   _data = loadCeresData(loadFrom, _allParams, layerValues, targetColors, weights);
 
+  // levels constraints
+  computeLtConstraints();
+
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
 	//    fit = (x(i, j) - constraints(i, j)) * w_fitSqrt
@@ -446,19 +449,19 @@ void App::paramShiftTest()
 
         // if the parameter exhibits no possible benefits, just adjust it a little since
         // it's not expected to help at all
-        if (abs(maxImprovement) < 0.01) {
-          normal_distribution<double> dist(0, 0.05);
+        //if (abs(maxImprovement) < 0.01) {
+        //  normal_distribution<double> dist(0, 0.05);
 
-          _allParams[i] += dist(gen);
-        }
+        //  _allParams[i] += dist(gen);
+        //}
         // otherwise vary the param with a gaussian based on expected vairance in value
-        else {
-          normal_distribution<double> dist(0, abs(improvementDist) / 2);
+        //else {
+        //  normal_distribution<double> dist(0, abs(improvementDist) / 2);
 
-          _allParams[i] += dist(gen);
-        }
+        //  _allParams[i] += dist(gen);
+        //}
 
-        _allParams[i] = clamp(_allParams[i], 0.0, 1.0);
+        _allParams[i] = zeroOne(gen); // clamp(_allParams[i], 0.0, 1.0);
       }
 
       // check score
@@ -731,6 +734,27 @@ void App::randomize()
 
   ofstream outFile(_outDir + "randomization_summary.json");
   outFile << data.dump(4);
+}
+
+void App::computeLtConstraints()
+{
+  // slow linear search here, there aren't that many times levels comesup (that I am aware of)
+  auto params = _data["params"];
+
+  for (int i = 0; i < params.size(); i++) {
+    // we are looking for inMin and outMin
+    if (params[i]["adjustmentName"] == "inMin" || params[i]["adjustmentName"] == "outMin") {
+      string layer = params[i]["layerName"];
+      string target = (params[i]["adjustmentName"] == "inMin") ? "inMax" : "outMax";
+
+      // search for the corresponding element.
+      for (int j = 0; j < params.size(); j++) {
+        if (params[j]["layerName"] == layer && params[j]["adjustmentName"] == target) {
+          _ltConstraints[i] = j;
+        }
+      }
+    }
+  }
 }
 
 vector<vector<int>> App::getAdjGroups()

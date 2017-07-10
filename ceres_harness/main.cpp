@@ -31,6 +31,27 @@ void App::go(string mode, string loadFrom, string saveTo)
   }
 }
 
+void App::goFromConfig(string file)
+{
+  // load and go
+  ifstream config(file);
+
+  if (config.is_open()) {
+    config >> _config;
+
+    // some required fields
+    if (_config.count("mode") > 0 && _config.count("loadFrom") > 0 && _config.count("saveTo") > 0) {
+      go(_config["mode"].get<string>(), _config["loadFrom"].get<string>(), _config["saveTo"].get<string>());
+    }
+    else {
+      cout << "Missing required fields. Config file must contain mode, loadFrom, and saveTo fields.\n";
+    }
+  }
+  else {
+    cout << "Couldn't load config file from " << file << "\n";
+  }
+}
+
 void App::setupOptimizer(string loadFrom, string saveTo)
 {
   vector<vector<double> > targetColors;
@@ -160,12 +181,24 @@ void App::exportSolution(string filename)
 
 void App::randomReinit()
 {
+  // defaults
   // threshold for being best global solution
   float minEps = 1e-3;
   int maxIters = 100;
   float pctParams = 0.2;
   float sigma = 0.25;
   int paramsToJitter = (int) (pctParams * _allParams.size());
+
+  // load settings if they exist
+  if (_config.count("randomReinit") > 0) {
+    nlohmann::json localSettings = _config["random"];
+
+    minEps = (_config.count("minEps") > 0) ? _config["minEps"] : minEps;
+    maxIters = (_config.count("maxIters") > 0) ? _config["maxIters"] : maxIters;
+    pctParams = (_config.count("pctParams") > 0) ? _config["pctParams"] : pctParams;
+    sigma = (_config.count("sigma") > 0) ? _config["sigma"] : sigma;
+    paramsToJitter = (int) (pctParams * _allParams.size());
+  }
 
   // rng things
   random_device rd;
@@ -685,8 +718,22 @@ void App::randomize()
   vector<double> minimaScores;
   double best = DBL_MAX;
 
-  // 1000 random trials
-  for (int n = 0; n < 1000; n++) {
+  // 1000 random trials by default
+  int trials = 1000;
+  double tolerance = 1;
+
+  if (_config.count("random") > 0) {
+    nlohmann::json localConfig = _config["random"];
+
+    trials = (localConfig.count("trials") > 0) ? localConfig["trials"] : trials;
+    tolerance = (localConfig.count("tolerance") > 0) ? localConfig["tolerance"] : tolerance;
+  }
+
+  cout << "Starting randomization test.\n";
+  cout << "Trials: " << trials << "\n";
+  cout << "Tolerance: " << tolerance << "\n";
+
+  for (int n = 0; n < trials; n++) {
     // randomize all parameters
     for (int i = 0; i < _allParams.size(); i++) {
       _allParams[i] = zeroOne(gen);
@@ -695,16 +742,17 @@ void App::randomize()
     double startScore = eval();
     double score = runOptimizerOnce();
 
-    cout << "[" << n << "/1000]\tScore: " << startScore << " -> " << score << "\n";
+    cout << "[" << n << "/" << trials << "]\tScore: " << startScore << " -> " << score;
 
     scores.push_back(score);
     
     // check distances to existing minima
     bool addNewMinima = true;
     for (int i = 0; i < minima.size(); i++) {
-      double dist = l2vector(_allParams, minima[i]);
+      double dist = pixelDist(_allParams, minima[i]);
 
-      if (dist < 1) {
+      if (dist < tolerance) {
+        cout << "\t[OLD (" << i << ") Dist: " << dist << "]\n";
         addNewMinima = false;
         minimaCount[i] = minimaCount[i] + 1;
         break;
@@ -712,6 +760,8 @@ void App::randomize()
     }
 
     if (addNewMinima) {
+      cout << "\t[NEW]\n";
+
       minima.push_back(_allParams);
       minimaCount.push_back(1);
       minimaScores.push_back(score);
@@ -825,7 +875,7 @@ double App::pixelDist(vector<double>& x1, vector<double>& x2)
     vector<double> v2 = ceresFunc(x2.data(), _layerValues[i]);
 
     Utils<double>::LabColorT c1 = Utils<double>::RGBToLab(v1[0] * v1[3], v1[1] * v1[3], v1[2] * v1[3]);
-    Utils<double>::LabColorT c2 = Utils<double>::RGBToLab(v1[0] * v1[3], v1[1] * v1[3], v1[2] * v1[3]);
+    Utils<double>::LabColorT c2 = Utils<double>::RGBToLab(v2[0] * v2[3], v2[1] * v2[3], v2[2] * v2[3]);
 
     double diff = sqrt(pow(c1._L - c2._L, 2) + pow(c1._a - c2._a, 2) + pow(c1._b - c2._b, 2));
 
@@ -838,7 +888,14 @@ double App::pixelDist(vector<double>& x1, vector<double>& x2)
 void main(int argc, char* argv[])
 {
 	App app;
-	app.go(string(argv[1]), string(argv[2]), string(argv[3]));
+
+  if (string(argv[1]) == "config") {
+    // load a config file instead
+    app.goFromConfig(string(argv[2]));
+  }
+  else {
+    app.go(string(argv[1]), string(argv[2]), string(argv[3]));
+  }
 
 	//cin.get();
 }

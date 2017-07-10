@@ -39,6 +39,10 @@ public:
   // - random (randomly samples the space of parameters and tracks the frequency of each minima encountered.
   void go(string mode, string loadFrom, string saveTo);
 
+  // loads a config file and then runs the normal go function
+  // the only thing absolutely necessary in the file is the mode, loadFrom, and saveTo params
+  void goFromConfig(string file);
+
   void setupOptimizer(string loadFrom, string saveTo);
   double runOptimizerOnce();
 
@@ -92,6 +96,7 @@ public:
   Problem _problem;
   nlohmann::json _data;
   string _outDir;
+  nlohmann::json _config;
 
   // indicates that first should always be less than second
   map<int, int> _ltConstraints;

@@ -33,12 +33,12 @@ void App::go(string mode, string loadFrom, string saveTo)
 
 void App::setupOptimizer(string loadFrom, string saveTo)
 {
-  vector<vector<double> > layerValues;
   vector<vector<double> > targetColors;
   vector<double> weights;
   _outDir = saveTo;
+  _layerValues.clear();
 
-  _data = loadCeresData(loadFrom, _allParams, layerValues, targetColors, weights);
+  _data = loadCeresData(loadFrom, _allParams, _layerValues, targetColors, weights);
 
   // levels constraints
   computeLtConstraints();
@@ -48,7 +48,7 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 	//    fit = (x(i, j) - constraints(i, j)) * w_fitSqrt
   for (int i = 0; i < targetColors.size(); i++) {
     cRGBColor target(targetColors[i][0], targetColors[i][1], targetColors[i][2]);
-    ceres::CostFunction* costFunction = CostTerm::Create(layerValues[i], weights[i], target);
+    ceres::CostFunction* costFunction = CostTerm::Create(_layerValues[i], weights[i], target);
     _problem.AddResidualBlock(costFunction, NULL, _allParams.data());
   }
 
@@ -813,6 +813,26 @@ double App::l2vector(vector<double>& x1, vector<double>& x2)
   }
 
   return sqrt(sum);
+}
+
+double App::pixelDist(vector<double>& x1, vector<double>& x2)
+{
+  // render each pixel and compare, could be slow dunno
+  double sum = 0;
+
+  for (int i = 0; i < _layerValues.size(); i++) {
+    vector<double> v1 = ceresFunc(x1.data(), _layerValues[i]);
+    vector<double> v2 = ceresFunc(x2.data(), _layerValues[i]);
+
+    Utils<double>::LabColorT c1 = Utils<double>::RGBToLab(v1[0] * v1[3], v1[1] * v1[3], v1[2] * v1[3]);
+    Utils<double>::LabColorT c2 = Utils<double>::RGBToLab(v1[0] * v1[3], v1[1] * v1[3], v1[2] * v1[3]);
+
+    double diff = sqrt(pow(c1._L - c2._L, 2) + pow(c1._a - c2._a, 2) + pow(c1._b - c2._b, 2));
+
+    sum += diff;
+  }
+
+  return sum / _layerValues.size();
 }
 
 void main(int argc, char* argv[])

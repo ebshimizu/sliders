@@ -84,6 +84,10 @@ public:
   // l2 distance between two vectors
   double l2vector(vector<double>& x1, vector<double>& x2);
 
+  // Average Lab L2 distance between two rendered images (or at least, the pixels of the image we're looking 
+  // at in this program)
+  double pixelDist(vector<double>& x1, vector<double>& x2);
+
   vector<double> _allParams;
   Problem _problem;
   nlohmann::json _data;
@@ -91,6 +95,9 @@ public:
 
   // indicates that first should always be less than second
   map<int, int> _ltConstraints;
+
+  // cached layer pixel values for computing a perceptual distance function
+  vector<vector<double> > _layerValues;
 };
 
 template<class T>

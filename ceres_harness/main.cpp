@@ -721,17 +721,27 @@ void App::randomize()
   // 1000 random trials by default
   int trials = 1000;
   double tolerance = 1;
+  bool exportAll = false;
+  float histInterval = 50;
+
+  // distance at which we stop caring about how far away things are in the histogram
+  float histMax = 1000;
 
   if (_config.count("random") > 0) {
     nlohmann::json localConfig = _config["random"];
 
     trials = (localConfig.count("trials") > 0) ? localConfig["trials"] : trials;
     tolerance = (localConfig.count("tolerance") > 0) ? localConfig["tolerance"] : tolerance;
+    exportAll = (localConfig.count("outputAllResults") > 0) ? localConfig["outputAllResults"] : exportAll;
+    histInterval = (localConfig.count("histInterval") > 0) ? localConfig["histInterval"] : histInterval;
+    histMax = (localConfig.count("histMax") > 0) ? localConfig["histMax"] : histMax;
   }
 
   cout << "Starting randomization test.\n";
   cout << "Trials: " << trials << "\n";
   cout << "Tolerance: " << tolerance << "\n";
+
+  int bestIndex = -1;
 
   for (int n = 0; n < trials; n++) {
     // randomize all parameters
@@ -742,25 +752,38 @@ void App::randomize()
     double startScore = eval();
     double score = runOptimizerOnce();
 
-    cout << "[" << n << "/" << trials << "]\tScore: " << startScore << " -> " << score;
+    cout << "[" << n + 1 << "/" << trials << "]\tScore: " << startScore << " -> " << score;
 
     scores.push_back(score);
     
-    // check distances to existing minima
+    // check distances to existing minima and find the closest (this is slow
+    // but might be useful info)
     bool addNewMinima = true;
+    double minDist = DBL_MAX;
+    int closest = -1;
+
     for (int i = 0; i < minima.size(); i++) {
       double dist = pixelDist(_allParams, minima[i]);
 
       if (dist < tolerance) {
-        cout << "\t[OLD (" << i << ") Dist: " << dist << "]\n";
+        //cout << " [OLD (" << i << ") Dist: " << dist << "]\n";
         addNewMinima = false;
-        minimaCount[i] = minimaCount[i] + 1;
-        break;
+        //minimaCount[i] = minimaCount[i] + 1;
+        //continue;
+      }
+      
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
       }
     }
 
-    if (addNewMinima) {
-      cout << "\t[NEW]\n";
+    if (!addNewMinima) {
+      cout << " [OLD (" << closest << ") Dist: " << minDist << "]\n";
+      minimaCount[closest] = minimaCount[closest] + 1;
+    }
+    else {
+      cout << " [NEW (" << closest << ": " << minDist << ")]\n";
 
       minima.push_back(_allParams);
       minimaCount.push_back(1);
@@ -768,10 +791,36 @@ void App::randomize()
 
       if (score < best) {
         best = score;
+        bestIndex = minima.size() - 1;
+
         exportSolution("best_solution.json");
       }
-      //exportSolution("minima_" + to_string(minima.size()) + ".json");
+
+      if (exportAll) {
+        _data["internalID"] = minima.size() - 1;
+        exportSolution("minima_" + to_string(minima.size() - 1) + ".json");
+      }
     }
+  }
+
+  // little bit of analysis in output file
+  // histogram tracking how many elements were close to the found global
+  map<int, int> distHist;
+
+  for (int i = 0; i < scores.size(); i++) {
+    double dist = scores[i] - best;
+
+    // each bracket contains elements less than or equal to the bracket number
+    int bracket = (int) (((int)ceil(dist / histInterval)) * histInterval);
+
+    if (bracket > histMax) {
+      bracket = (int)histMax;
+    }
+
+    if (distHist.count(bracket) == 0)
+      distHist[bracket] = 0;
+
+    distHist[bracket] += 1;
   }
 
   // output scores n stuff
@@ -781,6 +830,22 @@ void App::randomize()
   data["minimaCount"] = minimaCount;
   data["minimaScores"] = minimaScores;
   data["minimaFound"] = minima.size();
+
+  nlohmann::json histogramLabels;
+  nlohmann::json histogramValues;
+  for (auto& kvp : distHist) {
+    histogramLabels.push_back(kvp.first);
+    histogramValues.push_back(kvp.second);
+  }
+  data["distanceHistogram"] = nlohmann::json({ { "labels", histogramLabels}, {"values", histogramValues} });
+
+  nlohmann::json bestStats;
+  bestStats["score"] = best;
+  bestStats["count"] = minimaCount[bestIndex];
+  bestStats["params"] = minima[bestIndex];
+  bestStats["id"] = bestIndex;
+
+  data["best"] = bestStats;
 
   ofstream outFile(_outDir + "randomization_summary.json");
   outFile << data.dump(4);

@@ -39,6 +39,8 @@ void App::goFromConfig(string file)
   if (config.is_open()) {
     config >> _config;
 
+    config.close();
+
     // some required fields
     if (_config.count("mode") > 0 && _config.count("loadFrom") > 0 && _config.count("saveTo") > 0) {
       go(_config["mode"].get<string>(), _config["loadFrom"].get<string>(), _config["saveTo"].get<string>());
@@ -714,6 +716,7 @@ void App::randomize()
 
   vector<double> scores;
   vector<vector<double> > minima;
+  vector<vector<double> > pixelVals;
   vector<int> minimaCount;
   vector<double> minimaScores;
   double best = DBL_MAX;
@@ -755,6 +758,7 @@ void App::randomize()
     cout << "[" << n + 1 << "/" << trials << "]\tScore: " << startScore << " -> " << score;
 
     scores.push_back(score);
+    pixelVals.push_back(getLabVector(_allParams));
     
     // check distances to existing minima and find the closest (this is slow
     // but might be useful info)
@@ -830,6 +834,7 @@ void App::randomize()
   data["minimaCount"] = minimaCount;
   data["minimaScores"] = minimaScores;
   data["minimaFound"] = minima.size();
+  data["pixelVals"] = pixelVals;
 
   nlohmann::json histogramLabels;
   nlohmann::json histogramValues;
@@ -948,6 +953,21 @@ double App::pixelDist(vector<double>& x1, vector<double>& x2)
   }
 
   return sum / _layerValues.size();
+}
+
+vector<double> App::getLabVector(vector<double>& x)
+{
+  vector<double> colors;
+
+  for (int i = 0; i < _layerValues.size(); i++) {
+    vector<double> v = ceresFunc(x.data(), _layerValues[i]);
+    Utils<double>::LabColorT c = Utils<double>::RGBToLab(v[0] * v[3], v[1] * v[3], v[2] * v[3]);
+    colors.push_back(c._L);
+    colors.push_back(c._a);
+    colors.push_back(c._b);
+  }
+
+  return colors;
 }
 
 void main(int argc, char* argv[])

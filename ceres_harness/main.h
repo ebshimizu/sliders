@@ -92,6 +92,9 @@ public:
   // at in this program)
   double pixelDist(vector<double>& x1, vector<double>& x2);
 
+  // Gets the pixel color vector from a parameter vector
+  vector<double> getLabVector(vector<double>& x);
+
   vector<double> _allParams;
   Problem _problem;
   nlohmann::json _data;

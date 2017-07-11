@@ -20,6 +20,8 @@ f = open(tsneIn, 'w')
 labels = []
 frequency = []
 desc = []
+huetemp = []
+sattemp = []
 
 # gather data from json into proper format for t-sne
 dataFile = open(inputFile, 'r')
@@ -62,7 +64,7 @@ allPoints = go.Scatter(
 graphData = [allPoints]
 
 layout = go.Layout(
-	title='t-SNE Clustering of Parameter Vectors'
+	title='t-SNE Clustering of Pixel Vectors'
 )
 
 py.plot(dict(data=graphData, layout=layout), filename=outputPrefix + ".html", auto_open=False)

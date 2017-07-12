@@ -782,6 +782,11 @@ void App::randomize()
       }
     }
 
+    // auto-accept a new best score
+    if (score < best) {
+      addNewMinima = true;
+    }
+
     if (!addNewMinima) {
       cout << " [OLD (" << closest << ") Dist: " << minDist << "]\n";
       minimaCount[closest] = minimaCount[closest] + 1;

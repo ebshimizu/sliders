@@ -64,7 +64,7 @@ allPoints = go.Scatter(
 graphData = [allPoints]
 
 layout = go.Layout(
-	title='t-SNE Clustering of Pixel Vectors'
+	title='t-SNE Clustering of Param Vectors'
 )
 
 py.plot(dict(data=graphData, layout=layout), filename=outputPrefix + ".html", auto_open=False)

@@ -26,6 +26,24 @@ using namespace std;
 using namespace Comp;
 #include <ceresFunc.h>
 
+// a population element for the evolutionary search method
+class PopElem {
+public:
+  PopElem(vector<double> g) : _g(g) { }
+
+  // the genotype (here that's the layer parameters vector)
+  vector<double> _g;
+
+  // the phenoytpe (here that's the color of the pixels produced by the layer parameters vector)
+  vector<double> _x;
+
+  // fitness score
+  double _fitness;
+
+  // objective function scores
+  vector<double> _f;
+};
+
 class App
 {
 public:
@@ -106,6 +124,108 @@ public:
 
   // cached layer pixel values for computing a perceptual distance function
   vector<vector<double> > _layerValues;
+};
+
+enum ObjectiveFunctionType {
+  CERES = 0,
+  DISTANCE_FROM_START = 1
+};
+
+enum ComparisonMethod {
+  PARETO = 0,
+  WEIGHTED_SUM = 1
+};
+
+enum FitnessMethod {
+  FIRST_OBJECTIVE_NO_SCALING = 0,
+  VARIETY_PRESERVING = 1,
+  PARETO_ORDERING = 2
+};
+
+// evolutionary search class (mostly for grouping settings together instead of duplicating
+// things in the main class)
+class Evo {
+public:
+  Evo(App* parent);
+  ~Evo();
+
+  // constructs necessary objects, updates settings, and runs
+  void init();
+
+  // runs the search
+  void run();
+
+  // stops the search
+  void stop();
+
+  // gets the results
+  vector<PopElem> getResults();
+
+  // peeks at the _config object to get some settings
+  // if the optimization is running this won't actually do anything
+  void updateSettings();
+
+private:
+  // functions to actually run the search
+  vector<PopElem> createPop();
+
+  // fills in the _f field for each population element
+  void computeObjectives(vector<PopElem>& pop);
+
+  // depending on the fitness assignment method, this redirects to one of a few functions
+  void assignFitness(vector<PopElem>& pop);
+
+  // simply takes the first objective function value (typically the ceres objective)
+  // and uses that as the fitness score
+  void firstObjectiveNoScalingFitness(vector<PopElem>& pop);
+
+  // Implements algorithm 2.4 from http://www.it-weise.de/projects/book.pdf
+  // Designed to balance exploration and exploitation
+  void varietyPreservingFitness(vector<PopElem>& pop);
+
+  App* _parent;
+
+  bool _searchRunning;
+
+  // generation counter
+  int _t;
+
+  // used for computing a secondary objective function
+  // the secondary function measures how many parameters were changed to achieve the goal.
+  // the intent is that if two solutions are basically identical, the better one is the one that
+  // moves fewer parameters
+  vector<double> _initialConfig;
+
+  // settings everywhere
+  // mutation rate
+  double _mr;
+
+  // crossover rate
+  double _cr;
+
+  // chance that a particular element gets chosen for crossover
+  double _ce;
+
+  // Population size
+  int _popSize;
+
+  // includes the starting configuration in the initial population
+  bool _includeStartConfig;
+
+  // if true will run ceres on every population element before doing fitness calculations
+  bool _optimizeBeforeFitness;
+
+  // maximum iteration time
+  int _maxIters;
+
+  // set of objective functions to use in this optimization
+  set<ObjectiveFunctionType> _activeObjFuncs;
+
+  // comparison function to use for fitness scoring the results
+  ComparisonMethod _cmp;
+
+  // how to compute the fitness values for the population elements
+  FitnessMethod _v;
 };
 
 template<class T>

@@ -975,6 +975,166 @@ vector<double> App::getLabVector(vector<double>& x)
   return colors;
 }
 
+Evo::Evo(App* parent) : _parent(parent)
+{
+  init();
+}
+
+Evo::~Evo()
+{
+  stop();
+}
+
+void Evo::init()
+{
+  if (_searchRunning) {
+    cout << "Can't change settings while search is running\n";
+    return;
+  }
+
+  _searchRunning = false;
+
+  // other objects n stuff
+
+  // settings
+  updateSettings();
+}
+
+void Evo::run()
+{
+  if (_searchRunning) {
+    cout << "Stop search before calling run again.\n";
+    return;
+  }
+
+  // init should have been called by this point
+  _t = 0;
+
+  vector<PopElem> pop = createPop();
+
+  // for now we just have a max iteration termination criteria, this may change later
+  while (_t < _maxIters) {
+    computeObjectives(pop);
+    assignFitness(pop);
+  }
+}
+
+void Evo::updateSettings()
+{
+  // defaults then load
+  _mr = 0.5;
+  _cr = 0.5;
+  _ce = 0.25;
+  _popSize = 100;
+  _includeStartConfig = true;
+  _maxIters = 50;
+  _activeObjFuncs = { CERES, DISTANCE_FROM_START };
+  _cmp = PARETO;
+  _v = VARIETY_PRESERVING;
+  _optimizeBeforeFitness = true;
+
+  if (_parent->_config.count("evo") > 0) {
+    nlohmann::json localConfig = _parent->_config["evo"];
+
+    _mr = (localConfig.count("mutationRate") > 0) ? localConfig["mutationRate"] : _mr;
+    _cr = (localConfig.count("crossoverRate") > 0) ? localConfig["crossoverRate"] : _cr;
+    _ce = (localConfig.count("crossoverChance") > 0) ? localConfig["crossoverChance"] : _ce;
+    _popSize = (localConfig.count("popSize") > 0) ? localConfig["popSize"] : _popSize;
+    _includeStartConfig = (localConfig.count("includeStartConfig") > 0) ? localConfig["includeStartConfig"] : _includeStartConfig;
+    _maxIters = (localConfig.count("maxIters") > 0) ? localConfig["maxIters"] : _maxIters;
+    _cmp = (localConfig.count("comparisonMethod") > 0) ? localConfig["comparisonMethod"] : _cmp;
+    _v = (localConfig.count("fitnessMethod") > 0) ? localConfig["fitnessMethod"] : _v;
+    _optimizeBeforeFitness = (localConfig.count("optimizeBeforeFitness") > 0) ? localConfig["optimizeBeforeFitness"] : _optimizeBeforeFitness;
+
+    if (localConfig.count("objectives") > 0) {
+      _activeObjFuncs.clear();
+      for (int i = 0; i < localConfig["objectives"].size(); i++) {
+        _activeObjFuncs.insert((ObjectiveFunctionType)(localConfig["objectives"][i].get<int>()));
+      }
+    }
+  }
+}
+
+vector<PopElem> Evo::createPop()
+{
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  vector<PopElem> pop;
+  int i = 0;
+
+  if (_includeStartConfig) {
+    pop.push_back(PopElem(_parent->_allParams));
+    i++;
+  }
+
+  // i is initialized and used earlier
+  for ( ; i < _popSize; i++) {
+    vector<double> x;
+
+    for (int j = 0; j < _parent->_allParams.size(); i++) {
+      x.push_back(zeroOne(gen));
+    }
+
+    pop.push_back(PopElem(x));
+  }
+
+  return pop;
+}
+
+void Evo::computeObjectives(vector<PopElem>& pop)
+{
+  for (auto& p : pop) {
+    p._f.clear();
+
+    for (auto& funcType : _activeObjFuncs) {
+      if (funcType == CERES) {
+        // run the ceres function
+        _parent->_allParams = p._g;
+        double score = _parent->eval();
+        p._f.push_back(score);
+      }
+      else if (funcType == DISTANCE_FROM_START) {
+        // compare the current vector with the start vector
+        double score = _parent->l2vector(p._g, _initialConfig);
+        p._f.push_back(score);
+      }
+    }
+  }
+}
+
+void Evo::assignFitness(vector<PopElem>& pop)
+{
+  switch (_v) {
+  case FIRST_OBJECTIVE_NO_SCALING:
+    firstObjectiveNoScalingFitness(pop);
+    return;
+  case VARIETY_PRESERVING:
+    varietyPreservingFitness(pop);
+    return;
+  case PARETO_ORDERING:
+    //paretoRankFitness(pop);
+    return;
+  default:
+    return;
+  }
+}
+
+void Evo::firstObjectiveNoScalingFitness(vector<PopElem>& pop)
+{
+  for (auto& p : pop) {
+    // if the vector of objective functions is 0 this will crash
+    // but honestly if you're running an optimization with 0 objectives you deserve it
+    p._fitness = p._f[0];
+  }
+}
+
+void Evo::varietyPreservingFitness(vector<PopElem>& pop)
+{
+  // gonna be a long one
+}
+
 void main(int argc, char* argv[])
 {
 	App app;

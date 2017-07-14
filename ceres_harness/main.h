@@ -183,6 +183,11 @@ private:
   // Designed to balance exploration and exploitation
   void varietyPreservingFitness(vector<PopElem>& pop);
 
+  int paretoCmp(PopElem& x1, PopElem& x2);
+  int weightedSumCmp(PopElem& x1, PopElem& x2);
+
+  double shareExp(double val, double sigma, double p);
+
   App* _parent;
 
   bool _searchRunning;
@@ -217,6 +222,9 @@ private:
 
   // maximum iteration time
   int _maxIters;
+
+  // tolerance for something to be considered equal
+  double _equalityTolerance;
 
   // set of objective functions to use in this optimization
   set<ObjectiveFunctionType> _activeObjFuncs;

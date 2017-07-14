@@ -1019,6 +1019,17 @@ void Evo::run()
   }
 }
 
+void Evo::stop()
+{
+  if (_searchRunning) {
+    _searchRunning = false;
+    
+    // might need to wait for threads eventually.
+    // also this function is a bit useless right now without threads, as
+    // run will terminate on its own
+  }
+}
+
 void Evo::updateSettings()
 {
   // defaults then load
@@ -1032,6 +1043,7 @@ void Evo::updateSettings()
   _cmp = PARETO;
   _v = VARIETY_PRESERVING;
   _optimizeBeforeFitness = true;
+  _equalityTolerance = 0.25;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1045,6 +1057,7 @@ void Evo::updateSettings()
     _cmp = (localConfig.count("comparisonMethod") > 0) ? localConfig["comparisonMethod"] : _cmp;
     _v = (localConfig.count("fitnessMethod") > 0) ? localConfig["fitnessMethod"] : _v;
     _optimizeBeforeFitness = (localConfig.count("optimizeBeforeFitness") > 0) ? localConfig["optimizeBeforeFitness"] : _optimizeBeforeFitness;
+    _equalityTolerance = (localConfig.count("equalityTolerance") > 0) ? localConfig["equalityTolerance"] : _equalityTolerance;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1132,7 +1145,161 @@ void Evo::firstObjectiveNoScalingFitness(vector<PopElem>& pop)
 
 void Evo::varietyPreservingFitness(vector<PopElem>& pop)
 {
+  // assign the comparison function
+  function<int(PopElem&, PopElem&)> cmp;
+
+  switch (_cmp) {
+  case PARETO:
+    cmp = [this](PopElem& x1, PopElem& x2) { return paretoCmp(x1, x2); };
+    break;
+  case WEIGHTED_SUM:
+    cmp = [this](PopElem& x1, PopElem& x2) { return weightedSumCmp(x1, x2); };
+    break;
+  default:
+    cmp = [this](PopElem& x1, PopElem& x2) { return paretoCmp(x1, x2); };
+  }
+
   // gonna be a long one
+  vector<int> ranks;
+  ranks.resize(pop.size());
+  int maxRank = 0;
+  int objectives = pop[0]._f.size();
+
+  // compute pareto ranks
+  for (int i = 0; i < pop.size(); i++) {
+    for (int j = i + 1; j < pop.size(); j++) {
+      int k = cmp(pop[i], pop[j]);
+
+      if (k < 0)
+        ranks[j]++;
+      else if (k > 0)
+        ranks[i]++;
+    }
+
+    if (ranks[i] > maxRank)
+      maxRank = ranks[i];
+  }
+
+  // determine objective ranges
+  vector<double> min(objectives, DBL_MAX);
+  vector<double> max(objectives, DBL_MIN);
+
+  for (auto& p : pop) {
+    for (int i = 0; i < objectives; i++) {
+      if (p._f[i] < min[i])
+        min[i] = p._f[i];
+
+      if (p._f[i] > max[i])
+        max[i] = p._f[i];
+    }
+  }
+
+  vector<double> scale(objectives, 1);
+  for (int i = 0; i < objectives; i++) {
+    if (max[i] > min[i])
+      scale[i] = 1 / (max[i] - min[i]);
+  }
+
+  // calculate the sharing value (for diversity)
+  vector<double> shares;
+  double minShare = DBL_MAX;
+  double maxShare = DBL_MIN;
+  for (int i = 0; i < pop.size(); i++) {
+    double current = shares[i];
+
+    for (int j = i + 1; j < pop.size(); j++) {
+      double dist = 0;
+
+      for (int k = 0; k < objectives; k++) {
+        dist += pow((pop[i]._f[k] - pop[j]._f[k]) * scale[k], 2);
+      }
+
+      double s = shareExp(dist, sqrt(objectives), 16);
+      current += s;
+      shares[j] += s;
+    }
+ 
+    shares[i] = current;
+    if (current < minShare)
+      minShare = current;
+
+    if (current > maxShare)
+      maxShare = current;
+  }
+
+  // compute the actual fitness value
+}
+
+int Evo::paretoCmp(PopElem & x1, PopElem & x2)
+{
+  // x1 dominates (<) x2 if at least one function value is < x2
+  // and if everythign is <= x2's function values. <= here has a tolerance
+  bool atLeastOneLess = false;
+  bool allLeq = true;
+
+  for (int i = 0; i < x1._f.size(); i++) {
+    if (x1._f[i] < x2._f[i]) {
+      // also satisfied condition 2 automatically
+      atLeastOneLess = true;
+    }
+    // if not <, then check equality
+    else if (abs(x1._f[i] - x2._f[i]) > _equalityTolerance) {
+      allLeq = false;
+    }
+  }
+
+  if (atLeastOneLess && allLeq)
+    return 1;
+
+  // check other direction
+  atLeastOneLess = false;
+  allLeq = true;
+
+  for (int i = 0; i < x1._f.size(); i++) {
+    if (x2._f[i] < x1._f[i]) {
+      // also satisfied condition 2 automatically
+      atLeastOneLess = true;
+    }
+    // if not <, then check equality
+    else if (abs(x1._f[i] - x2._f[i]) > _equalityTolerance) {
+      allLeq = false;
+    }
+  }
+
+  if (atLeastOneLess && allLeq)
+    return -1;
+
+  // otherwise return 0
+  return 0;
+}
+
+int Evo::weightedSumCmp(PopElem & x1, PopElem & x2)
+{
+  double sum1 = 0;
+  double sum2 = 0;
+  
+  for (int i = 0; i < x1._f.size(); i++) {
+    sum1 += x1._f[i];
+    sum2 += x2._f[i];
+  }
+
+  if (sum1 < sum2)
+    return 1;
+  else if (sum2 < sum1)
+    return -1;
+  else
+    return 0;
+}
+
+double Evo::shareExp(double val, double sigma, double p)
+{
+  if (val <= 0)
+    return 1;
+
+  if (val >= sigma)
+    return 0;
+
+  return (exp(-(p * val) / sigma) - exp(-p)) / (1 - exp(-p));
 }
 
 void main(int argc, char* argv[])

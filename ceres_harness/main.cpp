@@ -1,5 +1,11 @@
 #include "main.h"
 #include "util.cpp"
+#include <algorithm>
+
+bool PopElem::operator<(const PopElem & b) const
+{
+  return _fitness < b._fitness;
+}
 
 void App::go(string mode, string loadFrom, string saveTo)
 {
@@ -28,6 +34,9 @@ void App::go(string mode, string loadFrom, string saveTo)
   }
   else if (mode == "random") {
     randomize();
+  }
+  else if (mode == "evo") {
+    evo();
   }
 }
 
@@ -861,6 +870,26 @@ void App::randomize()
   outFile << data.dump(4);
 }
 
+void App::evo()
+{
+  Evo evoObj(this);
+
+  evoObj.init();
+  evoObj.run();
+
+  auto results = evoObj.getResults();
+
+  for (int i = 0; i < results.size(); i++) {
+    _allParams = results[i]._g;
+
+    // typically ceres will always be first, if not just note this does NOT report
+    // fitness values and instead reports the first objective function value
+    _data["score"] = eval();
+
+    exportSolution("evo_final_" + to_string(i) + ".json");
+  }
+}
+
 void App::computeLtConstraints()
 {
   // slow linear search here, there aren't that many times levels comesup (that I am aware of)
@@ -993,6 +1022,7 @@ void Evo::init()
   }
 
   _searchRunning = false;
+  _initialConfig = _parent->_allParams;
 
   // other objects n stuff
 
@@ -1012,10 +1042,73 @@ void Evo::run()
 
   vector<PopElem> pop = createPop();
 
+  // archive of best elements so far
+  vector<PopElem> arc;
+
   // for now we just have a max iteration termination criteria, this may change later
   while (_t < _maxIters) {
+    if (_logLevel <= ABSURD) {
+      _logData[_t] = nlohmann::json::object();
+    }
+
+    // optimize if setting is on
+    if (_optimizeBeforeFitness) {
+      optimizePop(pop);
+    }
+
     computeObjectives(pop);
+    
+    if (_exportPopulations) {
+      cout << "Exporting Population and Archive\n";
+
+      exportPopElems("population", pop);
+      exportPopElems("archive", arc);
+    }
+
+    // combine the population and archive now
+    pop.insert(pop.end(), arc.begin(), arc.end());
+
+    // logging objective function values
+    if (_logLevel <= ABSURD) {
+      // objective functions
+      nlohmann::json objVals;
+      for (int i = 0; i < pop.size(); i++) {
+        for (int j = 0; j < pop[i]._f.size(); j++) {
+          objVals[i][j] = pop[i]._f[j];
+        }
+      }
+
+      _logData[_t]["objectives"] = objVals;
+    }
+
     assignFitness(pop);
+
+    // preserve best things found so far according to fitness score
+    updateOptimalSet(arc, pop);
+    //pruneOptimalSet(arc);
+
+    vector<PopElem> mate = select(pop, arc);
+
+    // the archive is also always accessible to mate, we insert one copy of each archive
+    // element here. multiple elements of arc may be in the mating pool, which should be ok
+    mate.insert(mate.end(), arc.begin(), arc.end());
+
+    pop = reproducePop(mate);
+
+    _t++;
+  }
+
+  // final optimization run
+  optimizePop(pop);
+
+  // final objectives and fitness
+  // this time we just want to get the best ceres scored things
+  _finalArc = getBestCeresScores(pop);
+  _finalPop = pop;
+
+  if (_logLevel <= ABSURD) {
+    ofstream outFile(_parent->_outDir + "evo_log.json");
+    outFile << _logData.dump(2);
   }
 }
 
@@ -1027,14 +1120,21 @@ void Evo::stop()
     // might need to wait for threads eventually.
     // also this function is a bit useless right now without threads, as
     // run will terminate on its own
+
+    _parent->_allParams = _initialConfig;
   }
+}
+
+vector<PopElem> Evo::getResults()
+{
+  return _finalArc;
 }
 
 void Evo::updateSettings()
 {
   // defaults then load
-  _mr = 0.5;
-  _cr = 0.5;
+  _mr = 0.3;
+  _cr = 0.3;
   _ce = 0.25;
   _popSize = 100;
   _includeStartConfig = true;
@@ -1044,6 +1144,11 @@ void Evo::updateSettings()
   _v = VARIETY_PRESERVING;
   _optimizeBeforeFitness = true;
   _equalityTolerance = 0.25;
+  _arcSize = 0.1 * _popSize;
+  _selectK = 2;
+  _poolSize = _popSize / 2;
+  _logLevel = ALL;
+  _exportPopulations = false;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1058,6 +1163,11 @@ void Evo::updateSettings()
     _v = (localConfig.count("fitnessMethod") > 0) ? localConfig["fitnessMethod"] : _v;
     _optimizeBeforeFitness = (localConfig.count("optimizeBeforeFitness") > 0) ? localConfig["optimizeBeforeFitness"] : _optimizeBeforeFitness;
     _equalityTolerance = (localConfig.count("equalityTolerance") > 0) ? localConfig["equalityTolerance"] : _equalityTolerance;
+    _arcSize = (localConfig.count("archiveSize") > 0) ? localConfig["archiveSize"] : _arcSize;
+    _selectK = (localConfig.count("selectK") > 0) ? localConfig["selectK"] : _selectK;
+    _poolSize = (localConfig.count("poolSize") > 0) ? localConfig["poolSize"] : _poolSize;
+    _logLevel = (localConfig.count("logLevel") > 0) ? localConfig["logLevel"] : _logLevel;
+    _exportPopulations = (localConfig.count("exportPopulations") > 0) ? localConfig["exportPopulations"] : _exportPopulations;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1086,7 +1196,7 @@ vector<PopElem> Evo::createPop()
   for ( ; i < _popSize; i++) {
     vector<double> x;
 
-    for (int j = 0; j < _parent->_allParams.size(); i++) {
+    for (int j = 0; j < _parent->_allParams.size(); j++) {
       x.push_back(zeroOne(gen));
     }
 
@@ -1098,22 +1208,42 @@ vector<PopElem> Evo::createPop()
 
 void Evo::computeObjectives(vector<PopElem>& pop)
 {
+  if (_logLevel <= VERBOSE) {
+    cout << "Computing objective functions\n";
+  }
+
+  int i = 0;
   for (auto& p : pop) {
+    if (_logLevel <= ALL) {
+      cout << "[" << i + 1 << "/" << pop.size() << "]";
+    }
+
     p._f.clear();
 
     for (auto& funcType : _activeObjFuncs) {
       if (funcType == CERES) {
+        if (_logLevel <= ALL) 
+          cout << " CERES";
+
         // run the ceres function
         _parent->_allParams = p._g;
         double score = _parent->eval();
         p._f.push_back(score);
       }
       else if (funcType == DISTANCE_FROM_START) {
+        if (_logLevel <= ALL) 
+          cout << " DISTANCE_FROM_START";
+
         // compare the current vector with the start vector
         double score = _parent->l2vector(p._g, _initialConfig);
         p._f.push_back(score);
       }
     }
+
+    if (_logLevel <= ALL)
+      cout << endl;
+
+    i++;
   }
 }
 
@@ -1145,6 +1275,9 @@ void Evo::firstObjectiveNoScalingFitness(vector<PopElem>& pop)
 
 void Evo::varietyPreservingFitness(vector<PopElem>& pop)
 {
+  if (_logLevel <= VERBOSE)
+    cout << "Computing Fitness Scores\n";
+
   // assign the comparison function
   function<int(PopElem&, PopElem&)> cmp;
 
@@ -1180,30 +1313,35 @@ void Evo::varietyPreservingFitness(vector<PopElem>& pop)
       maxRank = ranks[i];
   }
 
+  if (_logLevel <= ABSURD) {
+    _logData[_t]["ranks"] = ranks;
+  }
+
   // determine objective ranges
-  vector<double> min(objectives, DBL_MAX);
-  vector<double> max(objectives, DBL_MIN);
+  vector<double> minf(objectives, DBL_MAX);
+  vector<double> maxf(objectives, DBL_MIN);
 
   for (auto& p : pop) {
     for (int i = 0; i < objectives; i++) {
-      if (p._f[i] < min[i])
-        min[i] = p._f[i];
+      if (p._f[i] < minf[i])
+        minf[i] = p._f[i];
 
-      if (p._f[i] > max[i])
-        max[i] = p._f[i];
+      if (p._f[i] > maxf[i])
+        maxf[i] = p._f[i];
     }
   }
 
   vector<double> scale(objectives, 1);
   for (int i = 0; i < objectives; i++) {
-    if (max[i] > min[i])
-      scale[i] = 1 / (max[i] - min[i]);
+    if (maxf[i] > minf[i])
+      scale[i] = 1 / (maxf[i] - minf[i]);
   }
 
   // calculate the sharing value (for diversity)
-  vector<double> shares;
+  vector<double> shares(pop.size(), 0);
   double minShare = DBL_MAX;
   double maxShare = DBL_MIN;
+
   for (int i = 0; i < pop.size(); i++) {
     double current = shares[i];
 
@@ -1227,7 +1365,28 @@ void Evo::varietyPreservingFitness(vector<PopElem>& pop)
       maxShare = current;
   }
 
+  if (_logLevel <= ABSURD) {
+    _logData[_t]["shares"] = shares;
+  }
+
   // compute the actual fitness value
+  double shareScale = (maxShare > minShare) ? 1 / (maxShare - minShare) : 1;
+  vector<double> fitnessLog;
+
+  for (int i = 0; i < pop.size(); i++) {
+    if (ranks[i] > 0) {
+      pop[i]._fitness = ranks[i] + sqrt(maxRank) * shareScale * (shares[i] - minShare);
+    }
+    else {
+      pop[i]._fitness = shareScale * (shares[i] - minShare);
+    }
+
+    fitnessLog.push_back(pop[i]._fitness);
+  }
+
+  if (_logLevel <= ABSURD) {
+    _logData[_t]["fitness"] = fitnessLog;
+  }
 }
 
 int Evo::paretoCmp(PopElem & x1, PopElem & x2)
@@ -1249,7 +1408,7 @@ int Evo::paretoCmp(PopElem & x1, PopElem & x2)
   }
 
   if (atLeastOneLess && allLeq)
-    return 1;
+    return -1; // x1 < x2
 
   // check other direction
   atLeastOneLess = false;
@@ -1267,10 +1426,10 @@ int Evo::paretoCmp(PopElem & x1, PopElem & x2)
   }
 
   if (atLeastOneLess && allLeq)
-    return -1;
+    return 1; // x2 < x1
 
   // otherwise return 0
-  return 0;
+  return 0; // x1 == x2
 }
 
 int Evo::weightedSumCmp(PopElem & x1, PopElem & x2)
@@ -1300,6 +1459,145 @@ double Evo::shareExp(double val, double sigma, double p)
     return 0;
 
   return (exp(-(p * val) / sigma) - exp(-p)) / (1 - exp(-p));
+}
+
+vector<PopElem> Evo::select(vector<PopElem>& pop, vector<PopElem>& arc)
+{
+  // select here uses Ordered Selection, where the list is sorted then random
+  // elements are selected biased towards the top.
+  // ordered selection also preserves some of the lower end of the population to encourage
+  // diversity
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  double q = 1 / (1 - (log(_selectK) / log(_poolSize)));
+  sort(pop.begin(), pop.end());
+  vector<PopElem> mate;
+
+  for (int i = 0; i < _poolSize; i++) {
+    mate.push_back(pop[(int)(pow(zeroOne(gen), q) * pop.size())]);
+  }
+
+  return mate;
+}
+
+vector<PopElem> Evo::reproducePop(vector<PopElem>& mate)
+{
+  if (_logLevel <= VERBOSE) {
+    cout << "Reproducing population\n";
+  }
+
+  // couple operations here: mutate, recombine, duplicate.
+  // duplicate will not be used too much here, every element is assumed to be 
+  // mutable so the chance that it passes through without mutations is vanishingly small
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  vector<PopElem> newPop;
+  for (int i = 0; i < _popSize; i++) {
+    if (_logLevel <= ALL)
+      cout << "[" << i + 1 << "/" << _popSize << "]";
+
+    // pick an element, duplicate it to start
+    PopElem p1 = PopElem(mate[(int)(zeroOne(gen) * mate.size())]._g);
+    
+    // crossover chance
+    if (zeroOne(gen) < _cr) {
+      if (_logLevel <= ALL)
+        cout << " Crossover";
+
+      // pick a random thing to crossover with
+      PopElem p2 = mate[(int)(zeroOne(gen) * mate.size())];
+      
+      // do the crossover (randomly pick things to swap)
+      for (int j = 0; j < p1._g.size(); j++) {
+        if (zeroOne(gen) < _ce) {
+          p1._g[j] = p2._g[j];
+        }
+      }
+    }
+
+    // mutation
+    for (int j = 0; j < p1._g.size(); j++) {
+      if (zeroOne(gen) < _mr) {
+        if (_logLevel <= ALL)
+          cout << " Mutation [" << j << "]";
+
+        // randomize parameter value (for now, may do something more specific later)
+        p1._g[j] = zeroOne(gen);
+      }
+    }
+
+    if (_logLevel <= ALL)
+      cout << endl;
+
+    newPop.push_back(p1);
+  }
+
+  return newPop;
+}
+
+void Evo::optimizePop(vector<PopElem>& pop)
+{
+  if (_logLevel <= VERBOSE) {
+    cout << "Optimizing Population\n";
+  }
+
+  // runs the optimizer on each element
+  for (int i = 0; i < pop.size(); i++) {
+    if (_logLevel <= ALL) {
+      cout << "[" << i + 1 << "/" << pop.size() << "]\n";
+    }
+
+    _parent->_allParams = pop[i]._g;
+    _parent->runOptimizerOnce();
+    pop[i]._g = _parent->_allParams;
+  }
+}
+
+void Evo::updateOptimalSet(vector<PopElem>& arc, vector<PopElem>& pop)
+{
+  // actually just take the fitness values (pop is sorted here) and drop them into
+  // the top n results of archive. During fitness value calculation, the
+  // archive is added to the population for obtain a fitness ranking
+  // this should ensure that an optimal set is preserved through each generation
+  // and can be extracted at the end
+  arc.clear();
+  sort(pop.begin(), pop.end());
+
+  for (int i = 0; i < _arcSize; i++) {
+    arc.push_back(pop[i]);
+  }
+}
+
+void Evo::exportPopElems(string prefix, vector<PopElem>& x)
+{
+  for (int i = 0; i < x.size(); i++) {
+    _parent->_allParams = x[i]._g;
+    _parent->_data["score"] = x[i]._f[0];
+    _parent->exportSolution(prefix + "_" + to_string(_t) + "_" + to_string(i) + ".json");
+  }
+}
+
+vector<PopElem> Evo::getBestCeresScores(vector<PopElem>& pop)
+{
+  for (auto& p : pop) {
+    _parent->_allParams = p._g;
+    double score = _parent->eval();
+
+    p._fitness = score;
+  }
+
+  sort(pop.begin(), pop.end());
+
+  vector<PopElem> ret;
+  for (int i = 0; i < _arcSize; i++) {
+    ret.push_back(pop[i]);
+  }
+
+  return ret;
 }
 
 void main(int argc, char* argv[])

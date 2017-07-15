@@ -42,7 +42,11 @@ public:
 
   // objective function scores
   vector<double> _f;
+
+  bool operator<(const PopElem& b) const;
 };
+
+class Evo;
 
 class App
 {
@@ -90,6 +94,9 @@ public:
   // Intended to give a sense of how common various solutions are and how rare
   // stumbling into the proper location is
   void randomize();
+
+  // runs the evolutionary algorithm
+  void evo();
 
   // levels has a requirement that min < max, figure out if we have any here
   void computeLtConstraints();
@@ -142,6 +149,14 @@ enum FitnessMethod {
   PARETO_ORDERING = 2
 };
 
+enum EvoLogLevel {
+  ABSURD = 0,
+  ALL = 1,
+  VERBOSE = 2,
+  INFO = 3,
+  CRITICAL = 4
+};
+
 // evolutionary search class (mostly for grouping settings together instead of duplicating
 // things in the main class)
 class Evo {
@@ -188,6 +203,23 @@ private:
 
   double shareExp(double val, double sigma, double p);
 
+  // selection method for picking a mating pool
+  vector<PopElem> select(vector<PopElem>& pop, vector<PopElem>& arc);
+
+  // mutate and recombine the mating pool to make a new population
+  vector<PopElem> reproducePop(vector<PopElem>& mate);
+
+  // run ceres on the population
+  void optimizePop(vector<PopElem>& pop);
+
+  void updateOptimalSet(vector<PopElem>& arc, vector<PopElem>& pop);
+
+  // exports things 
+  void exportPopElems(string prefix, vector<PopElem>& x);
+
+  // gets top elements by ceres score at the end
+  vector<PopElem> getBestCeresScores(vector<PopElem>& pop);
+
   App* _parent;
 
   bool _searchRunning;
@@ -211,8 +243,14 @@ private:
   // chance that a particular element gets chosen for crossover
   double _ce;
 
+  // archive size
+  int _arcSize;
+
   // Population size
   int _popSize;
+
+  // mating pool size
+  int _poolSize;
 
   // includes the starting configuration in the initial population
   bool _includeStartConfig;
@@ -222,6 +260,10 @@ private:
 
   // maximum iteration time
   int _maxIters;
+
+  // ordered selection k parameter
+  // roughly: the number of expected offspring from the best individual
+  int _selectK;
 
   // tolerance for something to be considered equal
   double _equalityTolerance;
@@ -234,6 +276,21 @@ private:
 
   // how to compute the fitness values for the population elements
   FitnessMethod _v;
+
+  // logging info  
+  EvoLogLevel _logLevel;
+
+  // generic log data storage
+  // its json because we can just dump it ez if we need to (which we probably do)
+  nlohmann::json _logData;
+
+  // a bit of a dangerous option for your hard drive
+  // will dump every generation of the resultsto json files
+  // exports the population and the archive separately
+  bool _exportPopulations;
+
+  vector<PopElem> _finalArc;
+  vector<PopElem> _finalPop;
 };
 
 template<class T>

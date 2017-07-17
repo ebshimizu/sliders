@@ -139,8 +139,11 @@ watcher.on('add', function (filename, stats) {
     // and hopefully it won't crash
     var ceresData = c.ceresToContext(filename);
 
-    // append to results for inspection
-    processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata, true);
+    // assuming this isn't null
+    if (ceresData) {
+        // append to results for inspection
+        processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata, true);
+    }
 });
 
 

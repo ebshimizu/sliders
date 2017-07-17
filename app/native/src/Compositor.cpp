@@ -766,7 +766,7 @@ namespace Comp {
     file << data.dump(4);
   }
 
-  Context Compositor::ceresToContext(string file, map<string, float>& metadata)
+  bool Compositor::ceresToContext(string file, map<string, float>& metadata, Context& c)
   {
     nlohmann::json data;
     ifstream input(file);
@@ -775,12 +775,18 @@ namespace Comp {
 
     if (!input.is_open()) {
       getLogger()->log("File not open. Aborting...");
-      return getNewContext();
+      return false;
     }
 
     input >> data;
 
-    Context c = getNewContext();
+    if (data.count("params") == 0) {
+      // this is not acutally a ceres output function so return
+      getLogger()->log("File is not a configuration output. Skipping...", WARN);
+      return false;
+    }
+
+    c = getNewContext();
 
     getLogger()->log("Importing parameters...");
 
@@ -815,7 +821,7 @@ namespace Comp {
 
     getLogger()->log("Import complete.");
 
-    return c;
+    return true;
   }
 
   void Compositor::addLayer(string name)

@@ -1878,7 +1878,14 @@ void CompositorWrapper::ceresToContext(const Nan::FunctionCallbackInfo<v8::Value
 
     map<string, float> metadata;
 
-    Comp::Context ctx = c->_compositor->ceresToContext(file, metadata);
+    Comp::Context ctx;
+    bool res = c->_compositor->ceresToContext(file, metadata, ctx);
+
+    if (!res) {
+      // failure to load
+      info.GetReturnValue().SetNull();
+      return;
+    }
 
     // context object
     const int argc = 1;

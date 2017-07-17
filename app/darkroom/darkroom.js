@@ -127,14 +127,25 @@ window.requestAnimationFrame(repaint);
 var watcher = chokidar.watch("./ceresOut", {
     "ignoreInitial": true,
     "awaitWriteFinish": {
-        stabilityThreshold: 500,
+        stabilityThreshold: 2000,
         pollInterval: 100
     }
+});
+
+watcher.on('change', function (filename, stats) {
+    console.log("Processing file " + filename);
+
+    processFile(filename);
 });
 
 watcher.on('add', function (filename, stats) {
     console.log("Processing file " + filename);
 
+    processFile(filename);
+});
+
+// quick named function for loading stuff in case we want to call it from command line
+function processFile(filename) {
     // this directory should have just json files in it soooo let's just load them
     // and hopefully it won't crash
     var ceresData = c.ceresToContext(filename);
@@ -144,8 +155,7 @@ watcher.on('add', function (filename, stats) {
         // append to results for inspection
         processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata, true);
     }
-});
-
+}
 
 /*===========================================================================*/
 /* Initialization                                                            */

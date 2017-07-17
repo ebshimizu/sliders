@@ -1098,8 +1098,13 @@ void Evo::run()
     _t++;
   }
 
-  // final optimization run
-  optimizePop(pop);
+  if (_optimizeBeforeFitness) {
+    // final optimization run
+    optimizePop(pop);
+  }
+
+  // combine the population and archive for final selection
+  pop.insert(pop.end(), arc.begin(), arc.end());
 
   // final objectives and fitness
   // this time we just want to get the best ceres scored things

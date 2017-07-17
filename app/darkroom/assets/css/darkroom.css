@@ -486,3 +486,15 @@ body .ui.basic.modal p {
 #debugConstraintTab .grid {
     width: 100%;
 }
+
+div#sampleWrapper .ribbon.label {
+    display: none;
+}
+
+div#sampleWrapper.score .ribbon.label[metadata-key="score"] {
+    display: block;
+}
+
+div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
+    display: block;
+}

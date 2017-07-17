@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.24;
+const saveVersion = 0.25;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -46,7 +46,8 @@ var settings = {
     "constrainedDensity": 100,
     "unconstrainedWeight": 1,
     "constrainedWeight": 4,
-    "ceresConfig": "Release"
+    "ceresConfig": "Release",
+    "metadataDisplay" : "score"
 };
 
 // global settings vars
@@ -152,6 +153,9 @@ function processFile(filename) {
 
     // assuming this isn't null
     if (ceresData) {
+        // append filename to metadata
+        ceresData.metadata["filename"] = filename;
+
         // append to results for inspection
         processNewSample(c.renderContext(ceresData.context, settings.sampleRenderSize), ceresData.context, ceresData.metadata, true);
     }
@@ -207,7 +211,7 @@ function initUI() {
     $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
     $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
-    $('#clearSamples').click(() => { $('#sampleWrapper').empty(); });
+    $('#clearSamples').click(() => { $('#sampleWrapper').empty(); sampleId = 0; });
     $('#extractConstraints').click(() => { extractConstraints(); });
     $('#ceresEval').click(() => { ceresEval(); });
     $('#computeError').click(() => { computeError(); });
@@ -303,6 +307,17 @@ function initUI() {
             $('#sampleWrapper').removeClass("one two three four five six seven eight nine ten");
             $('#sampleWrapper').addClass(value);
             $('#sideboardWrapper').removeClass("one two three four five six seven eight nine ten");
+            $('#sideboardWrapper').addClass(value);
+        }
+    });
+
+    $('#metadataDisplay').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            settings.metadataDisplay = value;
+            $('#sampleWrapper').removeClass("score filename");
+            $('#sampleWrapper').addClass(value);
+            $('#sideboardWrapper').removeClass("score filename");
             $('#sideboardWrapper').addClass(value);
         }
     });
@@ -599,6 +614,17 @@ function loadSettings() {
     $('#cdensity input').val(settings.constrainedDensity);
     $('#uweight input').val(settings.unconstrainedWeight);
     $('#cweight input').val(settings.constrainedWeight);
+
+    if ('metadataDisplay' in settings) {
+        $('#sampleWrapper').removeClass("score filename");
+        $('#sampleWrapper').addClass(settings.metadataDisplay);
+        $('#sideboardWrapper').removeClass("score filename");
+        $('#sideboardWrapper').addClass(settings.metadataDisplay);
+        $('#metadataDisplay').dropdown('set selected', settings.metadataDisplay);
+    }
+    else {
+        $('#metadataDisplay').dropdown('set selected', 'score');
+    }
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -3032,7 +3058,16 @@ function createSampleContainer(img, id, meta) {
 
     // metadata display
     for (var key in meta) {
-        html += '<div class="ui black left ribbon label" metadata-key="' + key + '">' + key + ": " + meta[key].toFixed(5) + "</div>";
+        var metaVal;
+
+        if (typeof (meta[key]) === 'string') {
+            metaVal = meta[key];
+        }
+        else {
+            metaVal = meta[key].toFixed(5);
+        }
+
+        html += '<div class="ui black left ribbon label" metadata-key="' + key + '">' + key + ": " + metaVal + "</div>";
     }
     
     // id display
@@ -3439,7 +3474,7 @@ function runCeres(callback) {
     fs.emptyDirSync("./ceresOut");
 
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" jitter ./codegen/ceres.json ./ceresOut/';
+    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" config ./codegen/ceres_settings.json';
 
     if (callback === undefined) {
         callback = (error, stdout, stderr) => {

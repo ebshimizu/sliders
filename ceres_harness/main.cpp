@@ -101,7 +101,7 @@ void App::setupOptimizer(string loadFrom, string saveTo)
   }
 }
 
-double App::runOptimizerOnce()
+double App::runOptimizerOnce(bool printCeres)
 {
   //cout << "Solving..." << endl;
 
@@ -137,20 +137,22 @@ double App::runOptimizerOnce()
 
   Solve(options, &_problem, &summary);
 
-  //cout << "Solver used: " << summary.linear_solver_type_used << endl;
-  //cout << "Minimizer iters: " << summary.iterations.size() << endl;
+  if (printCeres) {
+    cout << "Solver used: " << summary.linear_solver_type_used << endl;
+    cout << "Minimizer iters: " << summary.iterations.size() << endl;
 
-  //double iterationTotalTime = 0.0;
-  //int totalLinearItereations = 0;
-  //for (auto &i : summary.iterations)
-  //{
-  //  iterationTotalTime += i.iteration_time_in_seconds;
-  //  totalLinearItereations += i.linear_solver_iterations;
-  //  cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
-  //}
+    double iterationTotalTime = 0.0;
+    int totalLinearItereations = 0;
+    for (auto &i : summary.iterations)
+    {
+      iterationTotalTime += i.iteration_time_in_seconds;
+      totalLinearItereations += i.linear_solver_iterations;
+      cout << "Iteration: " << i.linear_solver_iterations << " " << i.iteration_time_in_seconds * 1000.0 << "ms" << endl;
+    }
 
-  //cout << "Total iteration time: " << iterationTotalTime << endl;
-  //cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
+    cout << "Total iteration time: " << iterationTotalTime << endl;
+    cout << "Cost per linear solver iteration: " << iterationTotalTime * 1000.0 / totalLinearItereations << "ms" << endl;
+  }
 
   //double cost = -1.0;
   //_problem.Evaluate(Problem::EvaluateOptions(), &cost, nullptr, nullptr, nullptr);
@@ -1047,6 +1049,11 @@ void Evo::run()
 
   // for now we just have a max iteration termination criteria, this may change later
   while (_t < _maxIters) {
+    if (_logLevel <= EvoLogLevel::INFO) {
+      cout << "Generation " << _t << "\n";
+      cout << "================================================================\n";
+    }
+
     if (_logLevel <= ABSURD) {
       _logData[_t] = nlohmann::json::object();
     }
@@ -1059,9 +1066,12 @@ void Evo::run()
     computeObjectives(pop);
     
     if (_exportPopulations) {
-      cout << "Exporting Population and Archive\n";
-
+      cout << "Exporting Population\n";
       exportPopElems("population", pop);
+    }
+
+    if (_exportArchives) {
+      cout << "Exporting Archive\n";
       exportPopElems("archive", arc);
     }
 
@@ -1093,7 +1103,7 @@ void Evo::run()
     // element here. multiple elements of arc may be in the mating pool, which should be ok
     mate.insert(mate.end(), arc.begin(), arc.end());
 
-    pop = reproducePop(mate);
+    pop = reproducePop(mate, arc);
 
     _t++;
   }
@@ -1154,6 +1164,8 @@ void Evo::updateSettings()
   _poolSize = _popSize / 2;
   _logLevel = ALL;
   _exportPopulations = false;
+  _elitistRepro = false;
+  _exportArchives = false;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1173,6 +1185,8 @@ void Evo::updateSettings()
     _poolSize = (localConfig.count("poolSize") > 0) ? localConfig["poolSize"] : _poolSize;
     _logLevel = (localConfig.count("logLevel") > 0) ? localConfig["logLevel"] : _logLevel;
     _exportPopulations = (localConfig.count("exportPopulations") > 0) ? localConfig["exportPopulations"] : _exportPopulations;
+    _elitistRepro = (localConfig.count("elitistReproduction") > 0) ? localConfig["elitistReproduction"] : _elitistRepro;
+    _exportArchives = (localConfig.count("exportArchives") > 0) ? localConfig["exportArchives"] : _exportArchives;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1487,7 +1501,7 @@ vector<PopElem> Evo::select(vector<PopElem>& pop, vector<PopElem>& arc)
   return mate;
 }
 
-vector<PopElem> Evo::reproducePop(vector<PopElem>& mate)
+vector<PopElem> Evo::reproducePop(vector<PopElem>& mate, vector<PopElem>& elite)
 {
   if (_logLevel <= VERBOSE) {
     cout << "Reproducing population\n";
@@ -1515,6 +1529,12 @@ vector<PopElem> Evo::reproducePop(vector<PopElem>& mate)
 
       // pick a random thing to crossover with
       PopElem p2 = mate[(int)(zeroOne(gen) * mate.size())];
+
+      // if we're only crossing over from the elite pool, overwrite the previous selection
+      // (slight performance hit but should be ok)
+      if (_elitistRepro) {
+        p2 = elite[(int)(zeroOne(gen) * elite.size())];
+      }
       
       // do the crossover (randomly pick things to swap)
       for (int j = 0; j < p1._g.size(); j++) {
@@ -1557,7 +1577,7 @@ void Evo::optimizePop(vector<PopElem>& pop)
     }
 
     _parent->_allParams = pop[i]._g;
-    _parent->runOptimizerOnce();
+    _parent->runOptimizerOnce(_logLevel <= ABSURD);
     pop[i]._g = _parent->_allParams;
   }
 }

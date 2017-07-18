@@ -423,16 +423,16 @@ namespace Comp {
     RGBColorT rgb;
 
     // h needs to be positive
-    while (h < 0) {
-      h += 360;
+    while (h < (T)0) {
+      h += (T)360;
     }
 
     h = (T)fmodt(h, (T)360);
-    s = (s > 1) ? 1 : (s < 0) ? 0 : s;
-    y = (y > 1) ? 1 : (y < 0) ? 0 : y;
+    s = (s >(T)1) ? (T)1 : (s < (T)0) ? (T)0 : s;
+    y = (y >(T)1) ? (T)1 : (y < (T)0) ? (T)0 : y;
 
     T c = s;
-    T hp = h / 60;
+    T hp = h / (T)60;
     T x = c * (T)((T)1 - abs(fmodt(hp, (T)2) - (T)1));
 
     if ((T)0 <= hp && hp < (T)1) {
@@ -466,7 +466,7 @@ namespace Comp {
       rgb._b = x;
     }
 
-    float m = y - ((T).3f * rgb._r + (T).59f * rgb._g + (T)0.11f * rgb._b);
+    T m = y - ((T).3 * rgb._r + (T).59 * rgb._g + (T)0.11 * rgb._b);
 
     rgb._r += m;
     rgb._g += m;
@@ -565,7 +565,7 @@ namespace Comp {
     HSYColorT c2;
     c2._h = c._h;
     c2._s = max(r, max(g, b)) - min(r, min(g, b));
-    c2._y = 0.30f * r + 0.59f * g + 0.11f * b;
+    c2._y = (T)0.30 * r + (T)0.59 * g + (T)0.11 * b;
 
     return c2;
   }

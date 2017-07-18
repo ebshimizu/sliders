@@ -119,11 +119,11 @@ namespace Comp {
     T Da = params[2];
     T Sa = params[3];
 
-    if (Da == 0)
+    if (Da == (T)0)
       return { Sc };
 
-    T light = Dc + 2 * Sc - 1;
-    return { light * Sa + Dc * (1 - Sa) };
+    T light = Dc + (T)2 * Sc - (T)1;
+    return { light * Sa + Dc * ((T)1 - Sa) };
   }
 
   template<class T>
@@ -153,7 +153,7 @@ namespace Comp {
     T Da = params[6];
     T Sa = params[7];
 
-    if (Da == 0) {
+    if (Da == (T)0) {
       src._r *= Sa;
       src._g *= Sa;
       src._b *= Sa;
@@ -161,7 +161,7 @@ namespace Comp {
       return { src._r, src._g, src._b };
     }
 
-    if (Sa == 0) {
+    if (Sa == (T)0) {
       dest._r *= Da;
       dest._g *= Da;
       dest._b *= Da;
@@ -178,9 +178,9 @@ namespace Comp {
     Utils<T>::RGBColorT res = Utils<T>::HSYToRGB(dc);
 
     // actually have to blend here...
-    res._r = res._r * Sa + dest._r * Da * (1 - Sa);
-    res._g = res._g * Sa + dest._g * Da * (1 - Sa);
-    res._b = res._b * Sa + dest._b * Da * (1 - Sa);
+    res._r = res._r * Sa + dest._r * Da * ((T)1 - Sa);
+    res._g = res._g * Sa + dest._g * Da * ((T)1 - Sa);
+    res._b = res._b * Sa + dest._b * Da * ((T)1 - Sa);
 
     return { res._r, res._g, res._b };
   }
@@ -417,15 +417,15 @@ namespace Comp {
 
   template<class T>
   T colorBalance(T px, T shadow, T mid, T high) {
-    T a = 0.25f;
-    T b = 0.333f;
-    T scale = 0.7f;
+    T a = (T)0.25;
+    T b = (T)0.333;
+    T scale = (T)0.7;
 
-    T s = shadow * (clamp<T>((px - b) / -a + 0.5f, 0, 1.0f) * scale);
-    T m = mid * (clamp<T>((px - b) / a + 0.5f, 0, 1.0f) * clamp<T>((px + b - 1.0f) / -a + 0.5f, 0, 1.0f) * scale);
-    T h = high * (clamp<T>((px + b - 1.0f) / a + 0.5f, 0, 1.0f) * scale);
+    T s = shadow * (clamp<T>((px - b) / -a + (T)0.5f, (T)0, (T)1.0f) * scale);
+    T m = mid * (clamp<T>((px - b) / a + (T)0.5f, (T)0, (T)1.0f) * clamp<T>((px + b - (T)1.0f) / -a + (T)0.5f, (T)0, (T)1.0f) * scale);
+    T h = high * (clamp<T>((px + b - (T)1.0f) / a + (T)0.5f, (T)0, (T)1.0f) * scale);
 
-    return clamp<T>(px + s + m + h, 0, 1.0);
+    return clamp<T>(px + s + m + h, (T)0, (T)1.0);
   }
 
   template<class T>
@@ -436,20 +436,20 @@ namespace Comp {
     adjPx._b = params[2];
 
     Utils<T>::RGBColorT balanced;
-    balanced._r = colorBalance(adjPx._r, (params[3] - 0.5) * 2, (params[6] - 0.5) * 2, (params[9] - 0.5) * 2);
-    balanced._g = colorBalance(adjPx._g, (params[4] - 0.5) * 2, (params[7] - 0.5) * 2, (params[10] - 0.5) * 2);
-    balanced._b = colorBalance(adjPx._b, (params[5] - 0.5) * 2, (params[8] - 0.5) * 2, (params[11] - 0.5) * 2);
+    balanced._r = colorBalance(adjPx._r, (params[3] - (T)0.5) * (T)2, (params[6] - (T)0.5) * (T)2, (params[9] - (T)0.5) * (T)2);
+    balanced._g = colorBalance(adjPx._g, (params[4] - (T)0.5) * (T)2, (params[7] - (T)0.5) * (T)2, (params[10] - (T)0.5) * (T)2);
+    balanced._b = colorBalance(adjPx._b, (params[5] - (T)0.5) * (T)2, (params[8] - (T)0.5) * (T)2, (params[11] - (T)0.5) * (T)2);
 
     // assume preserve luma true
     //if (adj["preserveLuma"] > 0) {
     Utils<T>::HSLColorT l = Utils<T>::RGBToHSL(balanced);
-    T originalLuma = 0.5f * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
+    T originalLuma = (T)0.5 * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
     balanced = Utils<T>::HSLToRGB(l._h, l._s, originalLuma);
     //}
 
-    adjPx._r = clamp<T>(balanced._r, 0, 1);
-    adjPx._g = clamp<T>(balanced._g, 0, 1);
-    adjPx._b = clamp<T>(balanced._b, 0, 1);
+    adjPx._r = clamp<T>(balanced._r, (T)0, (T)1);
+    adjPx._g = clamp<T>(balanced._g, (T)0, (T)1);
+    adjPx._b = clamp<T>(balanced._b, (T)0, (T)1);
 
     return { adjPx._r, adjPx._g, adjPx._b };
   }

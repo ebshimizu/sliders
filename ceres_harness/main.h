@@ -66,7 +66,7 @@ public:
   void goFromConfig(string file);
 
   void setupOptimizer(string loadFrom, string saveTo);
-  double runOptimizerOnce();
+  double runOptimizerOnce(bool printCeres = false);
 
   // evaluates the problem objective function once and outputs a file
   // containing the same input scene with a score field
@@ -207,7 +207,7 @@ private:
   vector<PopElem> select(vector<PopElem>& pop, vector<PopElem>& arc);
 
   // mutate and recombine the mating pool to make a new population
-  vector<PopElem> reproducePop(vector<PopElem>& mate);
+  vector<PopElem> reproducePop(vector<PopElem>& mate, vector<PopElem>& elite);
 
   // run ceres on the population
   void optimizePop(vector<PopElem>& pop);
@@ -258,6 +258,10 @@ private:
   // if true will run ceres on every population element before doing fitness calculations
   bool _optimizeBeforeFitness;
 
+  // if true, then crossovers will only happen between the archive and the selected
+  // element in the population.
+  bool _elitistRepro;
+
   // maximum iteration time
   int _maxIters;
 
@@ -288,6 +292,10 @@ private:
   // will dump every generation of the resultsto json files
   // exports the population and the archive separately
   bool _exportPopulations;
+
+  // dumps each generation of the archive to json files
+  // less data than export populations
+  bool _exportArchives;
 
   vector<PopElem> _finalArc;
   vector<PopElem> _finalPop;

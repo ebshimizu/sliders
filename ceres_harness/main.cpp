@@ -1034,6 +1034,8 @@ void Evo::init()
 
 void Evo::run()
 {
+  chrono::high_resolution_clock::time_point start = chrono::high_resolution_clock::now();
+
   if (_searchRunning) {
     cout << "Stop search before calling run again.\n";
     return;
@@ -1108,7 +1110,7 @@ void Evo::run()
     _t++;
   }
 
-  if (_optimizeBeforeFitness) {
+  if (_optimizeBeforeFitness || _optimizeFinal) {
     // final optimization run
     optimizePop(pop);
   }
@@ -1120,6 +1122,18 @@ void Evo::run()
   // this time we just want to get the best ceres scored things
   _finalArc = getBestCeresScores(pop);
   _finalPop = pop;
+
+  chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
+
+  double runtime = chrono::duration_cast<chrono::duration<double>>(end - start).count();
+
+  if (_logLevel <= ABSURD) {
+    _logData[_t]["duration"] = runtime;
+  }
+
+  if (_logLevel <= ALL) {
+    cout << "Runtime: " << runtime << "s\n";
+  }
 
   if (_logLevel <= ABSURD) {
     ofstream outFile(_parent->_outDir + "evo_log.json");
@@ -1166,6 +1180,10 @@ void Evo::updateSettings()
   _exportPopulations = false;
   _elitistRepro = false;
   _exportArchives = false;
+  _optimizeFinal = false;
+  _ceresRate = 0;
+  _optimizeArc = false;
+  _returnSize = 10;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1187,6 +1205,10 @@ void Evo::updateSettings()
     _exportPopulations = (localConfig.count("exportPopulations") > 0) ? localConfig["exportPopulations"] : _exportPopulations;
     _elitistRepro = (localConfig.count("elitistReproduction") > 0) ? localConfig["elitistReproduction"] : _elitistRepro;
     _exportArchives = (localConfig.count("exportArchives") > 0) ? localConfig["exportArchives"] : _exportArchives;
+    _optimizeFinal = (localConfig.count("optimizeFinal") > 0) ? localConfig["optimizeFinal"] : _optimizeFinal;
+    _ceresRate = (localConfig.count("ceresRate") > 0) ? localConfig["ceresRate"] : _ceresRate;
+    _optimizeArc = (localConfig.count("optimizeArc") > 0) ? localConfig["optimizeArc"] : _optimizeArc;
+    _returnSize = (localConfig.count("returnSize") > 0) ? localConfig["returnSize"] : _returnSize;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1555,6 +1577,18 @@ vector<PopElem> Evo::reproducePop(vector<PopElem>& mate, vector<PopElem>& elite)
       }
     }
 
+    // ceres happens after everything, if it happens
+    if (zeroOne(gen) < _ceresRate) {
+      if (_logLevel <= ALL) {
+        cout << " Ceres";
+      }
+
+      // optimize the thing
+      _parent->_allParams = p1._g;
+      _parent->runOptimizerOnce(_logLevel <= ABSURD);
+      p1._g = _parent->_allParams;
+    }
+
     if (_logLevel <= ALL)
       cout << endl;
 
@@ -1593,8 +1627,15 @@ void Evo::updateOptimalSet(vector<PopElem>& arc, vector<PopElem>& pop)
   sort(pop.begin(), pop.end());
 
   for (int i = 0; i < _arcSize; i++) {
+    if (_optimizeArc) {
+      _parent->_allParams = pop[i]._g;
+      _parent->runOptimizerOnce(_logLevel <= ABSURD);
+      pop[i]._g = _parent->_allParams;
+    }
+
     arc.push_back(pop[i]);
   }
+
 }
 
 void Evo::exportPopElems(string prefix, vector<PopElem>& x)
@@ -1618,7 +1659,7 @@ vector<PopElem> Evo::getBestCeresScores(vector<PopElem>& pop)
   sort(pop.begin(), pop.end());
 
   vector<PopElem> ret;
-  for (int i = 0; i < _arcSize; i++) {
+  for (int i = 0; i < _returnSize; i++) {
     ret.push_back(pop[i]);
   }
 

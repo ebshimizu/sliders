@@ -15,7 +15,7 @@ def plot(input, output):
 	fitAvg = []
 	gen = []
 
-	for x in range(0, len(data)):
+	for x in range(0, len(data) - 1):
 		# analyze objectives [0] (should usually always be the ceres data)
 		ceresObj = []
 

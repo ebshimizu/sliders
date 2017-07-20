@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <fstream>
 #include <random>
+#include <chrono>
 
 #include "ceres/ceres.h"
 #include "glog/logging.h"
@@ -296,6 +297,19 @@ private:
   // dumps each generation of the archive to json files
   // less data than export populations
   bool _exportArchives;
+
+  // run an optimization pass on the final elements
+  // can be used independently of _optimizeBeforeFitness
+  bool _optimizeFinal;
+
+  // chance that ceres will be run as a mutation
+  double _ceresRate;
+
+  // optimizes the archive when updating the optimal set
+  bool _optimizeArc;
+
+  // number of results to return in the end
+  int _returnSize;
 
   vector<PopElem> _finalArc;
   vector<PopElem> _finalPop;

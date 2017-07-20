@@ -119,6 +119,9 @@ const g_constraintModesStrings = {
     4: "Hue and Saturation"
 }
 
+// Search settings are shared between instances of the app for now
+var g_ceresSettings;
+
 /*===========================================================================*/
 /* Recurring Events                                                         */
 /*===========================================================================*/
@@ -174,6 +177,16 @@ function init() {
     initCompositor();
     initUI();
     loadSettings();
+
+    // load ceres settings
+    fs.readFile('./codegen/ceres_settings.json', function (err, data) {
+        if (err) {
+            throw err;
+        }
+
+        g_ceresSettings = JSON.parse(data);
+        updateCeresSettings();
+    });
 }
 
 // initialize and rebind events for the compositor. Should always be called
@@ -349,8 +362,8 @@ function initUI() {
     $('#samplesTabs .item').tab();
 
     $('#useVisibleLayersOnly').checkbox({
-        onChecked: () => { settings.search.useVisibleLayersOnly = 1; },
-        onUnchecked: () => { settings.search.useVisibleLayersOnly = 0; }
+        onChecked: function() { settings.search.useVisibleLayersOnly = 1; },
+        onUnchecked: function() { settings.search.useVisibleLayersOnly = 0; }
     });
 
     $('#modifyLayerBlendModes').checkbox({
@@ -364,7 +377,16 @@ function initUI() {
             settings.search.mode = parseInt(value);
             $('#searchModeSelector .text').html(text);
         }
-    })
+    });
+
+    $('.ceresBool').checkbox({
+        onChecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = true; },
+        onUnchecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = false; }
+    });
+
+    $('.ceresNum input').change(function () {
+        g_ceresSettings["evo"][$(this).parent('.ceresNum').attr('param')] = parseFloat($(this).val());
+    });
 
     // sample event bindings
     $('#sampleWrapper').on('mouseover', '.sample', function () {
@@ -626,6 +648,30 @@ function loadSettings() {
     else {
         $('#metadataDisplay').dropdown('set selected', 'score');
     }
+}
+
+function updateCeresSettings() {
+    // updates ui elements with current values stored in the ceres settings object
+    // this object gets written to disk before running a ceres search.
+    $('#genReturnSize input').val(g_ceresSettings["evo"]["returnSize"]);
+    $('#genIters input').val(g_ceresSettings["evo"]["maxIters"]);
+    $('#genPopSize input').val(g_ceresSettings["evo"]["popSize"]);
+    $('#genPoolSize input').val(g_ceresSettings["evo"]["poolSize"]);
+    $('#genArcSize input').val(g_ceresSettings["evo"]["archiveSize"]);
+    $('#genK input').val(g_ceresSettings["evo"]["selectK"]);
+    $('#genMutation input').val(g_ceresSettings["evo"]["mutationRate"]);
+    $('#genCrossover input').val(g_ceresSettings["evo"]["crossoverRate"]);
+    $('#genCrossoverChance input').val(g_ceresSettings["evo"]["crossoverChance"]);
+    $('#genCeresRate input').val(g_ceresSettings["evo"]["ceresRate"]);
+
+
+    $('#genIncludeStart').checkbox(g_ceresSettings["evo"]["includeStartConfig"] ? 'set checked' : 'set unchecked');
+    $('#genOptimizeFitness').checkbox(g_ceresSettings["evo"]["optimizeBeforeFitness"] ? 'set checked' : 'set unchecked');
+    $('#genElitist').checkbox(g_ceresSettings["evo"]["elitistReproduction"] ? 'set checked' : 'set unchecked');
+    $('#genOptimizeFinal').checkbox(g_ceresSettings["evo"]["optimizeFinal"] ? 'set checked' : 'set unchecked');
+    $('#genOptimizeArc').checkbox(g_ceresSettings["evo"]["optimizeArc"] ? 'set checked' : 'set unchecked');
+    $('#genExportArc').checkbox(g_ceresSettings["evo"]["exportArchives"] ? 'set checked' : 'set unchecked');
+    $('#genExportPopulations').checkbox(g_ceresSettings["evo"]["exportPopulations"] ? 'set checked' : 'set unchecked');
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used

@@ -336,7 +336,191 @@
                                 </div>
                                 <div class="content">
                                     <div class="header">Allow Blend Mode Changes</div>
-                                    <div class="description">Allow/disallow layer blend mode changes during sampling.</div>
+                                    <div class="description">Ignored for Generational Ceres.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genReturnSize" param="returnSize">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Return Size</div>
+                                    <div class="description">Number of results to display.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genIters" param="maxIters">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Maximum Iterations</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genPopSize" param="popSize">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Population Size</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genPoolSize" param="poolSize">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Reproduction Pool Size</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genArcSize" param="archiveSize">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Archive Size</div>
+                                    <div class="description">The Archive stores the best elements found.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genK" param="selectK">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">K</div>
+                                    <div class="description">Expected number of instances of the fittest element in the reproduction pool.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genMutation" param="mutationRate">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Mutation Rate</div>
+                                    <div class="description">Chance that a parameter gets mutated.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genCrossover" param="crossoverRate">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Crossover Rate</div>
+                                    <div class="description">Chance that a crossover happens.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genCrossoverChance" param="crossoverChance">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Crossover Chance</div>
+                                    <div class="description">Chance that a parameter gets crossed over.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input ceresNum" id="genCeresRate" param="ceresRate">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Ceres Rate</div>
+                                    <div class="description">Chance that an element gets optimized.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genIncludeStart" param="includeStartConfig">
+                                        <input type="checkbox" name="includeStartConfig" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Include Start Config</div>
+                                    <div class="description">Include the initial config in generation 0.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genOptimizeFitness" param="optimizeBeforeFitness">
+                                        <input type="checkbox" name="optimizeBeforeFitness" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Optimize Before Fitness</div>
+                                    <div class="description">Run Ceres on population before computing fitness.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genElitist" param="elitistReproduction">
+                                        <input type="checkbox" name="elitistReproduction" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Elitist Reproduction</div>
+                                    <div class="description">Only allow crossover with the Archive.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genOptimizeFinal" param="optimizeFinal">
+                                        <input type="checkbox" name="optimizeFinal" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Optimize Final Population</div>
+                                    <div class="description">Optimize the final population before returning.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genOptimizeArc" param="optimizeArc">
+                                        <input type="checkbox" name="optimizeArc" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Optimize Archive</div>
+                                    <div class="description">Optimize just the Archive before computing fitness.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genExportArc" param="exportArchives">
+                                        <input type="checkbox" name="exportArchives" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Export Archive</div>
+                                    <div class="description">Export the archive at each generation to disk.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle fitted checkbox ceresBool" id="genExportPopulations" param="exportPopulations">
+                                        <input type="checkbox" name="exportPopulations" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Export Population</div>
+                                    <div class="description">Export each generation to disk.</div>
                                 </div>
                             </div>
                         </div>

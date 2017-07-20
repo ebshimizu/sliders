@@ -28,6 +28,7 @@ var g_sideboard = {};
 var g_sideboardID = 100001;        // note: this is a huge hack to remove ID conflicts
 var g_sideboardReserveStart = 100000;
 var maxThreads = comp.hardware_concurrency();
+var g_searchProcess;
 var settings = {
     "showSampleId" : true,
     "sampleRows" : 6,
@@ -108,7 +109,7 @@ const searchModeStrings = {
     1: "Random",
     2: "Directed Random",
     3: "MCMC",
-    4: "Non-Linear Least Squares"
+    4: "Generational Ceres"
 }
 
 const g_constraintModesStrings = {
@@ -2958,7 +2959,7 @@ function initSearch() {
     g_sampleIndex = {};
     sampleId = 0;
     $('#sampleWrapper').empty();
-    $('#sideboardWrapper').empty();
+    //$('#sideboardWrapper').empty();
 }
 
 function runSearch(elem) {
@@ -2973,7 +2974,13 @@ function runSearch(elem) {
         $(elem).addClass("red");
         $(elem).html("Stop Search");
         initSearch();
-        c.startSearch(settings.search.mode, settings.search, settings.sampleThreads, settings.sampleRenderSize);
+
+        if (settings.search.mode === 4) {
+            ceresAll();
+        }
+        else {
+            c.startSearch(settings.search.mode, settings.search, settings.sampleThreads, settings.sampleRenderSize);
+        }
         console.log("Search started");
     }
     else {
@@ -2982,16 +2989,23 @@ function runSearch(elem) {
         showStatusMsg("", "", "Stopping Search");
         $(elem).addClass("disabled");
 
-        // this blocks, may want some indication that it is working, loading sign for instance
-        // in fact, this function should be async with a callback to indicate completion.
-        c.stopSearch(err => {
+        if (settings.search.mode === 4) {
+            g_searchProcess.kill();
             $(elem).removeClass("red");
             $(elem).removeClass("disabled");
             $(elem).addClass("green");
             $(elem).html("Start Search");
             showStatusMsg("", "OK", "Search Stopped");
-            console.log("Search stopped");
-        });
+        }
+        else {
+            c.stopSearch(err => {
+                $(elem).removeClass("red");
+                $(elem).removeClass("disabled");
+                $(elem).addClass("green");
+                $(elem).html("Start Search");
+                showStatusMsg("", "OK", "Search Stopped");
+            });
+        }
     }
 }
 
@@ -3404,20 +3418,7 @@ g_ceresDebugPtIndex = 0;
 function ceresAll() {
     sendToCeres();
 
-    // specialized run ceres function
-    runCeres((error, stdout, stderr) => {
-        console.log(stderr);
-        console.log(stdout);
-
-        if (error) {
-            showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
-            console.log(error);
-        }
-        else {
-            showStatusMsg("Output results to ./ceresOut", "OK", "Ceres Execution Complete");
-            //importFromCeres();
-        }
-    });
+    runCeres();
 }
 
 function generateCeresCode() {
@@ -3474,26 +3475,27 @@ function runCeres(callback) {
     fs.emptyDirSync("./ceresOut");
 
     // invokes the ceres command line application
-    var cmd = '"../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe" config ./codegen/ceres_settings.json';
+    var cmd = '../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe';
 
     if (callback === undefined) {
-        callback = (error, stdout, stderr) => {
-            console.log(stderr);
-            console.log(stdout);
+        callback = (code) => {
+            showStatusMsg("Ceres process finished running. Check console for errors.", "OK", "Ceres Execution Complete");
 
-            if (error) {
-                showStatusMsg("Check console log for details.", "ERROR", "Ceres Execution Failure");
-                console.log(error);
-            }
-            else {
-                showStatusMsg("Output results to ./codegen/ceres_result.json", "OK", "Ceres Execution Complete");
-            }
+            var elem = $('#runSearchBtn');
+            elem.removeClass("red");
+            elem.removeClass("disabled");
+            elem.addClass("green");
+            elem.html("Start Search");
         };
     }
 
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
-    child_process.exec(cmd, { "maxBuffer": 1000 * 1024 }, callback);
+    g_searchProcess = child_process.spawn(cmd, ['config', './codegen/ceres_settings.json']);
+
+    g_searchProcess.stdout.on('data', (data) => { console.log(`${data}`); });
+    g_searchProcess.stderr.on('data', (data) => { console.log(`stderr: ${data}`); });
+    g_searchProcess.on('close', callback);
 }
 
 function ceresEval() {

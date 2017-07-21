@@ -255,7 +255,7 @@ body .ui.basic.modal p {
 	left: 25%;
 	height: 75px;
 	padding: 10px;
-	background-color: #cdcdcd;
+	background-color: #e8e8e8;
 	border-radius: 3px;
 }
 
@@ -338,7 +338,8 @@ body .ui.basic.modal p {
 
 #sampleContainer #samples #sampleWrapper,
 #sampleContainer #samples #sideboardWrapper {
-    overflow-y: auto;
+    overflow-y: scroll;
+    overflow-x: hidden;
     max-height: calc(100% - 2px);
     display: flex;
     margin-top: 0;
@@ -389,7 +390,8 @@ body .ui.basic.modal p {
 }
 
 #sampleContainer .card {
-	background-color: #1b1c1d;
+    background-color: #1b1c1d;
+    margin: 10px;
 }
 
 #sampleContainer.noIds .sampleId {

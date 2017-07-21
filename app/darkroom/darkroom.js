@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.25;
+const saveVersion = 0.26;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -201,6 +201,19 @@ function initCompositor() {
 
 // binds common events and sets up things in general
 function initUI() {
+    // isotope
+    $('#sampleWrapper').isotope({
+        itemSelector: '.sample',
+        getSortData: {
+            id: '[sampleid]',
+            score: '.label[metadata-key="score"]',
+            filename: '.label[metadata-key="filename"]'
+        },
+        sortBy: 'id',
+        layoutMode: 'fitRows',
+        percentPosition: true
+    });
+
     // menu commands
     $("#renderCmd").on("click", function () {
         renderImage("#renderCmd click callback");
@@ -320,8 +333,17 @@ function initUI() {
             settings.sampleRows = parseInt(text);
             $('#sampleWrapper').removeClass("one two three four five six seven eight nine ten");
             $('#sampleWrapper').addClass(value);
+            $('#sampleWrapper').isotope(); // relayout
             $('#sideboardWrapper').removeClass("one two three four five six seven eight nine ten");
             $('#sideboardWrapper').addClass(value);
+        }
+    });
+
+    $('#sortMode').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            settings.sampleSortMode = value;
+            $('#sampleWrapper').isotope({ sortBy: value });
         }
     });
 
@@ -655,6 +677,14 @@ function loadSettings() {
     }
     else {
         $('#metadataDisplay').dropdown('set selected', 'score');
+    }
+
+    // added: 0.26
+    if ('sampleSortMode' in settings) {
+        $('#sortMode').dropdown('set selected', settings.sampleSortMode);
+    }
+    else {
+        $('#sortMode').dropdown('set selected', 'id');
     }
 }
 
@@ -3094,7 +3124,8 @@ function processNewSample(img, ctx, meta, force) {
     // eventually we will need references to each context element in order
     // to render the images at full size
     g_sampleIndex[sampleId] = { "img" : img, "context" : ctx, "meta" : meta };
-    $('#sampleContainer #sampleWrapper').append(createSampleContainer(img, sampleId, meta));
+    var elem = $(createSampleContainer(img, sampleId, meta));
+    $('#sampleWrapper').append(elem).isotope('appended', elem).isotope();
 
     // bind the dimmer
     $('#sampleContainer .sample[sampleId="' + sampleId + '"] .image').dimmer({

@@ -8,6 +8,7 @@
 
         <script type="text/javascript" src="assets/js/jquery-3.1.1.min.js"></script>
         <script src="assets/semantic/dist/semantic.min.js"></script>
+        <script type="text/javascript" src="assets/js/isotope.pkgd.min.js"></script>
         <script type="text/javascript" src="assets/js/jquery-ui.min.js"></script>
         <script type="text/javascript" src="assets/js/jQueryColorPicker.min.js"></script>
         <script type="text/javascript" src="darkroom.js"></script>
@@ -192,6 +193,23 @@
                                     <div class="item" data-value="eight">8</div>
                                     <div class="item" data-value="nine">9</div>
                                     <div class="item" data-value="ten">10</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui row">
+                        <div class="ui column">
+                            Sort
+                        </div>
+                        <div class="ui column">
+                            <div class="ui selection fluid dropdown" id="sortMode">
+                                <input type="hidden" name="Sort Mode">
+                                <i class="dropdown icon"></i>
+                                <div class="default text">Sort</div>
+                                <div class="menu">
+                                    <div class="item" data-value="id">ID</div>
+                                    <div class="item" data-value="score">Score</div>
+                                    <div class="item" data-value="filename">Filename</div>
                                 </div>
                             </div>
                         </div>
@@ -629,7 +647,7 @@
         <!-- END SAMPLE CONTROLS -->
         <!-- MESSAGES AND MISC CONTROLS -->
         <div id="status" class="transition hidden">
-            <div class="ui blue indicating progress">
+            <div class="ui indicating progress">
               <div class="bar">
                 <div class="progress"></div>
               </div>

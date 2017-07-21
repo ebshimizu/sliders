@@ -3529,6 +3529,10 @@ function runCeres(callback) {
     // access problems and crashes if an existing file is updated
     fs.emptyDirSync("./ceresOut");
 
+    // write the settings file
+    showStatusMsg("", "INFO", "Writing Ceres Settings File");
+    fs.writeFileSync("./codegen/ceres_settings.json", JSON.stringify(g_ceresSettings, null, 2));
+
     // invokes the ceres command line application
     var cmd = '../../ceres_harness/x64/' + settings.ceresConfig + '/ceresHarness.exe';
 
@@ -3542,7 +3546,8 @@ function runCeres(callback) {
             elem.removeClass("disabled");
             elem.addClass("green");
             elem.html("Start Search");
-            $('#status').transition('fade');
+
+            setTimeout(() => { $('#status').transition('fade'); }, 5000);
         };
     }
 
@@ -3551,8 +3556,7 @@ function runCeres(callback) {
     $('#status .progress').progress({
         total: g_ceresSettings.evo.maxIters + 1,
         text: {
-            active: 'Iteration {value} of {total}',
-            success: 'Optimization Complete'
+            success: 'Search Complete'
         }
     });
     $('#status .progress').progress('update progress', 0);
@@ -3566,6 +3570,7 @@ function runCeres(callback) {
         var match = logLine.match(/Generation (\d+)/);
         if (match) {
             $('#status .progress').progress('update progress', parseInt(match[1]) + 1);
+            $('#status .progress').progress('set label', 'Iteration ' + (parseInt(match[1]) + 1) + ' of ' + g_ceresSettings.evo.maxIters);
         }
         console.log(logLine);
     });

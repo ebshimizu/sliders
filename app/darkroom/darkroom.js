@@ -238,7 +238,7 @@ function initUI() {
     $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
     $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
     $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
-    $('#clearSamples').click(() => { $('#sampleWrapper').empty(); sampleId = 0; });
+    $('#clearSamples').click(() => { $('#sampleWrapper').empty().isotope(); sampleId = 0; });
     $('#extractConstraints').click(() => { extractConstraints(); });
     $('#ceresEval').click(() => { ceresEval(); });
     $('#computeError').click(() => { computeError(); });

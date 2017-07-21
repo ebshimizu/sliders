@@ -1051,7 +1051,7 @@ void Evo::run()
 
   // for now we just have a max iteration termination criteria, this may change later
   while (_t < _maxIters) {
-    if (_logLevel <= EvoLogLevel::INFO) {
+    if (_logLevel <= EvoLogLevel::CRITICAL) {
       cout << "Generation " << _t << "\n";
       cout << "================================================================\n";
     }

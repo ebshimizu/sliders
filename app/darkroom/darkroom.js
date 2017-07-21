@@ -3534,21 +3534,42 @@ function runCeres(callback) {
 
     if (callback === undefined) {
         callback = (code) => {
-            showStatusMsg("Ceres process finished running. Check console for errors.", "OK", "Ceres Execution Complete");
+            //showStatusMsg("Ceres process finished running. Check console for errors.", "OK", "Ceres Execution Complete");
+            $('#status .progress').progress('update progress', g_ceresSettings.evo.maxIters + 1);
 
             var elem = $('#runSearchBtn');
             elem.removeClass("red");
             elem.removeClass("disabled");
             elem.addClass("green");
             elem.html("Start Search");
+            $('#status').transition('fade');
         };
     }
 
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
+    $('#status .progress').progress({
+        total: g_ceresSettings.evo.maxIters + 1,
+        text: {
+            active: 'Iteration {value} of {total}',
+            success: 'Optimization Complete'
+        }
+    });
+    $('#status .progress').progress('update progress', 0);
+
+    $('#status').transition('fade');
+
     g_searchProcess = child_process.spawn(cmd, ['config', './codegen/ceres_settings.json']);
 
-    g_searchProcess.stdout.on('data', (data) => { console.log(`${data}`); });
+    g_searchProcess.stdout.on('data', function (data) {
+        var logLine = `${data}`;
+        var match = logLine.match(/Generation (\d+)/);
+        if (match) {
+            $('#status .progress').progress('update progress', parseInt(match[1]) + 1);
+        }
+        console.log(logLine);
+    });
+
     g_searchProcess.stderr.on('data', (data) => { console.log(`stderr: ${data}`); });
     g_searchProcess.on('close', callback);
 }

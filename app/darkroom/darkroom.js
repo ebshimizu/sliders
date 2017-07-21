@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.26;
+const saveVersion = 0.27;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -242,6 +242,7 @@ function initUI() {
     $('#extractConstraints').click(() => { extractConstraints(); });
     $('#ceresEval').click(() => { ceresEval(); });
     $('#computeError').click(() => { computeError(); });
+    $('#deleteAllConstraints').click(() => { deleteAllDebugConstraints(); });
 
     // render size options
     $('#renderSize a.item').click(function () {
@@ -2174,6 +2175,19 @@ function loadLayers(doc, path) {
 
         $('#constraintLayerMenu .text').html(g_activeConstraintLayer);
     }
+
+    // load constraints
+    // added: 0.27
+    if (doc.constraints !== undefined) {
+        console.log("Loading constraints")
+
+        // a bit redundant but calling the functions to add constraints as if they
+        // were just created from the native layer also handles UI creation
+        for (cid in doc.constraints) {
+            var constraint = doc.constraints[cid]
+            addDebugConstraint(constraint.x, constraint.y, constraint.color, constraint.weight);
+        }
+    }
 }
 
 // saves the document in an easier to load format
@@ -2231,6 +2245,9 @@ function save(file) {
     out.mask.pathIndex = g_pathIndex;
     out.mask.constraintLayers = g_constraintLayers;
     out.mask.activeConstraintLayer = g_activeConstraintLayer;
+
+    // constraints
+    out.constraints = g_ceresDebugConstraints;
 
     //settings
     out.settings = settings;

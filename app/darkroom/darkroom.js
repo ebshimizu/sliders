@@ -379,6 +379,14 @@ function initUI() {
         }
     });
 
+    $('#genLogLevel').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            g_ceresSettings.evo.logLevel = parseInt(value) - 1;
+            $('#genLogLevel .text').html(text);
+        }
+    });
+
     $('.ceresBool').checkbox({
         onChecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = true; },
         onUnchecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = false; }
@@ -664,7 +672,6 @@ function updateCeresSettings() {
     $('#genCrossoverChance input').val(g_ceresSettings["evo"]["crossoverChance"]);
     $('#genCeresRate input').val(g_ceresSettings["evo"]["ceresRate"]);
 
-
     $('#genIncludeStart').checkbox(g_ceresSettings["evo"]["includeStartConfig"] ? 'set checked' : 'set unchecked');
     $('#genOptimizeFitness').checkbox(g_ceresSettings["evo"]["optimizeBeforeFitness"] ? 'set checked' : 'set unchecked');
     $('#genElitist').checkbox(g_ceresSettings["evo"]["elitistReproduction"] ? 'set checked' : 'set unchecked');
@@ -672,6 +679,8 @@ function updateCeresSettings() {
     $('#genOptimizeArc').checkbox(g_ceresSettings["evo"]["optimizeArc"] ? 'set checked' : 'set unchecked');
     $('#genExportArc').checkbox(g_ceresSettings["evo"]["exportArchives"] ? 'set checked' : 'set unchecked');
     $('#genExportPopulations').checkbox(g_ceresSettings["evo"]["exportPopulations"] ? 'set checked' : 'set unchecked');
+
+    $('#genLogLevel').dropdown('set selected', g_ceresSettings.evo.logLevel + 1);
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used

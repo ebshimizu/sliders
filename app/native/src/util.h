@@ -43,6 +43,8 @@ namespace Comp {
     COLORIZE = 8,         // special case of a particular action output. Colors a layer based on specified color and alpha like the COLOR blend mode
     LIGHTER_COLORIZE = 9, // also a special case like colorize but this does the Lighter Color blend mode
     OVERWRITE_COLOR = 10, // also a special case. literally just replaces the layer with this solid color
+    INVERT = 11,          // inverts the current composition, no parameters, key just needs to exist
+    BRIGHTNESS = 12,      // also contrast. params: brightness, contrast, both [-1, 1]
     OPACITY = 1000        // special category for indicating layer opacity param, used in data transfer
   };
 

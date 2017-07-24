@@ -330,6 +330,8 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "overwriteColor", overwriteColor);
   Nan::SetPrototypeMethod(tpl, "isAdjustmentLayer", isAdjustmentLayer);
   Nan::SetPrototypeMethod(tpl, "selectiveColorChannel", selectiveColorChannel);
+  Nan::SetPrototypeMethod(tpl, "addInvertAdjustment", addInvertAdjustment);
+  Nan::SetPrototypeMethod(tpl, "brightnessContrast", brightnessContrast);
   Nan::SetPrototypeMethod(tpl, "resetImage", resetImage);
   Nan::SetPrototypeMethod(tpl, "type", type);
 
@@ -1018,6 +1020,40 @@ void LayerRef::overwriteColor(const Nan::FunctionCallbackInfo<v8::Value>& info)
     // set value
     layer->_layer->addOverwriteColorAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue(),
       (float)info[2]->NumberValue(), (float)info[3]->NumberValue());
+  }
+}
+
+void LayerRef::addInvertAdjustment(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.invertAdjustment");
+
+  layer->_layer->addInvertAdjustment();
+}
+
+void LayerRef::brightnessContrast(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // check if getting status or not
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.brightnessContrast");
+
+  if (info.Length() == 0) {
+    // status
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    map<string, float> adj = layer->_layer->getAdjustment(Comp::AdjustmentType::BRIGHTNESS);
+    ret->Set(Nan::New("brightness").ToLocalChecked(), Nan::New(adj["brightness"]));
+    ret->Set(Nan::New("contrast").ToLocalChecked(), Nan::New(adj["contrast"]));
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    if (!info[0]->IsNumber() || !info[1]->IsNumber()) {
+      Nan::ThrowError("brightnessContrast(float, float) argument error.");
+    }
+
+    // set value
+    layer->_layer->addBrightnessAdjustment((float)info[0]->NumberValue(), (float)info[1]->NumberValue());
   }
 }
 

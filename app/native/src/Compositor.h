@@ -283,6 +283,18 @@ namespace Comp {
     template <typename T>
     inline void overwriteColorAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
 
+    // invert
+    inline void invertAdjust(Image* adjLayer);
+
+    template<typename T>
+    inline void invertAdjustT(typename Utils<T>::RGBAColorT& adjPx);
+
+    // brightness/contrast
+    inline void brightnessAdjust(Image* adjLayer, map<string, float> adj);
+
+    template <typename T>
+    inline void brightnessAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+
     // compositing order for layers
     vector<string> _layerOrder;
 
@@ -1206,6 +1218,30 @@ namespace Comp {
     adjPx._b = clamp<T>(sb * a + adjPx._b * (1 - a), 0, 1);
   }
 
+  template<typename T>
+  inline void Compositor::invertAdjustT(typename Utils<T>::RGBAColorT & adjPx)
+  {
+    adjPx._r = ((T)1 - adjPx._r);
+    adjPx._g = ((T)1 - adjPx._g);
+    adjPx._b = ((T)1 - adjPx._b);
+  }
+
+  // simplistic contrast / brightness approach, likely very similar to the "legacy" option in photoshop
+  template<typename T>
+  inline void Compositor::brightnessAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  {
+    // rescale adjustments to [-1, 1] from [0, 1]
+    T c = adj["contrast"] * (T)2 - (T)1;
+    T b = adj["brightness"] * (T)2 - (T)1;
+
+    // scale the adjustment value to a factor we can multiply the pixel value by
+    T factor = (((T)(1.01568)) * (c + (T)1)) / ((T)1.01568 - c);
+
+    adjPx._r = clamp<T>(factor * (adjPx._r - (T)0.5) + (T)0.5 + b, 0, 1);
+    adjPx._g = clamp<T>(factor * (adjPx._g - (T)0.5) + (T)0.5 + b, 0, 1);
+    adjPx._b = clamp<T>(factor * (adjPx._b - (T)0.5) + (T)0.5 + b, 0, 1);
+  }
+
   inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {
     vector<unsigned char>& img = adjLayer->getData();
 
@@ -1264,6 +1300,12 @@ namespace Comp {
       }
       else if (type == AdjustmentType::OVERWRITE_COLOR) {
         overwriteColorAdjust(comp, l._expAdjustments[type]);
+      }
+      else if (type == AdjustmentType::INVERT) {
+        invertAdjustT<ExpStep>(comp);
+      }
+      else if (type == AdjustmentType::BRIGHTNESS) {
+        brightnessAdjust(comp, l._expAdjustments[type]);
       }
     }
 

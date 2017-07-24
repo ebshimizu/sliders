@@ -975,6 +975,12 @@ namespace Comp {
       else if (type == AdjustmentType::OVERWRITE_COLOR) {
         overwriteColorAdjust(adjLayer, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::INVERT) {
+        invertAdjust(adjLayer);
+      }
+      else if (type == AdjustmentType::BRIGHTNESS) {
+        brightnessAdjust(adjLayer, l.getAdjustment(type));
+      }
     }
   }
 
@@ -1138,6 +1144,34 @@ namespace Comp {
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
       overwriteColorAdjust(adjPx, adj);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::invertAdjust(Image * adjLayer)
+  {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      invertAdjustT<float>(adjPx);
+
+      img[i * 4] = (unsigned char)(adjPx._r * 255);
+      img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
+      img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  inline void Compositor::brightnessAdjust(Image * adjLayer, map<string, float> adj)
+  {
+    vector<unsigned char>& img = adjLayer->getData();
+
+    for (int i = 0; i < img.size() / 4; i++) {
+      RGBAColor adjPx = adjLayer->getPixel(i);
+      brightnessAdjust(adjPx, adj);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);

@@ -304,6 +304,18 @@ namespace Comp {
     _adjustments[AdjustmentType::OVERWRITE_COLOR]["a"] = clamp<float>(a, 0, 1);
   }
 
+  void Layer::addInvertAdjustment()
+  {
+    // just add the key, there are no settings for this
+    _adjustments[AdjustmentType::INVERT]["on"] = 1;
+  }
+
+  void Layer::addBrightnessAdjustment(float b, float c)
+  {
+    _adjustments[AdjustmentType::BRIGHTNESS]["brightness"] = clamp<float>(b, 0, 1);
+    _adjustments[AdjustmentType::BRIGHTNESS]["contrast"] = clamp<float>(c, 0, 1);
+  }
+
   map<string, map<string, float>> Layer::getSelectiveColor()
   {
     return _selectiveColor;

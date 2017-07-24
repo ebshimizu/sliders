@@ -88,7 +88,9 @@ const adjType = {
     "PHOTO_FILTER" : 7,
     "COLORIZE" : 8,
     "LIGHTER_COLORIZE" : 9,
-    "OVERWRITE_COLOR" : 10
+    "OVERWRITE_COLOR": 10,
+    "INVERT": 11,
+    "BRIGHTNESS" : 12
 };
 
 const num2Str = {
@@ -824,7 +826,16 @@ function insertLayerElem(name, doc) {
             html += addColorSelector(name, "Overwrite Color");
             html += addSliders(name, "Overwrite Color", ["alpha"]);
             html += endParamSection(name, type);
-       }
+        }
+        else if (type === 11) {
+            html += startParamSection(name, "Invert");
+            html += endParamSection(name, type);
+        }
+        else if (type === 12) {
+            html += startParamSection(name, "Brightness and Contrast");
+            html += addSliders(name, "Brightness and Contrast", ["brightness", "contrast"]);
+            html += endParamSection(name, type);
+        }
     }
 
     html += '</div>';
@@ -1056,6 +1067,9 @@ function bindLayerEvents(name) {
         else if (type === 10) {
             bindOverwriteColorEvents(name, "Overwrite Color", layer);
         }
+        else if (type === 12) {
+            bindBrightnessEvents(name, "Brightness and Contrast", layer);
+        }
     }
 }
 
@@ -1222,6 +1236,13 @@ function bindOverwriteColorEvents(name, sectionName, layer) {
 
     bindLayerParamControl(name, layer, "alpha", layer.getAdjustment(adjType.OVERWRITE_COLOR).a, sectionName,
         { "range" : "min", "max" : 1, "min" : 0, "step" : 0.01, "uiHandler" : handleOverwriteColorizeParamChange });
+}
+
+function bindBrightnessEvents(name, sectionName, layer) {
+    bindLayerParamControl(name, layer, "brightness", (layer.getAdjustment(adjType.BRIGHTNESS).brightness - 0.5) * 2, sectionName,
+        { "range": false, "max": 1, "min": -1, "step": 0.01, "uiHandler": handleBrightnessParamChange });
+    bindLayerParamControl(name, layer, "contrast", (layer.getAdjustment(adjType.BRIGHTNESS).contrast - 0.5) * 2, sectionName,
+        { "range": false, "max": 1, "min": -1, "step": 0.01, "uiHandler": handleBrightnessParamChange });
 }
 
 function bindSelectiveColorEvents(name, sectionName, layer) {
@@ -1618,6 +1639,8 @@ function genAddAdjustmentButton(name) {
     b += '<div class="item" data-value="8">Colorize</div>';
     b += '<div class="item" data-value="9">Lighter Colorize</div>';
     b += '<div class="item" data-value="10">Overwrite Color</div>';
+    b += '<div class="item" data-value="11">Invert</div>';
+    b += '<div class="item" data-value="12">Brightness and Contrast</div>';
     b += '</div>';
     b += '</div>';
 
@@ -1655,6 +1678,12 @@ function addAdjustmentToLayer(name, adjType) {
     }
     else if (adjType === 10) {
         c.getLayer(name).overwriteColor(1, 1, 1, 1);
+    }
+    else if (adjType === 11) {
+        c.getLayer(name).addInvertAdjustment();
+    }
+    else if (adjType === 12) {
+        c.getLayer(name).brightnessContrast(0.5, 0.5);
     }
 }
 
@@ -1852,6 +1881,13 @@ function importLayers(doc, path) {
                 metadata[group].adjustments.push("OVERWRITE_COLOR");
             }
         }
+        else if (type === "LayerKind.INVERSION") {
+            metadata[group].adjustments.push("INVERT");
+        }
+        else if (type === "LayerKind.BRIGHTNESSCONTRAST") {
+            metadata[group].adjustments.push("BRIGHTNESS");
+            metadata[group].BRIGHTNESS = layer.adjustment;
+        }
 
         console.log("Pre-processed layer " + layerName + " of type " + layer.kind);
     }
@@ -2005,6 +2041,16 @@ function importLayers(doc, path) {
             }
             else if (type === "OVERWRITE_COLOR") {
                 c.getLayer(layerName).overwriteColor(1, 1, 1, 0);
+            }
+            else if (type === "INVERT") {
+                // no settings are used for invert
+                c.getLayer(layerName).addInvertAdjustment();
+            }
+            else if (type === "BRIGHTNESS") {
+                adjustment = metadata[layerName].BRIGHTNESS;
+
+                // range: [-100, 100] -> [0, 1]
+                c.getLayer(layerName).brightnessContrast((adjustment.brightness + 100) / 200, (adjustment.center + 100) / 200);
             }
         }
 
@@ -2575,6 +2621,20 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
 
     if (paramName === "alpha") {
         c.getLayer(layerName).addAdjustment(adjType.OVERWRITE_COLOR, "a", ui.value);
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+}
+
+function handleBrightnessParamChange(layerName, ui) {
+    var paramName = $(ui.handle).parent().attr("paramName");
+
+    if (paramName === "brightness") {
+        c.getLayer(layerName).addAdjustment(adjType.BRIGHTNESS, "brightness", (ui.value / 2) + 0.5);
+    }
+    else if (paramName === "contrast") {
+        c.getLayer(layerName).addAdjustment(adjType.BRIGHTNESS, "contrast", (ui.value / 2) + 0.5);
     }
 
     // find associated value box and dump the value there

@@ -593,7 +593,7 @@ for (var i = 0; i < layers.length; i++) {
 	statusText.text = "Exporting layer " + activeLayer.name + " (" + (i + 1) + "/" + layers.length + ")"
 	progress.value = (i / layers.length) * 50 + 50;
 
-    if (activeLayer.name in adjLayerParams || activeLayer.grouped) {
+    if (activeLayer.name in adjLayerParams || activeLayer.grouped || activeLayer.kind === LayerKind.INVERSION) {
         // stringify for later export
         metadata[activeLayer.name]["blendMode"] = activeLayer.blendMode.toString()
         metadata[activeLayer.name]["kind"] = activeLayer.kind.toString()

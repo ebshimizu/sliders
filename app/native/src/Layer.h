@@ -102,6 +102,8 @@ namespace Comp {
     void addColorAdjustment(float r, float g, float b, float a);
     void addLighterColorAdjustment(float r, float g, float b, float a);
     void addOverwriteColorAdjustment(float r, float g, float b, float a);
+    void addInvertAdjustment();
+    void addBrightnessAdjustment(float b, float c);
 
     template <typename T>
     inline T evalCurve(string channel, T x) {

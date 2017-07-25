@@ -827,6 +827,12 @@ namespace Comp {
       else if (type == AdjustmentType::OVERWRITE_COLOR) {
         overwriteColorAdjust(comp, l.getAdjustment(type));
       }
+      else if (type == AdjustmentType::INVERT) {
+        invertAdjustT<T>(comp);
+      }
+      else if (type == AdjustmentType::BRIGHTNESS) {
+        brightnessAdjust(comp, l.getAdjustment(type));
+      }
     }
 
     return comp;

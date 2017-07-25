@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.27;
+const saveVersion = 0.28;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -48,7 +48,8 @@ var settings = {
     "unconstrainedWeight": 1,
     "constrainedWeight": 4,
     "ceresConfig": "Release",
-    "metadataDisplay" : "score"
+    "metadataDisplay": "score",
+    "detailedLog" : false
 };
 
 // global settings vars
@@ -207,8 +208,11 @@ function initUI() {
     $('#sampleWrapper').isotope({
         itemSelector: '.sample',
         getSortData: {
-            id: '[sampleid]',
-            score: '.label[metadata-key="score"]',
+            id: '[sampleId] parseInt',
+            score: function (itemElem) {
+                var score = $(itemElem).find('.label[metadata-key="score"]').attr('metadata-value');
+                return parseFloat(score);
+            },
             filename: '.label[metadata-key="filename"]'
         },
         sortBy: 'id',
@@ -394,6 +398,11 @@ function initUI() {
     $('#modifyLayerBlendModes').checkbox({
         onChecked: () => { settings.search.modifyLayerBlendModes = 1; },
         onUnchecked: () => { settings.search.modifyLayerBlendModes = 0; }
+    });
+
+    $('#detailedConstraintLog').checkbox({
+        onChecked: () => { settings.detailedLog = true; },
+        onUnchecked: () => { settings.detailedLog = false; }
     });
 
     $('#searchModeSelector').dropdown({
@@ -688,6 +697,14 @@ function loadSettings() {
     }
     else {
         $('#sortMode').dropdown('set selected', 'id');
+    }
+
+    // added: 0.28
+    if ('detailedLog' in settings) {
+        $('#detailedConstraintLog').checkbox(settings.detailedLog ? 'check' : 'uncheck');
+    }
+    else {
+        $('#detailedConstraintLog').checkbox('uncheck');
     }
 }
 
@@ -2776,6 +2793,7 @@ function showStatusMsg(msg, type, title) {
         html += '<div class="ui negative small message';
     }
     else {
+        type = "INFO";
         html += '<div class="ui info small message';
     }
 
@@ -2784,7 +2802,7 @@ function showStatusMsg(msg, type, title) {
     html += '<p>' + msg + '<p>';
     html += '</div>';
 
-    msgArea.prepend(html);
+    msgArea.append(html);
     console.log("[" + type + "]" + " " + title + ": " + msg);
 
     var msgElem = $('div[messageId="' + msgId + '"]');
@@ -3244,7 +3262,7 @@ function createSampleContainer(img, id, meta) {
             metaVal = meta[key].toFixed(5);
         }
 
-        html += '<div class="ui black left ribbon label" metadata-key="' + key + '">' + key + ": " + metaVal + "</div>";
+        html += '<div class="ui black left ribbon label" metadata-key="' + key + '" metadata-value="' + metaVal + '">' + key + ": " + metaVal + "</div>";
     }
     
     // id display
@@ -3536,7 +3554,7 @@ function extractConstraints() {
 
     // for now debugging is on
     var constraints = c.getPixelConstraints({
-        "detailedLog": true,
+        "detailedLog": settings.detailedLog,
         "unconstrainedDensity": settings.unconstrainedDensity,
         "constrainedDensity": settings.constrainedDensity,
         "unconstrainedWeight": settings.unconstrainedWeight,

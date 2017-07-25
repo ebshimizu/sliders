@@ -158,6 +158,11 @@ enum EvoLogLevel {
   CRITICAL = 4
 };
 
+enum ReturnSortOrder {
+  CERES_ORDER = 0,
+  FITNESS_ORDER = 1
+};
+
 // evolutionary search class (mostly for grouping settings together instead of duplicating
 // things in the main class)
 class Evo {
@@ -220,6 +225,12 @@ private:
 
   // gets top elements by ceres score at the end
   vector<PopElem> getBestCeresScores(vector<PopElem>& pop);
+
+  // gets the top elements by fitness score at the end, assumes assign fitness has been called
+  vector<PopElem> getBestFitnessScores(vector<PopElem>& pop);
+
+  // checks that the element is valid (satisfies lt constraints specifically, at the moment)
+  bool isValid(PopElem& p);
 
   App* _parent;
 
@@ -311,6 +322,9 @@ private:
   // number of results to return in the end
   int _returnSize;
 
+  // used to determine which values are used for selecting the final results
+  ReturnSortOrder _order;
+
   vector<PopElem> _finalArc;
   vector<PopElem> _finalPop;
 };
@@ -359,14 +373,20 @@ struct CostTerm
 {
   static const int ResidualCount = 3;
 
-  CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor)
-    : layerValues(_layerValues), weight(_weight), targetColor(_targetColor) {
+  CostTerm(const vector<double> &_layerValues, float _weight, const cRGBColor &_targetColor, map<int, int> ltc)
+    : layerValues(_layerValues), weight(_weight), targetColor(_targetColor), _ltConstraints(ltc) {
     targetLabColor = Utils<float>::RGBToLab(targetColor.x, targetColor.y, targetColor.z);
   }
 
   template <typename T>
   bool operator()(const T* const params, T* residuals) const
   {
+    // check lt constraints (key < value)
+    for (auto& k : _ltConstraints) {
+      if (params[k.first] >= params[k.second])
+        return false;
+    }
+
     // color is RGBA, right now compare vs premult RGB
     vector<T> color = evalLayerColor(params, layerValues);
     //residuals[0] = (color[0] * color[3] - T(targetColor.x)) * (T)weight;
@@ -382,14 +402,15 @@ struct CostTerm
     return true;
   }
 
-  static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor)
+  static ceres::CostFunction* Create(const vector<double> &layerValues, float weight, const cRGBColor &targetColor, map<int, int> ltc)
   {
     return (new ceres::AutoDiffCostFunction<CostTerm, CostTerm::ResidualCount, ceresFunc_paramACount>(
-      new CostTerm(layerValues, weight, targetColor)));
+      new CostTerm(layerValues, weight, targetColor, ltc)));
   }
 
   vector<double> layerValues;
   cRGBColor targetColor;
   float weight;
   Utils<float>::LabColorT targetLabColor;
+  map<int, int> _ltConstraints;
 };

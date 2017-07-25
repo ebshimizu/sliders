@@ -80,7 +80,7 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 	//    fit = (x(i, j) - constraints(i, j)) * w_fitSqrt
   for (int i = 0; i < targetColors.size(); i++) {
     cRGBColor target(targetColors[i][0], targetColors[i][1], targetColors[i][2]);
-    ceres::CostFunction* costFunction = CostTerm::Create(_layerValues[i], weights[i], target);
+    ceres::CostFunction* costFunction = CostTerm::Create(_layerValues[i], weights[i], target, _ltConstraints);
     _problem.AddResidualBlock(costFunction, NULL, _allParams.data());
   }
 
@@ -1120,7 +1120,13 @@ void Evo::run()
 
   // final objectives and fitness
   // this time we just want to get the best ceres scored things
-  _finalArc = getBestCeresScores(pop);
+  if (_order == CERES_ORDER) {
+    _finalArc = getBestCeresScores(pop);
+  }
+  else if (_order == FITNESS_ORDER) {
+    assignFitness(pop);
+    _finalArc = getBestFitnessScores(pop);
+  }
   _finalPop = pop;
 
   chrono::high_resolution_clock::time_point end = chrono::high_resolution_clock::now();
@@ -1184,6 +1190,7 @@ void Evo::updateSettings()
   _ceresRate = 0;
   _optimizeArc = false;
   _returnSize = 10;
+  _order = CERES_ORDER;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1209,6 +1216,7 @@ void Evo::updateSettings()
     _ceresRate = (localConfig.count("ceresRate") > 0) ? localConfig["ceresRate"] : _ceresRate;
     _optimizeArc = (localConfig.count("optimizeArc") > 0) ? localConfig["optimizeArc"] : _optimizeArc;
     _returnSize = (localConfig.count("returnSize") > 0) ? localConfig["returnSize"] : _returnSize;
+    _order = (localConfig.count("returnOrder") > 0) ? localConfig["returnOrder"] : _order;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1432,6 +1440,14 @@ void Evo::varietyPreservingFitness(vector<PopElem>& pop)
 
 int Evo::paretoCmp(PopElem & x1, PopElem & x2)
 {
+  // automatically have invalid elements be dominated by literally anything
+  if (!isValid(x1) && !isValid(x2))
+    return 0;
+  if (!isValid(x1))
+    return 1;
+  if (!isValid(x2))
+    return -1;
+
   // x1 dominates (<) x2 if at least one function value is < x2
   // and if everythign is <= x2's function values. <= here has a tolerance
   bool atLeastOneLess = false;
@@ -1618,7 +1634,7 @@ void Evo::optimizePop(vector<PopElem>& pop)
 
 void Evo::updateOptimalSet(vector<PopElem>& arc, vector<PopElem>& pop)
 {
-  // actually just take the fitness values (pop is sorted here) and drop them into
+  // actually just take the fitness values and drop them into
   // the top n results of archive. During fitness value calculation, the
   // archive is added to the population for obtain a fitness ranking
   // this should ensure that an optimal set is preserved through each generation
@@ -1626,14 +1642,20 @@ void Evo::updateOptimalSet(vector<PopElem>& arc, vector<PopElem>& pop)
   arc.clear();
   sort(pop.begin(), pop.end());
 
-  for (int i = 0; i < _arcSize; i++) {
-    if (_optimizeArc) {
-      _parent->_allParams = pop[i]._g;
-      _parent->runOptimizerOnce(_logLevel <= ABSURD);
-      pop[i]._g = _parent->_allParams;
-    }
+  for (int i = 0; i < pop.size(); i++) {
+    // only add valid elements to the archive
+    if (isValid(pop[i])) {
+      if (_optimizeArc) {
+        _parent->_allParams = pop[i]._g;
+        _parent->runOptimizerOnce(_logLevel <= ABSURD);
+        pop[i]._g = _parent->_allParams;
+      }
 
-    arc.push_back(pop[i]);
+      arc.push_back(pop[i]);
+
+      if (arc.size() >= _arcSize)
+        break;
+    }
   }
 
 }
@@ -1656,14 +1678,36 @@ vector<PopElem> Evo::getBestCeresScores(vector<PopElem>& pop)
     p._fitness = score;
   }
 
+  return getBestFitnessScores(pop);
+}
+
+vector<PopElem> Evo::getBestFitnessScores(vector<PopElem>& pop)
+{
   sort(pop.begin(), pop.end());
 
   vector<PopElem> ret;
-  for (int i = 0; i < _returnSize; i++) {
-    ret.push_back(pop[i]);
+  for (int i = 0; i < pop.size(); i++) {
+    // only consider valid elements
+    if (isValid(pop[i])) {
+      ret.push_back(pop[i]);
+
+      if (ret.size() >= _returnSize)
+        break;
+    }
   }
 
   return ret;
+}
+
+bool Evo::isValid(PopElem & p)
+{
+  // check lt constraints (key < value)
+  for (auto& k : _parent->_ltConstraints) {
+    if (p._g[k.first] >= p._g[k.second])
+      return false;
+  }
+
+  return true;
 }
 
 void main(int argc, char* argv[])

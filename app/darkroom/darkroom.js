@@ -421,6 +421,14 @@ function initUI() {
         }
     });
 
+    $('#returnOrderSelector').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            g_ceresSettings.evo.returnOrder = parseInt(value) - 1;
+            $('#returnOrderSelector .text').html(text);
+        }
+    });
+
     $('.ceresBool').checkbox({
         onChecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = true; },
         onUnchecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = false; }
@@ -731,6 +739,7 @@ function updateCeresSettings() {
     $('#genExportPopulations').checkbox(g_ceresSettings["evo"]["exportPopulations"] ? 'set checked' : 'set unchecked');
 
     $('#genLogLevel').dropdown('set selected', g_ceresSettings.evo.logLevel + 1);
+    $('#returnOrderSelector').dropdown('set selected', g_ceresSettings.evo.returnOrder + 1);
 }
 
 // Inserts a layer into the hierarchy. Later, this hierarchy will be used
@@ -3665,7 +3674,7 @@ function runCeres(callback) {
     if (callback === undefined) {
         callback = (code) => {
             //showStatusMsg("Ceres process finished running. Check console for errors.", "OK", "Ceres Execution Complete");
-            $('#status .progress').progress('update progress', g_ceresSettings.evo.maxIters + 1);
+            $('#status .progress').progress('update progress', g_ceresSettings.evo.maxIters);
 
             var elem = $('#runSearchBtn');
             elem.removeClass("red");
@@ -3680,7 +3689,7 @@ function runCeres(callback) {
     showStatusMsg("Executing command '" + cmd + "'", "", "Running Ceres");
 
     $('#status .progress').progress({
-        total: g_ceresSettings.evo.maxIters + 1,
+        total: g_ceresSettings.evo.maxIters,
         text: {
             success: 'Search Complete'
         }
@@ -3695,7 +3704,7 @@ function runCeres(callback) {
         var logLine = `${data}`;
         var match = logLine.match(/Generation (\d+)/);
         if (match) {
-            $('#status .progress').progress('update progress', parseInt(match[1]) + 1);
+            $('#status .progress').progress('update progress', parseInt(match[1]));
             $('#status .progress').progress('set label', 'Iteration ' + (parseInt(match[1]) + 1) + ' of ' + g_ceresSettings.evo.maxIters);
         }
         console.log(logLine);

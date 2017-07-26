@@ -27,6 +27,54 @@ using namespace std;
 using namespace Comp;
 #include <ceresFunc.h>
 
+enum GroupEvalFunction {
+  ZERO_COUNT,
+  FLOORED_SUM,
+  SQUARED_TARGET,
+  SQRT_TARGET
+};
+
+// information for handling a group of semantically similar layers.
+// Used to compute additional objective functions related to the parameters of these layers.
+class LayerGroup {
+public: 
+  // the layer group stores indexes to the opacity parameters of the layer groups.
+  // each layer has to have opacity, and generally the effects we deal with here 
+  LayerGroup(vector<int> opacityParams, GroupEvalFunction type = SQUARED_TARGET);
+
+  // not all of these are used at once
+  GroupEvalFunction _type;
+  double _target;
+  double _floor;
+  string _name;
+  vector<int> _group;
+
+  // basically this class just computes various objective functions for the
+  // given layer groups. Hopefully this presents enough flexibiliy to test various cases.
+  // it will also provide some functions for generating distributions of the group itself.
+
+  double eval(vector<double>& params);
+
+  // will turn on a proportion of the group (100% opacity)
+  void distributeVisible(vector<double>& params, double targetVisible);
+
+  // does distribute visible and also sets opacities according to a gaussian distribution
+  void distributeOpacity(vector<double>& params, double targetVisible, double opacityMean, double opacitySigma);
+
+private:
+  // returns the percentage of layers above 0% opacity (minimizing)
+  double discreteZeroCount(vector<double>& params);
+
+  // returns a sum of the opacity values up to a specified floor (default 0)
+  double flooredSum(vector<double>& params);
+
+  // returns the sum of squared distances to a specified target opacity
+  double squaredTarget(vector<double>& params);
+
+  // returns the sqrt of the abs distance to the target
+  double sqrtTarget(vector<double>& params);
+};
+
 // a population element for the evolutionary search method
 class PopElem {
 public:
@@ -130,13 +178,17 @@ public:
   // indicates that first should always be less than second
   map<int, int> _ltConstraints;
 
+  // group constraints should be loaded from the json exchange file
+  vector<LayerGroup> _groups;
+
   // cached layer pixel values for computing a perceptual distance function
   vector<vector<double> > _layerValues;
 };
 
 enum ObjectiveFunctionType {
   CERES = 0,
-  DISTANCE_FROM_START = 1
+  DISTANCE_FROM_START = 1,
+  GROUPS = 2
 };
 
 enum ComparisonMethod {
@@ -324,6 +376,9 @@ private:
 
   // used to determine which values are used for selecting the final results
   ReturnSortOrder _order;
+
+  // chance that a group element gets set to 0. Only applies if there are groups in the optimizer
+  double _knockoutRate;
 
   vector<PopElem> _finalArc;
   vector<PopElem> _finalPop;

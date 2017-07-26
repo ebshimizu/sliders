@@ -2,6 +2,96 @@
 #include "util.cpp"
 #include <algorithm>
 
+LayerGroup::LayerGroup(vector<int> opacityParams, GroupEvalFunction type) : _group(opacityParams), _type(type) {
+
+}
+
+double LayerGroup::eval(vector<double>& params)
+{
+  switch (_type) {
+  case ZERO_COUNT:
+    return discreteZeroCount(params);
+  case FLOORED_SUM:
+    return flooredSum(params);
+  case SQUARED_TARGET:
+    return squaredTarget(params);
+  case SQRT_TARGET:
+    return sqrtTarget(params);
+  default:
+    return squaredTarget(params);
+  }
+}
+
+double LayerGroup::discreteZeroCount(vector<double>& params)
+{
+  // threshold is <= 0.005 for numeric stability
+  int count = 0;
+  for (auto& p : params) {
+    if (p > 0.005)
+      count++;
+  }
+
+  return (double)count / params.size();
+}
+
+double LayerGroup::flooredSum(vector<double>& params)
+{
+  double sum = 0;
+  for (auto& p : params) {
+    sum += p;
+  }
+
+  return max(sum, _floor);
+}
+
+double LayerGroup::squaredTarget(vector<double>& params)
+{
+  double sum = 0;
+  for (auto& p : params) {
+    sum += pow(p - _target, 2);
+  }
+
+  return sum;
+}
+
+double LayerGroup::sqrtTarget(vector<double>& params)
+{
+  double sum = 0;
+  for (auto& p : params) {
+    sum += sqrt(abs(p - _target));
+  }
+
+  return sum;
+}
+
+void LayerGroup::distributeVisible(vector<double>& params, double targetVisible)
+{
+  // real simple, each layer has a chance of being activated 
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+
+  for (int i = 0; i < _group.size(); i++) {
+    if (zeroOne(gen) < targetVisible) {
+      params[_group[i]] = 1;
+    }
+  }
+}
+
+void LayerGroup::distributeOpacity(vector<double>& params, double targetVisible, double opacityMean, double opacitySigma)
+{
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<double> zeroOne(0, 1);
+  normal_distribution<double> nrm(opacityMean, opacitySigma);
+
+  for (int i = 0; i < _group.size(); i++) {
+    if (zeroOne(gen) < targetVisible) {
+      params[_group[i]] = nrm(gen);
+    }
+  }
+}
+
 bool PopElem::operator<(const PopElem & b) const
 {
   return _fitness < b._fitness;
@@ -74,6 +164,39 @@ void App::setupOptimizer(string loadFrom, string saveTo)
 
   // levels constraints
   computeLtConstraints();
+
+  // groups
+  if (_data.count("groups") > 0) {
+    nlohmann::json groups = _data["groups"];
+
+    for (auto& group : groups) {
+      vector<int> paramIndex;
+
+      // need to search for each element
+      for (int i = 0; i < group["members"].size(); i++) {
+        string targetLayer = group["members"][i];
+
+        for (int j = 0; j < _data["params"].size(); j++) {
+          // opacity parameter of target layer
+          if (_data["params"][j]["layerName"] == targetLayer && _data["params"][j]["adjustmentType"] == 1000) {
+            paramIndex.push_back(_data["params"][j]["paramID"]);
+            break;
+          }
+        }
+      }
+
+      LayerGroup g(paramIndex, group["mode"]);
+
+      if (group.count("target") > 0)
+        g._target = group["target"];
+      if (group.count("floor") > 0)
+        g._floor = group["floor"];
+      if (group.count("name") > 0)
+        g._name = group["name"].get<string>();
+
+      _groups.push_back(g);
+    }
+  }
 
 	// add all fit constraints
 	//if (mask(i, j) == 0 && constaints(i, j).u >= 0 && constaints(i, j).v >= 0)
@@ -1191,6 +1314,7 @@ void Evo::updateSettings()
   _optimizeArc = false;
   _returnSize = 10;
   _order = CERES_ORDER;
+  _knockoutRate = 0;
 
   if (_parent->_config.count("evo") > 0) {
     nlohmann::json localConfig = _parent->_config["evo"];
@@ -1217,6 +1341,7 @@ void Evo::updateSettings()
     _optimizeArc = (localConfig.count("optimizeArc") > 0) ? localConfig["optimizeArc"] : _optimizeArc;
     _returnSize = (localConfig.count("returnSize") > 0) ? localConfig["returnSize"] : _returnSize;
     _order = (localConfig.count("returnOrder") > 0) ? localConfig["returnOrder"] : _order;
+    _knockoutRate = (localConfig.count("knockoutRate") > 0) ? localConfig["knockoutRate"] : _knockoutRate;
 
     if (localConfig.count("objectives") > 0) {
       _activeObjFuncs.clear();
@@ -1286,6 +1411,17 @@ void Evo::computeObjectives(vector<PopElem>& pop)
         // compare the current vector with the start vector
         double score = _parent->l2vector(p._g, _initialConfig);
         p._f.push_back(score);
+      }
+      else if (funcType == GROUPS) {
+        if (_logLevel <= ALL)
+          cout << " GROUPS";
+
+        // groups actually computes multiple things.
+        for (auto& g : _parent->_groups) {
+          cout << " (" << g._name << ")";
+          double score = g.eval(p._g);
+          p._f.push_back(score);
+        }
       }
     }
 
@@ -1590,6 +1726,19 @@ vector<PopElem> Evo::reproducePop(vector<PopElem>& mate, vector<PopElem>& elite)
 
         // randomize parameter value (for now, may do something more specific later)
         p1._g[j] = zeroOne(gen);
+      }
+    }
+
+    // knockout, special mutuation that sometimes zeroes out params from groups
+    // since its way more common to randomly get a non-zero value, this should help with certain group edits
+    for (auto& g : _parent->_groups) {
+      for (int i = 0; i < g._group.size(); i++) {
+        if (zeroOne(gen) < _knockoutRate) {
+          if (_logLevel <= ALL)
+            cout << " Knockout [" << g._group[i] << "]";
+
+          p1._g[g._group[i]] = 0;
+        }
       }
     }
 

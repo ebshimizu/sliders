@@ -277,6 +277,7 @@
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
                     <a class="item active" data-tab="layers">Layers</a>
                     <a class="item" data-tab="history">History</a>
+                    <a class="item" data-tab="groups">Groups</a>
                 </div>
                 <div class="ui active tab" id="layerControls" data-tab="layers">
                     <!-- <div class="layer" layername="Rectangle 1">
@@ -301,6 +302,23 @@
                 <div class="ui tab" data-tab="history" id="historyPanel">
                     <div class="ui inverted divided list" id="historyItems">
                         
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="groups" id="groupsPanel">
+                    <h1 class="ui inverted header">Groups</h1>
+                    <div class="ui inverted segment">Select the action used to generate this image to enable additional edits.</div>
+                    <div class="ui selection fluid dropdown" id="actionGroupSelector">
+                        <input type="hidden" name="Action Group">
+                        <i class="dropdown icon"></i>
+                        <div class="default text">Action</div>
+                        <div class="menu">
+                            <div class="item" data-value="none">None</div>
+                            <div class="item" data-value="score">Double Exposure</div>
+                            <div class="item" data-value="filename">Vanquish</div>
+                        </div>
+                    </div>
+                    <div class="ui inverted divided list" id="groupsItems">
+
                     </div>
                 </div>
             </div>

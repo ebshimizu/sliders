@@ -40,7 +40,8 @@ body .ui.basic.modal p {
 }
 
 #layerControls,
-#historyPanel
+#historyPanel,
+#groupsPanel
 {
     position: relative;
     right: 0;
@@ -48,6 +49,10 @@ body .ui.basic.modal p {
     overflow-x: hidden;
     height: calc(100% - 24px);
     top: 0px;
+}
+
+#groupsPanel {
+    padding: 5px;
 }
 
 #layerContainer #layerControlsMenu {

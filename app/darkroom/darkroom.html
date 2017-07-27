@@ -306,18 +306,20 @@
                 </div>
                 <div class="ui tab" data-tab="groups" id="groupsPanel">
                     <h1 class="ui inverted header">Groups</h1>
-                    <div class="ui inverted segment">Select the action used to generate this image to enable additional edits.</div>
-                    <div class="ui selection fluid dropdown" id="actionGroupSelector">
-                        <input type="hidden" name="Action Group">
-                        <i class="dropdown icon"></i>
-                        <div class="default text">Action</div>
-                        <div class="menu">
-                            <div class="item" data-value="none">None</div>
-                            <div class="item" data-value="score">Double Exposure</div>
-                            <div class="item" data-value="filename">Vanquish</div>
+                    <div class="ui inverted segment">Select the action used to generate this image to enable additional edits.
+                        <div class="ui selection fluid dropdown" id="actionGroupSelector">
+                            <input type="hidden" name="Action Group">
+                            <i class="dropdown icon"></i>
+                            <div class="default text">Action</div>
+                            <div class="menu">
+                                <div class="item">None</div>
+                                <div class="item">Double Exposure</div>
+                                <div class="item">Vanquish</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="ui inverted divided list" id="groupsItems">
+                    <div class="ui inverted fitted horizontal divider">Active Groups</div>
+                    <div class="ui inverted relaxed divided list" id="groupsItems">
 
                     </div>
                 </div>

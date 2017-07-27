@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.28;
+const saveVersion = 0.29;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -120,6 +120,34 @@ const g_constraintModesStrings = {
     1: "Hue",
     2: "Fixed",
     4: "Hue and Saturation"
+}
+
+// we have to define the groups somewhere, we'll stick them at the top of this file because
+// clearly there's not enough stuff in here already
+const g_actionGroups = {
+    "Vanquish": {
+        "waves": [
+            "Wave 1",
+            "Wave 2",
+            "Wave 3",
+            "Wave 4",
+            "Wave 5",
+            "Wave 6",
+            "Wave 7",
+            "Wave 8",
+            "Wave 9",
+            "Wave 10",
+            "Wave 11",
+            "Wave 12",
+            "Wave 13",
+            "Wave 14",
+            "Wave 15",
+            "Wave 16",
+            "Wave 17",
+            "Wave 18",
+            "Wave 19"
+        ]
+    }
 }
 
 // Search settings are shared between instances of the app for now
@@ -536,6 +564,13 @@ function initUI() {
         $('#mode-erase').addClass("active");
     });
 
+    $('#actionGroupSelector').dropdown({
+        action: 'activate',
+        onChange: function (value, text) {
+            updateActiveGroups(text);
+        }
+    });
+
     $('#constraintLayerMenu').dropdown({
         action: function (text, value, element) {
             setActiveConstraintLayer(value);
@@ -713,6 +748,11 @@ function loadSettings() {
     }
     else {
         $('#detailedConstraintLog').checkbox('uncheck');
+    }
+
+    // added: 0.29
+    if ('activeGroups' in settings) {
+        $('#actionGroupSelector').dropdown('set selected', settings.activeGroups);
     }
 }
 
@@ -3858,4 +3898,25 @@ function addDebugConstraint(x, y, color, weight) {
 
     $('#ceresAddPoint').removeClass('disabled');
     $('#debugCeresConstraints .item[pt-id="' + data.id + '"] .target').css({ "background-color": "rgb(" + ~~(data.color.r * 255) + "," + ~~(data.color.g * 255) + "," + ~~(data.color.b * 255) + ")" });
+}
+
+function updateActiveGroups(text) {
+    $('#groupsItems').empty();
+    settings.activeGroups = text;
+
+    // add a list element for each thing in the thing if the thing exists
+    if (text in g_actionGroups) {
+        for (var groupName in g_actionGroups[text]) {
+            var itemList = "";
+            for (var index in g_actionGroups[text][groupName]) {
+                if (index !== "0")
+                    itemList += ", ";
+
+                itemList += g_actionGroups[text][groupName][index];
+            }
+
+            var html = '<div class="item"><div class="content"><div class="header">' + groupName + '</div><div class="description">Contents: ' + itemList + '</div></div></div>';
+            $('#groupsItems').append(html);
+        }
+    }
 }

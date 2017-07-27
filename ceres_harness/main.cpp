@@ -2,7 +2,9 @@
 #include "util.cpp"
 #include <algorithm>
 
-LayerGroup::LayerGroup(vector<int> opacityParams, GroupEvalFunction type) : _group(opacityParams), _type(type) {
+LayerGroup::LayerGroup(vector<int> opacityParams, GroupEvalFunction type) :
+  _group(opacityParams), _type(type), _distribute(false)
+{
 
 }
 
@@ -67,13 +69,21 @@ double LayerGroup::sqrtTarget(vector<double>& params)
 void LayerGroup::distributeVisible(vector<double>& params, double targetVisible)
 {
   // real simple, each layer has a chance of being activated 
+  // but also we'll want to control for too much variation, so a target number
+  // of layers will be randomly selected.
   random_device rd;
   mt19937 gen(rd());
   uniform_real_distribution<double> zeroOne(0, 1);
+  normal_distribution<double> target(targetVisible, 0.1);
 
   for (int i = 0; i < _group.size(); i++) {
     if (zeroOne(gen) < targetVisible) {
-      params[_group[i]] = 1;
+      // leave default value i guess? unless it's 0 or close to 0
+      if (params[_group[i]] <= 0.01)
+        params[_group[i]] = 1;
+    }
+    else {
+      params[_group[i]] = 0;
     }
   }
 }
@@ -88,6 +98,9 @@ void LayerGroup::distributeOpacity(vector<double>& params, double targetVisible,
   for (int i = 0; i < _group.size(); i++) {
     if (zeroOne(gen) < targetVisible) {
       params[_group[i]] = nrm(gen);
+    }
+    else {
+      params[_group[i]] = 0;
     }
   }
 }
@@ -194,6 +207,9 @@ void App::setupOptimizer(string loadFrom, string saveTo)
       if (group.count("name") > 0)
         g._name = group["name"].get<string>();
 
+      if (group.count("distribute") > 0)
+        g._distribute = group["distribute"];
+
       _groups.push_back(g);
     }
   }
@@ -207,20 +223,28 @@ void App::setupOptimizer(string loadFrom, string saveTo)
     _problem.AddResidualBlock(costFunction, NULL, _allParams.data());
   }
 
-  for (int i = 0; i < _allParams.size(); i++) {
-    if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
-      _data["params"][i]["adjustmentName"] == "hue") {
-      _problem.SetParameterLowerBound(_allParams.data(), i, -1);
-      _problem.SetParameterUpperBound(_allParams.data(), i, 2);
+  if (targetColors.size() > 0) {
+    for (int i = 0; i < _allParams.size(); i++) {
+      if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::HSL &&
+        _data["params"][i]["adjustmentName"] == "hue") {
+        _problem.SetParameterLowerBound(_allParams.data(), i, -1);
+        _problem.SetParameterUpperBound(_allParams.data(), i, 2);
+      }
+      //else if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::OPACITY) {
+      //  _problem.SetParameterLowerBound(_allParams.data(), i, 0.99);
+      //  _problem.SetParameterUpperBound(_allParams.data(), i, 1);
+      //}
+      else {
+        _problem.SetParameterLowerBound(_allParams.data(), i, 0);
+        _problem.SetParameterUpperBound(_allParams.data(), i, 1);
+      }
     }
-    //else if (_data["params"][i]["adjustmentType"] == Comp::AdjustmentType::OPACITY) {
-    //  _problem.SetParameterLowerBound(_allParams.data(), i, 0.99);
-    //  _problem.SetParameterUpperBound(_allParams.data(), i, 1);
-    //}
-    else {
-      _problem.SetParameterLowerBound(_allParams.data(), i, 0);
-      _problem.SetParameterUpperBound(_allParams.data(), i, 1);
-    }
+
+    _ceresReady = true;
+  }
+  else {
+    // if the number of residuals is zero, we should tell this entire program that ceres is unavailable
+    _ceresReady = false;
   }
 }
 
@@ -1147,12 +1171,33 @@ void Evo::init()
   }
 
   _searchRunning = false;
+  _groupOnly = false;
   _initialConfig = _parent->_allParams;
 
   // other objects n stuff
 
   // settings
   updateSettings();
+
+  // ceres check
+  if (!_parent->_ceresReady) {
+    // couple settings have to be changed here in the event that ceres can't be run
+    _activeObjFuncs.erase(CERES);
+
+    // also erase this other function, it was mostly for ceres anyway
+    _activeObjFuncs.erase(DISTANCE_FROM_START);
+
+    // all options that might run ceres disabed too
+    _optimizeBeforeFitness = false;
+    _ceresRate = 0;
+    _optimizeFinal = false;
+    _optimizeArc = false;
+
+    if (_order == CERES_ORDER)
+      _order = FITNESS_ORDER;   // can't use ceres, use anything else and default to fitness order
+
+    _groupOnly = true;
+  }
 }
 
 void Evo::run()
@@ -1247,7 +1292,13 @@ void Evo::run()
     _finalArc = getBestCeresScores(pop);
   }
   else if (_order == FITNESS_ORDER) {
+    computeObjectives(pop);
     assignFitness(pop);
+    _finalArc = getBestFitnessScores(pop);
+  }
+  else if (_order == PARETO_ORDER) {
+    computeObjectives(pop);
+    paretoRankFitness(pop);
     _finalArc = getBestFitnessScores(pop);
   }
   _finalPop = pop;
@@ -1366,12 +1417,18 @@ vector<PopElem> Evo::createPop()
     i++;
   }
 
+  // if marked as group only, we might just want to duplicate the start config multiple times
   // i is initialized and used earlier
   for ( ; i < _popSize; i++) {
     vector<double> x;
 
-    for (int j = 0; j < _parent->_allParams.size(); j++) {
-      x.push_back(zeroOne(gen));
+    if (!_groupOnly) {
+      for (int j = 0; j < _parent->_allParams.size(); j++) {
+        x.push_back(zeroOne(gen));
+      }
+    }
+    else {
+      x = _parent->_allParams;
     }
 
     pop.push_back(PopElem(x));
@@ -1442,7 +1499,7 @@ void Evo::assignFitness(vector<PopElem>& pop)
     varietyPreservingFitness(pop);
     return;
   case PARETO_ORDERING:
-    //paretoRankFitness(pop);
+    paretoRankFitness(pop);
     return;
   default:
     return;
@@ -1574,6 +1631,20 @@ void Evo::varietyPreservingFitness(vector<PopElem>& pop)
   }
 }
 
+void Evo::paretoRankFitness(vector<PopElem>& pop)
+{
+  for (int i = 0; i < pop.size(); i++) {
+    int count = 0;
+    for (int j = 0; j < pop.size(); j++) {
+      if (i != j && paretoCmp(pop[j], pop[i]) < 0) {
+        count++;
+      }
+    }
+
+    pop[i]._fitness = count;
+  }
+}
+
 int Evo::paretoCmp(PopElem & x1, PopElem & x2)
 {
   // automatically have invalid elements be dominated by literally anything
@@ -1696,63 +1767,114 @@ vector<PopElem> Evo::reproducePop(vector<PopElem>& mate, vector<PopElem>& elite)
     // pick an element, duplicate it to start
     PopElem p1 = PopElem(mate[(int)(zeroOne(gen) * mate.size())]._g);
     
-    // crossover chance
-    if (zeroOne(gen) < _cr) {
-      if (_logLevel <= ALL)
-        cout << " Crossover";
+    if (!_groupOnly) {
+      // crossover chance
+      if (zeroOne(gen) < _cr) {
+        if (_logLevel <= ALL)
+          cout << " Crossover";
 
-      // pick a random thing to crossover with
-      PopElem p2 = mate[(int)(zeroOne(gen) * mate.size())];
+        // pick a random thing to crossover with
+        PopElem p2 = mate[(int)(zeroOne(gen) * mate.size())];
 
-      // if we're only crossing over from the elite pool, overwrite the previous selection
-      // (slight performance hit but should be ok)
-      if (_elitistRepro) {
-        p2 = elite[(int)(zeroOne(gen) * elite.size())];
+        // if we're only crossing over from the elite pool, overwrite the previous selection
+        // (slight performance hit but should be ok)
+        if (_elitistRepro) {
+          p2 = elite[(int)(zeroOne(gen) * elite.size())];
+        }
+
+        // do the crossover (randomly pick things to swap)
+        for (int j = 0; j < p1._g.size(); j++) {
+          if (zeroOne(gen) < _ce) {
+            p1._g[j] = p2._g[j];
+          }
+        }
       }
-      
-      // do the crossover (randomly pick things to swap)
+
+      // mutation
       for (int j = 0; j < p1._g.size(); j++) {
-        if (zeroOne(gen) < _ce) {
-          p1._g[j] = p2._g[j];
+        if (zeroOne(gen) < _mr) {
+          if (_logLevel <= ALL)
+            cout << " Mutation [" << j << "]";
+
+          // randomize parameter value (for now, may do something more specific later)
+          p1._g[j] = zeroOne(gen);
+        }
+      }
+
+      // ceres happens after everything, if it happens
+      if (zeroOne(gen) < _ceresRate) {
+        if (_logLevel <= ALL) {
+          cout << " Ceres";
+        }
+
+        // optimize the thing
+        _parent->_allParams = p1._g;
+        _parent->runOptimizerOnce(_logLevel <= ABSURD);
+        p1._g = _parent->_allParams;
+      }
+    }
+    else {
+      // crossover chance, between groups only
+      if (zeroOne(gen) < _cr) {
+        for (auto& g : _parent->_groups) {
+          if (_logLevel <= ALL)
+            cout << " Crossover";
+
+          // pick a random thing to crossover with
+          PopElem p2 = mate[(int)(zeroOne(gen) * mate.size())];
+
+          // if we're only crossing over from the elite pool, overwrite the previous selection
+          // (slight performance hit but should be ok)
+          if (_elitistRepro) {
+            p2 = elite[(int)(zeroOne(gen) * elite.size())];
+          }
+
+          // do the crossover (randomly pick things to swap)
+          for (int j = 0; j < g._group.size(); j++) {
+            if (zeroOne(gen) < _ce) {
+              p1._g[g._group[j]] = p2._g[g._group[j]];
+            }
+          }
+        }
+      }
+
+      // mutation
+      for (auto& g : _parent->_groups) {
+        for (int j = 0; j < g._group.size(); j++) {
+          if (zeroOne(gen) < _mr) {
+            if (_logLevel <= ALL)
+              cout << " Mutation [" << j << "]";
+
+            // randomize parameter value (for now, may do something more specific later)
+            p1._g[g._group[j]] = zeroOne(gen);
+          }
         }
       }
     }
 
-    // mutation
-    for (int j = 0; j < p1._g.size(); j++) {
-      if (zeroOne(gen) < _mr) {
-        if (_logLevel <= ALL)
-          cout << " Mutation [" << j << "]";
+    // group distribution. Some groups basically explicitly know how to actually
+    // achieve their specified goals, so we'll make sure each new population member
+    // meets those specifications
+    for (auto& g : _parent->_groups) {
+      if (g._distribute) {
+        cout << " Required Group Dist [" << g._name << "]";
 
-        // randomize parameter value (for now, may do something more specific later)
-        p1._g[j] = zeroOne(gen);
+        g.distributeVisible(p1._g, g._target);
       }
     }
 
     // knockout, special mutuation that sometimes zeroes out params from groups
     // since its way more common to randomly get a non-zero value, this should help with certain group edits
-    for (auto& g : _parent->_groups) {
-      for (int i = 0; i < g._group.size(); i++) {
-        if (zeroOne(gen) < _knockoutRate) {
-          if (_logLevel <= ALL)
-            cout << " Knockout [" << g._group[i] << "]";
-
-          p1._g[g._group[i]] = 0;
-        }
-      }
-    }
-
-    // ceres happens after everything, if it happens
-    if (zeroOne(gen) < _ceresRate) {
-      if (_logLevel <= ALL) {
-        cout << " Ceres";
-      }
-
-      // optimize the thing
-      _parent->_allParams = p1._g;
-      _parent->runOptimizerOnce(_logLevel <= ABSURD);
-      p1._g = _parent->_allParams;
-    }
+    //for (auto& g : _parent->_groups) {
+    //  for (int i = 0; i < g._group.size(); i++) {
+    //    if (zeroOne(gen) < _knockoutRate) {
+    //      if (_logLevel <= ALL)
+    //        cout << " Knockout [" << g._group[i] << "]";
+    //
+    //      p1._g[g._group[i]] = 0;
+    //    }
+    //  }
+    //}
 
     if (_logLevel <= ALL)
       cout << endl;

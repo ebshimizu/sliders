@@ -48,6 +48,7 @@ public:
   double _floor;
   string _name;
   vector<int> _group;
+  bool _distribute;
 
   // basically this class just computes various objective functions for the
   // given layer groups. Hopefully this presents enough flexibiliy to test various cases.
@@ -174,6 +175,7 @@ public:
   nlohmann::json _data;
   string _outDir;
   nlohmann::json _config;
+  bool _ceresReady;
 
   // indicates that first should always be less than second
   map<int, int> _ltConstraints;
@@ -212,7 +214,8 @@ enum EvoLogLevel {
 
 enum ReturnSortOrder {
   CERES_ORDER = 0,
-  FITNESS_ORDER = 1
+  FITNESS_ORDER = 1,
+  PARETO_ORDER = 2
 };
 
 // evolutionary search class (mostly for grouping settings together instead of duplicating
@@ -255,6 +258,10 @@ private:
   // Implements algorithm 2.4 from http://www.it-weise.de/projects/book.pdf
   // Designed to balance exploration and exploitation
   void varietyPreservingFitness(vector<PopElem>& pop);
+
+  // implements algorithm 2.3 from http://www.it-weise.de/projects/book.pdf
+  // simple pareto ranking to determine fitness
+  void paretoRankFitness(vector<PopElem>& pop);
 
   int paretoCmp(PopElem& x1, PopElem& x2);
   int weightedSumCmp(PopElem& x1, PopElem& x2);
@@ -379,6 +386,9 @@ private:
 
   // chance that a group element gets set to 0. Only applies if there are groups in the optimizer
   double _knockoutRate;
+
+  // internal. disallow all mutations except group distribution
+  bool _groupOnly;
 
   vector<PopElem> _finalArc;
   vector<PopElem> _finalPop;

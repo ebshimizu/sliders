@@ -114,7 +114,7 @@
                 </div>
             </div>
             <div class="" id="imgStatusBar">
-                <div class="ui mini left labeled dropdown button" id="constraintLayerMenu">
+                <!--<div class="ui mini left labeled dropdown button" id="constraintLayerMenu">
                     <div class="ui basic left label">
                         Constraint Layer
                     </div>
@@ -147,6 +147,9 @@
                 <div id="maskOpacitySlider">
                     <div class="ui label">Opacity</div>
                     <div class="slider"></div>
+                </div>-->
+                <div class="ui mini button" id="createNewEdit">
+                    Make Edit
                 </div>
                 <div class="ui right floated mini icon buttons">
                     <button id="mode-paint" class="ui icon button active">
@@ -276,6 +279,7 @@
             <div class="layerWrapper">
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
                     <a class="item active" data-tab="layers">Layers</a>
+                    <a class="item" data-tab="edits">Edits</a>
                     <a class="item" data-tab="history">History</a>
                     <a class="item" data-tab="groups">Groups</a>
                 </div>
@@ -299,13 +303,19 @@
                         </div>
                     </div> -->
                 </div>
+                <div class="ui tab" data-tab="edits" id="editPanel">
+                    <h2 class="ui inverted header">Edits</h2>
+                    <div class="ui inverted relaxed divided list" id="editItems">
+
+                    </div>
+                </div>
                 <div class="ui tab" data-tab="history" id="historyPanel">
                     <div class="ui inverted divided list" id="historyItems">
                         
                     </div>
                 </div>
                 <div class="ui tab" data-tab="groups" id="groupsPanel">
-                    <h1 class="ui inverted header">Groups</h1>
+                    <h2 class="ui inverted header">Groups</h2>
                     <div class="ui inverted segment">Select the action used to generate this image to enable additional edits.
                         <div class="ui selection fluid dropdown" id="actionGroupSelector">
                             <input type="hidden" name="Action Group">
@@ -744,6 +754,30 @@
             <div class="actions">
                 <div class="ui red deny button">No</div>
                 <div class="ui green positive button">Yes</div>
+            </div>
+        </div>
+        <div id="newEditModal" class="ui small modal">
+            <div class="ui header">Make Edit</div>
+            <div class="content">
+                <div class="primary">I would like to 
+                    <div class="ui inline dropdown">
+                        <input type="hidden" name="edit">
+                        <i class="dropdown icon"></i>
+                        <div class="default text">Select an Edit</div>
+                        <div class="menu">
+                            <div class="item" data-value="color">change the color</div>
+                            <div class="item" data-value="hue">change the hue</div>
+                            <div class="item" data-value="fixed">keep part of the image the same</div>
+                        </div>
+                    </div>.
+                </div>
+                <div class="secondary">
+
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui red deny button">Cancel</div>
+                <div class="ui green positive button">Create</div>
             </div>
         </div>
         <!-- END MESSAGES AND MISC CONTROLS -->

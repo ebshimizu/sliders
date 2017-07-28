@@ -41,7 +41,8 @@ body .ui.basic.modal p {
 
 #layerControls,
 #historyPanel,
-#groupsPanel
+#groupsPanel,
+#editPanel
 {
     position: relative;
     right: 0;
@@ -51,7 +52,9 @@ body .ui.basic.modal p {
     top: 0px;
 }
 
-#groupsPanel {
+#groupsPanel,
+#editPanel
+{
     padding: 5px;
 }
 
@@ -505,4 +508,8 @@ div#sampleWrapper.score .ribbon.label[metadata-key="score"] {
 
 div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     display: block;
+}
+
+#newEditModal .primary {
+    color: #1b1c1d;
 }

@@ -564,6 +564,8 @@ function initUI() {
         $('#mode-erase').addClass("active");
     });
 
+    $('#createNewEdit').click(createNewEdit());
+
     $('#actionGroupSelector').dropdown({
         action: 'activate',
         onChange: function (value, text) {
@@ -1800,6 +1802,7 @@ function importFile() {
             }
 
             g_historyID = 0;
+            $('#historyItems').empty();
 
             // load the data
             importLayers(JSON.parse(data), folder);
@@ -1839,6 +1842,7 @@ function openFile() {
 
             // reset some ids
             g_historyID = 0;
+            $('#historyItems').empty();
 
             // load the data
             loadLayers(JSON.parse(data), folder);
@@ -3636,6 +3640,11 @@ function screenToCanvas(sX, sY, w, h, sW, sH) {
 
     // return point
     return { x: ((sX - xOffset) / actualW) * w, y: ((sY - yOffset) / actualH) * h };
+}
+
+function createNewEdit() {
+    // bring up a dialog box containing the available options
+    // presented in a more user-friendly way
 }
 
 /*===========================================================================*/

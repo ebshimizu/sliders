@@ -2298,7 +2298,8 @@ function loadLayers(doc, path) {
             g_editCounter = doc.mask.editCount;
         }
 
-        // update controls 
+        // update controls
+        $('#editItems').html('');
         for (var l in g_constraintLayers) {
             // create the controls
             addEditToList(l, g_constraintLayers[l].mode, g_constraintLayers[l].color);
@@ -3649,6 +3650,7 @@ function extractConstraints() {
     }
 
     showStatusMsg("Constraints shown in the Ceres Testing panel", "OK", "Constraint Extraction Complete");
+    hideAllLayers();
 }
 
 // converts screen coordinates to internal canvas coordinates

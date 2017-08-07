@@ -60,6 +60,7 @@ var g_drawReady = false;
 var g_renderID = 0;
 var g_historyID = 0;
 var g_history = {};
+var g_editCounter = 0;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -564,7 +565,22 @@ function initUI() {
         $('#mode-erase').addClass("active");
     });
 
-    $('#createNewEdit').click(createNewEdit());
+    $('#createNewEdit').click(createNewEdit);
+
+    $('#editMaskComplete').click(editMaskComplete);
+    $('#editMaskComplete').hide();
+    $('#modeStatus').hide();
+
+    $('#editModalDropdown').dropdown({
+        action: 'activate',
+        onChange: editModalDropdownChange
+    });
+
+    $('#newEditModal').modal({
+        closable: false,
+        onDeny: closeEditModal,
+        onApprove: setupEdit
+    });
 
     $('#actionGroupSelector').dropdown({
         action: 'activate',
@@ -572,6 +588,11 @@ function initUI() {
             updateActiveGroups(text);
         }
     });
+
+    $('#stickyMessage').hide();
+    $('#stickyMessage .remove.icon').click(function () {
+        $('#stickyMessage').hide();
+    })
 
     $('#constraintLayerMenu').dropdown({
         action: function (text, value, element) {
@@ -3362,7 +3383,7 @@ var g_ceresDebugPickPoint = false;
 
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
-    g_constraintLayers[name] = { "name": name, "mode": mode, "active" : true };
+    g_constraintLayers[name] = { "name": name, "mode": mode, "active": true, color: "FFFFFF" };
 
     // add to menu
     $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
@@ -3371,7 +3392,17 @@ function newConstraintLayer(name, mode) {
 function setActiveConstraintLayer(name) {
     if (name in g_constraintLayers) {
         g_activeConstraintLayer = name;
-        $('#constraintModeMenu').dropdown('set selected', '' + g_constraintLayers[name].mode);
+        g_constraintLayers[name].active = true;
+        //$('#constraintModeMenu').dropdown('set selected', '' + g_constraintLayers[name].mode);
+    }
+    else {
+        g_activeConstraintLayer = null;
+    }
+}
+
+function hideAllLayers() {
+    for (var layer in g_constraintLayers) {
+        g_constraintLayers[layer].active = false;
     }
 }
 
@@ -3380,7 +3411,7 @@ function setConstraintLayerColor(name, color) {
     g_canvasUpdated = false;
 }
 
-function setConstraintLayerActive(active) {
+function setConstraintLayerVisible(name) {
     g_constraintLayers[name].active = true;
 }
 
@@ -3398,11 +3429,11 @@ function deleteConstraintLayer(name) {
     }
 
     // remove from menus
-    $('#constraintLayerMenu .menu .item[data-value="' + name + '"]').remove();
+    //$('#constraintLayerMenu .menu .item[data-value="' + name + '"]').remove();
 
     if (g_activeConstraintLayer === name) {
         g_activeConstraintLayer = null;
-        $('#constraintLayerMenu .text').html('[No Active Layer]');
+        //$('#constraintLayerMenu .text').html('[No Active Layer]');
     }
 
     g_canvasUpdated = false;
@@ -3518,8 +3549,8 @@ function repaint() {
                 continue;
 
             if (g_paths[p].mode == "mask") {
-                g_ctx.strokeStyle = '#' + g_paths[p].color;
-                g_ctx.fillStyle = '#' + g_paths[p].color;
+                g_ctx.strokeStyle = '#' + layer.color; //g_paths[p].color;
+                g_ctx.fillStyle = '#' + layer.color; //g_paths[p].color;
                 g_ctx.globalCompositeOperation = "source-over";
             }
             else if (g_paths[p].mode == "erase") {
@@ -3568,13 +3599,8 @@ function syncMaskState() {
     c.clearMask();
 
     for (var l in g_constraintLayers) {
-        // turn all layers off
-        for (var l2 in g_constraintLayers) {
-            if (l === l2)
-                continue;
-
-            g_constraintLayers[l2].active = false;
-        }
+        hideAllLayers();
+        g_constraintLayers[l].active = true;
 
         var layer = g_constraintLayers[l];
         layer.active = true;
@@ -3645,6 +3671,224 @@ function screenToCanvas(sX, sY, w, h, sW, sH) {
 function createNewEdit() {
     // bring up a dialog box containing the available options
     // presented in a more user-friendly way
+    $('#editModalDropdown').dropdown('clear');
+    $('#newEditModal .secondary').hide();
+    $('#editColorPicker').hide();
+    $('#newEditModal').modal('show');
+}
+
+function editModalDropdownChange(value, text) {
+    if (value === "color" || value === "hue") {
+        // show color picker
+        $('#editColorPicker').show();
+        $('#newEditModal .secondary').show();
+    }
+    else {
+        $('#editColorPicker').hide();
+        $('#newEditModal .secondary').hide();
+    }
+}
+
+function closeEditModal() {
+    // upkeep things
+    $('#colorPicker').addClass('hidden');
+    $('#colorPicker').removeClass('visible');
+}
+
+function setupEdit() {
+    $('#colorPicker').addClass('hidden');
+    $('#colorPicker').removeClass('visible');
+
+    // if using color, hue, or fixed the user now needs to select the part of the
+    // image to edit. We should popup a message somewhere telling them to draw
+    // and pop up a "done" button on the status bar
+    // might also want to change the color of the status bar to indicate a different mode
+    var type = $('#editModalDropdown').dropdown('get value');
+
+    // make a new masking layer for this edit, switch to drawing mode
+    var layerName = type + String(g_editCounter);
+    g_editCounter++;
+
+    var mode = 0;
+
+    if (type === "color") {
+        mode = 4;
+    }
+    else if (type === "hue") {
+        mode = 1;
+    }
+    else if (type === "fixed") {
+        mode = 2;
+    }
+
+    newConstraintLayer(layerName, mode);
+
+    if (type === "fixed") {
+        g_constraintLayers[layerName].color = 'AAAAAA';
+    }
+    else {
+        g_constraintLayers[layerName].color = cp.color.colors.HEX;
+    }
+    setActiveConstraintLayer(layerName);
+
+    // setup and show UI elements
+    $('#modeStatus').html('Active Edit: ' + layerName);
+    $('#modeStatus').show();
+
+    $('#createNewEdit').hide();
+    $('#editMaskComplete').show();
+
+    $('#stickyMessage .segment .text').html('On the image, draw where you would like to apply your edit to. When done, click the "Done Editing Mask" button');
+    $('#stickyMessage').show();
+
+    // add this edit to the edit list window
+    addEditToList(layerName, mode);
+
+    showStatusMsg("Edit " + layerName + " added with type " + g_constraintModesStrings[mode], "OK", "New Edit Created");
+}
+
+function addEditToList(layerName, mode) {
+    var typeStr = g_constraintModesStrings[mode];
+
+    var html = '<div class="item" layerName="' + layerName + '">';
+    html += '<div class="right floated content">';
+
+    if (mode === 0 || mode === 1 || mode === 4) {
+        html += '<div class="ui small icon button color" layerName="' + layerName + '" data-inverted="" data-tooltip="Change Color" data-position="left center"><i class="paint brush icon"></i></div>';
+    }
+
+    html += '<div class="ui small icon button redraw" layerName="' + layerName + '" data-inverted="" data-tooltip="Redraw" data-position="left center"><i class="edit icon"></i></div>';
+    html += '<div class="ui small icon button view" layerName="' + layerName + '" data-inverted="" data-tooltip="View" data-position="left center"><i class="unhide icon"></i></div>';
+    html += '<div class="ui small red icon button delete" layerName="' + layerName + '" data-inverted="" data-tooltip="Delete" data-position="left center"><i class="remove icon"></i></div>';
+    html += '</div>';
+    html += '<div class="content">';
+    html += '<div class="header">' + layerName + '</div>';
+    html += '<div class="description">Type: ' + typeStr + '</div>';
+    html += '</div></div>';
+
+    $('#editItems').append(html);
+
+    // event bindings
+    $('#editPanel .redraw[layerName="' + layerName + '"]').click(function () { redrawLayer(layerName); });
+    $('#editPanel .view[layerName="' + layerName + '"]').click(function () { viewLayer(layerName); });
+    $('#editPanel .delete[layerName="' + layerName + '"]').click(function () { deleteLayer(layerName); });
+
+    if (mode === 0 || mode === 1 || mode === 4) {
+        $('#editPanel .color[layerName="' + layerName + '"]').css({ "background-color": "#" + cp.color.colors.HEX });
+        $('#editPanel .color[layerName="' + layerName + '"]').click(function () { showLayerColorPicker(layerName); });
+    }
+}
+
+function redrawLayer(layerName) {
+    // clear the layer
+    // meaning delete all relevant paths
+    hideAllLayers();
+    setActiveConstraintLayer(layerName);
+
+    for (var p in g_paths) {
+        if (g_paths[p].layer === layerName) {
+            delete g_paths[p];
+        }
+    }
+
+    g_canvasUpdated = false;
+    repaint();
+
+    $('#modeStatus').html('Active Edit: ' + layerName);
+    $('#modeStatus').show();
+
+    $('#createNewEdit').hide();
+    $('#editMaskComplete').show();
+
+    $('#stickyMessage .segment .text').html('When you are done redrawing the affected areas, click the "Done Editing Mask" button');
+    $('#stickyMessage').show();
+}
+
+function viewLayer(layerName) {
+    hideAllLayers();
+    setConstraintLayerVisible(layerName);
+    g_canvasUpdated = false;
+    repaint();
+
+    $('#modeStatus').html('Viewing Edit: ' + layerName);
+    $('#modeStatus').show();
+
+    $('#editMaskComplete').html("Done Viewing Edit");
+    $('#editMaskComplete').show();
+
+    showStatusMsg("", "INFO", "Viewing Edit " + layerName);
+}
+
+function deleteLayer(layerName) {
+    // clean up UI if deleted while editing
+    if (g_activeConstraintLayer === layerName) {
+        editMaskComplete();
+    }
+
+    deleteConstraintLayer(layerName);
+    g_canvasUpdated = false;
+
+    $('#editItems .item[layerName="' + layerName + '"]').remove();
+
+    showStatusMsg("", "OK", "Deleted Edit " + layerName);
+}
+
+function showLayerColorPicker(layerName) {
+    if ($('#colorPicker').hasClass('hidden')) {
+        var target = $('#editPanel .color[layerName="' + layerName + '"]');
+
+        // move color picker to spot
+        var offset = target.offset();
+
+        cp.setColor(target.css('background-color'), 'rgb');
+        cp.startRender();
+
+        $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
+        if (offset.top + target.height() + $('#colorPicker').height() > $('body').height()) {
+            $('#colorPicker').css({ "left": offset.left - $('#colorPicker').width(), "top": offset.top - $('#colorPicker').height() });
+        }
+        else {
+            $('#colorPicker').css({ "left": offset.left - $('#colorPicker').width() + target.outerWidth(), "top": offset.top + target.outerHeight() });
+        }
+
+        // assign callbacks to update proper color
+        cp.color.options.actionCallback = function (e, action) {
+            console.log(action);
+            if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+                g_constraintLayers[layerName].color = cp.color.colors.HEX;
+                g_canvasUpdated = false;
+
+                target.css({ "background-color": "#" + cp.color.colors.HEX });
+            }
+        };
+
+        $('#colorPicker').addClass('visible');
+        $('#colorPicker').removeClass('hidden');
+    }
+    else {
+        $('#colorPicker').addClass('hidden');
+        $('#colorPicker').removeClass('visible');
+    }
+}
+
+function editMaskComplete() {
+    // when user is done editing the mask, this is called
+
+    // remove ui elements
+    $('#editMaskComplete').hide();
+    $('#createNewEdit').show();
+    $('#stickyMessage').hide();
+    $('#modeStatus').hide();
+
+    // reset, view changes the html but it's a special case at the moment
+    $('#editMaskComplete').html("Done Editing");
+
+    // hide the layer, and all layers really
+    setActiveConstraintLayer(null);
+    hideAllLayers();
+
+    g_canvasUpdated = false;
+    repaint();
 }
 
 /*===========================================================================*/

@@ -256,6 +256,21 @@ body .ui.basic.modal p {
 	max-height: 3em;
 }
 
+#stickyMessage {
+    position: absolute;
+    z-index: 10;
+}
+
+#stickyMessage .remove.icon {
+    cursor: pointer;
+}
+
+#modeStatus {
+    display: inline-block;
+    font-size: 12px;
+    margin-left: 1em;
+}
+
 #status {
 	position: absolute;
 	width: 50%;
@@ -310,7 +325,7 @@ body .ui.basic.modal p {
 
 #colorPicker {
 	position: absolute;
-	z-index: 100;
+	z-index: 5000;
 }
 
 #colorPicker.visible {
@@ -512,4 +527,13 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 
 #newEditModal .primary {
     color: #1b1c1d;
+}
+
+#newEditModal .secondary {
+    color: #1b1c1d;
+    margin-top: 10px;
+}
+
+#setConstraintLayerColor {
+    border: 1px solid black;
 }

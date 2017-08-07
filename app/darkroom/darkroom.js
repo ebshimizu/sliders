@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.29;
+const saveVersion = 0.30;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -2294,15 +2294,15 @@ function loadLayers(doc, path) {
         g_constraintLayers = doc.mask.constraintLayers;
         g_canvasUpdated = false;
 
-        $('#constraintLayerMenu .menu').html('');
+        if ("editCount" in doc.mask) {
+            g_editCounter = doc.mask.editCount;
+        }
+
         // update controls 
         for (var l in g_constraintLayers) {
-            $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + l + '">' + l + '</div>');
+            // create the controls
+            addEditToList(l, g_constraintLayers[l].mode, g_constraintLayers[l].color);
         }
-        $('#constraintLayerMenu').dropdown('set selected', g_activeConstraintLayer);
-
-        if (g_constraintLayers[g_activeConstraintLayer] !== undefined)
-            $('#constraintModeMenu').dropdown('set selected', g_constraintLayers[g_activeConstraintLayer].mode);
 
         // prune paths, some may be null for some reason
         for (var p in g_paths) {
@@ -2382,6 +2382,7 @@ function save(file) {
     out.mask.pathIndex = g_pathIndex;
     out.mask.constraintLayers = g_constraintLayers;
     out.mask.activeConstraintLayer = g_activeConstraintLayer;
+    out.mask.editCount = g_editCounter;
 
     // constraints
     out.constraints = g_ceresDebugConstraints;
@@ -3747,7 +3748,7 @@ function setupEdit() {
     showStatusMsg("Edit " + layerName + " added with type " + g_constraintModesStrings[mode], "OK", "New Edit Created");
 }
 
-function addEditToList(layerName, mode) {
+function addEditToList(layerName, mode, color) {
     var typeStr = g_constraintModesStrings[mode];
 
     var html = '<div class="item" layerName="' + layerName + '">';
@@ -3774,7 +3775,12 @@ function addEditToList(layerName, mode) {
     $('#editPanel .delete[layerName="' + layerName + '"]').click(function () { deleteLayer(layerName); });
 
     if (mode === 0 || mode === 1 || mode === 4) {
-        $('#editPanel .color[layerName="' + layerName + '"]').css({ "background-color": "#" + cp.color.colors.HEX });
+        if (color) {
+            $('#editPanel .color[layerName="' + layerName + '"]').css({ "background-color": "#" + color });
+        }
+        else {
+            $('#editPanel .color[layerName="' + layerName + '"]').css({ "background-color": "#" + cp.color.colors.HEX });
+        }
         $('#editPanel .color[layerName="' + layerName + '"]').click(function () { showLayerColorPicker(layerName); });
     }
 }

@@ -594,26 +594,6 @@ function initUI() {
         $('#stickyMessage').hide();
     })
 
-    $('#constraintLayerMenu').dropdown({
-        action: function (text, value, element) {
-            setActiveConstraintLayer(value);
-            $('#constraintLayerMenu .text').html(text);
-            //$('#setConstraintLayerColor').css({ "background-color": g_constraintLayers[g_activeConstraintLayer].colorStr });
-            $(this).dropdown('hide');
-        }
-    });
-
-    $('#constraintModeMenu').dropdown({
-        action: function (text, value, element) {
-            if (g_activeConstraintLayer !== null) {
-                setConstraintLayerMode(g_activeConstraintLayer, parseInt(value));
-            }
-
-            $('#constraintModeMenu .text').html(text);
-            $(this).dropdown('hide');
-        }
-    });
-
     $('#setConstraintLayerColor').click(function () {
         if ($('#colorPicker').hasClass('hidden')) {
             // move color picker to spot
@@ -2310,8 +2290,6 @@ function loadLayers(doc, path) {
             if (g_paths[p] === null)
                 delete g_paths[p];
         }
-
-        $('#constraintLayerMenu .text').html(g_activeConstraintLayer);
     }
 
     // load constraints
@@ -3386,16 +3364,12 @@ var g_ceresDebugPickPoint = false;
 function newConstraintLayer(name, mode) {
     // constraint layers are initialized to white full color constraint mode
     g_constraintLayers[name] = { "name": name, "mode": mode, "active": true, color: "FFFFFF" };
-
-    // add to menu
-    $('#constraintLayerMenu .menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
 }
 
 function setActiveConstraintLayer(name) {
     if (name in g_constraintLayers) {
         g_activeConstraintLayer = name;
         g_constraintLayers[name].active = true;
-        //$('#constraintModeMenu').dropdown('set selected', '' + g_constraintLayers[name].mode);
     }
     else {
         g_activeConstraintLayer = null;
@@ -3406,11 +3380,6 @@ function hideAllLayers() {
     for (var layer in g_constraintLayers) {
         g_constraintLayers[layer].active = false;
     }
-}
-
-function setConstraintLayerColor(name, color) {
-    g_constraintLayers[name].color = color;
-    g_canvasUpdated = false;
 }
 
 function setConstraintLayerVisible(name) {
@@ -3430,12 +3399,8 @@ function deleteConstraintLayer(name) {
         }
     }
 
-    // remove from menus
-    //$('#constraintLayerMenu .menu .item[data-value="' + name + '"]').remove();
-
     if (g_activeConstraintLayer === name) {
         g_activeConstraintLayer = null;
-        //$('#constraintLayerMenu .text').html('[No Active Layer]');
     }
 
     g_canvasUpdated = false;
@@ -3651,6 +3616,8 @@ function extractConstraints() {
 
     showStatusMsg("Constraints shown in the Ceres Testing panel", "OK", "Constraint Extraction Complete");
     hideAllLayers();
+    g_canvasUpdated = false;
+    repaint();
 }
 
 // converts screen coordinates to internal canvas coordinates

@@ -120,34 +120,38 @@ const g_constraintModesStrings = {
     0: "Full Color",
     1: "Hue",
     2: "Fixed",
-    4: "Hue and Saturation"
+    4: "Hue and Saturation",
+    5: "Group"
 }
 
 // we have to define the groups somewhere, we'll stick them at the top of this file because
 // clearly there's not enough stuff in here already
 const g_actionGroups = {
     "Vanquish": {
-        "waves": [
-            "Wave 1",
-            "Wave 2",
-            "Wave 3",
-            "Wave 4",
-            "Wave 5",
-            "Wave 6",
-            "Wave 7",
-            "Wave 8",
-            "Wave 9",
-            "Wave 10",
-            "Wave 11",
-            "Wave 12",
-            "Wave 13",
-            "Wave 14",
-            "Wave 15",
-            "Wave 16",
-            "Wave 17",
-            "Wave 18",
-            "Wave 19"
-        ]
+        "waves": {
+            "contents" : [
+                "Wave 1",
+                "Wave 2",
+                "Wave 3",
+                "Wave 4",
+                "Wave 5",
+                "Wave 6",
+                "Wave 7",
+                "Wave 8",
+                "Wave 9",
+                "Wave 10",
+                "Wave 11",
+                "Wave 12",
+                "Wave 13",
+                "Wave 14",
+                "Wave 15",
+                "Wave 16",
+                "Wave 17",
+                "Wave 18",
+                "Wave 19"
+            ],
+            "ops" : [ "more", "less" ]
+        }
     }
 }
 
@@ -3650,12 +3654,31 @@ function createNewEdit() {
 function editModalDropdownChange(value, text) {
     if (value === "color" || value === "hue") {
         // show color picker
+        $('#groupMagnitudePicker').hide();
         $('#editColorPicker').show();
         $('#newEditModal .secondary').show();
     }
-    else {
+    else if (value === "fixed") {
         $('#editColorPicker').hide();
+        $('#groupMagnitudePicker').hide();
         $('#newEditModal .secondary').hide();
+    }
+    else {
+        // check if it's a group
+        var matches = value.match(/([\w\d]+)-(.*)/);
+
+        if (matches !== null) {
+            // we have a group
+            var op = matches[1];
+            var group = matches[2];
+
+            if (op === "more" || op === "less") {
+                $('#groupMagnitudeMenu').dropdown('set selected', 'some');
+                $('#groupMagnitudePicker').show();
+                $('#editColorPicker').hide();
+                $('#newEditModal .secondary').show();
+            }
+        }
     }
 }
 
@@ -3690,29 +3713,41 @@ function setupEdit() {
     else if (type === "fixed") {
         mode = 2;
     }
+    else {
+        // groups are fairly varied so if there's not a specific mode, assume groups
+        mode = 5;
+    }
 
     newConstraintLayer(layerName, mode);
 
-    if (type === "fixed") {
+    if (mode === 2 || mode === 5) {
         g_constraintLayers[layerName].color = 'AAAAAA';
     }
     else {
         g_constraintLayers[layerName].color = cp.color.colors.HEX;
     }
-    setActiveConstraintLayer(layerName);
 
-    // setup and show UI elements
-    $('#modeStatus').html('Active Edit: ' + layerName);
-    $('#modeStatus').show();
+    if (mode === 5) {
+        // groups have no selection capability at the moment
+        addGroupEditToList(layerName, type);
 
-    $('#createNewEdit').hide();
-    $('#editMaskComplete').show();
+    }
+    else {
+        setActiveConstraintLayer(layerName);
 
-    $('#stickyMessage .segment .text').html('On the image, draw where you would like to apply your edit to. When done, click the "Done Editing Mask" button');
-    $('#stickyMessage').show();
+        // setup and show UI elements
+        $('#modeStatus').html('Active Edit: ' + layerName);
+        $('#modeStatus').show();
 
-    // add this edit to the edit list window
-    addEditToList(layerName, mode);
+        $('#createNewEdit').hide();
+        $('#editMaskComplete').show();
+
+        $('#stickyMessage .segment .text').html('On the image, draw where you would like to apply your edit to. When done, click the "Done Editing Mask" button');
+        $('#stickyMessage').show();
+
+        // add this edit to the edit list window
+        addEditToList(layerName, mode);
+    }
 
     showStatusMsg("Edit " + layerName + " added with type " + g_constraintModesStrings[mode], "OK", "New Edit Created");
 }
@@ -3752,6 +3787,38 @@ function addEditToList(layerName, mode, color) {
         }
         $('#editPanel .color[layerName="' + layerName + '"]').click(function () { showLayerColorPicker(layerName); });
     }
+}
+
+function addGroupEditToList(layerName, type) {
+    // type is organized as "[op]-name", parse here
+    var parse = type.match(/([\w\d]+)-(.*)/);
+    var op = parse[1];
+    var group = parse[2];
+
+    var html = '<div class="item" layerName="' + layerName + '">';
+    html += '<div class="right floated content">';
+
+    html += '<div class="ui small red icon button delete" layerName="' + layerName + '" data-inverted="" data-tooltip="Delete" data-position="left center"><i class="remove icon"></i></div>';
+    html += '</div>';
+    html += '<div class="content">';
+    html += '<div class="header">' + layerName + '</div>';
+    html += '<div class="description">Group: ' + group + ', Operation: ' + op + '</div>';
+    html += '</div></div>';
+
+    $('#editItems').append(html);
+
+    // event bindings
+    $('#editPanel .delete[layerName="' + layerName + '"]').click(function () { deleteLayer(layerName); });
+
+    g_constraintLayers[layerName].op = op;
+    g_constraintLayers[layerName].group = group;
+
+    // get the selected magnitude
+    var mag = $('#groupMagnitudeMenu').dropdown('get value');
+
+    // since values can change between creation and search (manual edits), calculate the actual value later
+    g_constraintLayers[layerName].target = mag;
+    
 }
 
 function redrawLayer(layerName) {
@@ -3924,6 +3991,12 @@ function sendToCeres() {
     }
 
     c.paramsToCeres(c.getContext(), pts, targets, weights, "./codegen/ceres.json");
+
+    // there's some extra data that'd be nice to put in there, like, all the group constraints
+    var data = JSON.parse(fs.readFileSync("./codegen/ceres.json"));
+
+    
+
     showStatusMsg("Exported to ./codegen/ceres.json", "OK", "Ceres Data File Exported");
 }
 
@@ -4134,17 +4207,39 @@ function updateActiveGroups(text) {
 
     // add a list element for each thing in the thing if the thing exists
     if (text in g_actionGroups) {
+        resetEditMenu();
+
         for (var groupName in g_actionGroups[text]) {
             var itemList = "";
-            for (var index in g_actionGroups[text][groupName]) {
+            for (var index in g_actionGroups[text][groupName].contents) {
                 if (index !== "0")
                     itemList += ", ";
 
-                itemList += g_actionGroups[text][groupName][index];
+                itemList += g_actionGroups[text][groupName].contents[index];
             }
 
             var html = '<div class="item"><div class="content"><div class="header">' + groupName + '</div><div class="description">Contents: ' + itemList + '</div></div></div>';
             $('#groupsItems').append(html);
+
+            // menu entry
+            for (var index in g_actionGroups[text][groupName].ops) {
+                var op = g_actionGroups[text][groupName].ops[index];
+
+                if (op === "more") {
+                    $('#editModalDropdown .menu').append('<div class="item" data-value="more-' + groupName + '">add ' + groupName + '</div>');
+                }
+                else if (op === "less") {
+                    $('#editModalDropdown .menu').append('<div class="item" data-value="less-' + groupName + '">remove ' + groupName + '</div>');
+                }
+            }
         }
+
     }
+}
+
+function resetEditMenu() {
+    var content = '<div class="item" data-value="color">change the color</div><div class="item" data-value="hue">change the hue</div><div class="item" data-value="fixed">keep part of the image the same</div>';
+
+    $('#editModalDropdown .menu').html(content);
+    $('#editModalDropdow').dropdown('clear');
 }

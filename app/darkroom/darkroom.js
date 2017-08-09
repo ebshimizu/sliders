@@ -61,6 +61,7 @@ var g_renderID = 0;
 var g_historyID = 0;
 var g_history = {};
 var g_editCounter = 0;
+var g_editMenuDefaults;
 
 const blendModes = {
     "BlendMode.NORMAL" : 0,
@@ -121,7 +122,8 @@ const g_constraintModesStrings = {
     1: "Hue",
     2: "Fixed",
     4: "Hue and Saturation",
-    5: "Group"
+    5: "Group",
+    6: "Brightness"
 }
 
 // we have to define the groups somewhere, we'll stick them at the top of this file because
@@ -237,6 +239,8 @@ function initCompositor() {
 
 // binds common events and sets up things in general
 function initUI() {
+    g_editMenuDefaults = $('#editModalDropdown .menu').html();
+
     // isotope
     $('#sampleWrapper').isotope({
         itemSelector: '.sample',
@@ -3652,7 +3656,7 @@ function createNewEdit() {
 }
 
 function editModalDropdownChange(value, text) {
-    if (value === "color" || value === "hue") {
+    if (value === "color" || value === "hue" || value == "brightness") {
         // show color picker
         $('#groupMagnitudePicker').hide();
         $('#editColorPicker').show();
@@ -3713,6 +3717,9 @@ function setupEdit() {
     else if (type === "fixed") {
         mode = 2;
     }
+    else if (type === "brightness") {
+        mode = 6;
+    }
     else {
         // groups are fairly varied so if there's not a specific mode, assume groups
         mode = 5;
@@ -3731,6 +3738,7 @@ function setupEdit() {
         // groups have no selection capability at the moment
         addGroupEditToList(layerName, type);
 
+        // TODO: For now switching to look at exploratory search. The hope is that this 
     }
     else {
         setActiveConstraintLayer(layerName);
@@ -3758,7 +3766,7 @@ function addEditToList(layerName, mode, color) {
     var html = '<div class="item" layerName="' + layerName + '">';
     html += '<div class="right floated content">';
 
-    if (mode === 0 || mode === 1 || mode === 4) {
+    if (mode === 0 || mode === 1 || mode === 4 || mode === 6) {
         html += '<div class="ui small icon button color" layerName="' + layerName + '" data-inverted="" data-tooltip="Change Color" data-position="left center"><i class="paint brush icon"></i></div>';
     }
 
@@ -3778,7 +3786,7 @@ function addEditToList(layerName, mode, color) {
     $('#editPanel .view[layerName="' + layerName + '"]').click(function () { viewLayer(layerName); });
     $('#editPanel .delete[layerName="' + layerName + '"]').click(function () { deleteLayer(layerName); });
 
-    if (mode === 0 || mode === 1 || mode === 4) {
+    if (mode === 0 || mode === 1 || mode === 4 || mode === 6) {
         if (color) {
             $('#editPanel .color[layerName="' + layerName + '"]').css({ "background-color": "#" + color });
         }
@@ -3993,7 +4001,7 @@ function sendToCeres() {
     c.paramsToCeres(c.getContext(), pts, targets, weights, "./codegen/ceres.json");
 
     // there's some extra data that'd be nice to put in there, like, all the group constraints
-    var data = JSON.parse(fs.readFileSync("./codegen/ceres.json"));
+    //var data = JSON.parse(fs.readFileSync("./codegen/ceres.json"));
 
     
 
@@ -4238,8 +4246,6 @@ function updateActiveGroups(text) {
 }
 
 function resetEditMenu() {
-    var content = '<div class="item" data-value="color">change the color</div><div class="item" data-value="hue">change the hue</div><div class="item" data-value="fixed">keep part of the image the same</div>';
-
-    $('#editModalDropdown .menu').html(content);
+    $('#editModalDropdown .menu').html(g_editMenuDefaults);
     $('#editModalDropdow').dropdown('clear');
 }

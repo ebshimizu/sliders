@@ -15,7 +15,8 @@ namespace Comp {
     TARGET_HUE = 1,
     FIXED = 2,
     NO_CONSTRAINT_DEFINED = 3,  // internal type (mostly)
-    TARGET_HUE_SAT = 4
+    TARGET_HUE_SAT = 4,
+    TARGET_BRIGHTNESS = 6
   };
 
   struct PixelConstraint {

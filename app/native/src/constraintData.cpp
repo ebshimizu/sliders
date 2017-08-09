@@ -264,6 +264,20 @@ vector<PixelConstraint> ConstraintData::getPixelConstraints(Context& c, shared_p
       pc._color._g = clamp(rgbRes._g, 0.0f, 1.0f);
       pc._color._b = clamp(rgbRes._b, 0.0f, 1.0f);
     }
+    else if (cc[sp._constraintID]._type == TARGET_BRIGHTNESS) {
+      RGBAColor target = flattened.second->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+      RGBAColor base = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
+
+      // extract the brightness and shift to match
+      HSYColor targetHSY = Utils<float>::RGBToHSY(target._r * target._a, target._g * target._a, target._b * target._a);
+      HSYColor baseHSY = Utils<float>::RGBToHSY(base._r * base._a, base._g * base._a, base._b * base._a);
+
+      baseHSY._y = targetHSY._y;
+      auto rgbRes = Utils<float>::HSYToRGB(baseHSY);
+      pc._color._r = clamp(rgbRes._r, 0.0f, 1.0f);
+      pc._color._g = clamp(rgbRes._g, 0.0f, 1.0f);
+      pc._color._b = clamp(rgbRes._b, 0.0f, 1.0f);
+    }
     else if (cc[sp._constraintID]._type == FIXED || cc[sp._constraintID]._type == NO_CONSTRAINT_DEFINED) {
       RGBAColor c = currentRender->getPixel(sp.getSeed()._x, sp.getSeed()._y);
       RGBColor cmult;

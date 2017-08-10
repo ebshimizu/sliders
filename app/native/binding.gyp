@@ -25,6 +25,10 @@
 				"src/ceresFunctions.h",
 				"src/constraintData.h",
 				"src/constraintData.cpp",
+				"src/SearchData.cpp",
+				"src/searchData.h",
+				"src/Histogram.cpp",
+				"src/Histogram.h",
 				"../../expression_tree/expressionContext.h",
 				"../../expression_tree/expressionStep.h"
 			],

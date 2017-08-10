@@ -517,9 +517,16 @@ namespace Comp {
       }
     }
 
-    // start threads
-    for (int i = 0; i < threads; i++) {
-      _searchThreads[i] = thread(&Compositor::runSearch, this);
+    if (mode == EXPLORATORY) {
+      // TODO: Maybe temporary? Exploratory starts in its own single thread
+      _searchThreads.resize(1);
+      _searchThreads[0] = thread(&Compositor::exploratorySearch, this);
+    }
+    else {
+      // start threads
+      for (int i = 0; i < threads; i++) {
+        _searchThreads[i] = thread(&Compositor::runSearch, this);
+      }
     }
 
     getLogger()->log("Search threads launched.", LogLevel::INFO);
@@ -925,6 +932,14 @@ namespace Comp {
 
     // callback
     _activeCallback(r, start, map<string, float>());
+  }
+
+  void Compositor::exploratorySearch()
+  {
+    // this runs in a threaded context. It should check if _searchRunning at times
+    // to ensure the entire thing doesn't freeze
+
+
   }
 
   inline float Compositor::premult(unsigned char px, float a)

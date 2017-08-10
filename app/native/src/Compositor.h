@@ -17,6 +17,7 @@ author: Evan Shimizu
 #include "Layer.h"
 #include "util.h"
 #include "ConstraintData.h"
+#include "searchData.h"
 
 using namespace std;
 
@@ -28,7 +29,8 @@ namespace Comp {
     RANDOM,         // randomly adjusts the available parameters to do things
     SMART_RANDOM,
     MCMC,
-    NLS
+    NLS,
+    EXPLORATORY
   };
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
@@ -156,6 +158,10 @@ namespace Comp {
 
     // search modes
     void randomSearch(Context start);
+
+    // parent thread for the exploratory search. Right now it's single threaded with
+    // no option to change, may adjust in the future.
+    void exploratorySearch();
 
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);

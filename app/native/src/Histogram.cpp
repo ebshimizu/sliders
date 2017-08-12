@@ -51,6 +51,51 @@ unsigned int Histogram::get(double x)
   return _data[closestBin(x)];
 }
 
+double Histogram::l2(Histogram & other)
+{
+  // histograms are sparse, so we need a set of bins that each one has
+  set<unsigned int> activeBins;
+
+  for (auto& bin : _data)
+    activeBins.insert(bin.first);
+
+  for (auto& bin : other._data)
+    activeBins.insert(bin.first);
+
+  double sum = 0;
+  for (auto& binID : activeBins) {
+    sum += pow(get(binID) - other.get(binID), 2);
+  }
+
+  return sqrt(sum);
+}
+
+double Histogram::chiSq(Histogram & other)
+{
+  // histograms are sparse, so we need a set of bins that each one has
+  set<unsigned int> activeBins;
+
+  for (auto& bin : _data)
+    activeBins.insert(bin.first);
+
+  for (auto& bin : other._data)
+    activeBins.insert(bin.first);
+
+  double sum = 0;
+  for (auto& binID : activeBins) {
+    unsigned int x = get(binID);
+    unsigned int y = other.get(binID);
+
+    // for some reason if the bins are 0, just continue
+    if (x == 0 && y == 0)
+      continue;
+
+    sum += pow(x - y, 2) / ((double)(x + y));
+  }
+
+  return sqrt(0.5 * sum);
+}
+
 double Histogram::avg()
 {
   double sum = 0;

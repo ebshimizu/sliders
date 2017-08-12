@@ -3,6 +3,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 
 using namespace std;
 
@@ -29,8 +30,15 @@ public:
   unsigned int get(unsigned int id);
   unsigned int get(double x);
 
-  // Returns the distance between this histogram and another histogram
-  double diff(Histogram& other);
+  // there are a variety of distance metrics that can be used
+  // Euclidean per-bin distance, not a great metric but fairly quick to calculate
+  double l2(Histogram& other);
+
+  // Chi-squared distance
+  double chiSq(Histogram& other);
+
+  // Earth-Mover's Distance (if needed)
+  //double emd(Histogram& other);
 
   // Returns an average of values contained in the histogram bins
   double avg();
@@ -38,6 +46,9 @@ public:
   // variance and st deviation
   double variance();
   double stdev();
+
+  // string version of the histogram
+  string toString();
 
 private:
   inline unsigned int closestBin(double val);

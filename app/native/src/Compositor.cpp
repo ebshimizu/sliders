@@ -1,4 +1,5 @@
 #include "Compositor.h"
+#include "searchData.h"
 #include "third_party/json/src/json.hpp"
 
 namespace Comp {
@@ -489,6 +490,7 @@ namespace Comp {
     _searchSettings = settings;
     _searchRunning = true;
     _searchRenderSize = searchRenderSize;
+    _initSearchContext = getNewContext();
 
     stringstream ss;
     ss << "Starting search with " << threads << " threads";
@@ -938,8 +940,40 @@ namespace Comp {
   {
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
+    ExpSearchSet activeSet;
+    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext));
 
+    // add initial config to the active set
+    activeSet.add(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext)));
 
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<double> zeroOne(0, 1);
+    Context c = _initSearchContext;
+
+    // keep a single sample and repeatedly mutate it, similar to genetic op but without
+    // a population since we don't have an objective here. Crossover samples are
+    // pulled from the active set
+    // termination condition: consecutive failures (up for debate)
+    int failures = 0;
+    while (failures < _searchSettings["maxFailures"]) {
+      // skip to the end and return results if search is no longer running
+      if (!_searchRunning)
+        break;
+      
+      // for each layer
+      for (auto& l : c) {
+        // for each adjustment
+        for (auto& p : l.second.getAdjustments()) {
+
+        }
+      }
+
+      // mutate the current context
+      if (zeroOne(gen) < _searchSettings["mutationRate"]) {
+
+      }
+    }
   }
 
   inline float Compositor::premult(unsigned char px, float a)
@@ -1191,6 +1225,17 @@ namespace Comp {
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
       img[i * 4 + 2] = (unsigned char)(adjPx._b * 255);
+    }
+  }
+
+  vector<double> Compositor::contextToVector(Context c, nlohmann::json key)
+  {
+    // add the parameter data to the key
+    key = nlohmann::json::array();
+
+    for (auto& l : _layerOrder) {
+      // gather parameter info for all layers
+      c[l].addParams(key);
     }
   }
 }

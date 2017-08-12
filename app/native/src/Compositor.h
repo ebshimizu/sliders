@@ -301,6 +301,14 @@ namespace Comp {
     template <typename T>
     inline void brightnessAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
 
+    // converts a context to a normal vector, with a vector of json objects
+    // acting as the key to map back to the context when needed.
+    vector<double> contextToVector(Context c, nlohmann::json key);
+
+    // translates a vector to a context given a key.
+    // these functions are similar to what happens in sendToCeres
+    Context vectorToContext(vector<double> x, nlohmann::json key);
+
     // compositing order for layers
     vector<string> _layerOrder;
 
@@ -316,6 +324,9 @@ namespace Comp {
     vector<thread> _searchThreads;
     string _searchRenderSize;
     SearchMode _searchMode;
+
+    // a context storing the state of the image when start search was called
+    Context _initSearchContext;
 
     // in an attempt to keep the signature of search mostly the same, additional
     // settings should be stored in this map

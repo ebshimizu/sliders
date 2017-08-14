@@ -938,6 +938,8 @@ namespace Comp {
 
   void Compositor::exploratorySearch()
   {
+    getLogger()->log("Exploratory search started", LogLevel::INFO);
+
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
     ExpSearchSet activeSet;
@@ -954,26 +956,33 @@ namespace Comp {
     mt19937 gen(rd());
     uniform_real_distribution<double> zeroOne(0, 1);
     
-
     // keep a single sample and repeatedly mutate it, similar to genetic op but without
     // a population since we don't have an objective here. Crossover samples are
     // pulled from the active set
     // termination condition: consecutive failures (up for debate)
     int failures = 0;
+    int sample = 0;
     while (failures < _searchSettings["maxFailures"]) {
       // skip to the end and return results if search is no longer running
       if (!_searchRunning)
         break;
       
+      stringstream log;
+      log << "[" << sample << "]\t";
+
       // crossover
       if (zeroOne(gen) < _searchSettings["crossoverChance"]) {
         // pick a random existing sample
-        shared_ptr<ExpSearchSample> xover = activeSet.get((unsigned int)(zeroOne(gen) * activeSet.size()));
+        unsigned int xsample = (unsigned int)(zeroOne(gen) * activeSet.size());
+        shared_ptr<ExpSearchSample> xover = activeSet.get(xsample);
         vector<double> xvec = xover->getContextVector();
+
+        log << "Crossover (" << xsample << ")";
 
         for (int i = 0; i < cv.size(); i++) {
           if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
             cv[i] = xvec[i];
+            log << " [" << i << "]";
           }
         }
       }
@@ -983,8 +992,11 @@ namespace Comp {
         // mutate here just means randomize between 0 and 1
         if (zeroOne(gen) < _searchSettings["mutationRate"]) {
           cv[i] = zeroOne(gen);
+          log << " Mutation [" << i << "]";
         }
       }
+
+      getLogger()->log(log.str());
 
       // attempt to add the thing
       Context newCtx = vectorToContext(cv, key);
@@ -1000,7 +1012,14 @@ namespace Comp {
       if (!success) {
         failures++;
       }
+      else {
+        failures = 0;
+      }
+
+      getLogger()->log("Failures: " + to_string(failures) + "/" + to_string(_searchSettings["maxFailures"]));
     }
+
+    getLogger()->log("Returning results", LogLevel::INFO);
 
     // return everything to the calling function with the callback
     for (int i = 0; i < activeSet.size(); i++) {

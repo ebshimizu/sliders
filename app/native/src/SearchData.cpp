@@ -141,10 +141,14 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
   if (axes >= _axisReq) {
     _samples[_idCounter] = x;
     _reasoning[_idCounter] = why.str();
+
+    getLogger()->log("Added sample " + to_string(_idCounter) + " to set (total: " + to_string(size()) + "): " + why.str());
+    
     _idCounter++;
     return true;
   }
   else {
+    getLogger()->log("Rejected sample from set. Axis threshold not met: " + to_string(axes));
     return false;
   }
 }

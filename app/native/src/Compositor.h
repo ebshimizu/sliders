@@ -22,7 +22,7 @@ author: Evan Shimizu
 using namespace std;
 
 namespace Comp {
-  typedef function<void(Image*, Context, map<string, float> metadata)> searchCallback;
+  typedef function<void(Image*, Context, map<string, float>, map<string, string>)> searchCallback;
 
   enum SearchMode {
     SEARCH_DEBUG,          // returns the same image at intervals for testing app functionality
@@ -303,11 +303,11 @@ namespace Comp {
 
     // converts a context to a normal vector, with a vector of json objects
     // acting as the key to map back to the context when needed.
-    vector<double> contextToVector(Context c, nlohmann::json key);
+    vector<double> contextToVector(Context c, nlohmann::json& key);
 
     // translates a vector to a context given a key.
     // these functions are similar to what happens in sendToCeres
-    Context vectorToContext(vector<double> x, nlohmann::json key);
+    Context vectorToContext(vector<double> x, nlohmann::json& key);
 
     // compositing order for layers
     vector<string> _layerOrder;

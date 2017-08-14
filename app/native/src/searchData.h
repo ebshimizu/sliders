@@ -11,7 +11,7 @@ namespace Comp {
 // consists of a rendered image, and a specified context
 class ExpSearchSample {
 public:
-  ExpSearchSample(shared_ptr<Image> img, Context ctx);
+  ExpSearchSample(shared_ptr<Image> img, Context ctx, vector<double> ctxVec);
   ExpSearchSample(const ExpSearchSample& other);
 
   ~ExpSearchSample();
@@ -21,6 +21,10 @@ public:
   double satDist(shared_ptr<ExpSearchSample> other);
   double structDiff(shared_ptr<ExpSearchSample> other);
 
+  vector<double> getContextVector();
+  shared_ptr<Image> getImg();
+  Context getContext();
+
   // sample ID, usually controlled by ExpSearchSet
   unsigned int _id;
 
@@ -29,6 +33,7 @@ private:
 
   shared_ptr<Image> _render;
   Context _ctx;
+  vector<double> _ctxVec;
 
   Histogram _brightness;
   Histogram _hue;
@@ -46,7 +51,11 @@ public:
   // adds a result to the set if it expands the diversity of the set
   bool add(shared_ptr<ExpSearchSample> x);
 
+  // for now samples can be added but not removed, so array-like indexing is fine
   shared_ptr<ExpSearchSample> get(unsigned int id);
+
+  // retrieves the reason why a sample was allowed in the set
+  string getReason(unsigned int id);
 
   int size();
 

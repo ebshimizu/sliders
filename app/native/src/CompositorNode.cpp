@@ -145,6 +145,11 @@ void asyncSampleEvent(uv_work_t * req)
     metadata->Set(Nan::New(k.first).ToLocalChecked(), Nan::New(k.second));
   }
 
+  // string metadata
+  for (auto k : data->meta2) {
+    metadata->Set(Nan::New(k.first).ToLocalChecked(), Nan::New(k.second).ToLocalChecked());
+  }
+
   // construct emitter objects
   v8::Local<v8::Value> emitArgv[] = { Nan::New("sample").ToLocalChecked(), imgInst, ctxInst, metadata };
   Nan::MakeCallback(data->c->handle(), "emit", 4, emitArgv);
@@ -1651,7 +1656,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
   // hopefully what happens here is that we create a callback function for the c++ code to call
   // in order to get the image data out of c++ into js. The compositor object itself will
   // run the search loop and the node code is called through the anonymous function created here.
-  Comp::searchCallback cb = [c](Comp::Image* img, Comp::Context ctx, map<string, float> meta) {
+  Comp::searchCallback cb = [c](Comp::Image* img, Comp::Context ctx, map<string, float> meta, map<string, string> meta2) {
     // create necessary data structures
     asyncSampleEventData* asyncData = new asyncSampleEventData();
     asyncData->request.data = (void*)asyncData;
@@ -1659,6 +1664,7 @@ void CompositorWrapper::startSearch(const Nan::FunctionCallbackInfo<v8::Value>& 
     asyncData->ctx = ctx;
     asyncData->c = c;
     asyncData->meta = meta;
+    asyncData->meta2 = meta2;
 
     uv_queue_work(uv_default_loop(), &asyncData->request, asyncNop, reinterpret_cast<uv_after_work_cb>(asyncSampleEvent));
   };

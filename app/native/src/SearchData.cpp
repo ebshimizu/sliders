@@ -2,16 +2,14 @@
 
 namespace Comp {
 
-ExpSearchSample::ExpSearchSample(shared_ptr<Image> img, Context ctx) : _render(img), _ctx(ctx),
-  _brightness(1), _hue(5), _sat(0.05)
+ExpSearchSample::ExpSearchSample(shared_ptr<Image> img, Context ctx, vector<double> ctxvec) :
+  _render(img), _ctx(ctx), _ctxVec(ctxvec), _brightness(1), _hue(5), _sat(0.05)
 {
-
 }
 
 ExpSearchSample::ExpSearchSample(const ExpSearchSample & other) : _render(other._render), _ctx(other._ctx),
-  _brightness(other._brightness), _hue(other._hue), _sat(other._sat)
+  _brightness(other._brightness), _hue(other._hue), _sat(other._sat), _ctxVec(other._ctxVec)
 {
-
 }
 
 ExpSearchSample::~ExpSearchSample()
@@ -38,6 +36,21 @@ double ExpSearchSample::structDiff(shared_ptr<ExpSearchSample> other)
 {
   // structural distance as proposed by matt, to be implemented
   return 0.0;
+}
+
+vector<double> ExpSearchSample::getContextVector()
+{
+  return _ctxVec;
+}
+
+shared_ptr<Image> ExpSearchSample::getImg()
+{
+  return _render;
+}
+
+Context ExpSearchSample::getContext()
+{
+  return _ctx;
 }
 
 void ExpSearchSample::preProcess()
@@ -139,6 +152,11 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 shared_ptr<ExpSearchSample> ExpSearchSet::get(unsigned int id)
 {
   return shared_ptr<ExpSearchSample>();
+}
+
+string ExpSearchSet::getReason(unsigned int id)
+{
+  return _reasoning[id];
 }
 
 int ExpSearchSet::size()

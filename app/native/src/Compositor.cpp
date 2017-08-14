@@ -570,7 +570,7 @@ namespace Comp {
       if (_searchMode == SEARCH_DEBUG) {
         // debug: returns a render of the current context every time it runs
         Image* r = render(_searchRenderSize);
-        _activeCallback(r, Context(getPrimaryContext()), map<string, float>());
+        _activeCallback(r, Context(getPrimaryContext()), map<string, float>(), map<string, string>());
         this_thread::sleep_for(5s);
       }
       else if (_searchMode == RANDOM) {
@@ -933,7 +933,7 @@ namespace Comp {
     Image* r = render(start, _searchRenderSize);
 
     // callback
-    _activeCallback(r, start, map<string, float>());
+    _activeCallback(r, start, map<string, float>(), map<string, string>());
   }
 
   void Compositor::exploratorySearch()
@@ -943,13 +943,17 @@ namespace Comp {
     ExpSearchSet activeSet;
     shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext));
 
+    Context c = _initSearchContext;
+    nlohmann::json key;
+    vector<double> cv = contextToVector(c, key);
+
     // add initial config to the active set
-    activeSet.add(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext)));
+    activeSet.add(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext, cv)));
 
     random_device rd;
     mt19937 gen(rd());
     uniform_real_distribution<double> zeroOne(0, 1);
-    Context c = _initSearchContext;
+    
 
     // keep a single sample and repeatedly mutate it, similar to genetic op but without
     // a population since we don't have an objective here. Crossover samples are
@@ -961,18 +965,52 @@ namespace Comp {
       if (!_searchRunning)
         break;
       
-      // for each layer
-      for (auto& l : c) {
-        // for each adjustment
-        for (auto& p : l.second.getAdjustments()) {
+      // crossover
+      if (zeroOne(gen) < _searchSettings["crossoverChance"]) {
+        // pick a random existing sample
+        shared_ptr<ExpSearchSample> xover = activeSet.get((unsigned int)(zeroOne(gen) * activeSet.size()));
+        vector<double> xvec = xover->getContextVector();
 
+        for (int i = 0; i < cv.size(); i++) {
+          if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
+            cv[i] = xvec[i];
+          }
         }
       }
 
-      // mutate the current context
-      if (zeroOne(gen) < _searchSettings["mutationRate"]) {
-
+      for (int i = 0; i < cv.size(); i++) {
+        // mutate the current context, which has been translated to a vector
+        // mutate here just means randomize between 0 and 1
+        if (zeroOne(gen) < _searchSettings["mutationRate"]) {
+          cv[i] = zeroOne(gen);
+        }
       }
+
+      // attempt to add the thing
+      Context newCtx = vectorToContext(cv, key);
+      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx));
+      shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
+
+      // check that the result is "reasonable"
+      // newSample->isReasonable();
+      // failing to be a reasonable sample isn't necsesarily a failure to find diversity, so it won't be counted as such
+
+      bool success = activeSet.add(newSample);
+      
+      if (!success) {
+        failures++;
+      }
+    }
+
+    // return everything to the calling function with the callback
+    for (int i = 0; i < activeSet.size(); i++) {
+      auto x = activeSet.get(i);
+
+      // string metadata things
+      map<string, string> m2;
+      m2["reason"] = activeSet.getReason(i);
+
+      _activeCallback(new Image(*x->getImg().get()), x->getContext(), map<string, float>(), m2);
     }
   }
 
@@ -1228,7 +1266,7 @@ namespace Comp {
     }
   }
 
-  vector<double> Compositor::contextToVector(Context c, nlohmann::json key)
+  vector<double> Compositor::contextToVector(Context c, nlohmann::json& key)
   {
     // add the parameter data to the key
     key = nlohmann::json::array();
@@ -1237,5 +1275,39 @@ namespace Comp {
       // gather parameter info for all layers
       c[l].addParams(key);
     }
+
+    // dump values into a vector
+    vector<double> vals;
+    for (int i = 0; i < key.size(); i++) {
+      vals.push_back(key[i]["value"]);
+    }
+
+    return vals;
+  }
+
+  Context Compositor::vectorToContext(vector<double> x, nlohmann::json & key)
+  {
+    Context c = getNewContext();
+
+    for (int i = 0; i < key.size(); i++) {
+      AdjustmentType t = (AdjustmentType)key[i]["adjustmentType"];
+      string layerName = key[i]["layerName"];
+      double val = x[i];
+      string adjName = key[i]["adjustmentName"];
+
+      if (t == AdjustmentType::OPACITY) {
+        c[layerName].setOpacity(val);
+      }
+      else if (t == AdjustmentType::SELECTIVE_COLOR) {
+        string channel = key[i]["selectiveColor"]["channel"];
+        string color = key[i]["selectiveColor"]["color"];
+        c[layerName].setSelectiveColorChannel(channel, color, val);
+      }
+      else {
+        c[layerName].addAdjustment(t, adjName, val);
+      }
+    }
+
+    return c;
   }
 }

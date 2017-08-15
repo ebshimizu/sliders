@@ -114,7 +114,8 @@ const searchModeStrings = {
     1: "Random",
     2: "Directed Random",
     3: "MCMC",
-    4: "Generational Ceres"
+    4: "Generational Ceres",
+    5: "Exploratory"
 }
 
 const g_constraintModesStrings = {
@@ -3221,6 +3222,13 @@ function runSearch(elem) {
             ceresAll();
         }
         else {
+            // couple things to add to the search settings
+            var searchSettings = settings.search;
+            searchSettings.maxFailures = parseFloat($('#expMaxFail input').val());
+            searchSettings.mutationRate = parseFloat($('#genMutation input').val());
+            searchSettings.crossoverChance = parseFloat($('#genCrossoverChance input').val());
+            searchSettings.crossoverRate = parseFloat($('#genCrossover input').val());
+
             c.startSearch(settings.search.mode, settings.search, settings.sampleThreads, settings.sampleRenderSize);
         }
         console.log("Search started");
@@ -3324,7 +3332,12 @@ function createSampleContainer(img, id, meta) {
             metaVal = meta[key].toFixed(5);
         }
 
-        html += '<div class="ui black left ribbon label" metadata-key="' + key + '" metadata-value="' + metaVal + '">' + key + ": " + metaVal + "</div>";
+        if (key === 'reason') {
+            html += '<div class="ui black left ribbon label" metadata-key="' + key + '">' + key + ": " + metaVal + "</div>";
+        }
+        else {
+            html += '<div class="ui black left ribbon label" metadata-key="' + key + '" metadata-value="' + metaVal + '">' + key + ": " + metaVal + "</div>";
+        }
     }
     
     // id display

@@ -64,7 +64,10 @@ double Histogram::l2(Histogram & other)
 
   double sum = 0;
   for (auto& binID : activeBins) {
-    sum += pow(get(binID) - other.get(binID), 2);
+    double x = get(binID) / (double)_count;
+    double y = other.get(binID) / (double)other._count;
+
+    sum += pow(x - y, 2);
   }
 
   return sqrt(sum);
@@ -73,6 +76,7 @@ double Histogram::l2(Histogram & other)
 double Histogram::chiSq(Histogram & other)
 {
   // histograms are sparse, so we need a set of bins that each one has
+  // also everything should be normalized before doing distances
   set<unsigned int> activeBins;
 
   for (auto& bin : _data)
@@ -83,14 +87,14 @@ double Histogram::chiSq(Histogram & other)
 
   double sum = 0;
   for (auto& binID : activeBins) {
-    unsigned int x = get(binID);
-    unsigned int y = other.get(binID);
+    double x = get(binID) / (double)_count;
+    double y = other.get(binID) / (double)other._count;
 
     // for some reason if the bins are 0, just continue
     if (x == 0 && y == 0)
       continue;
 
-    sum += pow(x - y, 2) / ((double)(x + y));
+    sum += pow(x - y, 2) / (x + y);
   }
 
   return sqrt(0.5 * sum);

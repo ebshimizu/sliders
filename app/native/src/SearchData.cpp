@@ -5,6 +5,7 @@ namespace Comp {
 ExpSearchSample::ExpSearchSample(shared_ptr<Image> img, Context ctx, vector<double> ctxvec) :
   _render(img), _ctx(ctx), _ctxVec(ctxvec), _brightness(1), _hue(5), _sat(0.05)
 {
+  preProcess();
 }
 
 ExpSearchSample::ExpSearchSample(const ExpSearchSample & other) : _render(other._render), _ctx(other._ctx),
@@ -77,9 +78,9 @@ ExpSearchSet::ExpSearchSet()
   // default settings for now
   // literally just random guesses
   _axisReq = 2;
-  _hueThreshold = 3;
-  _satThreshold = 0.5;
-  _brightThreshold = 5;
+  _hueThreshold = 0.4;
+  _satThreshold = 0.4;
+  _brightThreshold = 0.4;
 
   _idCounter = 0;
 }
@@ -155,7 +156,7 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 
 shared_ptr<ExpSearchSample> ExpSearchSet::get(unsigned int id)
 {
-  return shared_ptr<ExpSearchSample>();
+  return _samples[id];
 }
 
 string ExpSearchSet::getReason(unsigned int id)

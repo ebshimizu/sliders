@@ -971,7 +971,7 @@ namespace Comp {
       log << "[" << sample << "]\t";
 
       // crossover
-      if (zeroOne(gen) < _searchSettings["crossoverChance"]) {
+      if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
         // pick a random existing sample
         unsigned int xsample = (unsigned int)(zeroOne(gen) * activeSet.size());
         shared_ptr<ExpSearchSample> xover = activeSet.get(xsample);
@@ -980,7 +980,7 @@ namespace Comp {
         log << "Crossover (" << xsample << ")";
 
         for (int i = 0; i < cv.size(); i++) {
-          if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
+          if (zeroOne(gen) < _searchSettings["crossoverChance"]) {
             cv[i] = xvec[i];
             log << " [" << i << "]";
           }
@@ -1017,6 +1017,7 @@ namespace Comp {
       }
 
       getLogger()->log("Failures: " + to_string(failures) + "/" + to_string(_searchSettings["maxFailures"]));
+      sample++;
     }
 
     getLogger()->log("Returning results", LogLevel::INFO);

@@ -180,6 +180,66 @@ namespace Comp {
     return _vars;
   }
 
+  double Image::structDiff(Image * y)
+  {
+    // dimension mismatch means images can't be compared
+    if (y->getWidth() != getWidth() || y->getHeight() != getHeight())
+      return DBL_MAX;
+
+    // the idea here is that image y is similar to image A (this) if there exists
+    // a linear transformation x s.t. Ax = y. this is basically a contrast/brightness
+    // operation. Values in A are derived from the pixel values of this image.
+
+    // set up the proper matrices
+    auto& yData = y->getData();
+
+    Eigen::VectorXd b;
+    b.resize(yData.size() / 4);
+
+    for (int i = 0; i < yData.size() / 4; i++) {
+      // premult color n stuff
+      double r = (yData[i * 4] / 255.0) * (yData[i * 4 + 3] / 255.0);
+      double g = (yData[i * 4 + 1] / 255.0) * (yData[i * 4 + 3] / 255.0);
+      double bl = (yData[i * 4 + 2] / 255.0) * (yData[i * 4 + 3] / 255.0);
+
+      // want L channel of Lab
+      Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
+
+      // construct b
+      b[i] = Lab._L;
+    }
+
+    Eigen::MatrixX2d A;
+    A.resize(yData.size() / 4, Eigen::NoChange);
+    double avg = 0;
+
+    // A is a bit annoying since we need the average L before assigning values
+    for (int i = 0; i < _data.size() / 4; i++) {
+      double r = (_data[i * 4] / 255.0) * (_data[i * 4 + 3] / 255.0);
+      double g = (_data[i * 4 + 1] / 255.0) * (_data[i * 4 + 3] / 255.0);
+      double bl = (_data[i * 4 + 2] / 255.0) * (_data[i * 4 + 3] / 255.0);
+
+      // want L channel of Lab
+      Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
+      A(i, 0) = Lab._L;
+      A(i, 1) = 1;
+      avg += Lab._L;
+    }
+
+    avg /= (_data.size() / 4);
+
+    // subtract the average from column 0
+    for (int i = 0; i < _data.size() / 4; i++) {
+      A(i, 0) = A(i, 0) - avg;
+    }
+
+    // solve
+    Eigen::Vector2d x = A.colPivHouseholderQr().solve(b);
+
+    double error = (A*x - b).norm() / b.norm();
+    return error;
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

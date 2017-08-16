@@ -181,6 +181,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "height", height);
   Nan::SetPrototypeMethod(tpl, "save", save);
   Nan::SetPrototypeMethod(tpl, "filename", filename);
+  Nan::SetPrototypeMethod(tpl, "structDiff", structDiff);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -293,6 +294,25 @@ void ImageWrapper::filename(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   else {
     info.GetReturnValue().Set(Nan::New(image->_image->getFilename()).ToLocalChecked());
   }
+}
+
+void ImageWrapper::structDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("structDiff requires an image to compare to");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+
+  double error = image->_image->structDiff(y->_image);
+  info.GetReturnValue().Set(Nan::New(error));
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

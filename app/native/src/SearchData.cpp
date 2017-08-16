@@ -36,7 +36,7 @@ double ExpSearchSample::satDist(shared_ptr<ExpSearchSample> other)
 double ExpSearchSample::structDiff(shared_ptr<ExpSearchSample> other)
 {
   // structural distance as proposed by matt, to be implemented
-  return 0.0;
+  return _render->structDiff(other->_render.get());
 }
 
 vector<double> ExpSearchSample::getContextVector()
@@ -81,6 +81,7 @@ ExpSearchSet::ExpSearchSet()
   _hueThreshold = 0.4;
   _satThreshold = 0.4;
   _brightThreshold = 0.4;
+  _structThreshold = 0.25;
 
   _idCounter = 0;
 }
@@ -111,11 +112,13 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
   double minBright = x->brightnessDist(_init);
   double minHue = x->hueDist(_init);
   double minSat = x->satDist(_init);
+  double minStruct = x->structDiff(_init);
 
   for (auto& sample : _samples) {
     double brightDist = x->brightnessDist(sample.second);
     double hueDist = x->hueDist(sample.second);
     double satDist = x->satDist(sample.second);
+    double structDist = x->structDiff(sample.second);
 
     if (brightDist < minBright)
       minBright = brightDist;
@@ -125,6 +128,9 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 
     if (satDist < minSat)
       minSat = satDist;
+
+    if (structDist < minStruct)
+      minStruct = structDist;
   }
 
   // check if minimums are above thresholds
@@ -142,6 +148,10 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
   if (minSat > _satThreshold) {
     axes++;
     why << "Saturation acceptable (" << minSat << ")\n";
+  }
+  if (minStruct > _structThreshold) {
+    axes++;
+    why << "Structural difference acceptable (" << minStruct << ")\n";
   }
 
   if (axes >= _axisReq) {

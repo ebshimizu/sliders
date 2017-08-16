@@ -18,6 +18,7 @@ author: Evan Shimizu
 
 #include "third_party/lodepng/lodepng.h"
 #include "third_party/cpp-base64/base64.h"
+#include "third_party/Eigen/Dense"
 
 #pragma warning(pop)
 
@@ -85,6 +86,13 @@ namespace Comp {
     // i don't think the exp step cares really where the pixel comes from?
     // we'll initialize the ExpStep color with the specified color but it shouldn't actually matter
     Utils<ExpStep>::RGBAColorT& getPixel();
+
+    // structural comparison functions
+    // this function by default uses the entire image.
+    double structDiff(Image* y);
+
+    // this function uses a patched based mean structural difference calculation
+    double structDiff(Image* y, int patchSize);
 
   private:
     // loads an image from a file

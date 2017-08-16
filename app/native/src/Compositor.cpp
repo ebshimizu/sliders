@@ -943,7 +943,7 @@ namespace Comp {
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
     ExpSearchSet activeSet;
-    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext));
+    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, _searchRenderSize));
 
     Context c = _initSearchContext;
     nlohmann::json key;
@@ -1026,7 +1026,7 @@ namespace Comp {
         }
       }
 
-      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx));
+      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, _searchRenderSize));
       shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
 
       // check that the result is "reasonable"

@@ -51,6 +51,42 @@ unsigned int Histogram::get(double x)
   return _data[closestBin(x)];
 }
 
+double Histogram::getPercent(unsigned int id)
+{
+  return (get(id) / (double)_count);
+}
+
+double Histogram::getPercent(double x)
+{
+  return getPercent(closestBin(x));
+}
+
+unsigned int Histogram::largestBin(unsigned int* id)
+{
+  unsigned int largest = 0;
+  unsigned int lid = 0;
+
+  for (auto& bin : _data) {
+    if (bin.second > largest) {
+      largest = bin.second;
+      lid = bin.first;
+    }
+  }
+
+  if (id != nullptr) {
+    *id = lid;
+  }
+
+  return largest;
+}
+
+double Histogram::largestBinPercent(unsigned int * id)
+{
+  unsigned int unNorm = largestBin(id);
+
+  return (unNorm / (double)_count);
+}
+
 double Histogram::l2(Histogram & other)
 {
   // histograms are sparse, so we need a set of bins that each one has
@@ -133,6 +169,18 @@ double Histogram::variance()
 double Histogram::stdev()
 {
   return sqrt(variance());
+}
+
+string Histogram::toString()
+{
+  // prints the normalized histogram
+  string hist = "";
+
+  for (auto& bin : _data) {
+    hist += to_string(bin.first) + ": " + to_string(bin.second / (double)_count) + "\n";
+  }
+
+  return hist;
 }
 
 inline unsigned int Histogram::closestBin(double val)

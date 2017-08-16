@@ -85,6 +85,7 @@ namespace Comp {
     // adding adjustments can be done arbitrarily or with pre-defined functions
     // these functions overwrite existing values by default
     void addAdjustment(AdjustmentType type, string param, float val);
+    void addAdjustment(AdjustmentType type, map<string, float> vals);
     void addHSLAdjustment(float hue, float sat, float light);
     void addLevelsAdjustment(float inMin, float inMax, float gamma = (1.0f / 10.0f), float outMin = 0, float outMax = 1);
     void addCurvesChannel(string channel, Curve curve);

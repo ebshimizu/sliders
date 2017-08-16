@@ -28,25 +28,31 @@ public:
   // sample ID, usually controlled by ExpSearchSet
   unsigned int _id;
 
+  Histogram _brightness;
+  Histogram _hue;
+  Histogram _sat;
+
 private:
   void preProcess();
 
   shared_ptr<Image> _render;
   Context _ctx;
   vector<double> _ctxVec;
-
-  Histogram _brightness;
-  Histogram _hue;
-  Histogram _sat;
 };
 
 // this class manages the set of results currently in the exploratory
 // search result set. It should handle all the operations needed to add a new
 // proposed sample.
+// ExpSearchSet makes an implicit assumption that the first element added to the set is
+// the original version of the scene.
+// TODO: maybe make this explicit???
 class ExpSearchSet {
 public:
   ExpSearchSet();
   ~ExpSearchSet();
+
+  // sets the start config
+  void setInitial(shared_ptr<ExpSearchSample> init);
 
   // adds a result to the set if it expands the diversity of the set
   bool add(shared_ptr<ExpSearchSample> x);
@@ -59,7 +65,12 @@ public:
 
   int size();
 
+  // right now this function runs a few low-order tests to see if the sample 
+  // meets some basic criteria for image quality
+  bool isGood(shared_ptr<ExpSearchSample> x);
+
 private:
+
   // the samples
   map<unsigned int, shared_ptr<ExpSearchSample> > _samples;
 
@@ -73,6 +84,8 @@ private:
   // Required number of axes the sample needs to be different from
   // in order to be accepted
   int _axisReq;
+
+  shared_ptr<ExpSearchSample> _init;
 
   double _brightThreshold;
   double _hueThreshold;

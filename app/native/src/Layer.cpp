@@ -165,6 +165,11 @@ namespace Comp {
     _adjustments[type][param] = val;
   }
 
+  void Layer::addAdjustment(AdjustmentType type, map<string, float> vals)
+  {
+    _adjustments[type] = vals;
+  }
+
   void Layer::addHSLAdjustment(float hue, float sat, float light)
   {
     _adjustments[AdjustmentType::HSL]["hue"] = fmodf(hue, 1);

@@ -3,7 +3,7 @@
 namespace Comp {
 
 ExpSearchSample::ExpSearchSample(shared_ptr<Image> img, Context ctx, vector<double> ctxvec) :
-  _render(img), _ctx(ctx), _ctxVec(ctxvec), _brightness(1), _hue(5), _sat(0.05)
+  _render(img), _ctx(ctx), _ctxVec(ctxvec), _brightness(2), _hue(5), _sat(0.05)
 {
   preProcess();
 }
@@ -90,22 +90,22 @@ ExpSearchSet::~ExpSearchSet()
   _samples.clear();
 }
 
+void ExpSearchSet::setInitial(shared_ptr<ExpSearchSample> init)
+{
+  _init = init;
+}
+
 bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 {
+  getLogger()->log("Evaluating sample...");
+
   // a sample should be added to the current search set if it is different enough
   // along at least n different axes.
   // this may change in the future depending on if we want to focus on structural differences
-  if (size() == 0) {
-    _samples[_idCounter] = x;
-    _reasoning[_idCounter] = "First sample added to set.";
-    _idCounter++;
-    return true;
-  }
-
   // record min distances
-  double minBright = DBL_MAX;
-  double minHue = DBL_MAX;
-  double minSat = DBL_MAX;
+  double minBright = x->brightnessDist(_init);
+  double minHue = x->hueDist(_init);
+  double minSat = x->satDist(_init);
 
   for (auto& sample : _samples) {
     double brightDist = x->brightnessDist(sample.second);
@@ -145,6 +145,11 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 
     getLogger()->log("Added sample " + to_string(_idCounter) + " to set (total: " + to_string(size()) + "): " + why.str());
     
+    // also dump the histograms
+    getLogger()->log("Brightness Histogram\n" + x->_brightness.toString());
+    getLogger()->log("Hue Histogram\n" + x->_hue.toString());
+    getLogger()->log("Sat Histogram\n" + x->_sat.toString());
+
     _idCounter++;
     return true;
   }
@@ -167,6 +172,59 @@ string ExpSearchSet::getReason(unsigned int id)
 int ExpSearchSet::size()
 {
   return _samples.size();
+}
+
+bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
+{
+  // couple sanity checks here
+  // is the brightness all in the same bin? (moreso than the original?)
+  double pctBright = x->_brightness.largestBinPercent();
+  double origPctBright = _init->_brightness.largestBinPercent();
+
+  // threshold: 70% is uniform brightness in a single bin
+  if (pctBright >= 0.7) {
+    // if the original image actually had this, then, well, it's fine
+    if (abs(origPctBright - pctBright) > 0.05) {
+      // if not, it's probably bad though
+      getLogger()->log("Sample rejected. Brightness too uniform: " + to_string(pctBright));
+      return false;
+    }
+  }
+
+  // is the hue all in the same bin? (and is that not what the original image did?)
+  double pctHue = x->_hue.largestBinPercent();
+  double origPctHue = _init->_hue.largestBinPercent();
+
+  // same idea as brightness
+  if (pctHue >= 0.7) {
+    // if the original image actually had this, then, well, it's fine
+    if (abs(origPctHue - pctHue) > 0.05) {
+      // if not, it's probably bad though
+      getLogger()->log("Sample rejected. Hue too uniform: " + to_string(pctHue));
+      return false;
+    }
+  }
+
+  // are things overwhelmingly dark / bright?
+  double pctDark = x->_brightness.getPercent(0.0);
+  double pctBright2 = x->_brightness.getPercent(100.0);
+  double origPctDark = _init->_brightness.getPercent(0.0);
+  double origPctBright2 = _init->_brightness.getPercent(100.0);
+
+  // same process, it's likely bad unless the original config did this
+  if (pctDark >= 0.85) {
+    if (abs(origPctDark - pctDark) > 0.02) {
+      getLogger()->log("Sample rejected. Too dark: " + to_string(pctDark));
+      return false;
+    }
+  }
+
+  if (pctBright2 >= 0.85) {
+    if (abs(origPctBright2 - pctBright2) > 0.02) {
+      getLogger()->log("Sample rejected. Too bright: " + to_string(pctBright2));
+      return false;
+    }
+  }
 }
 
 }

@@ -949,8 +949,8 @@ namespace Comp {
     nlohmann::json key;
     vector<double> cv = contextToVector(c, key);
 
-    // add initial config to the active set
-    activeSet.add(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext, cv)));
+    // set the initial configuration
+    activeSet.setInitial(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext, cv)));
 
     random_device rd;
     mt19937 gen(rd());
@@ -972,6 +972,7 @@ namespace Comp {
 
       // crossover
       if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
+        // TODO: forgot about init, should crossover with that fairly frequently
         // pick a random existing sample
         unsigned int xsample = (unsigned int)(zeroOne(gen) * activeSet.size());
         shared_ptr<ExpSearchSample> xover = activeSet.get(xsample);
@@ -990,6 +991,7 @@ namespace Comp {
       for (int i = 0; i < cv.size(); i++) {
         // mutate the current context, which has been translated to a vector
         // mutate here just means randomize between 0 and 1
+        // note: some parameters are toggles (like relative for selective color) may have to deal with them later
         if (zeroOne(gen) < _searchSettings["mutationRate"]) {
           cv[i] = zeroOne(gen);
           log << " Mutation [" << i << "]";
@@ -1000,38 +1002,58 @@ namespace Comp {
 
       // attempt to add the thing
       Context newCtx = vectorToContext(cv, key);
+
+      // sanity check for levels, restore to default if invalid
+      for (auto& l : newCtx) {
+        auto adj = l.second.getAdjustment(AdjustmentType::LEVELS);
+        if (adj.size() > 0) {
+          if (adj["inMin"] > adj["inMax"] || adj["outMin"] > adj["outMax"]) {
+            // restore to initial conditions
+            l.second.addAdjustment(AdjustmentType::LEVELS, _initSearchContext[l.first].getAdjustment(AdjustmentType::LEVELS));
+
+            // update vector
+            cv = contextToVector(newCtx, key);
+          }
+        }
+      }
+
       shared_ptr<Image> img = shared_ptr<Image>(render(newCtx));
       shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
 
       // check that the result is "reasonable"
-      // newSample->isReasonable();
+      bool good = activeSet.isGood(newSample);
       // failing to be a reasonable sample isn't necsesarily a failure to find diversity, so it won't be counted as such
 
-      bool success = activeSet.add(newSample);
-      
-      if (!success) {
-        failures++;
-      }
-      else {
-        failures = 0;
+      if (good) {
+        bool success = activeSet.add(newSample);
+
+        if (!success) {
+          failures++;
+        }
+        else {
+          map<string, string> m2;
+          m2["reason"] = activeSet.getReason(activeSet.size() - 1);
+
+          _activeCallback(new Image(*img.get()), newCtx, map<string, float>(), m2);
+          failures = 0;
+        }
       }
 
       getLogger()->log("Failures: " + to_string(failures) + "/" + to_string(_searchSettings["maxFailures"]));
       sample++;
     }
 
-    getLogger()->log("Returning results", LogLevel::INFO);
-
+    // right now things that are added to the set can't be removed, so we return as we find at the moment.
     // return everything to the calling function with the callback
-    for (int i = 0; i < activeSet.size(); i++) {
-      auto x = activeSet.get(i);
+    //for (int i = 0; i < activeSet.size(); i++) {
+    //  auto x = activeSet.get(i);
 
       // string metadata things
-      map<string, string> m2;
-      m2["reason"] = activeSet.getReason(i);
+    //  map<string, string> m2;
+    //  m2["reason"] = activeSet.getReason(i);
 
-      _activeCallback(new Image(*x->getImg().get()), x->getContext(), map<string, float>(), m2);
-    }
+    //  _activeCallback(new Image(*x->getImg().get()), x->getContext(), map<string, float>(), m2);
+    //}
   }
 
   inline float Compositor::premult(unsigned char px, float a)
@@ -1302,6 +1324,11 @@ namespace Comp {
       vals.push_back(key[i]["value"]);
     }
 
+    // some extremely verbose logging
+    // dump the json file
+    //stringstream ss;
+    //getLogger()->log(key.dump(2), DBG);
+
     return vals;
   }
 
@@ -1315,10 +1342,12 @@ namespace Comp {
       double val = x[i];
       string adjName = key[i]["adjustmentName"];
 
+      //getLogger()->log("processing " + layerName + " adj: " + adjName);
+
       if (t == AdjustmentType::OPACITY) {
         c[layerName].setOpacity(val);
       }
-      else if (t == AdjustmentType::SELECTIVE_COLOR) {
+      else if (t == AdjustmentType::SELECTIVE_COLOR && adjName != "relative") {
         string channel = key[i]["selectiveColor"]["channel"];
         string color = key[i]["selectiveColor"]["color"];
         c[layerName].setSelectiveColorChannel(channel, color, val);

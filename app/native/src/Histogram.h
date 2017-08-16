@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 using namespace std;
 
@@ -29,6 +30,18 @@ public:
   // get values from the bins
   unsigned int get(unsigned int id);
   unsigned int get(double x);
+  double getPercent(unsigned int id);
+  double getPercent(double x);
+
+  // retrieves info about which bin has the most stuff in it
+  // (optional) returns the id of the largest bin
+  unsigned int largestBin(unsigned int* id = nullptr);
+  double largestBinPercent(unsigned int* id = nullptr);
+
+  unsigned int countAbove(unsigned int id);
+  unsigned int countAbove(double x);
+  double countAbovePct(unsigned int id);
+  double countAbovePct(double x);
 
   // there are a variety of distance metrics that can be used
   // Euclidean per-bin distance, not a great metric but fairly quick to calculate

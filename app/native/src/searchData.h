@@ -53,6 +53,7 @@ public:
 
   // sets the start config
   void setInitial(shared_ptr<ExpSearchSample> init);
+  shared_ptr<ExpSearchSample> getInitial();
 
   // adds a result to the set if it expands the diversity of the set
   bool add(shared_ptr<ExpSearchSample> x);

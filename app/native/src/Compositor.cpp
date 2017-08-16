@@ -972,10 +972,19 @@ namespace Comp {
 
       // crossover
       if (zeroOne(gen) < _searchSettings["crossoverRate"]) {
-        // TODO: forgot about init, should crossover with that fairly frequently
-        // pick a random existing sample
-        unsigned int xsample = (unsigned int)(zeroOne(gen) * activeSet.size());
-        shared_ptr<ExpSearchSample> xover = activeSet.get(xsample);
+        shared_ptr<ExpSearchSample> xover;
+        int xsample;
+
+        // 50% chance to crossover with the start config, 100% if activeSet is size 0
+        if (activeSet.size() == 0 || zeroOne(gen) < 0.5) {
+          xsample = -1;
+          xover = activeSet.getInitial();
+        }
+        else {
+          xsample = (int)(zeroOne(gen) * activeSet.size());
+          xover = activeSet.get(xsample);
+        }
+
         vector<double> xvec = xover->getContextVector();
 
         log << "Crossover (" << xsample << ")";

@@ -95,6 +95,11 @@ void ExpSearchSet::setInitial(shared_ptr<ExpSearchSample> init)
   _init = init;
 }
 
+shared_ptr<ExpSearchSample> ExpSearchSet::getInitial()
+{
+  return _init;
+}
+
 bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
 {
   getLogger()->log("Evaluating sample...");
@@ -146,9 +151,9 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
     getLogger()->log("Added sample " + to_string(_idCounter) + " to set (total: " + to_string(size()) + "): " + why.str());
     
     // also dump the histograms
-    getLogger()->log("Brightness Histogram\n" + x->_brightness.toString());
-    getLogger()->log("Hue Histogram\n" + x->_hue.toString());
-    getLogger()->log("Sat Histogram\n" + x->_sat.toString());
+    //getLogger()->log("Brightness Histogram\n" + x->_brightness.toString());
+    //getLogger()->log("Hue Histogram\n" + x->_hue.toString());
+    //getLogger()->log("Sat Histogram\n" + x->_sat.toString());
 
     _idCounter++;
     return true;
@@ -181,8 +186,8 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   double pctBright = x->_brightness.largestBinPercent();
   double origPctBright = _init->_brightness.largestBinPercent();
 
-  // threshold: 70% is uniform brightness in a single bin
-  if (pctBright >= 0.7) {
+  // threshold: 60% is uniform brightness in a single bin
+  if (pctBright >= 0.6) {
     // if the original image actually had this, then, well, it's fine
     if (abs(origPctBright - pctBright) > 0.05) {
       // if not, it's probably bad though
@@ -196,7 +201,7 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   double origPctHue = _init->_hue.largestBinPercent();
 
   // same idea as brightness
-  if (pctHue >= 0.7) {
+  if (pctHue >= 0.6) {
     // if the original image actually had this, then, well, it's fine
     if (abs(origPctHue - pctHue) > 0.05) {
       // if not, it's probably bad though
@@ -206,9 +211,9 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   }
 
   // are things overwhelmingly dark / bright?
-  double pctDark = x->_brightness.getPercent(0.0);
-  double pctBright2 = x->_brightness.getPercent(100.0);
-  double origPctDark = _init->_brightness.getPercent(0.0);
+  double pctDark = x->_brightness.countBelowPct(5.0);
+  double pctBright2 = x->_brightness.countAbovePct(95.0);
+  double origPctDark = _init->_brightness.countBelowPct(5.0);
   double origPctBright2 = _init->_brightness.getPercent(100.0);
 
   // same process, it's likely bad unless the original config did this
@@ -225,6 +230,8 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
       return false;
     }
   }
+
+  return true;
 }
 
 }

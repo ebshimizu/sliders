@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.30;
+const saveVersion = 0.31;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -40,7 +40,8 @@ var settings = {
     "search": {
         "useVisibleLayersOnly": 1,
         "modifyLayerBlendModes" : 0,
-        "mode" : 1
+        "mode": 1,
+        "maxFailures" : 25
     },
     "maxResults": 100,
     "unconstrainedDensity": 1000,
@@ -49,7 +50,7 @@ var settings = {
     "constrainedWeight": 4,
     "ceresConfig": "Release",
     "metadataDisplay": "score",
-    "detailedLog" : false
+    "detailedLog": false,
 };
 
 // global settings vars
@@ -424,6 +425,10 @@ function initUI() {
         settings.constrainedWeight = parseInt($(this).val());
     });
 
+    $('#expMaxFail input').change(function () {
+        settings.search.maxFailures = parseFloat($('#expMaxFail input').val());
+    });
+
     // search settings
     $('#sampleControls .top.menu .item').tab();
     $('#samplesTabs .item').tab();
@@ -766,6 +771,9 @@ function loadSettings() {
     if ('activeGroups' in settings) {
         $('#actionGroupSelector').dropdown('set selected', settings.activeGroups);
     }
+
+    // added 0.31, absence of key uses default
+    $('#expMaxFail input').val(settings.search.maxFailures);
 }
 
 function updateCeresSettings() {
@@ -3151,6 +3159,7 @@ function updateLayerControls() {
             else if (type === 7) {
                 // photo filter
                 updateColorControl(layerName, "Photo Filter", adj);
+                updateSliderControl(layerName, "density", "Photo Filter", adj.density);
             }
             else if (type === 8) {
                 // colorize
@@ -3224,7 +3233,6 @@ function runSearch(elem) {
         else {
             // couple things to add to the search settings
             var searchSettings = settings.search;
-            searchSettings.maxFailures = parseFloat($('#expMaxFail input').val());
             searchSettings.mutationRate = parseFloat($('#genMutation input').val());
             searchSettings.crossoverChance = parseFloat($('#genCrossoverChance input').val());
             searchSettings.crossoverRate = parseFloat($('#genCrossover input').val());

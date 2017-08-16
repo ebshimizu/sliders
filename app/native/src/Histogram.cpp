@@ -87,6 +87,60 @@ double Histogram::largestBinPercent(unsigned int * id)
   return (unNorm / (double)_count);
 }
 
+unsigned int Histogram::countAbove(unsigned int id)
+{
+  unsigned int count = 0;
+  for (auto& bin : _data) {
+    if (bin.first >= id) {
+      count += bin.second;
+    }
+  }
+
+  return count;
+}
+
+unsigned int Histogram::countAbove(double x)
+{
+  return countAbove(closestBin(x));
+}
+
+double Histogram::countAbovePct(unsigned int id)
+{
+  return countAbove(id) / (double)_count;
+}
+
+double Histogram::countAbovePct(double x)
+{
+  return countAbovePct(closestBin(x));
+}
+
+unsigned int Histogram::countBelow(unsigned int id)
+{
+  unsigned int count = 0;
+  for (auto& bin : _data) {
+    if (bin.first <= id) {
+      count += bin.second;
+    }
+  }
+
+  return count;
+}
+
+unsigned int Histogram::countBelow(double x)
+{
+  return countBelow(closestBin(x));
+}
+
+double Histogram::countBelowPct(unsigned int id)
+{
+  return countBelow(id) / (double)_count;
+}
+
+double Histogram::countBelowPct(double x)
+{
+  return countBelow(x) / (double)_count;
+}
+
 double Histogram::l2(Histogram & other)
 {
   // histograms are sparse, so we need a set of bins that each one has

@@ -38,10 +38,17 @@ public:
   unsigned int largestBin(unsigned int* id = nullptr);
   double largestBinPercent(unsigned int* id = nullptr);
 
+  // returns the number of elements at or above the specified bin
   unsigned int countAbove(unsigned int id);
   unsigned int countAbove(double x);
   double countAbovePct(unsigned int id);
   double countAbovePct(double x);
+
+  // same as count above just in the other direction
+  unsigned int countBelow(unsigned int id);
+  unsigned int countBelow(double x);
+  double countBelowPct(unsigned int id);
+  double countBelowPct(double x);
 
   // there are a variety of distance metrics that can be used
   // Euclidean per-bin distance, not a great metric but fairly quick to calculate

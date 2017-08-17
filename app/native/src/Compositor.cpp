@@ -1065,6 +1065,101 @@ namespace Comp {
     //}
   }
 
+  void Compositor::expStructSearch(ExpSearchSet & activeSet)
+  {
+    getLogger()->log("Starting structural search");
+
+    // first collect information from the search groups
+    set<string> structLayers;
+
+    for (auto& g : _searchGroups) {
+      if (g._type == G_STRUCTURE) {
+        for (auto& name : g._layerNames) {
+          structLayers.insert(name);
+        }
+      }
+    }
+    
+    // data setup
+    Context c = _initSearchContext;
+    nlohmann::json key;
+    vector<double> cv = contextToVector(c, key);
+    vector<int> structParams;
+
+    // determine which parameters are the opacity ones
+    for (int i = 0; i < key.size(); i++) {
+      AdjustmentType t = (AdjustmentType)key[i]["adjustmentType"];
+      if (t == AdjustmentType::OPACITY) {
+        structParams.push_back(i);
+      }
+    }
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<double> zeroOne(0, 1);
+
+    // for now structure is assumed to imply opacity only
+    int failures = 0;
+    int sample = 0;
+    while (failures < _searchSettings["maxFailures"]) {
+      if (!_searchRunning)
+        break;
+      
+      stringstream log;
+      log << "[" << sample << "]\t";
+
+      // crossover is eliminated here in favor of toggling
+      // but maybe we do want crossover back to the original config
+      // toggle
+      // this randomly sets an opacity layer to either on (100%) or off (0%)
+      // with a 50% chance
+      for (auto& id : structParams) {
+        if (zeroOne(gen) < _searchSettings["toggleRate"]) {
+          cv[id] = (zeroOne(gen) < 0.5) ? 1 : 0;
+        }
+      }
+
+      // mutate
+      for (auto& id : structParams) {
+        // mutate the current context, which has been translated to a vector
+        // mutate here just means randomize between 0 and 1
+        if (zeroOne(gen) < _searchSettings["mutationRate"]) {
+          cv[id] = zeroOne(gen);
+          log << " Mutation [" << id << "]";
+        }
+      }
+
+      getLogger()->log(log.str());
+
+      // attempt to add the thing
+      Context newCtx = vectorToContext(cv, key);
+      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, _searchRenderSize));
+      shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
+
+      // check that the result is "reasonable"
+      bool good = activeSet.isGood(newSample);
+      // failing to be a reasonable sample isn't necsesarily a failure to find diversity, so it won't be counted as such
+
+      if (good) {
+        bool success = activeSet.add(newSample, true);
+
+        if (!success) {
+          failures++;
+        }
+        else {
+          map<string, string> m2;
+          m2["reason"] = activeSet.getReason(activeSet.size() - 1);
+
+          _activeCallback(new Image(*img.get()), newCtx, map<string, float>(), m2);
+          failures = 0;
+        }
+      }
+
+      getLogger()->log("Failures: " + to_string(failures) + "/" + to_string(_searchSettings["maxFailures"]));
+      sample++;
+    }
+  }
+
   inline float Compositor::premult(unsigned char px, float a)
   {
     return (float)((px / 255.0f) * a);

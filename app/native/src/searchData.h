@@ -7,6 +7,16 @@
 
 namespace Comp {
 
+enum SearchGroupType {
+  G_STRUCTURE = 0,
+  G_COLOR = 1
+};
+
+struct SearchGroup {
+  SearchGroupType _type;
+  vector<string> _layerNames;
+};
+
 // an exploratory search result
 // consists of a rendered image, and a specified context
 class ExpSearchSample {
@@ -43,9 +53,6 @@ private:
 // this class manages the set of results currently in the exploratory
 // search result set. It should handle all the operations needed to add a new
 // proposed sample.
-// ExpSearchSet makes an implicit assumption that the first element added to the set is
-// the original version of the scene.
-// TODO: maybe make this explicit???
 class ExpSearchSet {
 public:
   ExpSearchSet();
@@ -56,7 +63,7 @@ public:
   shared_ptr<ExpSearchSample> getInitial();
 
   // adds a result to the set if it expands the diversity of the set
-  bool add(shared_ptr<ExpSearchSample> x);
+  bool add(shared_ptr<ExpSearchSample> x, bool structural = false);
 
   // for now samples can be added but not removed, so array-like indexing is fine
   shared_ptr<ExpSearchSample> get(unsigned int id);

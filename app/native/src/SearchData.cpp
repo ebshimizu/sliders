@@ -101,7 +101,7 @@ shared_ptr<ExpSearchSample> ExpSearchSet::getInitial()
   return _init;
 }
 
-bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
+bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x, bool structural)
 {
   getLogger()->log("Evaluating sample...");
 
@@ -136,6 +136,7 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
   // check if minimums are above thresholds
   int axes = 0;
   stringstream why;
+  bool structAccept = false;
 
   if (minBright > _brightThreshold) {
     axes++;
@@ -151,10 +152,16 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x)
   }
   if (minStruct > _structThreshold) {
     axes++;
+    structAccept = true;
+
+    if (structural) {
+      why.clear();
+    }
+
     why << "Structural difference acceptable (" << minStruct << ")\n";
   }
 
-  if (axes >= _axisReq) {
+  if ((!structural && axes >= _axisReq) || (structural && structAccept)) {
     _samples[_idCounter] = x;
     _reasoning[_idCounter] = why.str();
 

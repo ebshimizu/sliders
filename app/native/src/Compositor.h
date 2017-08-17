@@ -163,6 +163,9 @@ namespace Comp {
     // no option to change, may adjust in the future.
     void exploratorySearch();
 
+    // subroutine for the exploratory search
+    void expStructSearch(ExpSearchSet& activeSet);
+
     inline float premult(unsigned char px, float a);
     inline unsigned char cvt(float px, float a);
 
@@ -332,6 +335,10 @@ namespace Comp {
     // settings should be stored in this map
     // a list of available settings can be found at the end of this file
     map<string, float> _searchSettings;
+
+    // the exploratory search needs a bit more info to be really useful
+    // and we'll store that here
+    vector<SearchGroup> _searchGroups;
 
     // various search things that should be cached
 

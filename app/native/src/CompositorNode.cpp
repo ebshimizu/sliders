@@ -1220,6 +1220,8 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "renderPixel", renderPixel);
   Nan::SetPrototypeMethod(tpl, "getPixelConstraints", getPixelConstraints);
   Nan::SetPrototypeMethod(tpl, "computeErrorMap", computeErrorMap);
+  Nan::SetPrototypeMethod(tpl, "addSearchGroup", addSearchGroup);
+  Nan::SetPrototypeMethod(tpl, "clearSearchGroups", clearSearchGroups);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2086,6 +2088,41 @@ void CompositorWrapper::computeErrorMap(const Nan::FunctionCallbackInfo<v8::Valu
   else {
     Nan::ThrowError("computeErrorMap(context:object, filename:string) argument error");
   }
+}
+
+void CompositorWrapper::addSearchGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addSearchGroup");
+
+  if (info[0]->IsObject()) {
+    v8::Local<v8::Object> data = info[0].As<v8::Object>();
+
+    // type
+    Comp::SearchGroup g;
+    g._type = (Comp::SearchGroupType)(data->Get(Nan::New("type").ToLocalChecked())->Int32Value());
+
+    // names
+    v8::Local<v8::Array> names = data->Get(Nan::New("layers").ToLocalChecked()).As<v8::Array>();
+    for (int i = 0; i < names->Length(); i++) {
+      v8::String::Utf8Value val0(names->Get(Nan::New(i))->ToString());
+      string name(*val0);
+      g._layerNames.push_back(name);
+    }
+    
+    c->_compositor->addSearchGroup(g);
+  }
+  else {
+    Nan::ThrowError("addSearchGroup expects an object");
+  }
+}
+
+void CompositorWrapper::clearSearchGroups(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.clearSearchGroup");
+
+  c->_compositor->clearSearchGroups();
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

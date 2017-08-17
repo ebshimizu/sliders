@@ -81,7 +81,7 @@ ExpSearchSet::ExpSearchSet()
   _hueThreshold = 0.4;
   _satThreshold = 0.4;
   _brightThreshold = 0.4;
-  _structThreshold = 0.25;
+  _structThreshold = 0.15;
 
   _idCounter = 0;
 }

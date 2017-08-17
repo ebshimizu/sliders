@@ -833,6 +833,16 @@ namespace Comp {
     return true;
   }
 
+  void Compositor::addSearchGroup(SearchGroup g)
+  {
+    _searchGroups.push_back(g);
+  }
+
+  void Compositor::clearSearchGroups()
+  {
+    _searchGroups.clear();
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);
@@ -951,6 +961,9 @@ namespace Comp {
 
     // set the initial configuration
     activeSet.setInitial(shared_ptr<ExpSearchSample>(new ExpSearchSample(currentRender, _initSearchContext, cv)));
+
+    // run structural search, then everything else
+    expStructSearch(activeSet);
 
     random_device rd;
     mt19937 gen(rd());

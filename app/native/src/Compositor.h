@@ -149,6 +149,12 @@ namespace Comp {
     */
     bool ceresToContext(string file, map<string, float>& metadata, Context& c);
 
+    // Adds a search group to the compositor
+    void addSearchGroup(SearchGroup g);
+
+    // resets the search group list
+    void clearSearchGroups();
+
   private:
     void addLayer(string name);
 

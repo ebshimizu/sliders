@@ -56,6 +56,9 @@ private:
 class ExpSearchSet {
 public:
   ExpSearchSet();
+
+  // pull settings from settings map
+  ExpSearchSet(map<string, float>& settings);
   ~ExpSearchSet();
 
   // sets the start config
@@ -99,6 +102,11 @@ private:
   double _hueThreshold;
   double _satThreshold;
   double _structThreshold;
+
+  // if these values are exceeded, the sample is rejected
+  double _brightTolerance;
+  double _hueTolerance;
+  double _clipTolerance;
 };
 
 }

@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.31;
+const saveVersion = 0.33;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -41,7 +41,16 @@ var settings = {
         "useVisibleLayersOnly": 1,
         "modifyLayerBlendModes" : 0,
         "mode": 1,
-        "maxFailures" : 25
+        "maxFailures": 25,
+        "toggleRate": 0.5,
+        "axisReq": 2,
+        "setHueThreshold": 0.4,
+        "setSatThreshold": 0.4,
+        "setBrightThreshold": 0.4,
+        "setStructThreshold": 0.15,
+        "brightTolerance": 0.75,
+        "hueTolerance": 0.75,
+        "clipTolerance": 0.85
     },
     "maxResults": 100,
     "unconstrainedDensity": 1000,
@@ -429,6 +438,11 @@ function initUI() {
         settings.search.maxFailures = parseFloat($('#expMaxFail input').val());
     });
 
+    $('.expParam input').change(function () {
+        var p = $(this).parent('.expParam').attr("param");
+        settings.search[p] = parseFloat($(this).val());
+    });;
+
     // search settings
     $('#sampleControls .top.menu .item').tab();
     $('#samplesTabs .item').tab();
@@ -774,6 +788,43 @@ function loadSettings() {
 
     // added 0.31, absence of key uses default
     $('#expMaxFail input').val(settings.search.maxFailures);
+
+    // added 0.33
+    if (!('toggleRate' in settings.search))
+        settings.search.toggleRate = 0.5;
+    $('#expToggleRate input').val(settings.search.toggleRate);
+
+    if (!('axisReq' in settings.search))
+        settings.search.axisReq = 2;
+    $('#expAxisReq input').val(settings.search.axisReq);
+
+    if (!('setHueThreshold' in settings.search))
+        settings.search.setHueThreshold = 0.4;
+    $('#expSetHueThreshold input').val(settings.search.setHueThreshold);
+
+    if (!('setSatThreshold' in settings.search))
+        settings.search.setSatThreshold = 0.4;
+    $('#expSetSatThreshold input').val(settings.search.setSatThreshold);
+
+    if (!('setBrightThreshold' in settings.search))
+        settings.search.setBrightThreshold = 0.4;
+    $('#expSetBrightThreshold input').val(settings.search.setBrightThreshold);
+
+    if (!('setStructThreshold' in settings.search))
+        settings.search.setStructThreshold = 0.15;
+    $('#expSetStructThreshold input').val(settings.search.setStructThreshold);
+
+    if (!('brightTolerance' in settings.search))
+        settings.search.brightTolerance = 0.75;
+    $('#expBrightTolerance input').val(settings.search.brightTolerance);
+
+    if (!('hueTolerance' in settings.search))
+        settings.search.hueTolerance = 0.75;
+    $('#expHueTolerance input').val(settings.search.hueTolerance);
+
+    if (!('clipTolerance' in settings.search))
+        settings.search.clipTolerance = 0.85;
+    $('#expClipTolerance input').val(settings.search.clipTolerance);
 }
 
 function updateCeresSettings() {

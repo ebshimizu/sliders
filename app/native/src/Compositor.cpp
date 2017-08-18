@@ -952,7 +952,7 @@ namespace Comp {
 
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
-    ExpSearchSet activeSet;
+    ExpSearchSet activeSet(_searchSettings);
     shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, _searchRenderSize));
 
     Context c = _initSearchContext;
@@ -1123,14 +1123,6 @@ namespace Comp {
 
       // crossover is eliminated here in favor of toggling
       // but maybe we do want crossover back to the original config
-      // toggle
-      // this randomly sets an opacity layer to either on (100%) or off (0%)
-      // with a 50% chance
-      for (auto& id : structParams) {
-        if (zeroOne(gen) < _searchSettings["toggleRate"]) {
-          cv[id] = (zeroOne(gen) < 0.5) ? 1 : 0;
-        }
-      }
 
       // mutate
       for (auto& id : structParams) {
@@ -1139,6 +1131,16 @@ namespace Comp {
         if (zeroOne(gen) < _searchSettings["mutationRate"]) {
           cv[id] = zeroOne(gen);
           log << " Mutation [" << id << "]";
+        }
+      }
+
+      // toggle
+      // this randomly sets an opacity layer to either on (100%) or off (0%)
+      // with a 50% chance
+      for (auto& id : structParams) {
+        if (zeroOne(gen) < _searchSettings["toggleRate"]) {
+          log << " Toggle [" << id << "]";
+          cv[id] = (zeroOne(gen) < 0.5) ? 1 : 0;
         }
       }
 

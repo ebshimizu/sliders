@@ -82,8 +82,23 @@ ExpSearchSet::ExpSearchSet()
   _satThreshold = 0.4;
   _brightThreshold = 0.4;
   _structThreshold = 0.15;
+  _brightTolerance = 0.75;
+  _hueTolerance = 0.75;
+  _clipTolerance = 0.85;
 
   _idCounter = 0;
+}
+
+ExpSearchSet::ExpSearchSet(map<string, float>& settings)
+{
+  _axisReq = (int)settings["axisReq"];
+  _hueThreshold = settings["setHueThreshold"];
+  _satThreshold = settings["setSatThreshold"];
+  _brightThreshold = settings["setBrightThreshold"];
+  _structThreshold = settings["setStructThreshold"];
+  _brightTolerance = settings["brightTolerance"];
+  _hueTolerance = settings["hueTolerance"];
+  _clipTolerance = settings["clipTolerance"];
 }
 
 ExpSearchSet::~ExpSearchSet()
@@ -203,8 +218,8 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   double pctBright = x->_brightness.largestBinPercent();
   double origPctBright = _init->_brightness.largestBinPercent();
 
-  // threshold: 60% is uniform brightness in a single bin
-  if (pctBright >= 0.6) {
+  // threshold: n% is uniform brightness in a single bin
+  if (pctBright >= _brightTolerance) {
     // if the original image actually had this, then, well, it's fine
     if (abs(origPctBright - pctBright) > 0.05) {
       // if not, it's probably bad though
@@ -218,7 +233,7 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   double origPctHue = _init->_hue.largestBinPercent();
 
   // same idea as brightness
-  if (pctHue >= 0.6) {
+  if (pctHue >= _hueTolerance) {
     // if the original image actually had this, then, well, it's fine
     if (abs(origPctHue - pctHue) > 0.05) {
       // if not, it's probably bad though
@@ -234,14 +249,14 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   double origPctBright2 = _init->_brightness.getPercent(100.0);
 
   // same process, it's likely bad unless the original config did this
-  if (pctDark >= 0.85) {
+  if (pctDark >= _clipTolerance) {
     if (abs(origPctDark - pctDark) > 0.02) {
       getLogger()->log("Sample rejected. Too dark: " + to_string(pctDark));
       return false;
     }
   }
 
-  if (pctBright2 >= 0.85) {
+  if (pctBright2 >= _clipTolerance) {
     if (abs(origPctBright2 - pctBright2) > 0.02) {
       getLogger()->log("Sample rejected. Too bright: " + to_string(pctBright2));
       return false;

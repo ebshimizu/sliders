@@ -91,8 +91,21 @@ namespace Comp {
     // this function by default uses the entire image.
     double structDiff(Image* y);
 
-    // this function uses a patched based mean structural difference calculation
-    double structDiff(Image* y, int patchSize);
+    // returns a list of vectorized image patches (L channel only)
+    vector<Eigen::VectorXd> patches(int patchSize);
+
+    // there are a couple functions to deal with binned comparison functions
+    // counts the number of bins that image y is better than image x in (above some threshold)
+    double structBinDiff(Image* y, int patchSize, double threshold = 0.01);
+
+    // adds up the numerical difference in each bin instead of doing it one way
+    double structTotalBinDiff(Image* y, int patchSize);
+
+    // it's like the total but its divided by the total number of bins like some sort of average
+    double structAvgBinDiff(Image* y, int patchSize);
+
+    // just in case you want the numbers for yourself
+    vector<double> structIndBinDiff(Image* y, int patchSize);
 
   private:
     // loads an image from a file

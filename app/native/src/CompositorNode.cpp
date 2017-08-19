@@ -182,6 +182,10 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "save", save);
   Nan::SetPrototypeMethod(tpl, "filename", filename);
   Nan::SetPrototypeMethod(tpl, "structDiff", structDiff);
+  Nan::SetPrototypeMethod(tpl, "structIndBinDiff", structIndBinDiff);
+  Nan::SetPrototypeMethod(tpl, "structAvgBinDiff", structAvgBinDiff);
+  Nan::SetPrototypeMethod(tpl, "structTotalBinDiff", structTotalBinDiff);
+  Nan::SetPrototypeMethod(tpl, "structBinDiff", structBinDiff);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -312,6 +316,92 @@ void ImageWrapper::structDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
   ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
 
   double error = image->_image->structDiff(y->_image);
+  info.GetReturnValue().Set(Nan::New(error));
+}
+
+void ImageWrapper::structIndBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32()) {
+    Nan::ThrowError("structIndBinDiff arugment error (Image, int)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+
+  vector<double> binScores = image->_image->structIndBinDiff(y->_image, patchSize);
+
+  v8::Local<v8::Array> arr = Nan::New<v8::Array>();
+  for (int i = 0; i < binScores.size(); i++) {
+    arr->Set(Nan::New(i), Nan::New(binScores[i]));
+  }
+  info.GetReturnValue().Set(arr);
+}
+
+void ImageWrapper::structBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32() || !info[2]->IsNumber()) {
+    Nan::ThrowError("structBinDiff arugment error (Image, int, double)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+  double threshold = info[2]->NumberValue();
+
+  double error = image->_image->structBinDiff(y->_image, patchSize, threshold);
+  info.GetReturnValue().Set(Nan::New(error));
+}
+
+void ImageWrapper::structTotalBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32()) {
+    Nan::ThrowError("structTotalBinDiff arugment error (Image, int)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+
+  double error = image->_image->structTotalBinDiff(y->_image, patchSize);
+  info.GetReturnValue().Set(Nan::New(error));
+}
+
+void ImageWrapper::structAvgBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32()) {
+    Nan::ThrowError("structAvglBinDiff arugment error (Image, int)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+
+  double error = image->_image->structAvgBinDiff(y->_image, patchSize);
   info.GetReturnValue().Set(Nan::New(error));
 }
 

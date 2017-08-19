@@ -44,6 +44,10 @@ private:
   static void save(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void filename(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void structDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void structIndBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void structBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void structTotalBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void structAvgBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Image* _image;
   bool _deleteOnDestruct;

@@ -119,7 +119,7 @@ namespace Comp {
   RGBAColor Image::getPixel(int index)
   {
     // return black instead of dying for out of bounds
-    if (index < 0 || index > _data.size() / 4) {
+    if (index < 0 || index >= _data.size() / 4) {
       // but also log
       getLogger()->log("Attempt to access out of bound pixel", Comp::WARN);
       return RGBAColor();
@@ -198,15 +198,15 @@ namespace Comp {
 
     for (int i = 0; i < yData.size() / 4; i++) {
       // premult color n stuff
-      double r = (yData[i * 4] / 255.0) * (yData[i * 4 + 3] / 255.0);
-      double g = (yData[i * 4 + 1] / 255.0) * (yData[i * 4 + 3] / 255.0);
-      double bl = (yData[i * 4 + 2] / 255.0) * (yData[i * 4 + 3] / 255.0);
+double r = (yData[i * 4] / 255.0) * (yData[i * 4 + 3] / 255.0);
+double g = (yData[i * 4 + 1] / 255.0) * (yData[i * 4 + 3] / 255.0);
+double bl = (yData[i * 4 + 2] / 255.0) * (yData[i * 4 + 3] / 255.0);
 
-      // want L channel of Lab
-      Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
+// want L channel of Lab
+Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
 
-      // construct b
-      b[i] = Lab._L;
+// construct b
+b[i] = Lab._L;
     }
 
     Eigen::MatrixX2d A;
@@ -238,6 +238,118 @@ namespace Comp {
 
     double error = (A*x - b).norm() / b.norm();
     return error;
+  }
+
+  vector<Eigen::VectorXd> Image::patches(int patchSize)
+  {
+    vector<Eigen::VectorXd> patch;
+
+    // starts in top left, proceeds until dimensions run out.
+    for (int y = 0; y < getHeight(); y += patchSize) {
+      for (int x = 0; x < getWidth(); x += patchSize) {
+        Eigen::VectorXd p;
+        p.resize(patchSize * patchSize);
+        int count = 0;
+
+        // grab the patch.
+        for (int j = 0; j < patchSize; j++) {
+          for (int i = 0; i < patchSize; i++) {
+            int xloc = x + i;
+            int yloc = y + j;
+
+            if (xloc >= getWidth() || yloc >= getHeight())
+              continue;
+
+            // premult color n stuff
+            RGBAColor c = getPixel(xloc, yloc);
+
+            // want L channel of Lab
+            Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(c._r * c._a, c._g * c._a, c._b * c._a);
+
+            // construct b
+            p[count] = Lab._L;
+            count++;
+          }
+        }
+
+        p.resize(count);
+        patch.push_back(p);
+      }
+    }
+
+    return patch;
+  }
+
+  double Image::structBinDiff(Image * y, int patchSize, double threshold)
+  {
+    vector<double> diffs = structIndBinDiff(y, patchSize);
+    int count = 0;
+    for (auto& d : diffs) {
+      if (d > threshold)
+        count++;
+    }
+
+    return count;
+  }
+
+  double Image::structTotalBinDiff(Image * y, int patchSize)
+  {
+    vector<double> diffs = structIndBinDiff(y, patchSize);
+    double sum = 0;
+    for (auto& d : diffs) {
+      sum += d;
+    }
+
+    return sum;
+  }
+
+  double Image::structAvgBinDiff(Image * y, int patchSize)
+  {
+    vector<double> diffs = structIndBinDiff(y, patchSize);
+    double avg = 0;
+    for (auto& d : diffs) {
+      avg += d;
+    }
+
+    return avg / diffs.size();
+  }
+
+  vector<double> Image::structIndBinDiff(Image * y, int patchSize)
+  {
+    vector<Eigen::VectorXd> xBins = patches(patchSize);
+    vector<Eigen::VectorXd> yBins = y->patches(patchSize);
+
+    vector<double> means;
+    vector<double> results;
+
+    // xBins needs the average
+    for (auto& b : xBins) {
+      double avg = 0;
+      for (int i = 0; i < b.size(); i++) {
+        avg += b[i];
+      }
+      means.push_back(avg / b.size());
+    }
+
+    vector<double> diffs;
+    for (int i = 0; i < xBins.size(); i++) {
+      Eigen::MatrixX2d A;
+      A.resize(xBins[i].size(), Eigen::NoChange);
+      for (int j = 0; j < xBins[i].size(); j++) {
+        A(j, 0) = xBins[i][j] - means[i];
+        A(j, 1) = 1;
+      }
+
+      Eigen::Vector2d x = A.colPivHouseholderQr().solve(yBins[i]);
+
+      if (yBins[i].norm() == 0)
+        // should this be 0 instead?
+        results.push_back((A*x - yBins[i]).norm());
+      else
+        results.push_back((A*x - yBins[i]).norm() / yBins[i].norm());
+    }
+
+    return results;
   }
 
   void Image::loadFromFile(string filename)

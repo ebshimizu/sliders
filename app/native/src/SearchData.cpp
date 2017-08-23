@@ -313,7 +313,7 @@ double ExpSearchSet::binStructPct(shared_ptr<ExpSearchSample> x)
 
   // check vs other samples
   for (auto& s : _samples) {
-    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.01);
+    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.85);
 
     // update count
     int ct = 0;

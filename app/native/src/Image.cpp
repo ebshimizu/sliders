@@ -365,6 +365,74 @@ namespace Comp {
     return results;
   }
 
+  double Image::MSSIM(Image * y, int patchSize, double a, double b, double g)
+  {
+    double mssim = 0;
+
+    auto xp = patches(patchSize);
+    auto yp = y->patches(patchSize);
+
+    for (int i = 0; i < xp.size(); i++) {
+      double ssim = SSIMBinDiff(xp[i], yp[i], a, b, g);
+      getLogger()->log("ssim bin " + to_string(i) + ": " + to_string(ssim));
+      mssim += ssim;
+    }
+
+    return mssim / xp.size();
+  }
+
+  double Image::SSIMBinDiff(Eigen::VectorXd x, Eigen::VectorXd y, double a, double b, double g)
+  {
+    // unequal vectors are different
+    if (x.size() != y.size())
+      return DBL_MAX;
+
+    // compute means
+    double ux = 0;
+    double uy = 0;
+    
+    for (int i = 0; i < x.size(); i++) {
+      ux += x[i];
+      uy += y[i];
+    }
+
+    ux /= x.size();
+    uy /= y.size();
+
+
+    double sx = 0;
+    double sy = 0;
+    double sxy = 0;
+
+    // variance/covariance
+    for (int i = 0; i < x.size(); i++) {
+      sx += (x[i] - ux) * (x[i] - ux);
+      sy += (y[i] - uy) * (y[i] - uy);
+      sxy += (x[i] - ux) * (y[i] - uy);
+    }
+
+    sx = sqrt(sx / (x.size() - 1));
+    sy = sqrt(sy / (y.size() - 1));
+    sxy /= (x.size() - 1);
+
+    // stability constants
+    double c1 = 1e-3;
+    double c2 = 3e-3;
+    double c3 = c2 / 2;
+
+    // luma
+    double l = (2 * ux * uy + c1) / (ux * ux + uy * uy + c1);
+
+    // contrast
+    double c = (2 * sx * sy + c2) / (sx * sx + sy * sy + c2);
+
+    // structure
+    double s = (sxy + c3) / (sx * sy + c3);
+
+    double ssim = pow(l, a) * pow(c, b) * pow(s, g);
+    return ssim;
+  }
+
   void Image::eliminateBins(vector<Eigen::VectorXd>& bins, int patchSize, double threshold)
   {
     // bins may have some stuff missing so we don't just call structIndBinDiff
@@ -376,34 +444,39 @@ namespace Comp {
       if (bins[i].size() == 0)
         continue;
 
-      double mean = 0;
+      // lets try ssim
 
-      for (int j = 0; j < xBins[i].size(); j++) {
-        mean += xBins[i][j];
-      }
-      mean /= xBins[i].size();
+      //double mean = 0;
 
-      Eigen::MatrixX2d A;
-      A.resize(xBins[i].size(), Eigen::NoChange);
+      //for (int j = 0; j < xBins[i].size(); j++) {
+      //  mean += xBins[i][j];
+      //}
+      //mean /= xBins[i].size();
 
-      for (int j = 0; j < xBins[i].size(); j++) {
-        A(j, 0) = xBins[i][j];// -mean;
-        A(j, 1) = 1;
-      }
+      //Eigen::MatrixX2d A;
+      //A.resize(xBins[i].size(), Eigen::NoChange);
 
-      Eigen::Vector2d x = A.fullPivLu().solve(bins[i]);
+      //for (int j = 0; j < xBins[i].size(); j++) {
+      //  A(j, 0) = xBins[i][j];// -mean;
+      //  A(j, 1) = 1;
+      //}
 
-      double res = (A * x - bins[i]).norm() / bins[i].norm();
+      //Eigen::Vector2d x = A.fullPivLu().solve(bins[i]);
 
-      stringstream ss;
+      //double res = (A * x - bins[i]).norm() / bins[i].norm();
+      double res = SSIMBinDiff(bins[i], xBins[i]);
+
+
+      //stringstream ss;
       //getLogger()->log("Bin " + to_string(i) + " diff " + to_string(res));
       //ss << "b:\n" << bins[i] << "\nReconstruct:\n" << A * x;
-      //getLogger()->log(ss.str());
+      getLogger()->log("ssim for bin " + to_string(i) + ": " + to_string(res));
 
       if (isnan(res))
         res = 0;
 
-      if (res < threshold) {
+      // ssim has 1 = similar, not 0
+      if (res > threshold) {
         bins[i] = Eigen::VectorXd();
       }
     }

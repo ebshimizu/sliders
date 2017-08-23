@@ -187,6 +187,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "structTotalBinDiff", structTotalBinDiff);
   Nan::SetPrototypeMethod(tpl, "structBinDiff", structBinDiff);
   Nan::SetPrototypeMethod(tpl, "structPctDiff", structPctDiff);
+  Nan::SetPrototypeMethod(tpl, "MSSIM", structSSIMDiff);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -433,6 +434,31 @@ void ImageWrapper::structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& inf
   }
 
   info.GetReturnValue().Set(Nan::New(ct / (double)patches.size()));
+}
+
+void ImageWrapper::structSSIMDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32() || 
+      !info[2]->IsNumber() || !info[3]->IsNumber() || !info[4]->IsNumber()) {
+    Nan::ThrowError("structSSIMDiff arugment error (Image, int, double, double, double, double)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+  double a = info[2]->NumberValue();
+  double b = info[3]->NumberValue();
+  double g = info[4]->NumberValue();
+
+  double res = y->_image->MSSIM(y->_image, patchSize, a, b, g);
+
+  info.GetReturnValue().Set(Nan::New(res));
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

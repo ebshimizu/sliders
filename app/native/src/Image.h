@@ -107,6 +107,12 @@ namespace Comp {
     // just in case you want the numbers for yourself
     vector<double> structIndBinDiff(Image* y, int patchSize);
 
+    double MSSIM(Image* y, int patchSize, double a = 0, double b = 0, double g = 1);
+
+    // computes a SSIM with the specifed weights. Since we're only really interested in
+    // structure here, the default weights are not the same as the SSIM paper
+    double SSIMBinDiff(Eigen::VectorXd x, Eigen::VectorXd y, double a = 0, double b = 0, double g = 1);
+
     // will eliminate bins that are too similar from bins
     void eliminateBins(vector<Eigen::VectorXd>& bins, int patchSize, double threshold);
 

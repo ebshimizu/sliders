@@ -300,7 +300,7 @@ double ExpSearchSet::binStructPct(shared_ptr<ExpSearchSample> x)
   vector<Eigen::VectorXd> bins = x->getImg()->patches(_structBinSize);
 
   // first check against init
-  _init->getImg()->eliminateBins(bins, _structBinSize, 0.023);
+  _init->getImg()->eliminateBins(bins, _structBinSize, 0.01);
 
   // count bins
   int ct = 0;
@@ -313,7 +313,7 @@ double ExpSearchSet::binStructPct(shared_ptr<ExpSearchSample> x)
 
   // check vs other samples
   for (auto& s : _samples) {
-    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.023);
+    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.01);
 
     // update count
     int ct = 0;

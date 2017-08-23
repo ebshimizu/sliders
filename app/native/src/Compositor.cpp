@@ -1103,7 +1103,10 @@ namespace Comp {
     for (int i = 0; i < key.size(); i++) {
       AdjustmentType t = (AdjustmentType)key[i]["adjustmentType"];
       if (t == AdjustmentType::OPACITY) {
-        structParams.push_back(i);
+        string name = key[i]["layerName"].get<string>();
+        if (structLayers.count(name) > 0) {
+          structParams.push_back(i);
+        }
       }
     }
 

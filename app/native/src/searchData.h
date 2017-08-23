@@ -9,7 +9,8 @@ namespace Comp {
 
 enum SearchGroupType {
   G_STRUCTURE = 0,
-  G_COLOR = 1
+  G_COLOR = 1,
+  G_FIXED = 2
 };
 
 enum StructDiffMode {

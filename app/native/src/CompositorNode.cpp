@@ -410,8 +410,8 @@ void ImageWrapper::structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& inf
 {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
 
-  if (!info[0]->IsObject() || !info[1]->IsInt32()) {
-    Nan::ThrowError("structPctDiff arugment error (Image, int)");
+  if (!info[0]->IsObject() || !info[1]->IsInt32() || !info[2]->IsNumber()) {
+    Nan::ThrowError("structPctDiff arugment error (Image, int, double)");
   }
 
   Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
@@ -421,9 +421,10 @@ void ImageWrapper::structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& inf
 
   ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
   int patchSize = info[1]->Int32Value();
+  double threshold = info[2]->NumberValue();
   
   vector<Eigen::VectorXd> patches = image->_image->patches(patchSize);
-  y->_image->eliminateBins(patches, patchSize, 0.1);
+  y->_image->eliminateBins(patches, patchSize, threshold);
 
   int ct = 0;
   for (int i = 0; i < patches.size(); i++) {

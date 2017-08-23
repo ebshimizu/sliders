@@ -186,6 +186,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "structAvgBinDiff", structAvgBinDiff);
   Nan::SetPrototypeMethod(tpl, "structTotalBinDiff", structTotalBinDiff);
   Nan::SetPrototypeMethod(tpl, "structBinDiff", structBinDiff);
+  Nan::SetPrototypeMethod(tpl, "structPctDiff", structPctDiff);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -403,6 +404,34 @@ void ImageWrapper::structAvgBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& 
 
   double error = image->_image->structAvgBinDiff(y->_image, patchSize);
   info.GetReturnValue().Set(Nan::New(error));
+}
+
+void ImageWrapper::structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (!info[0]->IsObject() || !info[1]->IsInt32()) {
+    Nan::ThrowError("structPctDiff arugment error (Image, int)");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+  int patchSize = info[1]->Int32Value();
+  
+  vector<Eigen::VectorXd> patches = image->_image->patches(patchSize);
+  y->_image->eliminateBins(patches, patchSize, 0.1);
+
+  int ct = 0;
+  for (int i = 0; i < patches.size(); i++) {
+    if (patches[i].size() > 0)
+      ct++;
+  }
+
+  info.GetReturnValue().Set(Nan::New(ct / (double)patches.size()));
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

@@ -107,6 +107,9 @@ namespace Comp {
     // just in case you want the numbers for yourself
     vector<double> structIndBinDiff(Image* y, int patchSize);
 
+    // will eliminate bins that are too similar from bins
+    void eliminateBins(vector<Eigen::VectorXd>& bins, int patchSize, double threshold);
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);

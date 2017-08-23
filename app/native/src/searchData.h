@@ -12,6 +12,12 @@ enum SearchGroupType {
   G_COLOR = 1
 };
 
+enum StructDiffMode {
+  GLOBAL_STRUCT = 0,
+  AVG_STRUCT = 1,
+  BIN_STRUCT = 2
+};
+
 struct SearchGroup {
   SearchGroupType _type;
   vector<string> _layerNames;
@@ -81,6 +87,12 @@ public:
   bool isGood(shared_ptr<ExpSearchSample> x);
 
 private:
+  // since there are different struct difference mode, this handles that
+  double structDiff(shared_ptr<ExpSearchSample> x, shared_ptr<ExpSearchSample> y);
+
+  // bit different from the other struct diff functions, this one will check against
+  // all samples and return a percentage of bins that are unique to the sample
+  double binStructPct(shared_ptr<ExpSearchSample> x);
 
   // the samples
   map<unsigned int, shared_ptr<ExpSearchSample> > _samples;
@@ -107,6 +119,9 @@ private:
   double _brightTolerance;
   double _hueTolerance;
   double _clipTolerance;
+
+  StructDiffMode _structMode;
+  int _structBinSize;
 };
 
 }

@@ -486,6 +486,32 @@
                             </div>
                             <div class="item">
                                 <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" id="expStructSelector">
+                                        <span class="text">[Structural Diff Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="1">Global</div>
+                                            <div class="item" data-value="2">Average Binned</div>
+                                            <div class="item" data-value="3">Binned</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Structural Difference</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input expParam" id="expStructBinSize" param="structBinSize">
+                                        <input type="number" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Structural Diff Bin Size</div>
+                                    <div class="description">Exploratory Search: Bin size for the structural distance.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
                                     <div class="ui input ceresNum" id="genReturnSize" param="returnSize">
                                         <input type="number" />
                                     </div>

@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.33;
+const saveVersion = 0.34;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -486,6 +486,14 @@ function initUI() {
         }
     });
 
+    $('#expStructSelector').dropdown({
+        action: 'activate',
+        onChange: function(value, text) {
+          settings.search.structMode = parseInt(value) - 1;
+          $('#expStructSelector .text').html(text);
+        }
+    });
+
     $('.ceresBool').checkbox({
         onChecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = true; },
         onUnchecked: function() { g_ceresSettings["evo"][$(this).attr("name")] = false; }
@@ -825,6 +833,15 @@ function loadSettings() {
     if (!('clipTolerance' in settings.search))
         settings.search.clipTolerance = 0.85;
     $('#expClipTolerance input').val(settings.search.clipTolerance);
+
+    // added in 0.34
+    if (!('structMode' in settings.search))
+      settings.search.structMode = 0;
+    $('#expStructSelector').dropdown('set selected', settings.search.structMode + 1);
+
+    if (!('structBinSize' in settings.search))
+      settings.search.structBinSize = 16;
+    $('#expStructBinSize input').val(settings.search.structBinSize);
 }
 
 function updateCeresSettings() {

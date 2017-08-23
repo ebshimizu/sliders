@@ -198,15 +198,15 @@ namespace Comp {
 
     for (int i = 0; i < yData.size() / 4; i++) {
       // premult color n stuff
-double r = (yData[i * 4] / 255.0) * (yData[i * 4 + 3] / 255.0);
-double g = (yData[i * 4 + 1] / 255.0) * (yData[i * 4 + 3] / 255.0);
-double bl = (yData[i * 4 + 2] / 255.0) * (yData[i * 4 + 3] / 255.0);
+      double r = (yData[i * 4] / 255.0) * (yData[i * 4 + 3] / 255.0);
+      double g = (yData[i * 4 + 1] / 255.0) * (yData[i * 4 + 3] / 255.0);
+      double bl = (yData[i * 4 + 2] / 255.0) * (yData[i * 4 + 3] / 255.0);
 
-// want L channel of Lab
-Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
+      // want L channel of Lab
+      Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(r, g, bl);
 
-// construct b
-b[i] = Lab._L;
+      // construct b
+      b[i] = Lab._L;
     }
 
     Eigen::MatrixX2d A;
@@ -247,15 +247,15 @@ b[i] = Lab._L;
     // starts in top left, proceeds until dimensions run out.
     for (int y = 0; y < getHeight(); y += patchSize) {
       for (int x = 0; x < getWidth(); x += patchSize) {
-        Eigen::VectorXd p;
-        p.resize(patchSize * patchSize);
+        vector<double> luma;
         int count = 0;
 
         // grab the patch.
         for (int j = 0; j < patchSize; j++) {
+          int yloc = y + j;
+
           for (int i = 0; i < patchSize; i++) {
             int xloc = x + i;
-            int yloc = y + j;
 
             if (xloc >= getWidth() || yloc >= getHeight())
               continue;
@@ -267,12 +267,20 @@ b[i] = Lab._L;
             Utils<double>::LabColorT Lab = Utils<double>::RGBToLab(c._r * c._a, c._g * c._a, c._b * c._a);
 
             // construct b
-            p[count] = Lab._L;
+            luma.push_back(Lab._L);
             count++;
           }
         }
 
+        Eigen::VectorXd p;
         p.resize(count);
+        for (int i = 0; i < count; i++)
+          p[i] = luma[i];
+
+        //stringstream ss;
+        //ss << "Patch at origin (" << x << "," << y << "): " << p;
+        //getLogger()->log(ss.str());
+
         patch.push_back(p);
       }
     }
@@ -342,14 +350,63 @@ b[i] = Lab._L;
 
       Eigen::Vector2d x = A.colPivHouseholderQr().solve(yBins[i]);
 
-      if (yBins[i].norm() == 0)
+      double res = (A*x - yBins[i]).norm();
+      if (isnan(res))
+        res = 0;
+      results.push_back(res);
+
+      //if (yBins[i].norm() == 0)
         // should this be 0 instead?
-        results.push_back((A*x - yBins[i]).norm());
-      else
-        results.push_back((A*x - yBins[i]).norm() / yBins[i].norm());
+      //  results.push_back((A*x - yBins[i]).norm());
+      //else
+      //  results.push_back((A*x - yBins[i]).norm() / yBins[i].norm());
     }
 
     return results;
+  }
+
+  void Image::eliminateBins(vector<Eigen::VectorXd>& bins, int patchSize, double threshold)
+  {
+    // bins may have some stuff missing so we don't just call structIndBinDiff
+    // as usual
+    vector<Eigen::VectorXd> xBins = patches(patchSize);
+
+    for (int i = 0; i < bins.size(); i++) {
+      // skip eliminated bins
+      if (bins[i].size() == 0)
+        continue;
+
+      double mean = 0;
+
+      for (int j = 0; j < xBins[i].size(); j++) {
+        mean += xBins[i][j];
+      }
+      mean /= xBins[i].size();
+
+      Eigen::MatrixX2d A;
+      A.resize(xBins[i].size(), Eigen::NoChange);
+
+      for (int j = 0; j < xBins[i].size(); j++) {
+        A(j, 0) = xBins[i][j];// -mean;
+        A(j, 1) = 1;
+      }
+
+      Eigen::Vector2d x = A.fullPivLu().solve(bins[i]);
+
+      double res = (A * x - bins[i]).norm() / bins[i].norm();
+
+      stringstream ss;
+      //getLogger()->log("Bin " + to_string(i) + " diff " + to_string(res));
+      //ss << "b:\n" << bins[i] << "\nReconstruct:\n" << A * x;
+      //getLogger()->log(ss.str());
+
+      if (isnan(res))
+        res = 0;
+
+      if (res < threshold) {
+        bins[i] = Eigen::VectorXd();
+      }
+    }
   }
 
   void Image::loadFromFile(string filename)

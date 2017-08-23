@@ -85,6 +85,8 @@ ExpSearchSet::ExpSearchSet()
   _brightTolerance = 0.75;
   _hueTolerance = 0.75;
   _clipTolerance = 0.85;
+  _structMode = StructDiffMode::GLOBAL_STRUCT;
+  _structBinSize = 16;
 
   _idCounter = 0;
 }
@@ -99,6 +101,8 @@ ExpSearchSet::ExpSearchSet(map<string, float>& settings)
   _brightTolerance = settings["brightTolerance"];
   _hueTolerance = settings["hueTolerance"];
   _clipTolerance = settings["clipTolerance"];
+  _structMode = (StructDiffMode)(int)settings["structMode"];
+  _structBinSize = (int)settings["structBinSize"];
 }
 
 ExpSearchSet::~ExpSearchSet()
@@ -127,13 +131,26 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x, bool structural)
   double minBright = x->brightnessDist(_init);
   double minHue = x->hueDist(_init);
   double minSat = x->satDist(_init);
-  double minStruct = x->structDiff(_init);
+  double minStruct;
+
+  if (_structMode == StructDiffMode::BIN_STRUCT) {
+    minStruct = binStructPct(x);
+  }
+  else {
+    minStruct = structDiff(x, _init);
+  }
 
   for (auto& sample : _samples) {
     double brightDist = x->brightnessDist(sample.second);
     double hueDist = x->hueDist(sample.second);
     double satDist = x->satDist(sample.second);
-    double structDist = x->structDiff(sample.second);
+
+    if (_structMode != StructDiffMode::BIN_STRUCT) {
+      double structDist = structDiff(x, sample.second);
+   
+      if (structDist < minStruct)
+        minStruct = structDist;
+    }
 
     if (brightDist < minBright)
       minBright = brightDist;
@@ -143,9 +160,6 @@ bool ExpSearchSet::add(shared_ptr<ExpSearchSample> x, bool structural)
 
     if (satDist < minSat)
       minSat = satDist;
-
-    if (structDist < minStruct)
-      minStruct = structDist;
   }
 
   // check if minimums are above thresholds
@@ -264,6 +278,57 @@ bool ExpSearchSet::isGood(shared_ptr<ExpSearchSample> x)
   }
 
   return true;
+}
+
+double ExpSearchSet::structDiff(shared_ptr<ExpSearchSample> x, shared_ptr<ExpSearchSample> y)
+{
+  if (_structMode == StructDiffMode::GLOBAL_STRUCT) {
+    double diff = x->structDiff(y);
+    //getLogger()->log("Global Structural Diff value: " + to_string(diff));
+    return diff;
+  }
+
+  if (_structMode == StructDiffMode::AVG_STRUCT) {
+    double diff = x->getImg()->structAvgBinDiff(y->getImg().get(), _structBinSize);
+    //getLogger()->log("Average Structural Diff value: " + to_string(diff));
+    return diff;
+  }
+}
+
+double ExpSearchSet::binStructPct(shared_ptr<ExpSearchSample> x)
+{
+  vector<Eigen::VectorXd> bins = x->getImg()->patches(_structBinSize);
+
+  // first check against init
+  _init->getImg()->eliminateBins(bins, _structBinSize, 0.023);
+
+  // count bins
+  int ct = 0;
+  for (int i = 0; i < bins.size(); i++) {
+    if (bins[i].size() > 0)
+      ct++;
+  }
+
+  double pct = ct / (double)bins.size();
+
+  // check vs other samples
+  for (auto& s : _samples) {
+    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.023);
+
+    // update count
+    int ct = 0;
+    for (int i = 0; i < bins.size(); i++) {
+      if (bins[i].size() > 0)
+        ct++;
+    }
+
+    pct = ct / (double)bins.size();
+    getLogger()->log("comp vs sample " + to_string(s.first) + ": " + to_string(pct));
+  }
+
+  getLogger()->log("binStructPct returned " + to_string(pct));
+
+  return pct;
 }
 
 }

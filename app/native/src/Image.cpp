@@ -470,7 +470,7 @@ namespace Comp {
       //stringstream ss;
       //getLogger()->log("Bin " + to_string(i) + " diff " + to_string(res));
       //ss << "b:\n" << bins[i] << "\nReconstruct:\n" << A * x;
-      getLogger()->log("ssim for bin " + to_string(i) + ": " + to_string(res));
+      //getLogger()->log("ssim for bin " + to_string(i) + ": " + to_string(res));
 
       if (isnan(res))
         res = 0;

@@ -83,3 +83,6 @@ app/darkroom/codegen/*.json
 app/native/debug/colors.png
 app/native/debug/fixed.png
 app/native/debug/test.png
+app/darkroom/.vs/*
+app/darkroom/package-lock.json
+app/native/package-lock.json

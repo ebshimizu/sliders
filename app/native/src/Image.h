@@ -116,6 +116,10 @@ namespace Comp {
     // will eliminate bins that are too similar from bins
     void eliminateBins(vector<Eigen::VectorXd>& bins, int patchSize, double threshold);
 
+    // SSIM version of eliminate bins
+    void eliminateBinsSSIM(vector<Eigen::VectorXd>& bins, int patchSize, double threshold,
+      double a = 0, double b = 0, double g = 1);
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);

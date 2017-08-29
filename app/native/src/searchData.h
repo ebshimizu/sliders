@@ -121,6 +121,11 @@ private:
   double _hueTolerance;
   double _clipTolerance;
 
+  // ssim params
+  double _ssimA;
+  double _ssimB;
+  double _ssimG;
+
   StructDiffMode _structMode;
   int _structBinSize;
 };

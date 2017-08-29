@@ -87,6 +87,9 @@ ExpSearchSet::ExpSearchSet()
   _clipTolerance = 0.85;
   _structMode = StructDiffMode::GLOBAL_STRUCT;
   _structBinSize = 16;
+  _ssimA = 0;
+  _ssimB = 0;
+  _ssimG = 1;
 
   _idCounter = 0;
 }
@@ -103,6 +106,9 @@ ExpSearchSet::ExpSearchSet(map<string, float>& settings)
   _clipTolerance = settings["clipTolerance"];
   _structMode = (StructDiffMode)(int)settings["structMode"];
   _structBinSize = (int)settings["structBinSize"];
+  _ssimA = settings["ssimA"];
+  _ssimB = settings["ssimB"];
+  _ssimG = settings["ssimG"];
 }
 
 ExpSearchSet::~ExpSearchSet()
@@ -313,7 +319,7 @@ double ExpSearchSet::binStructPct(shared_ptr<ExpSearchSample> x)
 
   // check vs other samples
   for (auto& s : _samples) {
-    s.second->getImg()->eliminateBins(bins, _structBinSize, 0.99);
+    s.second->getImg()->eliminateBinsSSIM(bins, _structBinSize, 0.99, _ssimA, _ssimB, _ssimG);
 
     // update count
     int ct = 0;

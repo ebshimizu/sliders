@@ -444,6 +444,52 @@ namespace Comp {
       if (bins[i].size() == 0)
         continue;
 
+      double mean = 0;
+
+      for (int j = 0; j < xBins[i].size(); j++) {
+        mean += xBins[i][j];
+      }
+      mean /= xBins[i].size();
+
+      Eigen::MatrixX2d A;
+      A.resize(xBins[i].size(), Eigen::NoChange);
+
+      for (int j = 0; j < xBins[i].size(); j++) {
+        A(j, 0) = xBins[i][j] -mean;
+        A(j, 1) = 1;
+      }
+
+      Eigen::Vector2d x = A.fullPivLu().solve(bins[i]);
+
+      double res = (A * x - bins[i]).norm() / bins[i].norm();
+
+      //stringstream ss;
+      //getLogger()->log("Bin " + to_string(i) + " diff " + to_string(res));
+      //ss << "b:\n" << bins[i] << "\nReconstruct:\n" << A * x;
+      //getLogger()->log("ssim for bin " + to_string(i) + ": " + to_string(res));
+
+      if (isnan(res))
+        res = 0;
+
+      // ssim has 1 = similar, not 0
+      if (res > threshold) {
+        bins[i] = Eigen::VectorXd();
+      }
+    }
+  }
+
+  void Image::eliminateBinsSSIM(vector<Eigen::VectorXd>& bins, int patchSize, double threshold,
+    double a, double b, double g)
+  {
+    // bins may have some stuff missing so we don't just call structIndBinDiff
+    // as usual
+    vector<Eigen::VectorXd> xBins = patches(patchSize);
+
+    for (int i = 0; i < bins.size(); i++) {
+      // skip eliminated bins
+      if (bins[i].size() == 0)
+        continue;
+
       // lets try ssim
 
       //double mean = 0;
@@ -464,7 +510,7 @@ namespace Comp {
       //Eigen::Vector2d x = A.fullPivLu().solve(bins[i]);
 
       //double res = (A * x - bins[i]).norm() / bins[i].norm();
-      double res = SSIMBinDiff(bins[i], xBins[i]);
+      double res = SSIMBinDiff(bins[i], xBins[i], a, b, g);
 
 
       //stringstream ss;
@@ -476,7 +522,7 @@ namespace Comp {
         res = 0;
 
       // ssim has 1 = similar, not 0
-      if (res > threshold) {
+      if (res < threshold) {
         bins[i] = Eigen::VectorXd();
       }
     }

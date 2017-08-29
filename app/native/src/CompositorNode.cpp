@@ -456,7 +456,7 @@ void ImageWrapper::structSSIMDiff(const Nan::FunctionCallbackInfo<v8::Value>& in
   double b = info[3]->NumberValue();
   double g = info[4]->NumberValue();
 
-  double res = y->_image->MSSIM(y->_image, patchSize, a, b, g);
+  double res = y->_image->MSSIM(image->_image, patchSize, a, b, g);
 
   info.GetReturnValue().Set(Nan::New(res));
 }

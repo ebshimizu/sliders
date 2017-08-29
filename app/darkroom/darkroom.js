@@ -6,7 +6,7 @@ var {dialog, app} = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-const saveVersion = 0.34;
+const saveVersion = 0.35;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -50,7 +50,10 @@ var settings = {
         "setStructThreshold": 0.15,
         "brightTolerance": 0.75,
         "hueTolerance": 0.75,
-        "clipTolerance": 0.85
+        "clipTolerance": 0.85,
+        "ssimA" : 0,
+        "ssimB" : 0,
+        "ssimG" : 1
     },
     "maxResults": 100,
     "unconstrainedDensity": 1000,
@@ -842,6 +845,19 @@ function loadSettings() {
     if (!('structBinSize' in settings.search))
       settings.search.structBinSize = 16;
     $('#expStructBinSize input').val(settings.search.structBinSize);
+
+    // added 0.35
+    if (!('ssimA' in settings.search))
+      settings.search.ssimA = 0;
+    $('#expSSIMA input').val(settings.search.ssimA);
+
+    if (!('ssimB' in settings.search))
+      settings.search.ssimB = 0;
+    $('#expSSIMB input').val(settings.search.ssimB);
+
+    if (!('ssimG' in settings.search))
+      settings.search.ssimG = 1;
+    $('#expSSIMG input').val(settings.search.ssimG);
 }
 
 function updateCeresSettings() {

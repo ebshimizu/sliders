@@ -155,6 +155,10 @@ namespace Comp {
     // resets the search group list
     void clearSearchGroups();
 
+    // converts a context to a normal vector, with a vector of json objects
+    // acting as the key to map back to the context when needed.
+    vector<double> contextToVector(Context c, nlohmann::json& key);
+
   private:
     void addLayer(string name);
 
@@ -309,10 +313,6 @@ namespace Comp {
 
     template <typename T>
     inline void brightnessAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
-
-    // converts a context to a normal vector, with a vector of json objects
-    // acting as the key to map back to the context when needed.
-    vector<double> contextToVector(Context c, nlohmann::json& key);
 
     // translates a vector to a context given a key.
     // these functions are similar to what happens in sendToCeres

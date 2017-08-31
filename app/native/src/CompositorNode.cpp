@@ -1262,6 +1262,7 @@ void ContextWrapper::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
   Nan::SetPrototypeMethod(tpl, "keys", keys);
+  Nan::SetPrototypeMethod(tpl, "layerVector", layerVector);
 
   contextConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Context").ToLocalChecked(), tpl->GetFunction());
@@ -1323,6 +1324,32 @@ void ContextWrapper::keys(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 
   info.GetReturnValue().Set(keys);
+}
+
+void ContextWrapper::layerVector(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ContextWrapper* c = ObjectWrap::Unwrap<ContextWrapper>(info.Holder());
+  nullcheck(c, "ContextWrapper.layerVector");
+
+  if (!info[0]->IsObject()) {
+    Nan::ThrowError("layerVector requires a Compositor object for Layer Order");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  CompositorWrapper* comp = Nan::ObjectWrap::Unwrap<CompositorWrapper>(maybe1.ToLocalChecked());
+
+  nlohmann::json key;
+  vector<double> layerData = comp->_compositor->contextToVector(c->_context, key);
+
+  v8::Local<v8::Array> vals;
+  for (int i = 0; i < layerData.size(); i++) {
+    vals->Set(i, Nan::New(layerData[i]));
+  }
+
+  info.GetReturnValue().Set(vals);
 }
 
 void CompositorWrapper::Init(v8::Local<v8::Object> exports)

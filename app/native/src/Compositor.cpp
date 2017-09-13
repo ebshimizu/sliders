@@ -74,6 +74,9 @@ namespace Comp {
     // place at end of order
     _layerOrder.push_back(dest);
 
+    // update serialization key
+    contextToVector(getNewContext(), _vectorKey);
+
     getLogger()->log("Copied layer " + src + " to layer " + dest);
     return true;
   }
@@ -98,6 +101,9 @@ namespace Comp {
 
     // erase from image data
     _imageData.erase(name);
+
+    // update serialization key
+    contextToVector(getNewContext(), _vectorKey);
 
     getLogger()->log("Erased layer " + name);
     return true;
@@ -126,6 +132,9 @@ namespace Comp {
       // there is an extra element after the source
       _layerOrder.erase(_layerOrder.begin() + from);
     }
+
+    // update serialization key
+    contextToVector(getNewContext(), _vectorKey);
 
     stringstream ss;
     ss << "Moved layer " << _layerOrder[to] << " from " << from << " to " << to;
@@ -412,6 +421,10 @@ namespace Comp {
     }
 
     _layerOrder = order;
+
+    // update serialization key
+    contextToVector(getNewContext(), _vectorKey);
+
     return true;
   }
 
@@ -850,6 +863,9 @@ namespace Comp {
     // place at end of order
     _layerOrder.push_back(name);
 
+    // update the key
+    contextToVector(getNewContext(), _vectorKey);
+
     getLogger()->log("Added new layer named " + name);
   }
 
@@ -1022,6 +1038,17 @@ namespace Comp {
 
       getLogger()->log(log.str());
 
+      // option to only use struct results as a base
+      if (_searchSettings["useStructOnly"] > 0) {
+        // randomly select a base
+        int ind = (int)(zeroOne(gen) * _structResults.size());
+        vector<double> base = _structResults[ind];
+
+        for (int id : _structParams) {
+          cv[id] = base[id];
+        }
+      }
+
       // attempt to add the thing
       Context newCtx = vectorToContext(cv, key);
 
@@ -1097,7 +1124,8 @@ namespace Comp {
     Context c = _initSearchContext;
     nlohmann::json key;
     vector<double> cv = contextToVector(c, key);
-    vector<int> structParams;
+    _structParams.clear();
+    _structResults.clear();
 
     // determine which parameters are the opacity ones
     for (int i = 0; i < key.size(); i++) {
@@ -1105,7 +1133,7 @@ namespace Comp {
       if (t == AdjustmentType::OPACITY) {
         string name = key[i]["layerName"].get<string>();
         if (structLayers.count(name) > 0) {
-          structParams.push_back(i);
+          _structParams.push_back(i);
         }
       }
     }
@@ -1128,7 +1156,7 @@ namespace Comp {
       // but maybe we do want crossover back to the original config
 
       // mutate
-      for (auto& id : structParams) {
+      for (auto& id : _structParams) {
         // mutate the current context, which has been translated to a vector
         // mutate here just means randomize between 0 and 1
         if (zeroOne(gen) < _searchSettings["mutationRate"]) {
@@ -1140,7 +1168,7 @@ namespace Comp {
       // toggle
       // this randomly sets an opacity layer to either on (100%) or off (0%)
       // with a 50% chance
-      for (auto& id : structParams) {
+      for (auto& id : _structParams) {
         if (zeroOne(gen) < _searchSettings["toggleRate"]) {
           log << " Toggle [" << id << "]";
           cv[id] = (zeroOne(gen) < 0.5) ? 1 : 0;
@@ -1169,6 +1197,7 @@ namespace Comp {
           m2["reason"] = activeSet.getReason(activeSet.size() - 1);
 
           _activeCallback(new Image(*img.get()), newCtx, map<string, float>(), m2);
+          _structResults.push_back(cv);
           failures = 0;
         }
       }
@@ -1452,6 +1481,11 @@ namespace Comp {
     //getLogger()->log(key.dump(2), DBG);
 
     return vals;
+  }
+
+  Context Compositor::vectorToContext(vector<double> v)
+  {
+    return vectorToContext(v, _vectorKey);
   }
 
   Context Compositor::vectorToContext(vector<double> x, nlohmann::json & key)

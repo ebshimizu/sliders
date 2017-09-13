@@ -1344,7 +1344,7 @@ void ContextWrapper::layerVector(const Nan::FunctionCallbackInfo<v8::Value>& inf
   nlohmann::json key;
   vector<double> layerData = comp->_compositor->contextToVector(c->_context, key);
 
-  v8::Local<v8::Array> vals;
+  v8::Local<v8::Array> vals = Nan::New<v8::Array>();
   for (int i = 0; i < layerData.size(); i++) {
     vals->Set(i, Nan::New(layerData[i]));
   }
@@ -1395,6 +1395,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "computeErrorMap", computeErrorMap);
   Nan::SetPrototypeMethod(tpl, "addSearchGroup", addSearchGroup);
   Nan::SetPrototypeMethod(tpl, "clearSearchGroups", clearSearchGroups);
+  Nan::SetPrototypeMethod(tpl, "contextFromVector", contextFromVector);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2296,6 +2297,33 @@ void CompositorWrapper::clearSearchGroups(const Nan::FunctionCallbackInfo<v8::Va
   nullcheck(c->_compositor, "compositor.clearSearchGroup");
 
   c->_compositor->clearSearchGroups();
+}
+
+void CompositorWrapper::contextFromVector(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.contextFromVector");
+
+  // loads a numeric vector into a context
+  if (info[0]->IsArray()) {
+    vector<double> data;
+    v8::Local<v8::Array> v8Data = info[0].As<v8::Array>();
+
+    for (int i = 0; i < v8Data->Length(); i++) {
+      data.push_back(v8Data->Get(i)->NumberValue());
+    }
+
+    Comp::Context ctx = c->_compositor->vectorToContext(data);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("contextFromVector was not given a vector");
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

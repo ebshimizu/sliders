@@ -188,6 +188,7 @@ private:
   static void computeErrorMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addSearchGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void clearSearchGroups(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void contextFromVector(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

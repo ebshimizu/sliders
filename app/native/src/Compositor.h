@@ -159,6 +159,9 @@ namespace Comp {
     // acting as the key to map back to the context when needed.
     vector<double> contextToVector(Context c, nlohmann::json& key);
 
+    // uses the cached key to deserialize a vector
+    Context vectorToContext(vector<double> v);
+
   private:
     void addLayer(string name);
 
@@ -347,6 +350,9 @@ namespace Comp {
     vector<SearchGroup> _searchGroups;
 
     // various search things that should be cached
+    // eploratory structural search stuff
+    vector<vector<double>> _structResults;
+    vector<int> _structParams;
 
     // Layers that are allowed to change during the search process
     // Associated settings: "useVisibleLayersOnly"
@@ -357,6 +363,10 @@ namespace Comp {
     // Note: at some point this might need to be converted to an object to handle different types of constraints
     // right now its meant to just be color
     ConstraintData _constraints;
+
+    // when serializing contexts, this key can be used to convert back into
+    // a context.
+    nlohmann::json _vectorKey;
   };
 
   template<typename T>

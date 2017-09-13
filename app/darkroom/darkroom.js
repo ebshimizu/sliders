@@ -53,7 +53,8 @@ var settings = {
     "clipTolerance": 0.85,
     "ssimA": 0,
     "ssimB": 0,
-    "ssimG": 1
+    "ssimG": 1,
+    "useStructOnly" : 1
   },
   "maxResults": 100,
   "unconstrainedDensity": 1000,
@@ -491,6 +492,11 @@ function initUI() {
     onUnchecked: () => { settings.detailedLog = false; }
   });
 
+  $('#useStructOnly').checkbox({
+    onChecked: () => { settings.search.useStructOnly = 1; },
+    onUnchecked: () => { settings.search.useStructOnly = -1; }
+  });
+
   $('#searchModeSelector').dropdown({
     action: 'activate',
     onChange: function (value, text) {
@@ -782,6 +788,15 @@ function loadSettings() {
     $('#modifyLayerBlendModes').checkbox('set checked');
   else
     $('#modifyLayerBlendModes').checkbox('set unchecked');
+
+  // added 0.36
+  if (!('useStructOnly' in settings.search))
+    settings.search.useStructOnly = 1;
+
+  if (settings.search.useStructOnly > 0)
+    $('#useStructOnly').checkbox('set checked');
+  else 
+    $('#useStructOnly').checkbox('set unchecked');
 
   $('#searchModeSelector .text').html(searchModeStrings[settings.search.mode]);
   $('#maxSamples input').val(settings.maxResults);
@@ -2627,6 +2642,65 @@ function exportSingleSample(sample, file) {
     if (err) {
       showStatusMsg(err.toString(), "ERROR", "Error Saving Context File");
     }
+  });
+}
+
+// saves the sample vector and related data to a file. Can be used to 
+function exportSampleData() {
+  // open dialog
+  dialog.showSaveDialog({
+    filters: [{ name: 'Sample Data', extensions: ['samples'] }],
+    title: "Export Sample"
+  },
+  function (filePaths) {
+    if (filePaths === undefined)
+      return;
+
+    var serialData = {};
+
+    for (var id in g_sampleIndex) {
+      var sample = g_sampleIndex[id];
+      serialData[id] = { 'ctx': sample.context.layerVector(c), 'meta': sample.meta };
+    }
+
+    fs.writeFile(filePaths, JSON.stringify(serialData, null, 2), (err) => {
+      if (err) {
+        showStatusMsg(err.toString(), "ERROR", "Error exporting sample data");
+      }
+    });
+
+    showStatusMsg("Exported current samples to " + filePaths, "OK", "Export Complete");
+  });
+}
+
+function importSampleData() {
+  dialog.showOpenDialog({
+    filters: [{ name: 'Sample Files', extensions: ['samples'] }],
+    title: "Open File"
+  },
+  function (filePaths) {
+    if (filePaths === undefined) {
+      return;
+    }
+
+    // delete current samples
+    initSearch();
+
+    fs.readFile(filePaths[0], function (err, data) {
+      if (err) {
+        throw err;
+      }
+
+      var samples = JSON.parse(data);
+
+      for (var id in samples) {
+        var ctx = c.contextFromVector(samples[id].ctx);
+        var img = c.renderContext(ctx);
+        processNewSample(img, ctx, samples[id].meta, true);
+      }
+
+      showStatusMsg("Samples loaded from " + filePaths, "OK", "Load Complete");
+    });
   });
 }
 

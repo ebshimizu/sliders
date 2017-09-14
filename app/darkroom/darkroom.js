@@ -6,7 +6,7 @@ var { dialog, app } = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
-var DR = require('./dr');
+var drt = require('./dr');
 const saveVersion = 0.35;
 const versionString = "0.1";
 
@@ -16,11 +16,10 @@ function inherits(target, source) {
 }
 
 inherits(comp.Compositor, events);
-
 comp.setLogLevel(1);
 
 // initializes a global compositor object to operate on
-var c, docTree, modifiers;
+var c, docTree, modifiers, dr;
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
@@ -4464,4 +4463,15 @@ function updateActiveGroups(text) {
 function resetEditMenu() {
   $('#editModalDropdown .menu').html(g_editMenuDefaults);
   $('#editModalDropdow').dropdown('clear');
+}
+
+/*===========================================================================*/
+/* Dimensionality Reduction and Visualization                                */
+/*===========================================================================*/
+
+function runPCA() {
+  dr = new drt.DR(c, $('#mapViz canvas'));
+
+  dr.setSamples(g_sampleIndex);
+  dr.embed("PCA");
 }

@@ -380,9 +380,16 @@ body .ui.basic.modal p {
     z-index: 5;
 }
 
-#mapViz canvas {
-    width: 100%;
+#mapViz {
+    overflow: scroll;
     height: 100%;
+    margin-left: -14px;
+    margin-right: -10px;
+}
+
+#mapViz canvas {
+    width: 1000px;
+    height: 1000px;
 }
 
 #sampleControls {

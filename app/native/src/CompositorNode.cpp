@@ -425,7 +425,7 @@ void ImageWrapper::structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& inf
   double threshold = info[2]->NumberValue();
   
   vector<Eigen::VectorXd> patches = image->_image->patches(patchSize);
-  y->_image->eliminateBins(patches, patchSize, threshold);
+  y->_image->eliminateBinsSSIM(patches, patchSize, threshold);
 
   int ct = 0;
   for (int i = 0; i < patches.size(); i++) {

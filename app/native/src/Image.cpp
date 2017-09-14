@@ -385,7 +385,7 @@ namespace Comp {
   {
     // unequal vectors are different
     if (x.size() != y.size())
-      return DBL_MAX;
+      return 0;
 
     // compute means
     double ux = 0;
@@ -522,7 +522,7 @@ namespace Comp {
         res = 0;
 
       // ssim has 1 = similar, not 0
-      if (res < threshold) {
+      if (res > threshold) {
         bins[i] = Eigen::VectorXd();
       }
     }

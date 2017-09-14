@@ -6,6 +6,7 @@ var { dialog, app } = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
+var DR = require('./dr');
 const saveVersion = 0.35;
 const versionString = "0.1";
 
@@ -302,12 +303,12 @@ function initUI() {
   $("#renderCmd").on("click", function () {
     renderImage("#renderCmd click callback");
   });
-  $("#importCmd").click(function () { importFile(); });
-  $("#openCmd").click(function () { openFile(); });
+  $("#importCmd").click(importFile);
+  $("#openCmd").click(openFile);
   $("#exitCmd").click(function () { app.quit(); });
-  $("#saveCmd").click(() => { saveCmd(); });
-  $("#saveAsCmd").click(() => { saveAsCmd(); });
-  $("#saveImgCmd").click(() => { saveImgCmd(); });
+  $("#saveCmd").click(saveCmd);
+  $("#saveAsCmd").click(saveAsCmd);
+  $("#saveImgCmd").click(saveImgCmd);
   $("#expandAllCmd").click(() => {
     $('.layerSetContainer').show();
     $(".setName").find('i').removeClass("right");
@@ -318,15 +319,17 @@ function initUI() {
     $(".setName").find('i').removeClass("down");
     $(".setName").find('i').addClass("right");
   });
-  $("#clearCanvasCmd").click(() => { clearCanvas(); });
-  $('#exportAllSamplesCmd').click(() => { exportAllSamples(); });
+  $("#clearCanvasCmd").click(clearCanvas);
+  $('#exportAllSamplesCmd').click(exportAllSamples);
   $('#showAppInfoCmd').click(() => { $('#versionModal').modal('show'); });
-  $('#generateCeresCodeCmd').click(() => { generateCeresCode(); });
+  $('#generateCeresCodeCmd').click(generateCeresCode);
   $('#clearSamples').click(() => { $('#sampleWrapper').empty().isotope(); sampleId = 0; });
-  $('#extractConstraints').click(() => { extractConstraints(); });
-  $('#ceresEval').click(() => { ceresEval(); });
-  $('#computeError').click(() => { computeError(); });
-  $('#deleteAllConstraints').click(() => { deleteAllDebugConstraints(); });
+  $('#extractConstraints').click(extractConstraints);
+  $('#ceresEval').click(ceresEval);
+  $('#computeError').click(computeError);
+  $('#deleteAllConstraints').click(deleteAllDebugConstraints);
+  $('#exportSampleData').click(exportSampleData);
+  $('#importSampleData').click(importSampleData);
 
   // render size options
   $('#renderSize a.item').click(function () {

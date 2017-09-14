@@ -57,6 +57,16 @@
                     </div>
                 </div>
                 <div class="ui dropdown item">
+                    Data
+                    <div class="menu">
+                        <a class="item" id="exportSampleData">Export Samples</a>
+                        <a class="item" id="importSampleData">Import Samples</a>
+                        <div class="divider"></div>
+                        <a class="item" id="showEmbedding">Show Embedding</a>
+                        <a class="item" id="runPCA">Run PCA</a>
+                    </div>
+                </div>
+                <div class="ui dropdown item">
                     Settings
                     <div class="menu">
                         <div class="item">
@@ -234,6 +244,7 @@
             <div class="ui top attached inverted grey mini menu" id="samplesTabs">
                 <a class="item active" data-tab="results">Search Results</a>
                 <a class="item" data-tab="sideboard">Saved Results</a>
+                <a class="item" data-tab="embedding">Map Visualization</a>
             </div>
             <div class="ui top attached inverted segment" id="samples">
                 <div class="ui active tab" data-tab="results">
@@ -244,6 +255,11 @@
                 <div class="ui tab" data-tab="sideboard">
                     <div class="ui six cards" id="sideboardWrapper">
 
+                    </div>
+                </div>
+                <div class="ui tab" data-tab="embedding">
+                    <div id="mapViz">
+                        <canvas></canvas>
                     </div>
                 </div>
             </div>

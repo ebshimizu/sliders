@@ -72,8 +72,6 @@ $.fn.modal = function(parameters) {
         element         = this,
         instance        = $module.data(moduleNamespace),
 
-        ignoreRepeatedEvents = false,
-
         elementEventNamespace,
         id,
         observer,
@@ -228,24 +226,18 @@ $.fn.modal = function(parameters) {
 
         event: {
           approve: function() {
-            if(ignoreRepeatedEvents || settings.onApprove.call(element, $(this)) === false) {
+            if(settings.onApprove.call(element, $(this)) === false) {
               module.verbose('Approve callback returned false cancelling hide');
               return;
             }
-            ignoreRepeatedEvents = true;
-            module.hide(function() {
-              ignoreRepeatedEvents = false;
-            });
+            module.hide();
           },
           deny: function() {
-            if(ignoreRepeatedEvents || settings.onDeny.call(element, $(this)) === false) {
+            if(settings.onDeny.call(element, $(this)) === false) {
               module.verbose('Deny callback returned false cancelling hide');
               return;
             }
-            ignoreRepeatedEvents = true;
-            module.hide(function() {
-              ignoreRepeatedEvents = false;
-            });
+            module.hide();
           },
           close: function() {
             module.hide();

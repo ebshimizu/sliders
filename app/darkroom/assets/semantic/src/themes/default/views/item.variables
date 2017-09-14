@@ -35,7 +35,6 @@
 @mobileImageMaxHeight: 250px;
 @mobileContentImageDistance: 1.5em;
 
-
 /*-------------------
        Content
 --------------------*/
@@ -151,7 +150,5 @@
 @dividedFirstLastMargin: 0em;
 @dividedFirstLastPadding: 0em;
 
-
-/* Unstackable */
-@unstackableMobileImageWidth: 125px;
-
+/* Sizes */
+@medium: 1em;

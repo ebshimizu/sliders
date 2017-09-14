@@ -34,7 +34,7 @@ var
   rename         = require('gulp-rename'),
   replace        = require('gulp-replace'),
   requireDotFile = require('require-dot-file'),
-  wrench         = require('wrench-sui'),
+  wrench         = require('wrench'),
 
   // install config
   install        = require('./config/project/install'),

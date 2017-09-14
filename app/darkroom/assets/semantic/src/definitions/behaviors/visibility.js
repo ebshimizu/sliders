@@ -387,11 +387,7 @@ $.fn.visibility = function(parameters) {
               .attr('src', src)
             ;
             if(settings.transition) {
-              if( $.fn.transition !== undefined) {
-                if($module.hasClass(className.visible)) {
-                  module.debug('Transition already occurred on this image, skipping animation');
-                  return;
-                }
+              if( $.fn.transition !== undefined ) {
                 $module.transition(settings.transition, settings.duration, callback);
               }
               else {
@@ -422,22 +418,6 @@ $.fn.visibility = function(parameters) {
               return !(module.cache.element.width === 0 && module.cache.element.offset.top === 0);
             }
             return false;
-          },
-          verticallyScrollableContext: function() {
-            var
-              overflowY = ($context.get(0) !== window)
-                ? $context.css('overflow-y')
-                : false
-            ;
-            return (overflowY == 'auto' || overflowY == 'scroll');
-          },
-          horizontallyScrollableContext: function() {
-            var
-              overflowX = ($context.get(0) !== window)
-                ? $context.css('overflow-x')
-                : false
-            ;
-            return (overflowX == 'auto' || overflowX == 'scroll');
           }
         },
 
@@ -895,13 +875,6 @@ $.fn.visibility = function(parameters) {
             element.offset        = $module.offset();
             element.width         = $module.outerWidth();
             element.height        = $module.outerHeight();
-            // compensate for scroll in context
-            if(module.is.verticallyScrollableContext()) {
-              element.offset.top += $context.scrollTop() - $context.offset().top;
-            }
-            if(module.is.horizontallyScrollableContext()) {
-              element.offset.left += $context.scrollLeft - $context.offset().left;
-            }
             // store
             module.cache.element = element;
             return element;
@@ -925,10 +898,10 @@ $.fn.visibility = function(parameters) {
             }
 
             // visibility
+            element.topVisible       = (screen.bottom >= element.top);
             element.topPassed        = (screen.top >= element.top);
+            element.bottomVisible    = (screen.bottom >= element.bottom);
             element.bottomPassed     = (screen.top >= element.bottom);
-            element.topVisible       = (screen.bottom >= element.top) && !element.bottomPassed;
-            element.bottomVisible    = (screen.bottom >= element.bottom) && !element.topPassed;
             element.pixelsPassed     = 0;
             element.percentagePassed = 0;
 
@@ -1297,8 +1270,7 @@ $.fn.visibility.settings = {
 
   className: {
     fixed       : 'fixed',
-    placeholder : 'placeholder',
-    visible     : 'visible'
+    placeholder : 'placeholder'
   },
 
   error : {

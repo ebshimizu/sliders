@@ -693,7 +693,7 @@
 .ui.icon.buttons .button > .icon,
 .ui.icon.button > .icon {
   opacity: @iconButtonOpacity;
-  margin: 0em !important;
+  margin: 0em;
   vertical-align: top;
 }
 
@@ -744,6 +744,7 @@
   background: @basicActiveBackground !important;
   box-shadow: @basicActiveBoxShadow !important;
   color: @basicActiveTextColor;
+  box-shadow: @selectedBorderColor;
 }
 .ui.basic.buttons .active.button:hover,
 .ui.basic.active.button:hover {
@@ -758,7 +759,7 @@
   box-shadow: @basicDownBoxShadow inset;
 }
 .ui.basic.buttons .active.button {
-  box-shadow: @basicActiveBoxShadow !important;
+  box-shadow: @selectedBorderColor inset;
 }
 
 /* Standard Basic Inverted */

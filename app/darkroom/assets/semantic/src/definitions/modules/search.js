@@ -39,29 +39,28 @@ $.fn.search = function(parameters) {
           ? $.extend(true, {}, $.fn.search.settings, parameters)
           : $.extend({}, $.fn.search.settings),
 
-        className        = settings.className,
-        metadata         = settings.metadata,
-        regExp           = settings.regExp,
-        fields           = settings.fields,
-        selector         = settings.selector,
-        error            = settings.error,
-        namespace        = settings.namespace,
+        className       = settings.className,
+        metadata        = settings.metadata,
+        regExp          = settings.regExp,
+        fields          = settings.fields,
+        selector        = settings.selector,
+        error           = settings.error,
+        namespace       = settings.namespace,
 
-        eventNamespace   = '.' + namespace,
-        moduleNamespace  = namespace + '-module',
+        eventNamespace  = '.' + namespace,
+        moduleNamespace = namespace + '-module',
 
-        $module          = $(this),
-        $prompt          = $module.find(selector.prompt),
-        $searchButton    = $module.find(selector.searchButton),
-        $results         = $module.find(selector.results),
-        $result          = $module.find(selector.result),
-        $category        = $module.find(selector.category),
+        $module         = $(this),
+        $prompt         = $module.find(selector.prompt),
+        $searchButton   = $module.find(selector.searchButton),
+        $results        = $module.find(selector.results),
+        $result         = $module.find(selector.result),
+        $category       = $module.find(selector.category),
 
-        element          = this,
-        instance         = $module.data(moduleNamespace),
+        element         = this,
+        instance        = $module.data(moduleNamespace),
 
-        disabledBubbled  = false,
-        resultsDismissed = false,
+        disabledBubbled = false,
 
         module
       ;
@@ -148,12 +147,11 @@ $.fn.search = function(parameters) {
           },
           focus: function() {
             module.set.focus();
-            if(settings.searchOnFocus && module.has.minimumCharacters() ) {
-              module.query(function() {
-                if(module.can.show() ) {
-                  module.showResults();
-                }
-              });
+            if( module.has.minimumCharacters() ) {
+              module.query();
+              if( module.can.show() ) {
+                module.showResults();
+              }
             }
           },
           blur: function(event) {
@@ -168,7 +166,6 @@ $.fn.search = function(parameters) {
             if(pageLostFocus) {
               return;
             }
-            resultsDismissed = false;
             if(module.resultsClicked) {
               module.debug('Determining if user action caused search to close');
               $module
@@ -261,8 +258,7 @@ $.fn.search = function(parameters) {
           // search shortcuts
           if(keyCode == keys.escape) {
             module.verbose('Escape key pressed, blurring search field');
-            module.hideResults();
-            resultsDismissed = true;
+            module.trigger.blur();
           }
           if( module.is.visible() ) {
             if(keyCode == keys.enter) {
@@ -322,7 +318,7 @@ $.fn.search = function(parameters) {
         },
 
         setup: {
-          api: function(searchTerm, callback) {
+          api: function(searchTerm) {
             var
               apiSettings = {
                 debug             : settings.debug,
@@ -334,13 +330,11 @@ $.fn.search = function(parameters) {
                 },
                 onSuccess         : function(response) {
                   module.parse.response.call(element, response, searchTerm);
-                  callback();
+                },
+                onAbort           : function(response) {
                 },
                 onFailure         : function() {
                   module.displayMessage(error.serverError);
-                  callback();
-                },
-                onAbort : function(response) {
                 },
                 onError           : module.error
               },
@@ -389,6 +383,20 @@ $.fn.search = function(parameters) {
           },
           focused: function() {
             return ($prompt.filter(':focus').length > 0);
+          }
+        },
+
+        trigger: {
+          blur: function() {
+            var
+              events        = document.createEvent('HTMLEvents'),
+              promptElement = $prompt[0]
+            ;
+            if(promptElement) {
+              module.verbose('Triggering native blur event');
+              events.initEvent('blur', false, false);
+              promptElement.dispatchEvent(events);
+            }
           }
         },
 
@@ -489,36 +497,28 @@ $.fn.search = function(parameters) {
           }
         },
 
-        query: function(callback) {
-          callback = $.isFunction(callback)
-            ? callback
-            : function(){}
-          ;
+        query: function() {
           var
             searchTerm = module.get.value(),
             cache = module.read.cache(searchTerm)
           ;
-          callback = callback || function() {};
           if( module.has.minimumCharacters() )  {
             if(cache) {
               module.debug('Reading result from cache', searchTerm);
               module.save.results(cache.results);
               module.addResults(cache.html);
               module.inject.id(cache.results);
-              callback();
             }
             else {
               module.debug('Querying for', searchTerm);
               if($.isPlainObject(settings.source) || $.isArray(settings.source)) {
                 module.search.local(searchTerm);
-                callback();
               }
               else if( module.can.useAPI() ) {
-                module.search.remote(searchTerm, callback);
+                module.search.remote(searchTerm);
               }
               else {
                 module.error(error.source);
-                callback();
               }
             }
             settings.onSearchQuery.call(element, searchTerm);
@@ -549,15 +549,11 @@ $.fn.search = function(parameters) {
               results : results
             });
           },
-          remote: function(searchTerm, callback) {
-            callback = $.isFunction(callback)
-              ? callback
-              : function(){}
-            ;
+          remote: function(searchTerm) {
             if($module.api('is loading')) {
               $module.api('abort');
             }
-            module.setup.api(searchTerm, callback);
+            module.setup.api(searchTerm);
             $module
               .api('query')
             ;
@@ -684,15 +680,6 @@ $.fn.search = function(parameters) {
               numCharacters = searchTerm.length
             ;
             return (numCharacters >= settings.minCharacters);
-          },
-          results: function() {
-            if($results.length === 0) {
-              return false;
-            }
-            var
-              html = $results.html()
-            ;
-            return html != '';
           }
         },
 
@@ -859,21 +846,12 @@ $.fn.search = function(parameters) {
             module.showResults();
           }
           else {
-            module.hideResults(function() {
-              $results.empty();
-            });
+            module.hideResults();
           }
         },
 
-        showResults: function(callback) {
-          callback = $.isFunction(callback)
-            ? callback
-            : function(){}
-          ;
-          if(resultsDismissed) {
-            return;
-          }
-          if(!module.is.visible() && module.has.results()) {
+        showResults: function() {
+          if(!module.is.visible()) {
             if( module.can.transition() ) {
               module.debug('Showing results with css animations');
               $results
@@ -882,9 +860,6 @@ $.fn.search = function(parameters) {
                   debug      : settings.debug,
                   verbose    : settings.verbose,
                   duration   : settings.duration,
-                  onComplete : function() {
-                    callback();
-                  },
                   queue      : true
                 })
               ;
@@ -899,11 +874,7 @@ $.fn.search = function(parameters) {
             settings.onResultsOpen.call($results);
           }
         },
-        hideResults: function(callback) {
-          callback = $.isFunction(callback)
-            ? callback
-            : function(){}
-          ;
+        hideResults: function() {
           if( module.is.visible() ) {
             if( module.can.transition() ) {
               module.debug('Hiding results with css animations');
@@ -913,9 +884,6 @@ $.fn.search = function(parameters) {
                   debug      : settings.debug,
                   verbose    : settings.verbose,
                   duration   : settings.duration,
-                  onComplete : function() {
-                    callback();
-                  },
                   queue      : true
                 })
               ;
@@ -1175,9 +1143,6 @@ $.fn.search.settings = {
 
   // object to search
   source            : false,
-
-  // Whether search should query current term on focus
-  searchOnFocus     : true,
 
   // fields to search
   searchFields   : [

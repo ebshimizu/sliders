@@ -461,10 +461,6 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if(!module.can.show() && module.is.remote()) {
-            module.debug('No API results retrieved, searching before show');
-            module.queryRemote(module.get.query(), module.show);
-          }
           if( module.can.show() && !module.is.active() ) {
             module.debug('Showing dropdown');
             if(module.has.message() && !(module.has.maxSelections() || module.has.allResultsFiltered()) ) {
@@ -621,17 +617,8 @@ $.fn.dropdown = function(parameters) {
                 .on('mousedown' + eventNamespace, module.event.mousedown)
                 .on('mouseup'   + eventNamespace, module.event.mouseup)
                 .on('focus'     + eventNamespace, module.event.focus)
+                .on('blur'      + eventNamespace, module.event.blur)
               ;
-              if(module.has.menuSearch() ) {
-                $module
-                  .on('blur' + eventNamespace, selector.search, module.event.search.blur)
-                ;
-              }
-              else {
-                $module
-                  .on('blur' + eventNamespace, module.event.blur)
-                ;
-              }
             }
             $menu
               .on('mouseenter' + eventNamespace, selector.item, module.event.item.mouseenter)
@@ -715,9 +702,6 @@ $.fn.dropdown = function(parameters) {
           if(settings.apiSettings) {
             if( module.can.useAPI() ) {
               module.queryRemote(searchTerm, function() {
-                if(settings.filterRemoteData) {
-                  module.filterItems(searchTerm);
-                }
                 afterFiltered();
               });
             }
@@ -773,7 +757,7 @@ $.fn.dropdown = function(parameters) {
               ? query
               : module.get.query(),
             results          =  null,
-            escapedTerm      = module.escape.string(searchTerm),
+            escapedTerm      = module.escape.regExp(searchTerm),
             beginsWithRegExp = new RegExp('^' + escapedTerm, 'igm')
           ;
           // avoid loop if we're matching nothing
@@ -805,15 +789,12 @@ $.fn.dropdown = function(parameters) {
                 }
                 if(settings.match == 'both' || settings.match == 'value') {
                   value = String(module.get.choiceValue($choice, text));
+
                   if(value.search(beginsWithRegExp) !== -1) {
                     results.push(this);
                     return true;
                   }
-                  else if (settings.fullTextSearch === 'exact' && module.exactSearch(searchTerm, value)) {
-                    results.push(this);
-                    return true;
-                  }
-                  else if (settings.fullTextSearch === true && module.fuzzySearch(searchTerm, value)) {
+                  else if(settings.fullTextSearch && module.fuzzySearch(searchTerm, value)) {
                     results.push(this);
                     return true;
                   }
@@ -895,7 +876,7 @@ $.fn.dropdown = function(parameters) {
               : $activeItem,
             hasSelected = ($selectedItem.length > 0)
           ;
-          if(hasSelected && !module.is.multiple()) {
+          if(hasSelected) {
             module.debug('Forcing partial selection to selected item', $selectedItem);
             module.event.item.click.call($selectedItem, {}, true);
             return;
@@ -975,7 +956,7 @@ $.fn.dropdown = function(parameters) {
             },
             blur: function(event) {
               pageLostFocus = (document.activeElement === this);
-              if(module.is.searchSelection() && !willRefocus) {
+              if(!willRefocus) {
                 if(!itemActivated && !pageLostFocus) {
                   if(settings.forceSelection) {
                     module.forceSelection();
@@ -1158,10 +1139,6 @@ $.fn.dropdown = function(parameters) {
                 hasSubMenu     = ($subMenu.length > 0),
                 isBubbledEvent = ($subMenu.find($target).length > 0)
               ;
-              // prevents IE11 bug where menu receives focus even though `tabindex=-1`
-              if(module.has.menuSearch()) {
-                $(document.activeElement).blur();
-              }
               if(!isBubbledEvent && (!hasSubMenu || settings.allowCategorySelection)) {
                 if(module.is.searchSelection()) {
                   if(settings.allowAdditions) {
@@ -2206,7 +2183,7 @@ $.fn.dropdown = function(parameters) {
             $text.addClass(className.placeholder);
           },
           tabbable: function() {
-            if( module.is.searchSelection() ) {
+            if( module.has.search() ) {
               module.debug('Added tabindex to searchable dropdown');
               $search
                 .val('')
@@ -2318,13 +2295,12 @@ $.fn.dropdown = function(parameters) {
           },
           selectedItem: function($item) {
             var
-              value      = module.get.choiceValue($item),
-              searchText = module.get.choiceText($item, false),
-              text       = module.get.choiceText($item, true)
+              value = module.get.choiceValue($item),
+              text  = module.get.choiceText($item, false)
             ;
             module.debug('Setting user selection to item', $item);
             module.remove.activeItem();
-            module.set.partialSearch(searchText);
+            module.set.partialSearch(text);
             module.set.activeItem($item);
             module.set.selected(value, $item);
             module.set.text(text);
@@ -2533,7 +2509,7 @@ $.fn.dropdown = function(parameters) {
             ;
             $label =  $('<a />')
               .addClass(className.label)
-              .attr('data-' + metadata.value, escapedValue)
+              .attr('data-value', escapedValue)
               .html(templates.label(escapedValue, text))
             ;
             $label = settings.onLabelCreate.call($label, escapedValue, text);
@@ -2581,7 +2557,7 @@ $.fn.dropdown = function(parameters) {
           optionValue: function(value) {
             var
               escapedValue = module.escape.value(value),
-              $option      = $input.find('option[value="' + module.escape.string(escapedValue) + '"]'),
+              $option      = $input.find('option[value="' + escapedValue + '"]'),
               hasOption    = ($option.length > 0)
             ;
             if(hasOption) {
@@ -2754,7 +2730,7 @@ $.fn.dropdown = function(parameters) {
           optionValue: function(value) {
             var
               escapedValue = module.escape.value(value),
-              $option      = $input.find('option[value="' + module.escape.string(escapedValue) + '"]'),
+              $option      = $input.find('option[value="' + escapedValue + '"]'),
               hasOption    = ($option.length > 0)
             ;
             if(!hasOption || !$option.hasClass(className.addition)) {
@@ -2873,7 +2849,7 @@ $.fn.dropdown = function(parameters) {
           label: function(value, shouldAnimate) {
             var
               $labels       = $module.find(selector.label),
-              $removedLabel = $labels.filter('[data-' + metadata.value + '="' + module.escape.string(value) +'"]')
+              $removedLabel = $labels.filter('[data-value="' + value +'"]')
             ;
             module.verbose('Removing label', $removedLabel);
             $removedLabel.remove();
@@ -2913,7 +2889,7 @@ $.fn.dropdown = function(parameters) {
             ;
           },
           tabbable: function() {
-            if( module.is.searchSelection() ) {
+            if( module.has.search() ) {
               module.debug('Searchable dropdown initialized');
               $search
                 .removeAttr('tabindex')
@@ -2987,7 +2963,7 @@ $.fn.dropdown = function(parameters) {
               escapedValue = module.escape.value(value),
               $labels      = $module.find(selector.label)
             ;
-            return ($labels.filter('[data-' + metadata.value + '="' + module.escape.string(escapedValue) +'"]').length > 0);
+            return ($labels.filter('[data-value="' + escapedValue +'"]').length > 0);
           },
           maxSelections: function() {
             return (settings.maxSelections && module.get.selectionCount() >= settings.maxSelections);
@@ -3073,9 +3049,6 @@ $.fn.dropdown = function(parameters) {
                 height: $currentMenu.outerHeight()
               }
             };
-            if(module.is.verticallyScrollableContext()) {
-              calculations.menu.offset.top += calculations.context.scrollTop;
-            }
             onScreen = {
               above : (calculations.context.scrollTop) <= calculations.menu.offset.top - calculations.menu.height,
               below : (calculations.context.scrollTop + calculations.context.height) >= calculations.menu.offset.top + calculations.menu.height
@@ -3109,9 +3082,6 @@ $.fn.dropdown = function(parameters) {
           },
           multiple: function() {
             return $module.hasClass(className.multiple);
-          },
-          remote: function() {
-            return settings.apiSettings && module.can.useAPI();
           },
           single: function() {
             return !module.is.multiple();
@@ -3149,14 +3119,6 @@ $.fn.dropdown = function(parameters) {
               ? $subMenu.hasClass(className.visible)
               : $menu.hasClass(className.visible)
             ;
-          },
-          verticallyScrollableContext: function() {
-            var
-              overflowY = ($context.get(0) !== window)
-                ? $context.css('overflow-y')
-                : false
-            ;
-            return (overflowY == 'auto' || overflowY == 'scroll');
           }
         },
 
@@ -3326,7 +3288,7 @@ $.fn.dropdown = function(parameters) {
               hasQuotes      = (stringValue && value.search(regExp.quote) !== -1),
               values         = []
             ;
-            if(isUnparsable || !hasQuotes) {
+            if(!module.has.selectInput() || isUnparsable || !hasQuotes) {
               return value;
             }
             module.debug('Encoding quote values for use in select', value);
@@ -3338,7 +3300,7 @@ $.fn.dropdown = function(parameters) {
             }
             return value.replace(regExp.quote, '&quot;');
           },
-          string: function(text) {
+          regExp: function(text) {
             text =  String(text);
             return text.replace(regExp.escape, '\\$&');
           }
@@ -3541,10 +3503,7 @@ $.fn.dropdown.settings = {
   apiSettings            : false,
   selectOnKeydown        : true,       // Whether selection should occur automatically when keyboard shortcuts used
   minCharacters          : 0,          // Minimum characters required to trigger API call
-
-  filterRemoteData       : false,      // Whether API results should be filtered after being returned for query term
   saveRemoteData         : true,       // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
-
   throttle               : 200,        // How long to wait after last user input to search remotely
 
   context                : window,     // Context to use when determining if on screen

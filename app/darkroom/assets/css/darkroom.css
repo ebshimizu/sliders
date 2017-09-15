@@ -392,6 +392,16 @@ body .ui.basic.modal p {
     height: 1000px;
 }
 
+#mapVizPopup {
+    width: 300px;
+    height: 300px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    border: 1px solid #FFFFFF;
+}
+
 #sampleControls {
 	width: 30%;
 	height: 40%;

@@ -281,6 +281,7 @@ function initCompositor() {
 // binds common events and sets up things in general
 function initUI() {
   g_editMenuDefaults = $('#editModalDropdown .menu').html();
+  $('#mapVizPopup').hide();
 
   // isotope
   $('#sampleWrapper').isotope({
@@ -329,6 +330,7 @@ function initUI() {
   $('#deleteAllConstraints').click(deleteAllDebugConstraints);
   $('#exportSampleData').click(exportSampleData);
   $('#importSampleData').click(importSampleData);
+  $('#mapViz canvas').mousemove(mapMouseMove);
 
   // render size options
   $('#renderSize a.item').click(function () {
@@ -4474,4 +4476,10 @@ function runPCA() {
 
   dr.setSamples(g_sampleIndex);
   dr.embed("PCA");
+}
+
+function mapMouseMove(event) {
+  if (dr) {
+    dr.mouseMove(event);
+  }
 }

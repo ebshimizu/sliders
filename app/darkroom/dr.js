@@ -54,21 +54,21 @@ class DR {
     }
 
     var data = [];
-    var ids = [];
+    this.ids = [];
 
     for (var s in this.samples) {
       data.push(this.samples[s].context.layerVector(this.compositor));
-      ids.push(s);
+      this.ids.push(s);
     }
 
     // project
-    var points;
+    this.points;
     if (alg === "PCA") {
-      points = this.PCAProject(data, 2);
+      this.points = this.PCAProject(data, 2);
     }
 
     // draw everything on the canvas
-    this.draw(points);
+    this.draw(this.points);
   }
 
   draw(points) {
@@ -89,9 +89,82 @@ class DR {
       this.graphics.strokeStyle = "#FFFFFF";
 
       this.graphics.beginPath();
-      this.graphics.arc(screenPt[0], screenPt[1], 5, 0, Math.PI * 2);
+      this.graphics.arc(screenPt[0], screenPt[1], 10, 0, Math.PI * 2);
       this.graphics.fill();
     }
+
+    // save the data for hover test events.
+    this.imgData = this.graphics.getImageData(0, 0, this.width, this.height).data;
+  }
+
+  // hover event handling
+  mouseMove(event) {
+    // if nothing's been rendered, skip
+    if (this.imgData) {
+      // scale factors
+      var displayW = this.canvas.width();
+      var displayH = this.canvas.height();
+
+      var screenX = event.offsetX * (this.width / displayW);
+      var screenY = event.offsetY * (this.height / displayH);
+
+      // lock to integer vals
+      screenX = Math.round(screenX);
+      screenY = Math.round(screenY);
+
+      // pixel lookup
+      var idx = (screenX + screenY * this.width) * 4;
+
+      // pixels with non-zero alpha values indicate that something's there
+      if (this.imgData[idx + 3] > 0) {
+        // search for the right element
+        //console.log("(" + screenX + ", " + screenY + ") point hovered");
+
+        var local = this.screenToLocal(screenX, screenY);
+        var minDist = Number.MAX_VALUE;
+        var id = -1;
+
+        // brute force search for now, just use the closest point
+        for (var i = 0; i < this.points.length; i++) {
+          var pt = this.points[i];
+          var dist = Math.sqrt(Math.pow(local[0] - pt[0], 2) + Math.pow(local[1] - pt[1], 2));
+
+          if (dist < minDist) {
+            minDist = dist;
+            id = this.ids[i];
+          }
+        }
+
+        if (id !== -1) {
+          // show the popup
+          this.showPopup(event.pageX, event.pageY, id);
+        }
+      }
+      else {
+        $('#mapVizPopup').hide();
+      }
+    }
+  }
+
+  showPopup(x, y, id) {
+    // place elements
+    // image
+    var img = '<img class="ui image" src="data:image/png;base64,' + this.samples[id].img.base64() + '">';
+    var info = 'ID: ' + id;
+
+    $('#mapVizPopup .img').html(img);
+    $('#mapVizPopup .content').text(info);
+
+    // compute popup placement
+    var top = y - $('#mapVizPopup').height() - 50;
+    var left = x - $('#mapVizPopup').width() / 2;
+
+    if (left < 0) {
+      left = 10;
+    }
+
+    $('#mapVizPopup').css({ 'left': left, 'top': top });
+    $('#mapVizPopup').show();
   }
 
   determineExtents(points) {
@@ -120,6 +193,12 @@ class DR {
         this.yMax = pt[1];
       }
     }
+
+    // pad it to avoid clipping at edges
+    this.xMin -= this.xMin * 0.05;
+    this.xMax += this.xMax * 0.05;
+    this.yMin -= this.yMin * 0.05;
+    this.yMax += this.yMax * 0.05;
 
     this.xRange = this.xMax - this.xMin;
     this.yRange = this.yMax - this.yMin;
@@ -153,6 +232,11 @@ class DR {
 
   screenToRelative(x, y) {
     return [x / this.width, y / this.height];
+  }
+
+  screenToLocal(x, y) {
+    var rel = this.screenToRelative(x, y);
+    return this.relativeToLocal(rel[0], rel[1]);
   }
 }
 

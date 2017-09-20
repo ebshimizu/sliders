@@ -119,41 +119,58 @@ function getAdjustmentLayerInfo(doc) {
     GetLayerInfo(docData.flatLayers, docData.numberOfLayers);
 
     // extract required data
-    var adj = {}
-    var legacy = {}
+    var adj = {};
+    var legacy = {};
+    var br = {};
     for (var i = 0; i < docData.flatLayers.length; i++) {
     	if (docData.flatLayers[i].objectName == "Photoshop Background Layer") {
     		continue;
     	}
 
-    	var name = docData.flatLayers[i].name
+    	var name = docData.flatLayers[i].name;
 
     	// search through raw json for proper adjustment object
-    	var json = docData.flatLayers[i].json
-    	var layers = json.layers
+    	var json = docData.flatLayers[i].json;
+    	var layers = json.layers;
 
     	// find layer with matching name, must be recursive, some layers have
     	// nested layers
 		findAdjProps(name, layers, adj);
-        legacy[name] = docData.flatLayers[i].adjustment
+        findBlendRangeProps(name, layers, br);
+        legacy[name] = docData.flatLayers[i].adjustment;
     }
 
-    return [adj, legacy];
+    return [adj, legacy, br];
 }
 
 function findAdjProps(name, layers, adj) {
 	for (var i = 0; i < layers.length; i++) {
 		if (layers[i].name == name) {
 			if ("adjustment" in layers[i]) {
-				adj[name] = layers[i]["adjustment"] 
+				adj[name] = layers[i]["adjustment"];
 			}
 		}
 		else {
 			if ("layers" in layers[i]) {
-				findAdjProps(name, layers[i]["layers"], adj)
+				findAdjProps(name, layers[i]["layers"], adj);
 			}
 		}
 	}
+}
+
+function findBlendRangeProps(name, layers, br) {
+    for (var i = 0; i < layers.length; i++) {
+        if (layers[i].name == name) {
+            if ("blendOptions" in layers[i] && "blendRange" in layers[i].blendOptions) {
+                br[name] = layers[i].blendOptions.blendRange;
+            }
+        }
+        else {
+            if ("layers" in layers[i]) {
+                findBlendRangeProps(name, layers[i].layers, br);
+            }
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -528,9 +545,10 @@ var layers = getAllArtLayers(doc)
 
 // we need the adjustment layer data and the way to get that is pretty gross.
 // The function called here will return a map from layer name to adjustment properties
-var a = getAdjustmentLayerInfo(doc)
-var adjLayerParams = a[0]
-var adjRaw = a[1]
+var a = getAdjustmentLayerInfo(doc);
+var adjLayerParams = a[0];
+var adjRaw = a[1];
+var blendRange = a[2];
 
 var metadata = {}
 
@@ -564,6 +582,10 @@ for (var i = 0; i < layers.length; i++) {
         else {
             metadata[activeLayer.name]["adjustment"] = adjLayerParams[activeLayer.name]
         }
+    }
+
+    if (activeLayer.name in blendRange) {
+        metadata[activeLayer.name].blendRange = blendRange[activeLayer.name];
     }
 
     // check grouping status for adjustment layers

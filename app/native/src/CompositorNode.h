@@ -106,6 +106,7 @@ private:
   static void brightnessContrast(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

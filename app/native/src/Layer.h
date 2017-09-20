@@ -59,6 +59,12 @@ namespace Comp {
     float getOpacity();
     void setOpacity(float val);
 
+    // conditional blending
+    void setConditionalBlend(string channel, map<string, float> settings);
+    bool shouldConditionalBlend();
+    string getConditionalBlendChannel();
+    map<string, float> getConditionalBlendSettings();
+
     string getName();
 
     // set name for layers, should only really be called from compositor
@@ -178,6 +184,10 @@ namespace Comp {
 
     // selective color yay?
     map<string, map<string, float> > _selectiveColor;
+
+    // conditional blending
+    string _cbChannel;
+    map<string, float> _cbSettings;
 
     // pointer to image data, stored in compositor
     shared_ptr<Image> _image;

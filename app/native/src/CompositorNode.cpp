@@ -505,6 +505,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "brightnessContrast", brightnessContrast);
   Nan::SetPrototypeMethod(tpl, "resetImage", resetImage);
   Nan::SetPrototypeMethod(tpl, "type", type);
+  Nan::SetPrototypeMethod(tpl, "conditionalBlend", conditionalBlend);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -1249,6 +1250,53 @@ void LayerRef::type(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 
   info.GetReturnValue().Set(Nan::New(layer->_layer->_psType).ToLocalChecked());
+}
+
+void LayerRef::conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.conditionalBlend");
+
+  if (info.Length() < 2) {
+    // return info
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+    ret->Set(Nan::New("channel").ToLocalChecked(), Nan::New(layer->_layer->getConditionalBlendChannel()).ToLocalChecked());
+
+    v8::Local<v8::Object> params = Nan::New<v8::Object>();
+    for (auto& param : layer->_layer->getConditionalBlendSettings()) {
+      params->Set(Nan::New(param.first).ToLocalChecked(), Nan::New(param.second));
+    }
+
+    ret->Set(Nan::New("params").ToLocalChecked(), params);
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    if (info[0]->IsString() && info[1]->IsObject()) {
+      v8::String::Utf8Value i0(info[0]->ToString());
+      string channel(*i0);
+
+      v8::Local<v8::Object> ret = info[1].As<v8::Object>();
+      auto params = ret->GetOwnPropertyNames();
+
+      map<string, float> cbParams;
+
+      for (unsigned int i = 0; i < params->Length(); i++) {
+        float val = ret->Get(params->Get(i))->NumberValue();
+
+        v8::String::Utf8Value o1(params->Get(i)->ToString());
+        string param(*o1);
+
+        cbParams[param] = val;
+      }
+
+      layer->_layer->setConditionalBlend(channel, cbParams);
+    }
+    else {
+      Nan::ThrowError("conditionalBlend(string, object) argument error");
+    }
+  }
 }
 
 void ContextWrapper::Init(v8::Local<v8::Object> exports)

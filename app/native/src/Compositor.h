@@ -317,6 +317,13 @@ namespace Comp {
     template <typename T>
     inline void brightnessAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
 
+    // conditional blend
+    // returns adjusted alpha of src layer, calculation happens disregarding alpha channel
+    template <typename T>
+    inline T conditionalBlend(string channel, map<string, float> params,
+      T srcR, T srcG, T srcB,
+      T destR, T destG, T destB);
+
     // translates a vector to a context given a key.
     // these functions are similar to what happens in sendToCeres
     Context vectorToContext(vector<double> x, nlohmann::json& key);
@@ -1286,6 +1293,73 @@ namespace Comp {
     adjPx._r = clamp<T>(factor * (adjPx._r - (T)0.5) + (T)0.5 + b, 0, 1);
     adjPx._g = clamp<T>(factor * (adjPx._g - (T)0.5) + (T)0.5 + b, 0, 1);
     adjPx._b = clamp<T>(factor * (adjPx._b - (T)0.5) + (T)0.5 + b, 0, 1);
+  }
+
+  template<typename T>
+  inline T Compositor::conditionalBlend(string channel, map<string, float> params, T srcR, T srcG, T srcB, T destR, T destG, T destB)
+  {
+    T src;
+    T dest;
+
+    if (channel == "") {
+      // unsure what photoshop is using as grey here, will do flat average first
+      src = (srcR + srcG + srcB) / 3;
+      dest = (destR + destG + destG) / 3;
+    }
+    else if (channel == "red") {
+      src = srcR;
+      dest = destR;
+    }
+    else if (channel == "green") {
+      src = srcG;
+      dest = destG;
+    }
+    else if (channel == "blue") {
+      src = srcB;
+      dest = srcB;
+    }
+
+    // do the blend
+    T alpha;
+    
+    // check if in entire bounds
+    if (src >= params["srcBlackMin"] && src <= params["srcWhiteMax"]) {
+      // check if in blending bounds
+      if (src >= params["srcBlackMin"] && src < params["srcBlackMax"]) {
+        // interp
+        alpha = (src - params["srcBlackMin"]) / (params["srcBlackMax"] - params["srcBlackMin"]);
+      }
+      else if (src > params["srcWhiteMin"] && src <= params["srcWhiteMax"]) {
+        // interp
+        alpha = 1 - ((src - params["srcWhiteMin"]) / (params["srcWhiteMax"] - params["srcWhiteMin"]));
+      }
+      else {
+        alpha = (T)1;
+      }
+    }
+    else {
+      alpha = (T)0;
+    }
+
+    // assuming it deos source checking first then dest checking
+    // also assuming this is multiplicative in which case order doesn't matter
+    // check dest bounds
+    if (src >= params["destBlackMin"] && src <= params["destWhiteMax"]) {
+      // check if in blending bounds
+      if (src >= params["destBlackMin"] && src < params["destBlackMax"]) {
+        // interp
+        alpha *= (src - params["destBlackMin"]) / (params["destBlackMax"] - params["destBlackMin"]);
+      }
+      else if (src > params["destWhiteMin"] && src <= params["destWhiteMax"]) {
+        // interp
+        alpha *= (T)1 - ((src - params["destWhiteMin"]) / (params["destWhiteMin"] - params["destWhiteMin"]));
+      }
+    }
+    else {
+      alpha *= (T)0;
+    }
+
+    return alpha;
   }
 
   inline void Compositor::levelsAdjust(Image* adjLayer, map<string, float> adj) {

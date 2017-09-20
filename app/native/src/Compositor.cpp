@@ -279,6 +279,15 @@ namespace Comp {
         // alphas
         float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * l.getOpacity();
         float aa = compPx[i * 4 + 3] / 255.0f;
+
+        if (l.shouldConditionalBlend()) {
+          float abScale = conditionalBlend(l.getConditionalBlendChannel(), l.getConditionalBlendSettings(),
+            (*layerPx)[i * 4] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f,
+            compPx[i * 4] / 255.0f, compPx[i * 4 + 1] / 255.0f, compPx[i * 4 + 2] / 255.0f);
+
+          ab = ab * abScale;
+        }
+
         float ad = aa + ab - aa * ab;
 
         compPx[i * 4 + 3] = (unsigned char)(ad * 255);

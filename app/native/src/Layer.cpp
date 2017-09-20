@@ -25,7 +25,9 @@ namespace Comp {
     _adjustments(other._adjustments),
     _curves(other._curves),
     _grad(other._grad),
-    _selectiveColor(other._selectiveColor)
+    _selectiveColor(other._selectiveColor),
+    _cbChannel(other._cbChannel),
+    _cbSettings(other._cbSettings)
   {
   }
 
@@ -41,6 +43,8 @@ namespace Comp {
     _curves = other._curves;
     _grad = other._grad;
     _selectiveColor = other._selectiveColor;
+    _cbChannel = other._cbChannel;
+    _cbSettings = other._cbSettings;
 
     return *this;
   }
@@ -92,6 +96,27 @@ namespace Comp {
   void Layer::setOpacity(float val)
   {
     _opacity = clamp<float>(val, 0, 1);
+  }
+
+  void Layer::setConditionalBlend(string channel, map<string, float> settings)
+  {
+    _cbChannel = channel;
+    _cbSettings = settings;
+  }
+
+  bool Layer::shouldConditionalBlend()
+  {
+    return _cbSettings.size() > 0;
+  }
+
+  string Layer::getConditionalBlendChannel()
+  {
+    return _cbChannel;
+  }
+
+  map<string, float> Layer::getConditionalBlendSettings()
+  {
+    return _cbSettings;
   }
 
   string Layer::getName()

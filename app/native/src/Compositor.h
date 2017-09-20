@@ -1344,15 +1344,15 @@ namespace Comp {
     // assuming it deos source checking first then dest checking
     // also assuming this is multiplicative in which case order doesn't matter
     // check dest bounds
-    if (src >= params["destBlackMin"] && src <= params["destWhiteMax"]) {
+    if (dest >= params["destBlackMin"] && dest <= params["destWhiteMax"]) {
       // check if in blending bounds
-      if (src >= params["destBlackMin"] && src < params["destBlackMax"]) {
+      if (dest >= params["destBlackMin"] && dest < params["destBlackMax"]) {
         // interp
-        alpha *= (src - params["destBlackMin"]) / (params["destBlackMax"] - params["destBlackMin"]);
+        alpha *= (dest - params["destBlackMin"]) / (params["destBlackMax"] - params["destBlackMin"]);
       }
-      else if (src > params["destWhiteMin"] && src <= params["destWhiteMax"]) {
+      else if (dest > params["destWhiteMin"] && dest <= params["destWhiteMax"]) {
         // interp
-        alpha *= (T)1 - ((src - params["destWhiteMin"]) / (params["destWhiteMin"] - params["destWhiteMin"]));
+        alpha *= (T)1 - ((dest - params["destWhiteMin"]) / (params["destWhiteMin"] - params["destWhiteMin"]));
       }
     }
     else {

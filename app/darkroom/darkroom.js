@@ -2277,6 +2277,22 @@ function importLayers(doc, path) {
     cLayer.opacity(layer.opacity / 100);
     cLayer.visible(layer.visible);
 
+    // check for conditional blending
+    if ("blendRange" in layer) {
+      var cb = layer.blendRange[0];
+      var channel = cb.channel;
+      cb.destWhiteMax = cb.desaturate;
+
+      delete cb.desaturate;
+      delete cb.channel;
+
+      for (var i in cb) {
+        cb[i] = cb[i] / 255;
+      }
+
+      cLayer.conditionalBlend(channel, cb);
+    }
+
     insertLayerElem(layerName, sets);
     //createLayerControl(layerName, false, layer["kind"]);
 

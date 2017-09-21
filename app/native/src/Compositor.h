@@ -745,12 +745,12 @@ namespace Comp {
     }
 
     // color keeps dest luma and keeps top hue and chroma
-    Utils<T>::LabColorT dc = Utils<T>::RGBToLab(dest);
-    Utils<T>::LabColorT sc = Utils<T>::RGBToLab(src);
-    dc._a = sc._a;
-    dc._b = sc._b;
+    Utils<T>::HSYColorT dc = Utils<T>::RGBToHSY(dest);
+    Utils<T>::HSYColorT sc = Utils<T>::RGBToHSY(src);
+    dc._h = sc._h;
+    dc._s = sc._s;
 
-    Utils<T>::RGBColorT res = Utils<T>::LabToRGB(dc._L, dc._a, dc._b);
+    Utils<T>::RGBColorT res = Utils<T>::HSYToRGB(dc);
 
     // actually have to blend here...
     res._r = res._r * Sa + dest._r * Da * (1 - Sa);
@@ -1352,7 +1352,7 @@ namespace Comp {
       }
       else if (dest > params["destWhiteMin"] && dest <= params["destWhiteMax"]) {
         // interp
-        alpha *= (T)1 - ((dest - params["destWhiteMin"]) / (params["destWhiteMin"] - params["destWhiteMin"]));
+        alpha *= (T)1 - ((dest - params["destWhiteMin"]) / (params["destWhiteMax"] - params["destWhiteMin"]));
       }
     }
     else {

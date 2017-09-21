@@ -7,7 +7,7 @@ var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
-const saveVersion = 0.35;
+const saveVersion = 0.36;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -2358,6 +2358,11 @@ function loadLayers(doc, path) {
     cl.visible(layer.visible);
     cl.blendMode(layer.blendMode);
 
+    // as of 0.36
+    if ("conditionalBlend" in layer) {
+      cl.conditionalBlend(layer.conditionalBlend.channel, layer.conditionalBlend.params);
+    }
+
     var adjustmentsList = layer.adjustments;
     for (var type in adjustmentsList) {
       var adj = Number(type);
@@ -2492,6 +2497,7 @@ function save(file) {
     layers[layerName].isAdjustment = l.isAdjustmentLayer();
     layers[layerName].filename = l.image().filename();
     layers[layerName].type = l.type();
+    layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
 
     // adjustments

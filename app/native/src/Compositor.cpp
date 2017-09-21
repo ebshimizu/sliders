@@ -244,7 +244,8 @@ namespace Comp {
     }
 
     // blend the layers
-    for (auto id : _layerOrder) {
+    for (int i = 0; i < _layerOrder.size(); i++) {
+      string id = _layerOrder[i];
       Layer& l = c[id];
 
       if (!l._visible)
@@ -252,6 +253,11 @@ namespace Comp {
 
       vector<unsigned char>* layerPx;
       Image* tmpLayer = nullptr;
+      vector<unsigned char>* prevLayer;
+
+      if (l.shouldConditionalBlend()) {
+        prevLayer = &_imageData[_layerOrder[i - 1]][size]->getData();
+      }
 
       // handle adjustment layers
       if (l.isAdjustmentLayer()) {
@@ -281,6 +287,7 @@ namespace Comp {
         float aa = compPx[i * 4 + 3] / 255.0f;
 
         if (l.shouldConditionalBlend()) {
+          // i'm unsure if it works literally just on the layer below it or the composition up to this point
           float abScale = conditionalBlend(l.getConditionalBlendChannel(), l.getConditionalBlendSettings(),
             (*layerPx)[i * 4] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f,
             compPx[i * 4] / 255.0f, compPx[i * 4 + 1] / 255.0f, compPx[i * 4 + 2] / 255.0f);
@@ -372,8 +379,8 @@ namespace Comp {
 
           RGBColor res = color(dest, src, aa, ab);
           compPx[i * 4] = cvt(res._r, ad);
-          compPx[i * 4 + 1] = cvt(res._g, ad);;
-          compPx[i * 4 + 2] = cvt(res._b, ad);;
+          compPx[i * 4 + 1] = cvt(res._g, ad);
+          compPx[i * 4 + 2] = cvt(res._b, ad);
         }
         else if (l._mode == BlendMode::LIGHTEN) {
           compPx[i * 4] = cvt(lighten(ra, rb, aa, ab), ad);

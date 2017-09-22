@@ -304,7 +304,8 @@ function initUI() {
     renderImage("#renderCmd click callback");
   });
   $("#importCmd").click(importFile);
-  $("#openCmd").click(openFile);
+  $("#openCmd").click(function () { openFile(false) });
+  $("#transferCmd").click(function () { openFile(true) });
   $("#exitCmd").click(function () { app.quit(); });
   $("#saveCmd").click(saveCmd);
   $("#saveAsCmd").click(saveAsCmd);
@@ -1957,7 +1958,7 @@ function importFile() {
   });
 }
 
-function openFile() {
+function openFile(transfer) {
   dialog.showOpenDialog({
     filters: [{ name: 'Darkroom Files', extensions: ['dark'] }],
     title: "Open File"
@@ -1979,7 +1980,11 @@ function openFile() {
 
     var filename = file.split(splitChar);
     filename = filename[filename.length - 1];
-    $('#fileNameText').html(filename);
+
+    if (!transfer) {
+      $('#fileNameText').html(filename);
+    }
+
     currentFile = file;
 
     fs.readFile(file, function (err, data) {
@@ -1992,7 +1997,7 @@ function openFile() {
       $('#historyItems').empty();
 
       // load the data
-      loadLayers(JSON.parse(data), folder);
+      loadLayers(JSON.parse(data), folder, transfer);
     });
   });
 }
@@ -2319,10 +2324,14 @@ function importLayers(doc, path) {
   initCanvas();
 }
 
-function loadLayers(doc, path) {
+function loadLayers(doc, path, transfer) {
   // create new compositor object
   deleteAllControls();
-  initCompositor();
+
+  if (!transfer) {
+    initCompositor();
+  }
+
   var order = [];
   var movebg = false;
   var data = doc.layers;
@@ -2343,53 +2352,58 @@ function loadLayers(doc, path) {
   for (var layerName in data) {
     var layer = data[layerName];
 
-    // add the layer and relevant adjustments
-    if (layer.isAdjustment) {
-      c.addLayer(layerName);
-    }
-    else {
-      c.addLayer(layerName, path + "/" + layer.filename);
+    // add the layer and relevant adjustments if this isn't a transfer
+    if (!transfer) {
+      if (layer.isAdjustment) {
+        c.addLayer(layerName);
+      }
+      else {
+        c.addLayer(layerName, path + "/" + layer.filename);
+      }
     }
 
     var cl = c.getLayer(layerName);
-    var o = layer.opacity;
 
-    cl.opacity(o);
-    cl.visible(layer.visible);
-    cl.blendMode(layer.blendMode);
+    if (cl) {
+      var o = layer.opacity;
 
-    // as of 0.36
-    if ("conditionalBlend" in layer) {
-      cl.conditionalBlend(layer.conditionalBlend.channel, layer.conditionalBlend.params);
-    }
+      cl.opacity(o);
+      cl.visible(layer.visible);
+      cl.blendMode(layer.blendMode);
 
-    var adjustmentsList = layer.adjustments;
-    for (var type in adjustmentsList) {
-      var adj = Number(type);
-      for (var key in adjustmentsList[type]) {
-        cl.addAdjustment(adj, key, adjustmentsList[type][key]);
+      // as of 0.36
+      if ("conditionalBlend" in layer) {
+        cl.conditionalBlend(layer.conditionalBlend.channel, layer.conditionalBlend.params);
       }
-    }
 
-    // gradient
-    if ("gradient" in layer) {
-      // add the gradient
-      cl.addGradient(layer.gradient);
-    }
-
-    // curves
-    if ("curves" in layer) {
-      for (var channel in layer.curves) {
-        cl.addCurve(channel, layer.curves[channel]);
+      var adjustmentsList = layer.adjustments;
+      for (var type in adjustmentsList) {
+        var adj = Number(type);
+        for (var key in adjustmentsList[type]) {
+          cl.addAdjustment(adj, key, adjustmentsList[type][key]);
+        }
       }
-    }
 
-    // special cases
-    if (layer.type === "LayerKind.SOLIDFILL" && layer.isAdjustment === false) {
-      c.resetImages(layerName);
-    }
+      // gradient
+      if ("gradient" in layer) {
+        // add the gradient
+        cl.addGradient(layer.gradient);
+      }
 
-    console.log("Added layer " + layerName);
+      // curves
+      if ("curves" in layer) {
+        for (var channel in layer.curves) {
+          cl.addCurve(channel, layer.curves[channel]);
+        }
+      }
+
+      // special cases
+      if (layer.type === "LayerKind.SOLIDFILL" && layer.isAdjustment === false) {
+        c.resetImages(layerName);
+      }
+
+      console.log("Added layer " + layerName);
+    }
   }
 
   // but the shadow state may have some residual group settings from last time

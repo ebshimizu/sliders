@@ -320,9 +320,9 @@ namespace Comp {
     // conditional blend
     // returns adjusted alpha of src layer, calculation happens disregarding alpha channel
     template <typename T>
-    inline T conditionalBlend(string channel, map<string, float> params,
-      T srcR, T srcG, T srcB,
-      T destR, T destG, T destB);
+    inline T conditionalBlend(const string& channel, float sbMin, float sbMax, float swMin, float swMax,
+      float dbMin, float dbMax, float dwMin, float dwMax,
+      T srcR, T srcG, T srcB, T destR, T destG, T destB);
 
     // translates a vector to a context given a key.
     // these functions are similar to what happens in sendToCeres
@@ -1296,7 +1296,9 @@ namespace Comp {
   }
 
   template<typename T>
-  inline T Compositor::conditionalBlend(string channel, map<string, float> params, T srcR, T srcG, T srcB, T destR, T destG, T destB)
+  inline T Compositor::conditionalBlend(const string& channel, float sbMin, float sbMax, float swMin, float swMax,
+    float dbMin, float dbMax, float dwMin, float dwMax,
+    T srcR, T srcG, T srcB, T destR, T destG, T destB)
   {
     T src;
     T dest;
@@ -1321,17 +1323,17 @@ namespace Comp {
 
     // do the blend
     T alpha;
-    
+
     // check if in entire bounds
-    if (src >= params["srcBlackMin"] && src <= params["srcWhiteMax"]) {
+    if (src >= sbMin && src <= swMax) {
       // check if in blending bounds
-      if (src >= params["srcBlackMin"] && src < params["srcBlackMax"]) {
+      if (src >= sbMin && src < sbMax) {
         // interp
-        alpha = (src - params["srcBlackMin"]) / (params["srcBlackMax"] - params["srcBlackMin"]);
+        alpha = (src - sbMin) / (sbMax - sbMin);
       }
-      else if (src > params["srcWhiteMin"] && src <= params["srcWhiteMax"]) {
+      else if (src > swMin && src <= swMax) {
         // interp
-        alpha = 1 - ((src - params["srcWhiteMin"]) / (params["srcWhiteMax"] - params["srcWhiteMin"]));
+        alpha = 1 - ((src - swMin) / (swMax - swMin));
       }
       else {
         alpha = (T)1;
@@ -1344,15 +1346,15 @@ namespace Comp {
     // assuming it deos source checking first then dest checking
     // also assuming this is multiplicative in which case order doesn't matter
     // check dest bounds
-    if (dest >= params["destBlackMin"] && dest <= params["destWhiteMax"]) {
+    if (dest >= dbMin && dest <= dwMax) {
       // check if in blending bounds
-      if (dest >= params["destBlackMin"] && dest < params["destBlackMax"]) {
+      if (dest >= dbMin && dest < dbMax) {
         // interp
-        alpha *= (dest - params["destBlackMin"]) / (params["destBlackMax"] - params["destBlackMin"]);
+        alpha *= (dest - dbMin) / (dbMax - dbMin);
       }
-      else if (dest > params["destWhiteMin"] && dest <= params["destWhiteMax"]) {
+      else if (dest > dwMin && dest <= dwMax) {
         // interp
-        alpha *= (T)1 - ((dest - params["destWhiteMin"]) / (params["destWhiteMax"] - params["destWhiteMin"]));
+        alpha *= (T)1 - ((dest - dwMin) / (dwMax - dwMin));
       }
     }
     else {

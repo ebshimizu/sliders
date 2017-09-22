@@ -253,11 +253,16 @@ namespace Comp {
 
       vector<unsigned char>* layerPx;
       Image* tmpLayer = nullptr;
-      vector<unsigned char>* prevLayer;
-
-      if (l.shouldConditionalBlend()) {
-        prevLayer = &_imageData[_layerOrder[i - 1]][size]->getData();
-      }
+      bool shouldConditionalBlend = l.shouldConditionalBlend();
+      auto cbData = l.getConditionalBlendSettings();
+      float sbMin = cbData["srcBlackMin"];
+      float sbMax = cbData["srcBlackMax"];
+      float swMin = cbData["srcWhiteMin"];
+      float swMax = cbData["srcWhiteMax"];
+      float dbMin = cbData["destBlackMin"];
+      float dbMax = cbData["destBlackMax"];
+      float dwMin = cbData["destWhiteMin"];
+      float dwMax = cbData["destWhiteMax"];
 
       // handle adjustment layers
       if (l.isAdjustmentLayer()) {
@@ -286,9 +291,10 @@ namespace Comp {
         float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * l.getOpacity();
         float aa = compPx[i * 4 + 3] / 255.0f;
 
-        if (l.shouldConditionalBlend()) {
+        if (shouldConditionalBlend) {
           // i'm unsure if it works literally just on the layer below it or the composition up to this point
-          float abScale = conditionalBlend(l.getConditionalBlendChannel(), l.getConditionalBlendSettings(),
+          float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
+            sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
             (*layerPx)[i * 4] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f,
             compPx[i * 4] / 255.0f, compPx[i * 4 + 1] / 255.0f, compPx[i * 4 + 2] / 255.0f);
 

@@ -62,8 +62,8 @@ namespace Comp {
     // conditional blending
     void setConditionalBlend(string channel, map<string, float> settings);
     bool shouldConditionalBlend();
-    string getConditionalBlendChannel();
-    map<string, float> getConditionalBlendSettings();
+    const string& getConditionalBlendChannel();
+    const map<string, float>& getConditionalBlendSettings();
 
     string getName();
 

@@ -109,12 +109,12 @@ namespace Comp {
     return _cbSettings.size() > 0;
   }
 
-  string Layer::getConditionalBlendChannel()
+  const string& Layer::getConditionalBlendChannel()
   {
     return _cbChannel;
   }
 
-  map<string, float> Layer::getConditionalBlendSettings()
+  const map<string, float>& Layer::getConditionalBlendSettings()
   {
     return _cbSettings;
   }

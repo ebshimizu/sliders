@@ -1349,13 +1349,18 @@ void ContextWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
   v8::String::Utf8Value val0(info[0]->ToString());
   string name(*val0);
 
-  Comp::Layer& l = c->_context[name];
+  if (c->_context.count(name) > 0) {
+    Comp::Layer& l = c->_context[name];
 
-  v8::Local<v8::Function> cons = Nan::New<v8::Function>(LayerRef::layerConstructor);
-  const int argc = 1;
-  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(LayerRef::layerConstructor);
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
-  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 void ContextWrapper::keys(const Nan::FunctionCallbackInfo<v8::Value>& info)

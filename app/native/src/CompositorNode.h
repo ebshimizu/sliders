@@ -9,6 +9,7 @@ author: Evan Shimizu
 #include "Image.h"
 #include "Compositor.h"
 #include "util.h"
+#include "Model.h"
 #include "testHarness.h"
 
 #include <nan.h>
@@ -191,6 +192,21 @@ private:
   static void clearSearchGroups(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void contextFromVector(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
+};
+
+class ModelWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> modelConstructor;
+
+  Comp::Model* _model;
+private:
+  explicit ModelWrapper();
+  ~ModelWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void analyze(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void report(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {

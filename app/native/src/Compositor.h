@@ -38,6 +38,7 @@ namespace Comp {
   class Compositor {
   public:
     Compositor();
+    Compositor(string filename, string imageDir);
     ~Compositor();
 
     // adds a layer, true on success, false if layer already exists
@@ -161,6 +162,9 @@ namespace Comp {
 
     // uses the cached key to deserialize a vector
     Context vectorToContext(vector<double> v);
+
+    // takes a darkroom file and loads it, returning a context
+    Context contextFromDarkroom(string file);
 
   private:
     void addLayer(string name);

@@ -7,7 +7,7 @@ var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
-const saveVersion = 0.36;
+const saveVersion = 0.37;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -2397,6 +2397,14 @@ function loadLayers(doc, path, transfer) {
         }
       }
 
+      // selective color
+      if ("selectiveColor" in layer) {
+        var rel = layer.selectiveColor.relative === 1;
+        delete layer.selectiveColor.relative;
+
+        cl.selectiveColor(rel, layer.selectiveColor);
+      }
+
       // special cases
       if (layer.type === "LayerKind.SOLIDFILL" && layer.isAdjustment === false) {
         c.resetImages(layerName);
@@ -2513,6 +2521,7 @@ function save(file) {
     layers[layerName].type = l.type();
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
+    layers[layerName].selectiveColor = l.selectiveColor();
 
     // adjustments
     var adjTypes = l.getAdjustments();
@@ -2536,6 +2545,7 @@ function save(file) {
   }
 
   out.layers = layers;
+  out.layerOrder = c.getLayerNames();
 
   // mask data
   out.mask = {};

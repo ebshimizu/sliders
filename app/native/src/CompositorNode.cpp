@@ -165,6 +165,7 @@ Nan::Persistent<v8::Function> ImageWrapper::imageConstructor;
 Nan::Persistent<v8::Function> LayerRef::layerConstructor;
 Nan::Persistent<v8::Function> CompositorWrapper::compositorConstructor;
 Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
+Nan::Persistent<v8::Function> ModelWrapper::modelConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -1465,9 +1466,17 @@ CompositorWrapper::~CompositorWrapper()
 
 void CompositorWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
-  // no args expected, anything passed in is ignored
+  // initialization might be from a file or from nothing
   CompositorWrapper* cw = new CompositorWrapper();
-  cw->_compositor = new Comp::Compositor();
+  if (info.Length() == 2) {
+    v8::String::Utf8Value file(info[0]->ToString());
+    v8::String::Utf8Value dir(info[1]->ToString());
+
+    cw->_compositor = new Comp::Compositor(string(*file), string(*dir));
+  }
+  else {
+    cw->_compositor = new Comp::Compositor();
+  }
 
   cw->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -2429,4 +2438,126 @@ void StopSearchWorker::HandleOKCallback()
 
   v8::Local<v8::Value> cb[] = { Nan::Null() };
   callback->Call(1, cb);
+}
+
+void ModelWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("Model").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "analyze", analyze);
+  Nan::SetPrototypeMethod(tpl, "report", report);
+
+  modelConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
+}
+
+ModelWrapper::ModelWrapper() : _model(nullptr)
+{
+}
+
+ModelWrapper::~ModelWrapper()
+{
+  delete _model;
+}
+
+void ModelWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // need a compositor arg
+  if (!info[0]->IsExternal()) {
+    Nan::ThrowError("Internal error: Compositor pointer not found as first argument of ModelWrapper constructor");
+  }
+
+  Comp::Compositor* c = static_cast<Comp::Compositor*>(info[0].As<v8::External>()->Value());
+
+  ModelWrapper* mw = new ModelWrapper();
+  mw->_model = new Comp::Model(c);
+  mw->Wrap(info.This());
+  info.GetReturnValue().Set(info.This());
+}
+
+void ModelWrapper::analyze(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.analyze");
+
+  if (!info.Length() == 2 || !info[0]->IsObject() || !info[1]->IsString()) {
+    Nan::ThrowError("analyze(object, string) argument error");
+  }
+  else {
+    // object expected format: { axisName : [array of filenames] }
+    v8::Local<v8::Object> data = info[0].As<v8::Object>();
+
+    map<string, vector<string>> analysisData;
+    auto keys = data->GetOwnPropertyNames();
+    for (int i = 0; i < keys->Length(); i++) {
+      v8::Local<v8::Array> filenames = data->Get(keys->Get(i)).As<v8::Array>();
+
+      vector<string> files;
+      for (int j = 0; j < filenames->Length(); j++) {
+        v8::String::Utf8Value val0(filenames->Get(j)->ToString());
+        string file(*val0);
+
+        files.push_back(file);
+      }
+
+      v8::String::Utf8Value axisName(keys->Get(i)->ToString());
+      string axis(*axisName);
+
+      analysisData[axis] = files;
+    }
+
+    v8::String::Utf8Value val1(info[1]->ToString());
+    string base(*val1);
+
+    m->_model->analyze(analysisData, base);
+  }
+}
+
+void ModelWrapper::report(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.reoirt");
+
+  // basically returns the trainInfo structure
+  const map<string, Comp::ModelInfo> data = m->_model->getModelInfo();
+
+  v8::Local<v8::Object> rep = Nan::New<v8::Object>();
+
+  for (auto& axis : data) {
+    string name = axis.first;
+
+    v8::Local<v8::Object> axisData = Nan::New<v8::Object>();
+
+    for (auto& x : axis.second._activeParams) {
+      for (auto& y : x.second) {
+        // extract param info for each active parameter
+        v8::Local<v8::Object> paramData = Nan::New<v8::Object>();
+
+        paramData->Set(Nan::New("layerName").ToLocalChecked(), Nan::New(y.second._name).ToLocalChecked());
+        paramData->Set(Nan::New("paramName").ToLocalChecked(), Nan::New(y.second._param).ToLocalChecked());
+        paramData->Set(Nan::New("min").ToLocalChecked(), Nan::New(y.second._min));
+        paramData->Set(Nan::New("max").ToLocalChecked(), Nan::New(y.second._max));
+
+        // value array
+        v8::Local<v8::Array> valArray = Nan::New<v8::Array>();
+        for (int i = 0; i < y.second._vals.size(); i++) {
+          valArray->Set(i, Nan::New(y.second._vals[i]));
+        }
+
+        paramData->Set(Nan::New("vals").ToLocalChecked(), valArray);
+
+        // add the parameter info the the axis object
+        axisData->Set(Nan::New(x.first + ":" + y.first).ToLocalChecked(), paramData);
+      }
+    }
+
+    rep->Set(Nan::New(name).ToLocalChecked(), axisData);
+  }
+
+  info.GetReturnValue().Set(rep);
 }

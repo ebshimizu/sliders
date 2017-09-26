@@ -8,6 +8,47 @@ namespace Comp {
   {
   }
 
+  Compositor::Compositor(string filename, string imageDir)
+  {
+    // two iterations, file load and then layer load
+    nlohmann::json data;
+    ifstream input(imageDir + filename);
+
+    if (!input.is_open()) {
+      // failing to load will return an empty context
+      getLogger()->log("Failed to open file " + imageDir + filename, LogLevel::ERR);
+      return;
+    }
+
+    input >> data;
+
+    if (data.count("layers") == 0) {
+      // this is not a darkroom file, return
+      getLogger()->log(imageDir + filename + " is not a Darkroom file", LogLevel::ERR);
+      return;
+    }
+
+    for (nlohmann::json::iterator it = data["layers"].begin(); it != data["layers"].end(); ++it) {
+      if (it.value()["filename"] != "") {
+        addLayer(it.key(), imageDir + it.value()["filename"].get<string>());
+      }
+      else {
+        addAdjustmentLayer(it.key());
+      }
+    }
+
+    // layer order
+    vector<string> order;
+    for (int i = 0; i < data["layerOrder"].size(); i++) {
+      order.push_back(data["layerOrder"][i]);
+    }
+    setLayerOrder(order);
+
+    input.close();
+
+    _primary = contextFromDarkroom(imageDir + filename);
+  }
+
   Compositor::~Compositor()
   {
   }
@@ -244,8 +285,8 @@ namespace Comp {
     }
 
     // blend the layers
-    for (int i = 0; i < _layerOrder.size(); i++) {
-      string id = _layerOrder[i];
+    for (int lOrder = 0; lOrder < _layerOrder.size(); lOrder++) {
+      string id = _layerOrder[lOrder];
       Layer& l = c[id];
 
       if (!l._visible)
@@ -1483,31 +1524,149 @@ namespace Comp {
 
   vector<double> Compositor::contextToVector(Context c, nlohmann::json& key)
   {
-    // add the parameter data to the key
-    key = nlohmann::json::array();
+  // add the parameter data to the key
+  key = nlohmann::json::array();
 
-    for (auto& l : _layerOrder) {
-      // gather parameter info for all layers
-      c[l].addParams(key);
-    }
+  for (auto& l : _layerOrder) {
+    // gather parameter info for all layers
+    c[l].addParams(key);
+  }
 
-    // dump values into a vector
-    vector<double> vals;
-    for (int i = 0; i < key.size(); i++) {
-      vals.push_back(key[i]["value"]);
-    }
+  // dump values into a vector
+  vector<double> vals;
+  for (int i = 0; i < key.size(); i++) {
+    vals.push_back(key[i]["value"]);
+  }
 
-    // some extremely verbose logging
-    // dump the json file
-    //stringstream ss;
-    //getLogger()->log(key.dump(2), DBG);
+  // some extremely verbose logging
+  // dump the json file
+  //stringstream ss;
+  //getLogger()->log(key.dump(2), DBG);
 
-    return vals;
+  return vals;
   }
 
   Context Compositor::vectorToContext(vector<double> v)
   {
     return vectorToContext(v, _vectorKey);
+  }
+
+  Context Compositor::contextFromDarkroom(string file)
+  {
+    nlohmann::json data;
+    ifstream input(file);
+
+    if (!input.is_open()) {
+      // failing to load will return an empty context
+      getLogger()->log("Failed to open file " + file, LogLevel::ERR);
+      return Context();
+    }
+
+    input >> data;
+
+    if (data.count("layers") == 0) {
+      // this is not a darkroom file, return
+      getLogger()->log(file + " is not a Darkroom file", LogLevel::ERR);
+      return Context();
+    }
+
+    Context ctx = getNewContext();
+    for (nlohmann::json::iterator it = data["layers"].begin(); it != data["layers"].end(); ++it) {
+      string layerName = it.key();
+
+      // check layer existence
+      if (ctx.count(layerName) > 0) {
+        ctx[layerName].setOpacity(it.value()["opacity"]);
+        ctx[layerName]._visible = it.value()["visible"];
+        ctx[layerName]._mode = (BlendMode)(it.value()["blendMode"].get<int>());
+        ctx[layerName]._psType = it.value()["type"].get<string>();
+
+        map<string, float> cbs;
+        auto cbData = it.value()["conditionalBlend"]["params"];
+        for (auto cbit = cbData.begin(); cbit != cbData.end(); ++cbit) {
+          cbs[cbit.key()] = cbit.value();
+        }
+        ctx[layerName].setConditionalBlend(it.value()["conditionalBlend"]["channel"], cbs);
+
+        // adjustments
+        auto adjData = it.value()["adjustments"];
+        for (auto ait = adjData.begin(); ait != adjData.end(); ++ait) {
+          AdjustmentType t = (AdjustmentType)stoi(ait.key());
+
+          // now iterate though the settings
+          for (auto apit = ait.value().begin(); apit != ait.value().end(); ++apit) {
+            ctx[layerName].addAdjustment(t, apit.key(), apit.value());
+          }
+        }
+
+        // selective color
+        auto scData = it.value()["selectiveColor"];
+        
+        // scData will always have relative in it, but if it has nothing else,
+        // skip it
+        if (scData.size() > 1) {
+          map<string, map<string, float>> sc;
+          bool rel = false;
+          for (auto scit = scData.begin(); scit != scData.end(); ++scit) {
+            string key = scit.key();
+
+            if (key == "relative") {
+              rel = true;
+            }
+            else {
+              sc[key]["black"] = scit.value()["black"];
+              sc[key]["cyan"] = scit.value()["cyan"];
+              sc[key]["magenta"] = scit.value()["magenta"];
+              sc[key]["yellow"] = scit.value()["yellow"];
+            }
+          }
+          ctx[layerName].addSelectiveColorAdjustment(rel, sc);
+        }
+
+        // curves
+        if (it.value().count("curves") > 0) {
+          auto curveData = it.value()["curves"];
+
+          // curves are basically arrays and should be fairly easy to reconstruct
+          for (auto cit = curveData.begin(); cit != curveData.end(); ++cit) {
+            string channel = cit.key();
+            auto curve = cit.value();
+
+            vector<Point> pts;
+            for (int i = 0; i < curve.size(); i++) {
+              pts.push_back(Point(curve[i]["x"], curve[i]["y"]));
+            }
+            ctx[layerName].addCurvesChannel(channel, Curve(pts));
+          }
+        }
+
+        // gradient
+        if (it.value().count("gradient") > 0) {
+          auto gradData = it.value()["gradient"];
+          vector<float> x;
+          vector<RGBColor> colors;
+
+          for (int i = 0; i < gradData.size(); i++) {
+            x.push_back(gradData[i]["x"]);
+
+            RGBColor color;
+            color._r = gradData[i]["color"]["r"];
+            color._g = gradData[i]["color"]["g"];
+            color._b = gradData[i]["color"]["b"];
+
+            colors.push_back(color);
+          }
+
+          ctx[layerName].addGradientAdjustment(Gradient(x, colors));
+        }
+      }
+      else {
+        getLogger()->log("Current compositor has no layer named " + it.key(), LogLevel::WARN);
+      }
+    }
+
+    getLogger()->log("Loaded file " + file, LogLevel::INFO);
+    return ctx;
   }
 
   Context Compositor::vectorToContext(vector<double> x, nlohmann::json & key)

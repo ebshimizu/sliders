@@ -2468,14 +2468,14 @@ ModelWrapper::~ModelWrapper()
 void ModelWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   // need a compositor arg
-  if (!info[0]->IsExternal()) {
-    Nan::ThrowError("Internal error: Compositor pointer not found as first argument of ModelWrapper constructor");
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Internal Error: Compositor object found is empty!");
   }
-
-  Comp::Compositor* c = static_cast<Comp::Compositor*>(info[0].As<v8::External>()->Value());
+  CompositorWrapper* c = Nan::ObjectWrap::Unwrap<CompositorWrapper>(maybe1.ToLocalChecked());
 
   ModelWrapper* mw = new ModelWrapper();
-  mw->_model = new Comp::Model(c);
+  mw->_model = new Comp::Model(c->_compositor);
   mw->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
 }

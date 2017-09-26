@@ -58,6 +58,17 @@ void Model::analyze(map<string, vector<string>> examples, string base)
 {
   // first step is to load the specified files and then throw it to the other
   // analysis function
+  map<string, vector<Context>> loadedExamples;
+
+  for (auto& a : examples) {
+    for (auto& file : a.second) {
+      loadedExamples[a.first].push_back(_comp->contextFromDarkroom(file));
+    }
+  }
+
+  Context baseCtx = _comp->contextFromDarkroom(base);
+
+  analyze(loadedExamples, baseCtx);
 }
 
 void Model::analyze(map<string, vector<Context>> examples, Context base) {

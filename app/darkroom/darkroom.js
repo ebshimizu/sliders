@@ -2521,7 +2521,6 @@ function save(file) {
     layers[layerName].type = l.type();
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
-    layers[layerName].selectiveColor = l.selectiveColor();
 
     // adjustments
     var adjTypes = l.getAdjustments();
@@ -2540,6 +2539,10 @@ function save(file) {
         for (var chan in channels) {
           layers[layerName].curves[chan] = l.getCurve(chan);
         }
+      }
+
+      if (adjTypes[i] === adjTypes.SELECTIVECOLOR) {
+        layers[layerName].selectiveColor = l.selectiveColor();
       }
     }
   }

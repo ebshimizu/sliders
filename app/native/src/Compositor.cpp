@@ -1597,30 +1597,32 @@ namespace Comp {
           for (auto apit = ait.value().begin(); apit != ait.value().end(); ++apit) {
             ctx[layerName].addAdjustment(t, apit.key(), apit.value());
           }
-        }
 
-        // selective color
-        auto scData = it.value()["selectiveColor"];
-        
-        // scData will always have relative in it, but if it has nothing else,
-        // skip it
-        if (scData.size() > 1) {
-          map<string, map<string, float>> sc;
-          bool rel = false;
-          for (auto scit = scData.begin(); scit != scData.end(); ++scit) {
-            string key = scit.key();
+          if (t == AdjustmentType::SELECTIVE_COLOR) {
+            // selective color
+            auto scData = it.value()["selectiveColor"];
 
-            if (key == "relative") {
-              rel = true;
-            }
-            else {
-              sc[key]["black"] = scit.value()["black"];
-              sc[key]["cyan"] = scit.value()["cyan"];
-              sc[key]["magenta"] = scit.value()["magenta"];
-              sc[key]["yellow"] = scit.value()["yellow"];
+            // scData will always have relative in it, but if it has nothing else,
+            // skip it
+            if (scData.size() > 1) {
+              map<string, map<string, float>> sc;
+              bool rel = false;
+              for (auto scit = scData.begin(); scit != scData.end(); ++scit) {
+                string key = scit.key();
+
+                if (key == "relative") {
+                  rel = true;
+                }
+                else {
+                  sc[key]["black"] = scit.value()["black"];
+                  sc[key]["cyan"] = scit.value()["cyan"];
+                  sc[key]["magenta"] = scit.value()["magenta"];
+                  sc[key]["yellow"] = scit.value()["yellow"];
+                }
+              }
+              ctx[layerName].addSelectiveColorAdjustment(rel, sc);
             }
           }
-          ctx[layerName].addSelectiveColorAdjustment(rel, sc);
         }
 
         // curves

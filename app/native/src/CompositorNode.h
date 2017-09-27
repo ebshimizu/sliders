@@ -207,6 +207,7 @@ private:
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void analyze(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void report(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void sample(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {

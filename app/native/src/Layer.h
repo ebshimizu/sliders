@@ -11,6 +11,7 @@ author: Evan Shimizu
 #include "third_party/json/src/json.hpp"
 
 #include <map>
+#include <unordered_map>
 
 namespace Comp {
   // matches photoshop blend modes and should function the same way

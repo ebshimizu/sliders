@@ -8,13 +8,14 @@ namespace Comp {
 class LayerParamInfo {
 public:
   LayerParamInfo() : _name(""), _param("") {}
-  LayerParamInfo(string name, string param);
+  LayerParamInfo(AdjustmentType type, string name, string param);
 
   void addSample(double val);
   int count();
 
   string _name;
   string _param;
+  AdjustmentType _type;
   vector<double> _vals;
   double _min;
   double _max;
@@ -28,7 +29,7 @@ public:
   ~ModelInfo();
 
   int count();
-  void addVal(string name, string param, double val);
+  void addVal(AdjustmentType t, string name, string param, double val);
 
   string _name;
   map<string, map<string, LayerParamInfo>> _activeParams;

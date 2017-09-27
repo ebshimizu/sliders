@@ -2451,6 +2451,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "analyze", analyze);
   Nan::SetPrototypeMethod(tpl, "report", report);
+  Nan::SetPrototypeMethod(tpl, "sample", sample);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2521,7 +2522,7 @@ void ModelWrapper::analyze(const Nan::FunctionCallbackInfo<v8::Value>& info)
 void ModelWrapper::report(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
-  nullcheck(m->_model, "model.reoirt");
+  nullcheck(m->_model, "model.report");
 
   // basically returns the trainInfo structure
   const map<string, Comp::ModelInfo> data = m->_model->getModelInfo();
@@ -2540,6 +2541,7 @@ void ModelWrapper::report(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
         paramData->Set(Nan::New("layerName").ToLocalChecked(), Nan::New(y.second._name).ToLocalChecked());
         paramData->Set(Nan::New("paramName").ToLocalChecked(), Nan::New(y.second._param).ToLocalChecked());
+        paramData->Set(Nan::New("adjustmentType").ToLocalChecked(), Nan::New(y.second._type));
         paramData->Set(Nan::New("min").ToLocalChecked(), Nan::New(y.second._min));
         paramData->Set(Nan::New("max").ToLocalChecked(), Nan::New(y.second._max));
 
@@ -2560,4 +2562,20 @@ void ModelWrapper::report(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
 
   info.GetReturnValue().Set(rep);
+}
+
+void ModelWrapper::sample(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.sample");
+
+  Comp::Context ctx = m->_model->sample();
+
+  // context object
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+  v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  info.GetReturnValue().Set(ctxInst);
 }

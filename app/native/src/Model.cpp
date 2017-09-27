@@ -2,7 +2,8 @@
 
 namespace Comp {
 
-LayerParamInfo::LayerParamInfo(string name, string param) : _name(name), _param(param)
+LayerParamInfo::LayerParamInfo(AdjustmentType t, string name, string param) :
+  _type(t), _name(name), _param(param)
 {
   _min = DBL_MAX;
   _max = DBL_MIN;
@@ -37,10 +38,10 @@ int ModelInfo::count()
   return _activeParams.size();
 }
 
-void ModelInfo::addVal(string name, string param, double val)
+void ModelInfo::addVal(AdjustmentType t, string name, string param, double val)
 {
   if (_activeParams.count(name) == 0 || _activeParams[name].count(param) == 0) {
-    _activeParams[name][param] = LayerParamInfo(name, param);
+    _activeParams[name][param] = LayerParamInfo(t, name, param);
   }
 
   _activeParams[name][param].addSample(val);
@@ -83,7 +84,7 @@ void Model::analyze(map<string, vector<Context>> examples, Context base) {
       for (auto& l : ctx) {
         // check opacity
         if (l.second.getOpacity() != base[l.first].getOpacity()) {
-          _trainInfo[axis.first].addVal(l.first, "opacity", l.second.getOpacity());
+          _trainInfo[axis.first].addVal(AdjustmentType::OPACITY, l.first, "opacity", l.second.getOpacity());
         }
 
         // check all the other params
@@ -98,7 +99,7 @@ void Model::analyze(map<string, vector<Context>> examples, Context base) {
             for (auto& scChannel : scData) {
               for (auto& scParam : scChannel.second) {
                 if (scParam.second != baseScData[scChannel.first][scParam.first]) {
-                  _trainInfo[axis.first].addVal(l.first, "sc_" + scChannel.first + "_" + scParam.first, scParam.second);
+                  _trainInfo[axis.first].addVal(adj, l.first, "sc_" + scChannel.first + "_" + scParam.first, scParam.second);
                 }
               }
             }
@@ -106,7 +107,7 @@ void Model::analyze(map<string, vector<Context>> examples, Context base) {
           else {
             for (auto& param : data) {
               if (param.second != base[l.first].getAdjustment(adj)[param.first]) {
-                _trainInfo[axis.first].addVal(l.first, param.first, param.second);
+                _trainInfo[axis.first].addVal(adj, l.first, param.first, param.second);
               }
             }
           }
@@ -118,8 +119,35 @@ void Model::analyze(map<string, vector<Context>> examples, Context base) {
 
 Context Model::sample()
 {
-  // for now just return the current context state
-  return _comp->getNewContext();
+  // first version: take the info in the analysis thing and then
+  // sample uniformly at random from the given ranges
+  Context ctx = _comp->getNewContext();
+  
+  // rng
+  random_device rd;
+  mt19937 gen(rd());
+
+  for (auto& axis : _trainInfo) {
+    for (auto& l : axis.second._activeParams) {
+      for (auto& p : l.second) {
+        string layer = p.second._name;
+        string param = p.second._param;
+
+        uniform_real_distribution<float> range(p.second._min, p.second._max);
+        float sample = range(gen);
+
+        if (p.first == "opacity") {
+          ctx[layer].setOpacity(sample);
+        }
+        else {
+          ctx[layer].addAdjustment(p.second._type, param, sample);
+        }
+        // something something selective color :(
+      }
+    }
+  }
+
+  return ctx;
 }
 
 const map<string, ModelInfo>& Model::getModelInfo()

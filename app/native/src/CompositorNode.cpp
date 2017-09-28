@@ -2531,28 +2531,26 @@ void ModelWrapper::report(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
     v8::Local<v8::Object> axisData = Nan::New<v8::Object>();
 
-    for (auto& x : axis.second._activeParams) {
-      for (auto& y : x.second) {
-        // extract param info for each active parameter
-        v8::Local<v8::Object> paramData = Nan::New<v8::Object>();
+    for (auto& y : axis.second._activeParams) {
+      // extract param info for each active parameter
+      v8::Local<v8::Object> paramData = Nan::New<v8::Object>();
 
-        paramData->Set(Nan::New("layerName").ToLocalChecked(), Nan::New(y.second._name).ToLocalChecked());
-        paramData->Set(Nan::New("paramName").ToLocalChecked(), Nan::New(y.second._param).ToLocalChecked());
-        paramData->Set(Nan::New("adjustmentType").ToLocalChecked(), Nan::New(y.second._type));
-        paramData->Set(Nan::New("min").ToLocalChecked(), Nan::New(y.second._min));
-        paramData->Set(Nan::New("max").ToLocalChecked(), Nan::New(y.second._max));
+      paramData->Set(Nan::New("layerName").ToLocalChecked(), Nan::New(y.second._name).ToLocalChecked());
+      paramData->Set(Nan::New("paramName").ToLocalChecked(), Nan::New(y.second._param).ToLocalChecked());
+      paramData->Set(Nan::New("adjustmentType").ToLocalChecked(), Nan::New(y.second._type));
+      paramData->Set(Nan::New("min").ToLocalChecked(), Nan::New(y.second._min));
+      paramData->Set(Nan::New("max").ToLocalChecked(), Nan::New(y.second._max));
 
-        // value array
-        v8::Local<v8::Array> valArray = Nan::New<v8::Array>();
-        for (int i = 0; i < y.second._vals.size(); i++) {
-          valArray->Set(i, Nan::New(y.second._vals[i]));
-        }
-
-        paramData->Set(Nan::New("vals").ToLocalChecked(), valArray);
-
-        // add the parameter info the the axis object
-        axisData->Set(Nan::New(x.first + ":" + y.first).ToLocalChecked(), paramData);
+      // value array
+      v8::Local<v8::Array> valArray = Nan::New<v8::Array>();
+      for (int i = 0; i < y.second._vals.size(); i++) {
+        valArray->Set(i, Nan::New(y.second._vals[i]));
       }
+
+      paramData->Set(Nan::New("vals").ToLocalChecked(), valArray);
+
+      // add the parameter info the the axis object
+      axisData->Set(Nan::New(y.first).ToLocalChecked(), paramData);
     }
 
     rep->Set(Nan::New(name).ToLocalChecked(), axisData);

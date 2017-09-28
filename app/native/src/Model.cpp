@@ -51,11 +51,42 @@ int ModelInfo::count()
 
 void ModelInfo::addVal(AdjustmentType t, string name, string param, double val)
 {
-  if (_activeParams.count(name) == 0 || _activeParams[name].count(param) == 0) {
-    _activeParams[name][param] = LayerParamInfo(t, name, param);
+  string key = name + ":" + param;
+  if (_activeParams.count(key) == 0) {
+    _activeParams[key] = LayerParamInfo(t, name, param);
   }
 
-  _activeParams[name][param].addSample(val);
+  _activeParams[key].addSample(val);
+}
+
+void ModelInfo::cleanup()
+{
+  vector<string> toRemove;
+  for (auto& info : _activeParams) {
+    if (info.second.count() <= 1)
+      toRemove.push_back(info.first);
+  }
+
+  for (auto& s : toRemove) {
+    _activeParams.erase(s);
+  }
+}
+
+Eigen::VectorXf ModelInfo::contextToAxisVector(Context & c)
+{
+  Eigen::VectorXf v;
+  v.resize(count());
+
+  int i = 0;
+  for (auto& param : _activeParams) {
+    Layer& l = c[param.second._name];
+
+    if (param.second._type == AdjustmentType::OPACITY) {
+      v[i] = l.getOpacity();
+    }
+  }
+
+  return v;
 }
 
 Model::Model(Compositor* c) : _comp(c)
@@ -118,6 +149,8 @@ void Model::analyze(map<string, vector<Context>> examples) {
         }
       }
     }
+
+    _trainInfo[axis.first].cleanup();
   }
 }
 
@@ -132,31 +165,188 @@ Context Model::sample()
   mt19937 gen(rd());
 
   for (auto& axis : _trainInfo) {
-    for (auto& l : axis.second._activeParams) {
-      for (auto& p : l.second) {
-        string layer = p.second._name;
-        string param = p.second._param;
+    for (auto& p : axis.second._activeParams) {
+      string layer = p.second._name;
+      string param = p.second._param;
 
-        uniform_real_distribution<float> range(p.second._min, p.second._max);
-        float sample = range(gen);
+      uniform_real_distribution<float> range(p.second._min, p.second._max);
+      float sample = range(gen);
 
-        if (p.first == "opacity") {
-          ctx[layer].setOpacity(sample);
-        }
-        else {
-          ctx[layer].addAdjustment(p.second._type, param, sample);
-        }
-        // something something selective color :(
+      if (p.first == "opacity") {
+        ctx[layer].setOpacity(sample);
       }
+      else {
+        ctx[layer].addAdjustment(p.second._type, param, sample);
+      }
+      // something something selective color :(
     }
   }
 
   return ctx;
 }
 
+Context Model::nonParametricLocalSample(Context ctx0)
+{
+  // for now I'm basically assuming a single axis
+  for (auto& axis : _train) {
+    vector<Eigen::VectorXf> ctxVectors;
+    for (auto& c : axis.second) {
+      ctxVectors.push_back(_trainInfo[axis.first].contextToAxisVector(c));
+    }
+
+    Eigen::VectorXf x0 = _trainInfo[axis.first].contextToAxisVector(ctx0);
+
+    // need to sample using the log rules in appendix B for stability reasons (they claim)
+    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, 1);
+
+    // compute weights
+    vector<float> dists;
+    int maxIdx = -1;
+    float maxDist = -1e10;
+
+    for (int i = 0; i < ctxVectors.size(); i++) {
+      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, 1);
+      Eigen::MatrixXf sigmax = sigma0 + sigmai;
+      float dist = log(gaussianKernel(x0, ctxVectors[i], sigmax));
+
+      if (dist > maxDist) {
+        maxDist = dist;
+        maxIdx = i;
+      }
+    }
+
+    float Lm = log(dists[maxIdx]);
+    float denom = 0;
+    
+    for (int i = 0; i < ctxVectors.size(); i++) {
+      denom += exp(log(dists[i] - Lm));
+    }
+
+    // compute distribution probabilities
+
+    // sample from gaussian dist 
+  }
+}
+
 const map<string, ModelInfo>& Model::getModelInfo()
 {
   return _trainInfo;
+}
+
+float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai)
+{
+  int n = x.size();
+
+  float denom = pow((2 * M_PI), n / 2.0f) * sqrt(sigmai.norm());
+  return exp(-0.5 * (x - xi).transpose() * sigmai.inverse() * (x - xi)) / denom;
+}
+
+Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha)
+{
+  int n = x.size();
+  int N = pts.size();
+
+  Eigen::MatrixXf sigma;
+  sigma.resize(n, n);
+
+  // standard computation
+  float denom = 0;
+  vector<float> weights;
+  Eigen::MatrixXf sigmai = alpha * (x - knn(x, pts, n)).squaredNorm() * Eigen::MatrixXf::Identity(n, n);
+
+  for (int i = 0; i < pts.size(); i++) {
+    float w = gaussianKernel(x, pts[i], sigmai);
+    denom += w;
+    weights.push_back(w);
+  }
+
+  for (int t = 0; t < n; t++) {
+    for (int s = 0; s < n; s++) {
+      float sst = 0;
+      
+      for (int i = 0; i < N; i++) {
+        float wi = weights[i] / denom;
+        sst += wi * (pts[i](s) - x(s)) * (pts[i](t) - x(t));
+      }
+
+      sigma(s, t) = sst;
+    }
+  }
+
+  // bandwidth shrinkage
+  Eigen::MatrixXf targetMatrix;
+  targetMatrix.resizeLike(sigma);
+
+  for (int t = 0; t < n; t++) {
+    for (int s = 0; s < n; s++) {
+      if (s == t) {
+        targetMatrix(s, t) = sigma(s, s);
+      }
+      else {
+        targetMatrix(s, t) = 0;
+      }
+    }
+  }
+
+  // lambda compute
+  float lnum = 0;
+  float ldenom = 0;
+
+  for (int t = 0; t < n; t++) {
+    for (int s = 0; s < n; s++) {
+      if (t != s) {
+        float wstSum = sigma(s, t);
+        float wAvg = denom / N;
+
+        float term1 = 0;
+        float term2 = 0;
+        float term3 = 0;
+
+        // ugh nested loops for this computation
+        for (int i = 0; i < N; i++) {
+          float wist = (pts[i](s) - x(s)) * (pts[i](t) - x(t));
+          float wi = weights[i] / denom;
+
+          term1 += pow(wi * wist - wAvg * wstSum, 2);
+          term2 += (wi - wAvg) * (wi * wist - wAvg * wstSum);
+          term3 += pow(wi - wAvg, 2);
+        }
+
+        float varst = (N / (N - 1.0f)) * (term1 - 2 * wstSum * term2 + pow(wstSum, 2) * term3);
+
+        lnum += varst;
+        ldenom += pow(sigma(s, t), 2);
+      }
+    }
+  }
+
+  float lambda = clamp(lnum / ldenom, 0.0f, 1.0f);
+
+  // sigma adjustment
+  return lambda * targetMatrix + (1 - lambda) * sigma;
+}
+
+Eigen::VectorXf Model::knn(Eigen::VectorXf & x, vector<Eigen::VectorXf>& pts, int k)
+{
+  // returns the k-th nearest neighbor. If k > N, returns the last element in the points
+  multimap<float, int> sorted;
+
+  for (int i = 0; i < pts.size(); i++) {
+    float dist = (x - pts[i]).norm();
+    sorted.insert(std::pair<float, int>(dist, i));
+  }
+
+  // iterate
+  int closest = -1;
+  for (auto& x : sorted) {
+    k--;
+    closest = x.second;
+
+    if (k <= 0)
+      break;
+  }
+
+  return pts[closest];
 }
 
 }

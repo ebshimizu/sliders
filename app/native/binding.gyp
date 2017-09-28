@@ -31,6 +31,8 @@
 				"src/Histogram.h",
 				"src/Model.h",
 				"src/Model.cpp",
+				"src/third_party/libsvm/svm.h",
+				"src/third_party/libsvm/svm.cpp",
 				"../../expression_tree/expressionContext.h",
 				"../../expression_tree/expressionStep.h"
 			],

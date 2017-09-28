@@ -3387,15 +3387,15 @@ function updateLayerControls() {
       }
       else if (type === 6) {
         // color balance
-        updateSliderControl(layerName, "shadow R", "Color Balance", adj.shadowR);
-        updateSliderControl(layerName, "shadow G", "Color Balance", adj.shadowG);
-        updateSliderControl(layerName, "shadow B", "Color Balance", adj.shadowB);
-        updateSliderControl(layerName, "mid R", "Color Balance", adj.midR);
-        updateSliderControl(layerName, "mid G", "Color Balance", adj.midG);
-        updateSliderControl(layerName, "mid B", "Color Balance", adj.midB);
-        updateSliderControl(layerName, "highlight R", "Color Balance", adj.highR);
-        updateSliderControl(layerName, "highlight G", "Color Balance", adj.highG);
-        updateSliderControl(layerName, "highlight B", "Color Balance", adj.highB);
+        updateSliderControl(layerName, "shadow R", "Color Balance", adj.shadowR * 2 - 1);
+        updateSliderControl(layerName, "shadow G", "Color Balance", adj.shadowG * 2 - 1);
+        updateSliderControl(layerName, "shadow B", "Color Balance", adj.shadowB * 2 - 1);
+        updateSliderControl(layerName, "mid R", "Color Balance", adj.midR * 2 - 1);
+        updateSliderControl(layerName, "mid G", "Color Balance", adj.midG * 2 - 1);
+        updateSliderControl(layerName, "mid B", "Color Balance", adj.midB * 2 - 1);
+        updateSliderControl(layerName, "highlight R", "Color Balance", adj.highR * 2 - 1);
+        updateSliderControl(layerName, "highlight G", "Color Balance", adj.highG * 2 - 1);
+        updateSliderControl(layerName, "highlight B", "Color Balance", adj.highB * 2 - 1);
       }
       else if (type === 7) {
         // photo filter
@@ -4530,5 +4530,51 @@ function runPCA() {
 function mapMouseMove(event) {
   if (dr) {
     dr.mouseMove(event);
+  }
+}
+
+// temporary stuff (at least that's the intent)
+var tempModel;
+var modelSamples = [];
+
+// only run this on watercolor (this is why it's supposed to be temp)
+function createModel() {
+  tempModel = new comp.Model(c);
+  tempModel.analyze({
+    "watercolor_test": [
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_base.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis1.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis2.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis3.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis4.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis5.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis6.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis7.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis8.dark"
+    ]
+  });
+}
+
+function report() {
+  fs.writeFileSync("./report.json", JSON.stringify(tempModel.report(), null, 2));
+}
+
+function sample() {
+  var s = tempModel.sample();
+  processNewSample(c.renderContext(s), s, {}, true);
+}
+
+function sampleN(n) {
+  modelSamples = [];
+
+  for (var i = 0; i < n; i++) {
+    modelSamples.push(tempModel.sample());
+  }
+
+  for (var i = 0; i < n; i++) {
+    let idx = i;
+    c.asyncRenderContext(modelSamples[i], settings.sampleRenderSize, function (err, img) {
+      processNewSample(img, modelSamples[idx], {}, true);
+    });
   }
 }

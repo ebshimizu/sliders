@@ -46,8 +46,8 @@ public:
   ~Model();
 
   // runs an analysis and stores data about how to sample the space
-  void analyze(map<string, vector<string>> examples, string base);
-  void analyze(map<string, vector<Context>> examples, Context base);
+  void analyze(map<string, vector<string>> examples);
+  void analyze(map<string, vector<Context>> examples);
 
   // sampling function to get things out of the model
   Context sample();
@@ -58,7 +58,8 @@ private:
   // parent composition
   Compositor* _comp;
 
-  map<string, Context> _train;
+  // training set contexts
+  map<string, vector<Context>> _train;
 
   // general info about the input data
   map<string, ModelInfo> _trainInfo;

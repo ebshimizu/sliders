@@ -2486,8 +2486,8 @@ void ModelWrapper::analyze(const Nan::FunctionCallbackInfo<v8::Value>& info)
   ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
   nullcheck(m->_model, "model.analyze");
 
-  if (!info.Length() == 2 || !info[0]->IsObject() || !info[1]->IsString()) {
-    Nan::ThrowError("analyze(object, string) argument error");
+  if (!info.Length() == 1 || !info[0]->IsObject()) {
+    Nan::ThrowError("analyze(object) argument error");
   }
   else {
     // object expected format: { axisName : [array of filenames] }
@@ -2512,10 +2512,7 @@ void ModelWrapper::analyze(const Nan::FunctionCallbackInfo<v8::Value>& info)
       analysisData[axis] = files;
     }
 
-    v8::String::Utf8Value val1(info[1]->ToString());
-    string base(*val1);
-
-    m->_model->analyze(analysisData, base);
+    m->_model->analyze(analysisData);
   }
 }
 

@@ -11,13 +11,24 @@ LayerParamInfo::LayerParamInfo(AdjustmentType t, string name, string param) :
 
 void LayerParamInfo::addSample(double val)
 {
-  _vals.push_back(val);
+  // check for duplicates
+  bool accept = true;
+  for (auto& v : _vals) {
+    if (v == val) {
+      accept = false;
+      break;
+    }
+  }
 
-  if (val < _min)
-    _min = val;
+  if (accept) {
+    _vals.push_back(val);
 
-  if (val > _max)
-    _max = val;
+    if (val < _min)
+      _min = val;
+
+    if (val > _max)
+      _max = val;
+  }
 }
 
 int LayerParamInfo::count()
@@ -55,7 +66,7 @@ Model::~Model()
 {
 }
 
-void Model::analyze(map<string, vector<string>> examples, string base)
+void Model::analyze(map<string, vector<string>> examples)
 {
   // first step is to load the specified files and then throw it to the other
   // analysis function
@@ -67,25 +78,23 @@ void Model::analyze(map<string, vector<string>> examples, string base)
     }
   }
 
-  Context baseCtx = _comp->contextFromDarkroom(base);
-
-  analyze(loadedExamples, baseCtx);
+  analyze(loadedExamples);
 }
 
-void Model::analyze(map<string, vector<Context>> examples, Context base) {
+void Model::analyze(map<string, vector<Context>> examples) {
+  _train = examples;
+
   // right now I'm just collecting diagnostics data about the set
   for (auto& axis : examples) {
     // create info struct
     _trainInfo[axis.first] = ModelInfo(axis.first);
 
     for (auto& ctx : axis.second) {
-      // detect changes compard to the base config
-      // for each layer
+      // record unique values for each axis
       for (auto& l : ctx) {
+
         // check opacity
-        if (l.second.getOpacity() != base[l.first].getOpacity()) {
-          _trainInfo[axis.first].addVal(AdjustmentType::OPACITY, l.first, "opacity", l.second.getOpacity());
-        }
+        _trainInfo[axis.first].addVal(AdjustmentType::OPACITY, l.first, "opacity", l.second.getOpacity());
 
         // check all the other params
         for (auto& adj : l.second.getAdjustments()) {
@@ -94,21 +103,16 @@ void Model::analyze(map<string, vector<Context>> examples, Context base) {
           if (adj == AdjustmentType::SELECTIVE_COLOR) {
             // special case for selective color data
             auto scData = l.second.getSelectiveColor();
-            auto baseScData = base[l.first].getSelectiveColor();
 
             for (auto& scChannel : scData) {
               for (auto& scParam : scChannel.second) {
-                if (scParam.second != baseScData[scChannel.first][scParam.first]) {
-                  _trainInfo[axis.first].addVal(adj, l.first, "sc_" + scChannel.first + "_" + scParam.first, scParam.second);
-                }
+                _trainInfo[axis.first].addVal(adj, l.first, "sc_" + scChannel.first + "_" + scParam.first, scParam.second);
               }
             }
           }
           else {
             for (auto& param : data) {
-              if (param.second != base[l.first].getAdjustment(adj)[param.first]) {
-                _trainInfo[axis.first].addVal(adj, l.first, param.first, param.second);
-              }
+              _trainInfo[axis.first].addVal(adj, l.first, param.first, param.second);
             }
           }
         }

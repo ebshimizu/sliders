@@ -47,6 +47,72 @@ public:
   map<string, LayerParamInfo> _activeParams;
 };
 
+enum AxisEvalFuncType {
+  AVERAGE,
+  SINGLE_PARAM_MAX,
+  SINGLE_PARAM_MIN,
+  MEDIAN
+};
+
+enum AxisConstraintMode {
+  TARGET_RANGE,   // target axis should be in range
+  CONSTANT_VALUE  // a specific parameter should have a specific value
+};
+
+// depending on the mode, not all of these fields will be used
+struct AxisConstraint {
+  AxisConstraintMode _mode;
+  string _axis;
+  float _min;
+  float _max;
+
+  string _layer;
+  AdjustmentType _type;
+  string _param;
+  float _val;
+  float _tolerance;
+};
+
+class AxisDef {
+public:
+  AxisDef(string name, vector<LayerParamInfo> params, AxisEvalFuncType evalMode);
+  ~AxisDef();
+
+  float eval(Context& ctx);
+
+  // samples the axis into the given context
+  Context sample(Context ctx, const vector<AxisConstraint>& constraints);
+
+  string _name;
+
+private:
+  // takes the average of the parameters active in the axis
+  float evalAvg(Context& ctx);
+
+  vector<LayerParamInfo> _params;
+  AxisEvalFuncType _evalFuncMode;
+};
+
+// The schema is an explicit definition of the possible axes inherent in an action
+class Schema {
+public:
+  // creates an empty schema
+  Schema();
+
+  // loads a schema from file
+  Schema(string filename);
+
+  Context sample(const Context& in, vector<AxisConstraint>& constraints);
+
+private:
+  void loadFromJson(nlohmann::json data);
+
+  // returns true if all constraints are satisfied
+  bool verifyConstraints(Context& ctx, const vector<AxisConstraint>& constraints);
+
+  vector<AxisDef> _axes;
+};
+
 // the model class creates and samples from a model defined by a series of examples
 // what this means specifically is yet to be determined
 class Model {
@@ -61,9 +127,13 @@ public:
   void analyze(map<string, vector<string>> examples);
   void analyze(map<string, vector<Context>> examples);
 
+  // adds a schema to the model
+  void addSchema(string file);
+
   // sampling function to get things out of the model
   Context sample();
   Context nonParametricLocalSample(Context x0, float alpha = 1);
+  Context schemaSample(Context x0, vector<AxisConstraint>& constraints);
 
   const map<string, ModelInfo>& getModelInfo();
 
@@ -85,6 +155,9 @@ private:
 
   // non-parametric cache data
   map<string, vector<Eigen::VectorXf>> _axisVectorCache;
+
+  // schema for schema sampling
+  Schema _schema;
 };
 
 }

@@ -111,6 +111,161 @@ void ModelInfo::axisVectorToContext(Eigen::VectorXf & x, Context & c)
   }
 }
 
+AxisDef::AxisDef(string name, vector<LayerParamInfo> params, AxisEvalFuncType t) :
+  _name(name), _params(params), _evalFuncMode(t)
+{
+
+}
+
+AxisDef::~AxisDef()
+{
+}
+
+float AxisDef::eval(Context & ctx)
+{
+  switch (_evalFuncMode) {
+  case AVERAGE:
+    return evalAvg(ctx);
+  default:
+    return evalAvg(ctx);
+  }
+}
+
+Context AxisDef::sample(Context ctx, const vector<AxisConstraint>& constraints)
+{
+  // TODO: in the case of infeasible constraints, should have a termination condition
+
+  // rng
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<float> zeroOne(0, 1);
+
+  for (auto& p : _params) {
+    if (p._type == AdjustmentType::OPACITY) {
+      ctx[p._name].setOpacity(zeroOne(gen));
+    }
+    else {
+      ctx[p._name].getAdjustment(p._type)[p._param];
+    }
+  }
+
+  return ctx;
+}
+
+float AxisDef::evalAvg(Context & ctx)
+{
+  float sum = 0;
+  int count = 0;
+
+  for (const auto& p : _params) {
+    if (p._type == AdjustmentType::OPACITY) {
+      sum += ctx[p._name].getOpacity();
+    }
+    else {
+      sum += ctx[p._name].getAdjustment(p._type)[p._param];
+    }
+
+    count++;
+  }
+
+  return sum / count;
+}
+
+Schema::Schema()
+{
+}
+
+Schema::Schema(string filename)
+{
+  nlohmann::json data;
+  ifstream input(filename);
+
+  if (!input.is_open()) {
+    // failing to load will return an empty context
+    getLogger()->log("Failed to open file " + filename, LogLevel::ERR);
+    return;
+  }
+
+  input >> data;
+
+  loadFromJson(data);
+}
+
+Context Schema::sample(const Context & in, vector<AxisConstraint>& constraints)
+{
+  Context temp(in);
+  bool accept = false;
+
+  // TODO: needs escape condition when constraints are infeasible
+  while (!accept) {
+    for (auto& a : _axes) {
+      temp = a.sample(temp, constraints);
+    }
+
+    accept = verifyConstraints(temp, constraints);
+  }
+
+  return temp;
+}
+
+void Schema::loadFromJson(nlohmann::json data)
+{
+  _axes.clear();
+
+  for (nlohmann::json::iterator it = data.begin(); it != data.end(); ++it) {
+    string name = it.value()["axisName"].get<string>();
+    AxisEvalFuncType mode = (AxisEvalFuncType)it.value()["evalFunc"].get<int>();
+    vector<LayerParamInfo> params;
+
+    for (int i = 0; i < it.value()["params"].size(); i++) {
+      string name = it.value()["params"][i]["layerName"].get<string>();
+      AdjustmentType type = (AdjustmentType)it.value()["params"][i]["adjustmentType"].get<int>();
+      string param = it.value()["params"][i]["param"].get<string>();
+      
+      params.push_back(LayerParamInfo(type, name, param));
+    }
+  }
+}
+
+bool Schema::verifyConstraints(Context & ctx, const vector<AxisConstraint>& constraints)
+{
+  bool accept = true;
+
+  // eval each axis
+  map<string, float> axisVals;
+  for (int i = 0; i < _axes.size(); i++) {
+    axisVals[_axes[i]._name] = _axes[i].eval(ctx);
+  }
+
+  for (auto& c : constraints) {
+    if (c._type == AxisConstraintMode::TARGET_RANGE) {
+      float val = axisVals[c._axis];
+
+      if (val < c._min || val > c._max) {
+        accept = false;
+        break;
+      }
+    }
+    else if (c._type == AxisConstraintMode::CONSTANT_VALUE) {
+      float val;
+      if (c._type == AdjustmentType::OPACITY) {
+        val = ctx[c._layer].getOpacity();
+      }
+      else {
+        val = ctx[c._layer].getAdjustment(c._type)[c._param];
+      }
+
+      if (abs(val - c._val) > c._tolerance) {
+        accept = false;
+        break;
+      }
+    }
+  }
+
+  return accept;
+}
+
+
 Model::Model(Compositor* c) : _comp(c)
 {
 }
@@ -174,6 +329,11 @@ void Model::analyze(map<string, vector<Context>> examples) {
 
     _trainInfo[axis.first].cleanup();
   }
+}
+
+void Model::addSchema(string file)
+{
+  _schema = Schema(file);
 }
 
 Context Model::sample()
@@ -290,6 +450,11 @@ Context Model::nonParametricLocalSample(Context ctx0, float alpha)
   }
 
   return ret;
+}
+
+Context Model::schemaSample(Context x0, vector<AxisConstraint>& constraints)
+{
+  return _schema.sample(x0, constraints);
 }
 
 const map<string, ModelInfo>& Model::getModelInfo()

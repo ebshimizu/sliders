@@ -2452,6 +2452,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "analyze", analyze);
   Nan::SetPrototypeMethod(tpl, "report", report);
   Nan::SetPrototypeMethod(tpl, "sample", sample);
+  Nan::SetPrototypeMethod(tpl, "nonParametricLocalSample", nonParametricSample);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2567,6 +2568,32 @@ void ModelWrapper::sample(const Nan::FunctionCallbackInfo<v8::Value>& info)
   Comp::Context ctx = m->_model->sample();
 
   // context object
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+  v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  info.GetReturnValue().Set(ctxInst);
+}
+
+void ModelWrapper::nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.nonParametricSample");
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Internal Error: Compositor object found is empty!");
+  }
+  ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  float alpha = 1;
+  if (info[1]->IsNumber()) {
+    alpha = info[1]->NumberValue();
+  }
+
+  Comp::Context ctx = m->_model->nonParametricLocalSample(c->_context, alpha);
+
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
   v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);

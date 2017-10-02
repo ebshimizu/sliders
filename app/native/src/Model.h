@@ -40,6 +40,9 @@ public:
   // returns a vector of only the parameters involved in this axis
   Eigen::VectorXf contextToAxisVector(Context& c);
 
+  // fills in the parameters to the given context
+  void axisVectorToContext(Eigen::VectorXf& x, Context& c);
+
   string _name;
   map<string, LayerParamInfo> _activeParams;
 };
@@ -60,15 +63,13 @@ public:
 
   // sampling function to get things out of the model
   Context sample();
-  Context nonParametricLocalSample(Context x0);
+  Context nonParametricLocalSample(Context x0, float alpha = 1);
 
   const map<string, ModelInfo>& getModelInfo();
 
 private:
   // generates data structures for some non-parametric search methods
   // based off Exploratory Modeling with Collaborative Design Spaces (Talton et al.)
-  void nonParametricAnalysis();
-
   float gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai);
   Eigen::MatrixXf computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha = 1);
   Eigen::VectorXf knn(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, int k);

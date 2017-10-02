@@ -84,9 +84,31 @@ Eigen::VectorXf ModelInfo::contextToAxisVector(Context & c)
     if (param.second._type == AdjustmentType::OPACITY) {
       v[i] = l.getOpacity();
     }
+    else {
+      v[i] = l.getAdjustment(param.second._type)[param.second._param];
+    }
+
+    i++;
   }
 
   return v;
+}
+
+void ModelInfo::axisVectorToContext(Eigen::VectorXf & x, Context & c)
+{
+  int i = 0;
+  for (auto& param : _activeParams) {
+    Layer& l = c[param.second._name];
+
+    if (param.second._type == AdjustmentType::OPACITY) {
+      l.setOpacity(x(i));
+    }
+    else {
+      l.addAdjustment(param.second._type, param.second._param, x(i));
+    }
+
+    i++;
+  }
 }
 
 Model::Model(Compositor* c) : _comp(c)
@@ -185,8 +207,10 @@ Context Model::sample()
   return ctx;
 }
 
-Context Model::nonParametricLocalSample(Context ctx0)
+Context Model::nonParametricLocalSample(Context ctx0, float alpha)
 {
+  Context ret = _comp->getNewContext();
+
   // for now I'm basically assuming a single axis
   for (auto& axis : _train) {
     vector<Eigen::VectorXf> ctxVectors;
@@ -197,7 +221,11 @@ Context Model::nonParametricLocalSample(Context ctx0)
     Eigen::VectorXf x0 = _trainInfo[axis.first].contextToAxisVector(ctx0);
 
     // need to sample using the log rules in appendix B for stability reasons (they claim)
-    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, 1);
+    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, alpha);
+
+    stringstream ss;
+    ss << "sigma0: " << sigma0;
+    getLogger()->log(ss.str(), LogLevel::DBG);
 
     // compute weights
     vector<float> dists;
@@ -205,9 +233,10 @@ Context Model::nonParametricLocalSample(Context ctx0)
     float maxDist = -1e10;
 
     for (int i = 0; i < ctxVectors.size(); i++) {
-      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, 1);
+      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, alpha);
       Eigen::MatrixXf sigmax = sigma0 + sigmai;
       float dist = log(gaussianKernel(x0, ctxVectors[i], sigmax));
+      dists.push_back(dist);
 
       if (dist > maxDist) {
         maxDist = dist;
@@ -215,17 +244,52 @@ Context Model::nonParametricLocalSample(Context ctx0)
       }
     }
 
-    float Lm = log(dists[maxIdx]);
+    float Lm = dists[maxIdx];
     float denom = 0;
     
     for (int i = 0; i < ctxVectors.size(); i++) {
-      denom += exp(log(dists[i] - Lm));
+      denom += exp(dists[i] - Lm);
     }
 
     // compute distribution probabilities
+    map<float, int> probs;
+    float accum = 0;
+
+    for (int i = 0; i < ctxVectors.size(); i++) {
+      accum += exp(dists[i] - Lm) / denom;
+      probs[accum] = i;
+    }
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<float> zeroOne(0, 1);
+
+    int dist = probs.upper_bound(zeroOne(gen))->second;
 
     // sample from gaussian dist 
+    Eigen::MatrixXf si = computeBandwidthMatrix(ctxVectors[dist], ctxVectors, alpha);
+    Eigen::MatrixXf coVar = (sigma0.inverse() + si.inverse()).inverse();
+    Eigen::VectorXf mean = coVar *  (sigma0.inverse() * x0 + si.inverse() * ctxVectors[dist]);
+
+    // sampling as recommended in wikipedia
+    Eigen::VectorXf z;
+    z.resizeLike(mean);
+    normal_distribution<float> stdNorm;
+
+    for (int i = 0; i < mean.size(); i++) {
+      z(i) = stdNorm(gen);
+    }
+
+    Eigen::VectorXf result = mean + coVar.llt().matrixL() * z;
+
+    ss = stringstream();
+    ss << "result vector: \n" << result;
+    getLogger()->log(ss.str(), LogLevel::DBG);
+
+    _trainInfo[axis.first].axisVectorToContext(result, ret);
   }
+
+  return ret;
 }
 
 const map<string, ModelInfo>& Model::getModelInfo()
@@ -273,6 +337,10 @@ Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::
     }
   }
 
+  stringstream ss;
+  ss << "Sigma: \n" << sigma;
+  getLogger()->log(ss.str(), LogLevel::DBG);
+
   // bandwidth shrinkage
   Eigen::MatrixXf targetMatrix;
   targetMatrix.resizeLike(sigma);
@@ -287,6 +355,10 @@ Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::
       }
     }
   }
+
+  ss = stringstream();
+  ss << "Target Matrix: \n" << targetMatrix;
+  getLogger()->log(ss.str(), LogLevel::DBG);
 
   // lambda compute
   float lnum = 0;

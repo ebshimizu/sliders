@@ -4578,3 +4578,12 @@ function sampleN(n) {
     });
   }
 }
+
+function nonParametricLocalSample(ctx, n, alpha) {
+  for (var i = 0; i < n; i++) {
+    let sample = tempModel.nonParametricLocalSample(ctx, alpha);
+    c.asyncRenderContext(sample, settings.sampleRenderSize, function (err, img) {
+      processNewSample(img, sample, {}, true);
+    });
+  }
+}

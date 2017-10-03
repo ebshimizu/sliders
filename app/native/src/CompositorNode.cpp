@@ -2453,6 +2453,8 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "report", report);
   Nan::SetPrototypeMethod(tpl, "sample", sample);
   Nan::SetPrototypeMethod(tpl, "nonParametricLocalSample", nonParametricSample);
+  Nan::SetPrototypeMethod(tpl, "addSchema", addSchema);
+  Nan::SetPrototypeMethod(tpl, "schemaSample", schemaSample);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2600,4 +2602,100 @@ void ModelWrapper::nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value
   v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
 
   info.GetReturnValue().Set(ctxInst);
+}
+
+void ModelWrapper::addSchema(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.addSchema");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value val0(info[0]->ToString());
+    string file(*val0);
+
+    m->_model->addSchema(file);
+  }
+  else {
+    Nan::ThrowError("addSchema(string) argument error");
+  }
+}
+
+void ModelWrapper::schemaSample(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // second parameter is a vector of objects that need to be converted to internal rep
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.schemaSample");
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Internal Error: Compositor object found is empty!");
+  }
+  ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  // convert vector to c++ vector
+  v8::Local<v8::Array> i1 = info[1].As<v8::Array>();
+  vector<Comp::AxisConstraint> ac;
+  for (int i = 0; i < i1->Length(); i++) {
+    v8::Local<v8::Object> co = i1->Get(i).As<v8::Object>();
+    
+    Comp::AxisConstraint constraint;
+    v8::Local<v8::Array> keys = co->GetOwnPropertyNames();
+    for (int j = 0; j < keys->Length(); j++) {
+      v8::String::Utf8Value prop(keys->Get(j)->ToString());
+      string propName(*prop);
+
+      if (propName == "mode") {
+        constraint._mode = (Comp::AxisConstraintMode)co->Get(keys->Get(j))->Int32Value();
+      }
+      else if (propName == "axis") {
+        v8::String::Utf8Value val(co->Get(keys->Get(j))->ToString());
+        constraint._axis = string(*val);
+      }
+      else if (propName == "min") {
+        constraint._min = (float)co->Get(keys->Get(j))->NumberValue();
+      }
+      else if (propName == "max") {
+        constraint._max = (float)co->Get(keys->Get(j))->NumberValue();
+      }
+      else if (propName == "layer") {
+        v8::String::Utf8Value val(co->Get(keys->Get(j))->ToString());
+        constraint._layer = string(*val);
+      }
+      else if (propName == "type") {
+        constraint._type = (Comp::AdjustmentType)co->Get(keys->Get(j))->Int32Value();
+      }
+      else if (propName == "param") {
+        v8::String::Utf8Value val(co->Get(keys->Get(j))->ToString());
+        constraint._param = string(*val);
+      }
+      else if (propName == "val") {
+        constraint._val = (float)co->Get(keys->Get(j))->NumberValue();
+      }
+      else if (propName == "tolerance") {
+        constraint._tolerance = (float)co->Get(keys->Get(j))->NumberValue();
+      }
+    }
+
+    ac.push_back(constraint);
+  }
+
+  Comp::Context ctx = m->_model->schemaSample(c->_context, ac);
+
+  map<string, float> axisVals = m->_model->schemaEval(ctx);
+
+  v8::Local<v8::Object> meta = Nan::New<v8::Object>();
+  for (auto& axis : axisVals) {
+    meta->Set(Nan::New(axis.first).ToLocalChecked(), Nan::New(axis.second));
+  }
+
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+  v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+  ret->Set(Nan::New("context").ToLocalChecked(), ctxInst);
+  ret->Set(Nan::New("metadata").ToLocalChecked(), meta);
+
+  info.GetReturnValue().Set(ret);
 }

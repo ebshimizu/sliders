@@ -433,6 +433,23 @@ function initUI() {
     action: 'activate',
     onChange: function (value, text) {
       settings.sampleSortMode = value;
+
+      var sortData = {
+        id: '[sampleId] parseInt',
+        filename: '.label[metadata-key="filename"]'
+      };
+
+      if (value !== 'id' && value !== 'filename') {
+        sortData[value] = function (itemElem) {
+          var val = $(itemElem).find('.label[metadata-key="' + value + '"]').attr('metadata-value');
+          return parseFloat(val);
+        };
+      }
+
+      $('#sampleWrapper').isotope({
+        getSortData: sortData
+      });
+      $('#sampleWrapper').isotope('updateSortData');      
       $('#sampleWrapper').isotope({ sortBy: value });
     }
   });
@@ -441,10 +458,9 @@ function initUI() {
     action: 'activate',
     onChange: function (value, text) {
       settings.metadataDisplay = value;
-      $('#sampleWrapper').removeClass("score filename");
-      $('#sampleWrapper').addClass(value);
-      $('#sideboardWrapper').removeClass("score filename");
-      $('#sideboardWrapper').addClass(value);
+
+      $('#sampleWrapper .ribbon.label').removeClass('visible');
+      $('#sampleWrapper .ribbon.label[metadata-key="' + value + '"]').addClass('visible');
     }
   });
 
@@ -3453,6 +3469,7 @@ function initSearch() {
   sampleId = 0;
   $('#sampleWrapper').empty();
   //$('#sideboardWrapper').empty();
+  resetMetadataFilters();
 }
 
 function runSearch(elem) {
@@ -3559,12 +3576,40 @@ function processNewSample(img, ctx, meta, force) {
     action: 'hide'
   });
 
+  // update the metadata menu
+  updateMetadataFilters(meta);
+
   sampleId += 1;
 
   // if we have too many samples we should stop
   if (force !== true && sampleId > settings.maxResults) {
     stopSearch();
   }
+}
+
+// updates the metadata display menu and sort options
+function updateMetadataFilters(meta) {
+  // additive only. don't want to remove options while search is happening
+  for (var key in meta) {
+    if (!($('#metadataDisplay .item[data-value="' + key + '"]').length)) {
+      $('#metadataDisplay .menu').append('<div class="item" data-value="' + key + '">' + key + '</div>');
+      $('#sortMode .menu').append('<div class="item" data-value="' + key + '">' + key + '</div>');
+
+      $('#metadataDisplay').dropdown('refresh');
+      $('#sortMode').dropdown('refresh');
+    }
+  }
+}
+
+function resetMetadataFilters() {
+  $('#metadataDisplay .menu').html('<div class="item" data-value="none">None</div>');
+  $('#sortMode .menu').html('<div class="item" data-value="id">ID</div>');
+
+  $('#metadataDisplay').dropdown('refresh');
+  $('#metadataDisplay').dropdown('set selected', 'none');
+
+  $('#sortMode').dropdown('refresh');
+  $('#sortMode').dropdown('set selected', 'id');
 }
 
 function createSampleContainer(img, id, meta) {
@@ -4553,6 +4598,7 @@ function createModel() {
       "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis8.dark"
     ]
   });
+  tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
 }
 
 function report() {
@@ -4584,6 +4630,15 @@ function nonParametricLocalSample(ctx, n, alpha) {
     let sample = tempModel.nonParametricLocalSample(ctx, alpha);
     c.asyncRenderContext(sample, settings.sampleRenderSize, function (err, img) {
       processNewSample(img, sample, {}, true);
+    });
+  }
+}
+
+function schemaSample(ctx, n, constraints) {
+  for (var i = 0; i < n; i++) {
+    let sample = tempModel.schemaSample(ctx, constraints);
+    c.asyncRenderContext(sample.context, settings.sampleRenderSize, function (err, img) {
+      processNewSample(img, sample.context, sample.metadata, true);
     });
   }
 }

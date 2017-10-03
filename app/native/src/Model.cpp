@@ -7,6 +7,7 @@ LayerParamInfo::LayerParamInfo(AdjustmentType t, string name, string param) :
 {
   _min = DBL_MAX;
   _max = DBL_MIN;
+  _inverted = false;
 }
 
 void LayerParamInfo::addSample(double val)
@@ -158,11 +159,20 @@ float AxisDef::evalAvg(Context & ctx)
   int count = 0;
 
   for (const auto& p : _params) {
+    float val;
+
     if (p._type == AdjustmentType::OPACITY) {
-      sum += ctx[p._name].getOpacity();
+      val = ctx[p._name].getOpacity();
     }
     else {
-      sum += ctx[p._name].getAdjustment(p._type)[p._param];
+      val = ctx[p._name].getAdjustment(p._type)[p._param];
+    }
+
+    if (p._inverted) {
+      sum += 1 - val;
+    }
+    else {
+      sum += val;
     }
 
     count++;
@@ -208,6 +218,17 @@ Context Schema::sample(const Context & in, vector<AxisConstraint>& constraints)
   return temp;
 }
 
+map<string, float> Schema::axisEval(Context& in)
+{
+  map<string, float> vals;
+
+  for (auto& a : _axes) {
+    vals[a._name] = a.eval(in);
+  }
+
+  return vals;
+}
+
 void Schema::loadFromJson(nlohmann::json data)
 {
   _axes.clear();
@@ -221,9 +242,16 @@ void Schema::loadFromJson(nlohmann::json data)
       string name = it.value()["params"][i]["layerName"].get<string>();
       AdjustmentType type = (AdjustmentType)it.value()["params"][i]["adjustmentType"].get<int>();
       string param = it.value()["params"][i]["param"].get<string>();
+      LayerParamInfo info(type, name, param);
+
+      if (it.value()["params"][i].count("inverted") > 0) {
+        info._inverted = it.value()["params"][i]["inverted"].get<bool>();
+      }
       
-      params.push_back(LayerParamInfo(type, name, param));
+      params.push_back(info);
     }
+
+    _axes.push_back(AxisDef(name, params, mode));
   }
 }
 
@@ -238,7 +266,7 @@ bool Schema::verifyConstraints(Context & ctx, const vector<AxisConstraint>& cons
   }
 
   for (auto& c : constraints) {
-    if (c._type == AxisConstraintMode::TARGET_RANGE) {
+    if (c._mode == AxisConstraintMode::TARGET_RANGE) {
       float val = axisVals[c._axis];
 
       if (val < c._min || val > c._max) {
@@ -246,7 +274,7 @@ bool Schema::verifyConstraints(Context & ctx, const vector<AxisConstraint>& cons
         break;
       }
     }
-    else if (c._type == AxisConstraintMode::CONSTANT_VALUE) {
+    else if (c._mode == AxisConstraintMode::CONSTANT_VALUE) {
       float val;
       if (c._type == AdjustmentType::OPACITY) {
         val = ctx[c._layer].getOpacity();
@@ -334,6 +362,11 @@ void Model::analyze(map<string, vector<Context>> examples) {
 void Model::addSchema(string file)
 {
   _schema = Schema(file);
+}
+
+map<string, float> Model::schemaEval(Context & c)
+{
+  return _schema.axisEval(c);
 }
 
 Context Model::sample()

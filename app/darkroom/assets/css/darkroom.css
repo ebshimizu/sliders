@@ -539,6 +539,10 @@ div#sampleWrapper .ribbon.label {
     display: none;
 }
 
+div#sampleWrapper .ribbon.label.visible {
+    display: block;
+}
+
 div#sampleWrapper.score .ribbon.label[metadata-key="score"] {
     display: block;
 }

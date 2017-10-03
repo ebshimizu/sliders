@@ -22,6 +22,7 @@ public:
   vector<double> _vals;
   double _min;
   double _max;
+  bool _inverted;
 };
 
 // structure for containing info about things in the model
@@ -103,6 +104,9 @@ public:
   Schema(string filename);
 
   Context sample(const Context& in, vector<AxisConstraint>& constraints);
+  
+  // evaluates the current context along each axis
+  map<string, float> axisEval(Context& in);
 
 private:
   void loadFromJson(nlohmann::json data);
@@ -129,6 +133,7 @@ public:
 
   // adds a schema to the model
   void addSchema(string file);
+  map<string, float> schemaEval(Context& c);
 
   // sampling function to get things out of the model
   Context sample();

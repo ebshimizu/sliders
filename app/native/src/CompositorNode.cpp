@@ -1417,6 +1417,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
 
   Nan::SetPrototypeMethod(tpl, "getLayer", getLayer);
   Nan::SetPrototypeMethod(tpl, "addLayer", addLayer);
+  Nan::SetPrototypeMethod(tpl, "addBase64Layer", addLayer);
   Nan::SetPrototypeMethod(tpl, "copyLayer", copyLayer);
   Nan::SetPrototypeMethod(tpl, "deleteLayer", deleteLayer);
   Nan::SetPrototypeMethod(tpl, "getAllLayers", getAllLayers);
@@ -1529,6 +1530,29 @@ void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
     // adjustment layer
     result = c->_compositor->addAdjustmentLayer(name);
   }
+
+  info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::addBase64Layer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (info.Length() != 4 || !info[0]->IsString() || !info[1]->IsString()) {
+    Nan::ThrowError("addBase64Layer expects (string, string)");
+  }
+
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addBase64Layer");
+
+  bool result;
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name(*val0);
+
+  v8::String::Utf8Value val1(info[1]->ToString());
+  string base64(*val1);
+
+  Comp::Image img(info[2]->Int32Value(), info[3]->Int32Value(), base64);
+
+  result = c->_compositor->addLayer(name, img);
 
   info.GetReturnValue().Set(Nan::New(result));
 }

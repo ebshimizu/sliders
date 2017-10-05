@@ -1,4 +1,5 @@
 #include "Model.h"
+#include "gibbs_with_gaussian_mixture.h"
 
 namespace Comp {
 
@@ -141,12 +142,52 @@ Context AxisDef::sample(Context ctx, const vector<AxisConstraint>& constraints)
   mt19937 gen(rd());
   uniform_real_distribution<float> zeroOne(0, 1);
 
+  vector<float> results;
+  vector<int> c;
+  vector<float> s;    // unused currently
+
+  float min = 0;
+  float max = 1;
+
+  // look at the constraints and if there's a range constraint, pick a target mean in there
+  for (auto& c : constraints) {
+    if (c._mode == AxisConstraintMode::TARGET_RANGE && c._axis == _name) {
+      min = c._min;
+      max = c._max;
+    }
+  }
+
+  uniform_real_distribution<float> targetAvg(min, max);
+  float target = targetAvg(gen);
+
   for (auto& p : _params) {
     if (p._type == AdjustmentType::OPACITY) {
-      ctx[p._name].setOpacity(zeroOne(gen));
+      results.push_back(ctx[p._name].getOpacity());
     }
     else {
-      ctx[p._name].getAdjustment(p._type)[p._param];
+      results.push_back(ctx[p._name].getAdjustment(p._type)[p._param]);
+    }
+
+    c.push_back(0);
+    s.push_back(1);
+  }
+
+  // hey look it's the lighting code
+  GibbsSamplingGaussianMixturePrior(results, c, s, results.size(), 0, target, target, false);
+
+  for (int i = 0; i < results.size(); i++) {
+    auto p = _params[i];
+    float val = results[i];
+
+    if (p._inverted) {
+      val = 1 - val;
+    }
+
+    if (p._type == AdjustmentType::OPACITY) {
+      ctx[p._name].setOpacity(val);
+    }
+    else {
+      ctx[p._name].getAdjustment(p._type)[p._param] = val;
     }
   }
 

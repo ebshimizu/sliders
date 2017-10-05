@@ -158,6 +158,7 @@ private:
   static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addBase64Layer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void copyLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>& info);

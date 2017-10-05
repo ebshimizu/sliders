@@ -441,7 +441,7 @@ Context Model::sample()
   return ctx;
 }
 
-Context Model::nonParametricLocalSample(Context ctx0, float alpha)
+Context Model::nonParametricLocalSample(Context ctx0, float alpha, int k)
 {
   Context ret = _comp->getNewContext();
 
@@ -455,7 +455,7 @@ Context Model::nonParametricLocalSample(Context ctx0, float alpha)
     Eigen::VectorXf x0 = _trainInfo[axis.first].contextToAxisVector(ctx0);
 
     // need to sample using the log rules in appendix B for stability reasons (they claim)
-    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, alpha);
+    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, alpha, k);
 
     stringstream ss;
     ss << "sigma0: " << sigma0;
@@ -467,7 +467,7 @@ Context Model::nonParametricLocalSample(Context ctx0, float alpha)
     float maxDist = -1e10;
 
     for (int i = 0; i < ctxVectors.size(); i++) {
-      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, alpha);
+      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, alpha, k);
       Eigen::MatrixXf sigmax = sigma0 + sigmai;
       float dist = log(gaussianKernel(x0, ctxVectors[i], sigmax));
       dists.push_back(dist);
@@ -501,7 +501,7 @@ Context Model::nonParametricLocalSample(Context ctx0, float alpha)
     int dist = probs.upper_bound(zeroOne(gen))->second;
 
     // sample from gaussian dist 
-    Eigen::MatrixXf si = computeBandwidthMatrix(ctxVectors[dist], ctxVectors, alpha);
+    Eigen::MatrixXf si = computeBandwidthMatrix(ctxVectors[dist], ctxVectors, alpha, k);
     Eigen::MatrixXf coVar = (sigma0.inverse() + si.inverse()).inverse();
     Eigen::VectorXf mean = coVar *  (sigma0.inverse() * x0 + si.inverse() * ctxVectors[dist]);
 
@@ -536,6 +536,11 @@ const map<string, ModelInfo>& Model::getModelInfo()
   return _trainInfo;
 }
 
+map<string, vector<Context>> Model::getInputData()
+{
+  return _train;
+}
+
 float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai)
 {
   int n = x.size();
@@ -544,10 +549,14 @@ float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::Matr
   return exp(-0.5 * (x - xi).transpose() * sigmai.inverse() * (x - xi)) / denom;
 }
 
-Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha)
+Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha, int k)
 {
   int n = x.size();
   int N = pts.size();
+
+  if (k == -1) {
+    k = n;
+  }
 
   Eigen::MatrixXf sigma;
   sigma.resize(n, n);
@@ -555,7 +564,7 @@ Eigen::MatrixXf Model::computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::
   // standard computation
   float denom = 0;
   vector<float> weights;
-  Eigen::MatrixXf sigmai = alpha * (x - knn(x, pts, n)).squaredNorm() * Eigen::MatrixXf::Identity(n, n);
+  Eigen::MatrixXf sigmai = alpha * (x - knn(x, pts, k)).squaredNorm() * Eigen::MatrixXf::Identity(n, n);
 
   for (int i = 0; i < pts.size(); i++) {
     float w = gaussianKernel(x, pts[i], sigmai);

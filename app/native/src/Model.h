@@ -137,16 +137,17 @@ public:
 
   // sampling function to get things out of the model
   Context sample();
-  Context nonParametricLocalSample(Context x0, float alpha = 1);
+  Context nonParametricLocalSample(Context x0, float alpha = 1, int k = -1);
   Context schemaSample(Context x0, vector<AxisConstraint>& constraints);
 
   const map<string, ModelInfo>& getModelInfo();
+  map<string, vector<Context>> getInputData();
 
 private:
   // generates data structures for some non-parametric search methods
   // based off Exploratory Modeling with Collaborative Design Spaces (Talton et al.)
   float gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai);
-  Eigen::MatrixXf computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha = 1);
+  Eigen::MatrixXf computeBandwidthMatrix(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, float alpha = 1, int k = -1);
   Eigen::VectorXf knn(Eigen::VectorXf& x, vector<Eigen::VectorXf>& pts, int k);
 
   // parent composition

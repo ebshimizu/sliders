@@ -212,6 +212,7 @@ private:
   static void nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addSchema(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void schemaSample(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getInputData(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {

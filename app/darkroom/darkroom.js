@@ -4587,18 +4587,15 @@ function createModel() {
   tempModel = new comp.Model(c);
   tempModel.analyze({
     "watercolor_test": [
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_base.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis1.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis2.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis3.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis4.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis5.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis6.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis7.dark",
-      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_wc_axis8.dark"
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_weak_1.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_weak_2.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_moderate_1.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_moderate_2.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_strong_1.dark",
+      "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/watercolor/wc_strong_2.dark",
     ]
   });
-  tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
+  //tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
 }
 
 function report() {
@@ -4625,9 +4622,9 @@ function sampleN(n) {
   }
 }
 
-function nonParametricLocalSample(ctx, n, alpha) {
+function nonParametricLocalSample(ctx, n, alpha, k) {
   for (var i = 0; i < n; i++) {
-    let sample = tempModel.nonParametricLocalSample(ctx, alpha);
+    let sample = tempModel.nonParametricLocalSample(ctx, alpha, k);
     c.asyncRenderContext(sample, settings.sampleRenderSize, function (err, img) {
       processNewSample(img, sample, {}, true);
     });

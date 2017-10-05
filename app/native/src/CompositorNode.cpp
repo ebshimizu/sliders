@@ -2479,6 +2479,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "nonParametricLocalSample", nonParametricSample);
   Nan::SetPrototypeMethod(tpl, "addSchema", addSchema);
   Nan::SetPrototypeMethod(tpl, "schemaSample", schemaSample);
+  Nan::SetPrototypeMethod(tpl, "getInputData", getInputData);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2618,7 +2619,12 @@ void ModelWrapper::nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value
     alpha = info[1]->NumberValue();
   }
 
-  Comp::Context ctx = m->_model->nonParametricLocalSample(c->_context, alpha);
+  int k = -1;
+  if (info[2]->IsNumber()) {
+    k = info[2]->Int32Value();
+  }
+
+  Comp::Context ctx = m->_model->nonParametricLocalSample(c->_context, alpha, k);
 
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
@@ -2720,6 +2726,34 @@ void ModelWrapper::schemaSample(const Nan::FunctionCallbackInfo<v8::Value>& info
   v8::Local<v8::Object> ret = Nan::New<v8::Object>();
   ret->Set(Nan::New("context").ToLocalChecked(), ctxInst);
   ret->Set(Nan::New("metadata").ToLocalChecked(), meta);
+
+  info.GetReturnValue().Set(ret);
+}
+
+void ModelWrapper::getInputData(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.getInputData");
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+  auto data = m->_model->getInputData();
+  const int argc = 1;
+
+  for (auto& d : data) {
+    v8::Local<v8::Array> contexts = Nan::New<v8::Array>();
+
+    for (int i = 0; i < d.second.size(); i++) {
+      Comp::Context c = d.second[i];
+
+      v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&c) };
+      v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+      v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+      contexts->Set(i, ctxInst);
+    }
+
+    ret->Set(Nan::New(d.first).ToLocalChecked(), contexts);
+  }
 
   info.GetReturnValue().Set(ret);
 }

@@ -84,7 +84,12 @@ Eigen::VectorXf ModelInfo::contextToAxisVector(Context & c)
     Layer& l = c[param.second._name];
 
     if (param.second._type == AdjustmentType::OPACITY) {
-      v[i] = l.getOpacity();
+      if (l._visible) {
+        v[i] = l.getOpacity();
+      }
+      else {
+        v[i] = 0;
+      }
     }
     else {
       v[i] = l.getAdjustment(param.second._type)[param.second._param];
@@ -369,9 +374,13 @@ void Model::analyze(map<string, vector<Context>> examples) {
     for (auto& ctx : axis.second) {
       // record unique values for each axis
       for (auto& l : ctx) {
-
         // check opacity
-        _trainInfo[axis.first].addVal(AdjustmentType::OPACITY, l.first, "opacity", l.second.getOpacity());
+        float opacity = l.second.getOpacity();
+        if (!l.second._visible) {
+          opacity = 0;
+        }
+
+        _trainInfo[axis.first].addVal(AdjustmentType::OPACITY, l.first, "opacity", opacity);
 
         // check all the other params
         for (auto& adj : l.second.getAdjustments()) {
@@ -441,89 +450,96 @@ Context Model::sample()
   return ctx;
 }
 
-Context Model::nonParametricLocalSample(Context ctx0, float alpha, int k)
+Context Model::nonParametricLocalSample(map<string, Context> axes, float alpha, int k)
 {
   Context ret = _comp->getNewContext();
 
-  // for now I'm basically assuming a single axis
-  for (auto& axis : _train) {
-    vector<Eigen::VectorXf> ctxVectors;
-    for (auto& c : axis.second) {
-      ctxVectors.push_back(_trainInfo[axis.first].contextToAxisVector(c));
-    }
-
-    Eigen::VectorXf x0 = _trainInfo[axis.first].contextToAxisVector(ctx0);
-
-    // need to sample using the log rules in appendix B for stability reasons (they claim)
-    Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, alpha, k);
-
-    stringstream ss;
-    ss << "sigma0: " << sigma0;
-    getLogger()->log(ss.str(), LogLevel::DBG);
-
-    // compute weights
-    vector<float> dists;
-    int maxIdx = -1;
-    float maxDist = -1e10;
-
-    for (int i = 0; i < ctxVectors.size(); i++) {
-      Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, alpha, k);
-      Eigen::MatrixXf sigmax = sigma0 + sigmai;
-      float dist = log(gaussianKernel(x0, ctxVectors[i], sigmax));
-      dists.push_back(dist);
-
-      if (dist > maxDist) {
-        maxDist = dist;
-        maxIdx = i;
-      }
-    }
-
-    float Lm = dists[maxIdx];
-    float denom = 0;
-    
-    for (int i = 0; i < ctxVectors.size(); i++) {
-      denom += exp(dists[i] - Lm);
-    }
-
-    // compute distribution probabilities
-    map<float, int> probs;
-    float accum = 0;
-
-    for (int i = 0; i < ctxVectors.size(); i++) {
-      accum += exp(dists[i] - Lm) / denom;
-      probs[accum] = i;
-    }
-
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_real_distribution<float> zeroOne(0, 1);
-
-    int dist = probs.upper_bound(zeroOne(gen))->second;
-
-    // sample from gaussian dist 
-    Eigen::MatrixXf si = computeBandwidthMatrix(ctxVectors[dist], ctxVectors, alpha, k);
-    Eigen::MatrixXf coVar = (sigma0.inverse() + si.inverse()).inverse();
-    Eigen::VectorXf mean = coVar *  (sigma0.inverse() * x0 + si.inverse() * ctxVectors[dist]);
-
-    // sampling as recommended in wikipedia
-    Eigen::VectorXf z;
-    z.resizeLike(mean);
-    normal_distribution<float> stdNorm;
-
-    for (int i = 0; i < mean.size(); i++) {
-      z(i) = stdNorm(gen);
-    }
-
-    Eigen::VectorXf result = mean + coVar.llt().matrixL() * z;
-
-    ss = stringstream();
-    ss << "result vector: \n" << result;
-    getLogger()->log(ss.str(), LogLevel::DBG);
-
-    _trainInfo[axis.first].axisVectorToContext(result, ret);
+  for (auto& axis : axes) {
+    ret = nonParametricLocalSample(ret, axis.second, axis.first, alpha, k);
   }
 
   return ret;
+}
+
+Context Model::nonParametricLocalSample(Context init, Context ctx0, string axis, float alpha, int k)
+{
+  // samples a single axis
+  vector<Eigen::VectorXf> ctxVectors;
+  for (auto& c : _train[axis]) {
+    ctxVectors.push_back(_trainInfo[axis].contextToAxisVector(c));
+  }
+
+  Eigen::VectorXf x0 = _trainInfo[axis].contextToAxisVector(ctx0);
+
+  // need to sample using the log rules in appendix B for stability reasons (they claim)
+  Eigen::MatrixXf sigma0 = computeBandwidthMatrix(x0, ctxVectors, alpha, k);
+
+  stringstream ss;
+  ss << "sigma0: " << sigma0;
+  getLogger()->log(ss.str(), LogLevel::DBG);
+
+  // compute weights
+  vector<float> dists;
+  int maxIdx = -1;
+  float maxDist = -1e10;
+
+  for (int i = 0; i < ctxVectors.size(); i++) {
+    Eigen::MatrixXf sigmai = computeBandwidthMatrix(ctxVectors[i], ctxVectors, alpha, k);
+    Eigen::MatrixXf sigmax = sigma0 + sigmai;
+    float dist = log(gaussianKernel(x0, ctxVectors[i], sigmax));
+    dists.push_back(dist);
+
+    if (dist > maxDist) {
+      maxDist = dist;
+      maxIdx = i;
+    }
+  }
+
+  float Lm = dists[maxIdx];
+  float denom = 0;
+  
+  for (int i = 0; i < ctxVectors.size(); i++) {
+    denom += exp(dists[i] - Lm);
+  }
+
+  // compute distribution probabilities
+  map<float, int> probs;
+  float accum = 0;
+
+  for (int i = 0; i < ctxVectors.size(); i++) {
+    accum += exp(dists[i] - Lm) / denom;
+    probs[accum] = i;
+  }
+
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<float> zeroOne(0, 1);
+
+  int dist = probs.upper_bound(zeroOne(gen))->second;
+
+  // sample from gaussian dist 
+  Eigen::MatrixXf si = computeBandwidthMatrix(ctxVectors[dist], ctxVectors, alpha, k);
+  Eigen::MatrixXf coVar = (sigma0.inverse() + si.inverse()).inverse();
+  Eigen::VectorXf mean = coVar *  (sigma0.inverse() * x0 + si.inverse() * ctxVectors[dist]);
+
+  // sampling as recommended in wikipedia
+  Eigen::VectorXf z;
+  z.resizeLike(mean);
+  normal_distribution<float> stdNorm;
+
+  for (int i = 0; i < mean.size(); i++) {
+    z(i) = stdNorm(gen);
+  }
+
+  Eigen::VectorXf result = mean + coVar.llt().matrixL() * z;
+
+  ss = stringstream();
+  ss << "result vector: \n" << result;
+  getLogger()->log(ss.str(), LogLevel::DBG);
+
+  _trainInfo[axis].axisVectorToContext(result, init);
+
+  return init;
 }
 
 Context Model::schemaSample(Context x0, vector<AxisConstraint>& constraints)

@@ -2608,11 +2608,21 @@ void ModelWrapper::nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value
   ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
   nullcheck(m->_model, "model.nonParametricSample");
 
-  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
-  if (maybe1.IsEmpty()) {
-    Nan::ThrowError("Internal Error: Compositor object found is empty!");
+  v8::Local<v8::Object> axisData = info[0].As<v8::Object>();
+  map<string, Comp::Context> axes;
+  v8::Local<v8::Array> props = axisData->GetOwnPropertyNames();
+  
+  for (int i = 0; i < props->Length(); i++) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(axisData->Get(props->Get(i)));
+    if (maybe1.IsEmpty()) {
+      continue;
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+    v8::String::Utf8Value prop(props->Get(i)->ToString());
+    string propName(*prop);
+
+    axes[propName] = c->_context;
   }
-  ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
 
   float alpha = 1;
   if (info[1]->IsNumber()) {
@@ -2624,7 +2634,7 @@ void ModelWrapper::nonParametricSample(const Nan::FunctionCallbackInfo<v8::Value
     k = info[2]->Int32Value();
   }
 
-  Comp::Context ctx = m->_model->nonParametricLocalSample(c->_context, alpha, k);
+  Comp::Context ctx = m->_model->nonParametricLocalSample(axes, alpha, k);
 
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };

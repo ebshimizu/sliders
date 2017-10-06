@@ -137,7 +137,8 @@ public:
 
   // sampling function to get things out of the model
   Context sample();
-  Context nonParametricLocalSample(Context x0, float alpha = 1, int k = -1);
+  Context nonParametricLocalSample(map<string, Context> axes, float alpha = 1, int k = -1);
+  Context nonParametricLocalSample(Context init, Context x0, string axis, float alpha = 1, int k = -1);
   Context schemaSample(Context x0, vector<AxisConstraint>& constraints);
 
   const map<string, ModelInfo>& getModelInfo();

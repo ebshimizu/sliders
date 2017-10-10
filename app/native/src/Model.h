@@ -117,6 +117,33 @@ private:
   vector<AxisDef> _axes;
 };
 
+class Slider {
+public:
+  Slider();
+  Slider(vector<LayerParamInfo> params);
+  Slider(vector<LayerParamInfo> params, vector<int> order);
+
+  Context sample(const Context& in, float val);
+
+  // adds a new parameter. By default this is placed at the end of the order
+  void addParameter(LayerParamInfo param);
+  void replaceParameters(vector<LayerParamInfo> params);
+
+  // re-orders the parameters
+  void setOrder(vector<int> order);
+
+  // deletes everything
+  void removeAllParameters();
+
+  string _name;
+
+private:
+  // in the slider class, the order vector determines how the layers
+  // are composited/adjusted in the slider (for now)
+  vector<LayerParamInfo> _params;
+  vector<int> _order;
+};
+
 // the model class creates and samples from a model defined by a series of examples
 // what this means specifically is yet to be determined
 class Model {
@@ -144,6 +171,9 @@ public:
   const map<string, ModelInfo>& getModelInfo();
   map<string, vector<Context>> getInputData();
 
+  // just defer all slider ops to the actual object for now
+  Slider& getSlider();
+
 private:
   // generates data structures for some non-parametric search methods
   // based off Exploratory Modeling with Collaborative Design Spaces (Talton et al.)
@@ -165,6 +195,9 @@ private:
 
   // schema for schema sampling
   Schema _schema;
+
+  // slider for slider things
+  Slider _slider;
 };
 
 }

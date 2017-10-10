@@ -339,6 +339,89 @@ bool Schema::verifyConstraints(Context & ctx, const vector<AxisConstraint>& cons
   return accept;
 }
 
+Slider::Slider() {
+  // empty constructor
+}
+
+Slider::Slider(vector<LayerParamInfo> params) : _params(params) {
+  for (int i = 0; i < params.size(); i++) {
+    _order.push_back(i);
+  }
+}
+
+Slider::Slider(vector<LayerParamInfo> params, vector<int> order) : _params(params), _order(order)
+{
+  // assert order length = param length, revert to default order if not true
+  if (_order.size() != _params.size()) {
+    getLogger()->log("Parameter count does not match order count. Reverting to default order...", LogLevel::WARN);
+    _order.clear();
+
+    for (int i = 0; i < params.size(); i++) {
+      _order.push_back(i);
+    }
+  }
+}
+
+Context Slider::sample(const Context & in, float val)
+{
+  // the sampling function for this works like this at the moment:
+  // - A numeric value from 0-1 is given as input
+  // - each parameter is sampled from min to max (which is usually 0-1) based on the order
+  //   order n's value is fmod(val * (n + 1), 1)
+  Context out(in);
+
+  for (int i = 0; i < _order.size(); i++) {
+    int active = _order[active];
+
+    float pval = fmod(val * (i + 1), 1);
+    LayerParamInfo param = _params[i];
+
+    if (param._inverted) {
+      pval = 1 - pval;
+    }
+
+    if (param._type == AdjustmentType::OPACITY) {
+      out[param._name].setOpacity(pval);
+    }
+    else {
+      out[param._name].getAdjustment(param._type)[param._param] = pval;
+    }
+  }
+
+  return out;
+}
+
+void Slider::addParameter(LayerParamInfo param)
+{
+  _params.push_back(param);
+  _order.push_back(_order.size());
+}
+
+void Slider::replaceParameters(vector<LayerParamInfo> params)
+{
+  removeAllParameters();
+
+  for (auto& p : params) {
+    addParameter(p);
+  }
+}
+
+void Slider::setOrder(vector<int> order)
+{
+  // assert order length is equal to param length, do nothing if false
+  if (order.size() != _params.size()) {
+    getLogger()->log("Parameter count does not match order count. Ignoring setOrder function...", LogLevel::WARN);
+    return;
+  }
+
+  _order = order;
+}
+
+void Slider::removeAllParameters()
+{
+  _params.clear();
+  _order.clear();
+}
 
 Model::Model(Compositor* c) : _comp(c)
 {
@@ -555,6 +638,11 @@ const map<string, ModelInfo>& Model::getModelInfo()
 map<string, vector<Context>> Model::getInputData()
 {
   return _train;
+}
+
+Slider & Model::getSlider()
+{
+  return _slider;
 }
 
 float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai)

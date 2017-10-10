@@ -2480,6 +2480,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addSchema", addSchema);
   Nan::SetPrototypeMethod(tpl, "schemaSample", schemaSample);
   Nan::SetPrototypeMethod(tpl, "getInputData", getInputData);
+  Nan::SetPrototypeMethod(tpl, "addSlider", addSlider);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2764,6 +2765,124 @@ void ModelWrapper::getInputData(const Nan::FunctionCallbackInfo<v8::Value>& info
 
     ret->Set(Nan::New(d.first).ToLocalChecked(), contexts);
   }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // input is a name, array of objects, and an optional ordering
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.addSlider");
+
+  string name;
+  vector<Comp::LayerParamInfo> params;
+
+  if (info[0]->IsString() && info[1]->IsArray()) {
+    v8::String::Utf8Value sliderName(info[0]->ToString());
+    name = string(*sliderName);
+
+    v8::Local<v8::Array> paramData = info[1].As<v8::Array>();
+    for (int i = 0; i < paramData->Length(); i++) {
+      v8::Local<v8::Object> objData = paramData->Get(i).As<v8::Object>();
+      Comp::LayerParamInfo param;
+
+      // looking for specific params
+      if (objData->HasOwnProperty(Nan::New("layerName").ToLocalChecked())) {
+        v8::String::Utf8Value str(objData->Get(Nan::New("layerName").ToLocalChecked())->ToString());
+        param._name = string(*str);
+      }
+      else {
+        Nan::ThrowError("Parameter objects must have a layerName field");
+      }
+
+      if (objData->HasOwnProperty(Nan::New("param").ToLocalChecked())) {
+        v8::String::Utf8Value str(objData->Get(Nan::New("param").ToLocalChecked())->ToString());
+        param._param = string(*str);
+      }
+      else {
+        Nan::ThrowError("Parameter objects must have a param field");
+      }
+
+      if (objData->HasOwnProperty(Nan::New("adjustmentType").ToLocalChecked())) {
+        param._type = (Comp::AdjustmentType)(objData->Get(Nan::New("adjustmentType").ToLocalChecked())->Int32Value());
+      }
+      else {
+        Nan::ThrowError("Parameter objects must have an adjustmentType field");
+      }
+
+      if (objData->HasOwnProperty(Nan::New("min").ToLocalChecked())) {
+        param._min = objData->Get(Nan::New("min").ToLocalChecked())->NumberValue();
+      }
+      else {
+        param._min = 0;
+      }
+
+      if (objData->HasOwnProperty(Nan::New("max").ToLocalChecked())) {
+        param._max = objData->Get(Nan::New("max").ToLocalChecked())->NumberValue();
+      }
+      else {
+        param._max = 1;
+      }
+
+      if (objData->HasOwnProperty(Nan::New("inverted").ToLocalChecked())) {
+        param._inverted = objData->Get(Nan::New("inverted").ToLocalChecked())->BooleanValue();
+      }
+      else {
+        param._inverted = false;
+      }
+
+      params.push_back(param);
+    }
+  }
+
+  m->_model->getSlider()._name = name;
+  m->_model->getSlider().replaceParameters(params);
+
+  if (info[2]->IsArray()) {
+    vector<int> order;
+    v8::Local<v8::Array> orderData = info[2].As<v8::Array>();
+
+    for (int i = 0; i < orderData->Length(); i++) {
+      order.push_back(orderData->Get(i)->Int32Value());
+    }
+
+    m->_model->getSlider().setOrder(order);
+  }
+}
+
+void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.sliderSample");
+
+  if (info.Length() != 2 || !info[0]->IsObject() || !info[1]->IsNumber()) {
+    Nan::ThrowError("sliderSample(Context, float) argument error");
+  }
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Internal Error: Context object found is empty!");
+  }
+  ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  float val = info[1]->NumberValue();
+
+  Comp::Context ctx = m->_model->getSlider().sample(c->_context, val);
+
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+  v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+  ret->Set(Nan::New("context").ToLocalChecked(), ctxInst);
+
+  v8::Local<v8::Object> metadata = Nan::New<v8::Object>();
+
+  string name = m->_model->getSlider()._name;
+  metadata->Set(Nan::New(name).ToLocalChecked(), Nan::New(val));
+  ret->Set(Nan::New("metadata").ToLocalChecked(), metadata);
 
   info.GetReturnValue().Set(ret);
 }

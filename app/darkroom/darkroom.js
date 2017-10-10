@@ -4603,6 +4603,17 @@ function createModel() {
       "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/scribbles/scribbles_strong_2.dark",
     ]
   });
+  tempModel.addSlider("FG Watercolor", [
+    { "layerName": "Reveal Normal Photo (Brush Mask)", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": " Splatter Texture", "param" : "opactiy", "adjustmentType": 1000 },
+    { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_3", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_4", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_5", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_6", "param": "opacity", "adjustmentType": 1000 },
+  ])
   //tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
 }
 

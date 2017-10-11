@@ -375,9 +375,15 @@ Context Slider::sample(const Context & in, float val)
 
     float pval = fmod(val * (i + 1), 1);
     LayerParamInfo param = _params[i];
+    float range = param._max - param._min;
+    pval *= range + param._min;
+
+    // special casing the rightmost slider point
+    if (val == 1)
+      pval = range + param._min;
 
     if (param._inverted) {
-      pval = 1 - pval;
+      pval = (range + param._min) - pval;
     }
 
     if (param._type == AdjustmentType::OPACITY) {
@@ -640,9 +646,35 @@ map<string, vector<Context>> Model::getInputData()
   return _train;
 }
 
-Slider & Model::getSlider()
+Slider& Model::getSlider(string name)
 {
-  return _slider;
+  if (_sliders.count(name) > 0) {
+    return _sliders[name];
+  }
+
+  // don't add extra entries if [name] doesn't exist
+  // but still return something i guess???
+  return Slider();
+}
+
+void Model::addSlider(string name, Slider s)
+{
+  _sliders[name] = s;
+}
+
+void Model::deleteSlider(string name)
+{
+  _sliders.erase(name);
+}
+
+vector<string> Model::getSliderNames()
+{
+  vector<string> ids;
+  for (auto& s : _sliders) {
+    ids.push_back(s.first);
+  }
+
+  return ids;
 }
 
 float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai)

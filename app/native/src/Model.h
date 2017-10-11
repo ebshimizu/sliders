@@ -172,7 +172,10 @@ public:
   map<string, vector<Context>> getInputData();
 
   // just defer all slider ops to the actual object for now
-  Slider& getSlider();
+  Slider& getSlider(string name);
+  void addSlider(string name, Slider s);
+  void deleteSlider(string name);
+  vector<string> getSliderNames();
 
 private:
   // generates data structures for some non-parametric search methods
@@ -196,8 +199,8 @@ private:
   // schema for schema sampling
   Schema _schema;
 
-  // slider for slider things
-  Slider _slider;
+  // sliders for slider things
+  map<string, Slider> _sliders;
 };
 
 }

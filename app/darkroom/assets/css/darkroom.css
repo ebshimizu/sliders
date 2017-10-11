@@ -80,13 +80,15 @@ body .ui.basic.modal p {
     top: 6px;
 }
 
-#layerControls .parameter {
+#layerControls .parameter,
+#groupsPanel .parameter {
 	height: 30px;
 	position: relative;
 	margin: 0 0 3px 0;
 }
 
 #layerControls .parameter .paramLabel,
+#groupsPanel .parameter .paramLabel,
 #layerControls .tabLabel {
 	width: 25%;
 	text-align: center;
@@ -113,7 +115,8 @@ body .ui.basic.modal p {
     padding: 3px 5px;
 }
 
-#layerControls .parameter .paramInput {
+#layerControls .parameter .paramInput,
+#groupsPanel .parameter .paramInput { 
 	width: 13%;
 	display: inline-block;
 	position: absolute;
@@ -121,17 +124,20 @@ body .ui.basic.modal p {
 	height: 30px;
 }
 
-#layerControls .parameter .paramInput input {
+#layerControls .parameter .paramInput input,
+#groupsPanel .parameter .paramInput input {
 	height: 100%;
 	text-align: center;
     border-radius: 2px;
 }
 
-#layerControls .parameter .paramInput input:focus {
+#layerControls .parameter .paramInput input:focus,
+#groupsPanel .parameter .paramInput input:focus {
     border: 1px #ffffff solid !important;
 }
 
-#layerControls .parameter .paramSlider {
+#layerControls .parameter .paramSlider,
+#groupsPanel .parameter .paramSlider {
 	width: 55%;
 	display: inline-block;
 	position: absolute;
@@ -156,11 +162,11 @@ body .ui.basic.modal p {
 	top: 4px;
 }
 
-#layerControls .parameter .ui-slider-range {
+.parameter .ui-slider-range {
 	background: #FFFFFF;
 }
 
-#layerControls .parameter .ui-slider,
+.parameter .ui-slider,
 #maskOpacitySlider .ui-slider
 {
 	background: #000000;

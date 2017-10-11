@@ -2481,6 +2481,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "schemaSample", schemaSample);
   Nan::SetPrototypeMethod(tpl, "getInputData", getInputData);
   Nan::SetPrototypeMethod(tpl, "addSlider", addSlider);
+  Nan::SetPrototypeMethod(tpl, "sliderSample", sliderSample);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2836,8 +2837,8 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
     }
   }
 
-  m->_model->getSlider()._name = name;
-  m->_model->getSlider().replaceParameters(params);
+  Comp::Slider s(params);
+  s._name = name;
 
   if (info[2]->IsArray()) {
     vector<int> order;
@@ -2847,8 +2848,10 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
       order.push_back(orderData->Get(i)->Int32Value());
     }
 
-    m->_model->getSlider().setOrder(order);
+    s.setOrder(order);
   }
+
+  m->_model->addSlider(name, s);
 }
 
 void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -2856,8 +2859,8 @@ void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info
   ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
   nullcheck(m->_model, "model.sliderSample");
 
-  if (info.Length() != 2 || !info[0]->IsObject() || !info[1]->IsNumber()) {
-    Nan::ThrowError("sliderSample(Context, float) argument error");
+  if (info.Length() != 3 || !info[0]->IsObject() || !info[1]->IsString() || !info[2]->IsNumber()) {
+    Nan::ThrowError("sliderSample(Context, string, float) argument error");
   }
 
   Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
@@ -2866,9 +2869,12 @@ void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
   ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
 
-  float val = info[1]->NumberValue();
+  v8::String::Utf8Value str(info[1]->ToString());
+  string id = string(*str);
 
-  Comp::Context ctx = m->_model->getSlider().sample(c->_context, val);
+  float val = info[2]->NumberValue();
+
+  Comp::Context ctx = m->_model->getSlider(id).sample(c->_context, val);
 
   const int argc = 1;
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
@@ -2880,8 +2886,7 @@ void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info
 
   v8::Local<v8::Object> metadata = Nan::New<v8::Object>();
 
-  string name = m->_model->getSlider()._name;
-  metadata->Set(Nan::New(name).ToLocalChecked(), Nan::New(val));
+  metadata->Set(Nan::New(id).ToLocalChecked(), Nan::New(val));
   ret->Set(Nan::New("metadata").ToLocalChecked(), metadata);
 
   info.GetReturnValue().Set(ret);

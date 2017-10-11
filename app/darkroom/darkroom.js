@@ -4604,8 +4604,8 @@ function createModel() {
     ]
   });
   tempModel.addSlider("FG Watercolor", [
-    { "layerName": "Reveal Normal Photo (Brush Mask)", "param": "opacity", "adjustmentType": 1000 },
     { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "Reveal Normal Photo (Brush Mask)", "min" : 0, "max" : 0.5, "param": "opacity", "adjustmentType": 1000, "inverted" : true },
     { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000 },
     { "layerName": " Splatter Texture", "param" : "opactiy", "adjustmentType": 1000 },
     { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000 },
@@ -4657,4 +4657,71 @@ function schemaSample(ctx, n, constraints) {
       processNewSample(img, sample.context, sample.metadata, true);
     });
   }
+}
+
+function sliderSample(ctx, id, n, min, max) {
+  // takes n samples between min and max (inclusive)
+  var interval = (max - min) / n;
+
+  for (var i = 0; i <= n; i++) {
+    let sample = tempModel.sliderSample(ctx, id, interval * i + min);
+    c.asyncRenderContext(sample.context, settings.sampleRenderSize, function (err, img) {
+      processNewSample(img, sample.context, sample.metadata, true);
+    });
+  }
+}
+
+function createSliderGUI(name) {
+  var html = '<div class="ui item">';
+  html += '<div class="content">';
+  html += '<div class="header">' + name + '</div>';
+  html += '<div class="parameter" sliderName="' + name + '">';
+  html += '<div class="paramLabel">' + name + '</div>';
+  html += '<div class="paramSlider" sliderName="' + name + '"></div>';
+  html += '<div class="paramInput ui inverted transparent input" sliderName="' + name + '"><input type="text"></div>';
+  html += '</div></div></div>';
+
+  $('#sliderItems').append(html);
+
+  var s = '.paramSlider[sliderName="' + name + '"]';
+  var i = '.paramInput[sliderName="' + name + '"] input';
+
+  // event bindings
+  $(s).slider({
+    orientation: "horizontal",
+    range: "min",
+    max: 1,
+    min: 0,
+    step: 0.001,
+    value: 0,
+    //stop: function (event, ui) { highLevelSliderChange(name, ui); },
+    //slide: function (event, ui) { highLevelSliderChange(name, ui); },
+    change: function (event, ui) { highLevelSliderChange(name, ui); }
+  });
+
+  $(i).val("0");
+
+  // input box events
+  $(i).blur(function () {
+    var data = parseFloat($(this).val());
+    $(s).slider("value", data);
+  });
+  $(i).keydown(function (event) {
+    if (event.which != 13)
+      return;
+
+    var data = parseFloat($(this).val());
+    $(s).slider("value", data);
+  });
+}
+
+function highLevelSliderChange(sliderName, ui) {
+  var sample = tempModel.sliderSample(c.getContext(), sliderName, ui.value);
+
+  // update slider controls n stuff
+  c.setContext(sample.context);
+  updateLayerControls();
+
+  var i = '.paramInput[sliderName="' + sliderName + '"] input';
+  $(i).val(String(ui.value.toFixed(3)));
 }

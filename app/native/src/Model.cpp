@@ -339,6 +339,43 @@ bool Schema::verifyConstraints(Context & ctx, const vector<AxisConstraint>& cons
   return accept;
 }
 
+Sawtooth::Sawtooth(int cycles, float min, float max, bool inverted) :
+  _cycles(cycles), _min(min), _max(max), _inverted(inverted) {
+
+}
+
+float Sawtooth::eval(float x)
+{
+  float pval = fmod(x * _cycles, 1);
+  float range = _max - _min;
+  pval *= range + _min;
+
+  if (x == 1)
+    pval = range + _min;
+
+  if (_inverted) {
+    pval = (range + _min) - pval;
+  }
+
+  return pval;
+}
+
+DynamicSine::DynamicSine(float f, float phase, float A0, float A1, float D0, float D1) :
+  _f(f), _phase(phase), _A0(A0), _A1(A1), _D0(D0), _D1(D1)
+{
+}
+
+float DynamicSine::eval(float x)
+{
+  float freq = M_2_PI * _f;
+
+  // lerp for A and D
+  float A = _A0 * (1 - x) + _A1 * x;
+  float D = _D0 * (1 - x) + _D1 * x;
+
+  return A * sin(freq * x + _phase) + D;
+}
+
 Slider::Slider() {
   // empty constructor
 }

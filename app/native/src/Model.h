@@ -117,6 +117,44 @@ private:
   vector<AxisDef> _axes;
 };
 
+// slider parameterized function types
+// since we can't really load arbitrary functions right now (i mean it could just be
+// a dense set of points but that's tedious) we have some parametric functions defined.
+// each parameter is controlled by one of these functions (or more if intervals work)
+class ParamFunction {
+public:
+  virtual float eval(float x) = 0;
+};
+
+class Sawtooth : ParamFunction {
+public:
+  Sawtooth(int cycles, float min, float max, bool inverted);
+
+  virtual float eval(float x) override;
+
+  int _cycles;
+  float _min;
+  float _max;
+  bool _inverted;
+};
+
+// the only thing dynamic about it is that the amplitude and offset can change over time
+class DynamicSine : ParamFunction {
+public:
+  DynamicSine(float f, float phase, float A0, float A1, float D0, float D1);
+
+  virtual float eval(float x) override;
+
+  float _f;
+  float _phase;
+
+  // range values, A0 is value of A at 0, A1 is value of A at 1, etc.
+  float _A0;
+  float _A1;
+  float _D0;
+  float _D1;
+};
+
 class Slider {
 public:
   Slider();

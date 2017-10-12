@@ -126,7 +126,7 @@ public:
   virtual float eval(float x) = 0;
 };
 
-class Sawtooth : ParamFunction {
+class Sawtooth : public ParamFunction {
 public:
   Sawtooth(int cycles, float min, float max, bool inverted);
 
@@ -139,7 +139,7 @@ public:
 };
 
 // the only thing dynamic about it is that the amplitude and offset can change over time
-class DynamicSine : ParamFunction {
+class DynamicSine : public ParamFunction {
 public:
   DynamicSine(float f, float phase, float A0, float A1, float D0, float D1);
 
@@ -158,20 +158,19 @@ public:
 class Slider {
 public:
   Slider();
-  Slider(vector<LayerParamInfo> params);
-  Slider(vector<LayerParamInfo> params, vector<int> order);
+  Slider(vector<LayerParamInfo> params, vector<shared_ptr<ParamFunction>> funcs);
 
   Context sample(const Context& in, float val);
 
   // adds a new parameter. By default this is placed at the end of the order
-  void addParameter(LayerParamInfo param);
-  void replaceParameters(vector<LayerParamInfo> params);
-
-  // re-orders the parameters
-  void setOrder(vector<int> order);
+  void addParameter(LayerParamInfo param, shared_ptr<ParamFunction> func);
+  void replaceParameters(vector<LayerParamInfo> params, vector<shared_ptr<ParamFunction>> funcs);
 
   // deletes everything
   void removeAllParameters();
+
+  // export a json document containing function output for each parameter
+  void exportGraphData(string filename, int n = 1000);
 
   string _name;
 
@@ -179,7 +178,7 @@ private:
   // in the slider class, the order vector determines how the layers
   // are composited/adjusted in the slider (for now)
   vector<LayerParamInfo> _params;
-  vector<int> _order;
+  vector<shared_ptr<ParamFunction>> _funcs;
 };
 
 // the model class creates and samples from a model defined by a series of examples

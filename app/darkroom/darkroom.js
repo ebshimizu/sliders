@@ -4604,15 +4604,15 @@ function createModel() {
     ]
   });
   tempModel.addSlider("FG Watercolor", [
-    { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": "Reveal Normal Photo (Brush Mask)", "min" : 0, "max" : 0.5, "param": "opacity", "adjustmentType": 1000, "inverted" : true },
-    { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": " Splatter Texture", "param" : "opactiy", "adjustmentType": 1000 },
-    { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": "PC_3", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": "PC_4", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": "PC_5", "param": "opacity", "adjustmentType": 1000 },
-    { "layerName": "PC_6", "param": "opacity", "adjustmentType": 1000 },
+    { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000, "type" : "dynamicSine", "f" : 10, "A0" : 0, "A1" : 0.2, "D0" : 0, "D1" : 0.8, "phase" : 0 },
+    //{ "layerName": "Reveal Normal Photo (Brush Mask)", "min" : 0, "max" : 0.5, "param": "opacity", "adjustmentType": 1000, "inverted" : true },
+    { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 2.5 },
+    { "layerName": " Splatter Texture", "param": "opactiy", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 5 },
+    { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 7.5 },
+    { "layerName": "PC_3", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 0 },
+    { "layerName": "PC_4", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 5 },
+    { "layerName": "PC_5", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 10 },
+    { "layerName": "PC_6", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 15 },
   ])
   //tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
 }

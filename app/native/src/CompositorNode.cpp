@@ -160,6 +160,16 @@ void asyncNop(uv_work_t * req)
   // yup it does a nop
 }
 
+v8::Local<v8::Value> excGet(v8::Local<v8::Object>& obj, string key)
+{
+  if (obj->HasOwnProperty(Nan::New(key).ToLocalChecked())) {
+    return obj->Get(Nan::New(key).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError(string("Object has no key " + key).c_str());
+  }
+}
+
 // object bindings
 Nan::Persistent<v8::Function> ImageWrapper::imageConstructor;
 Nan::Persistent<v8::Function> LayerRef::layerConstructor;
@@ -2482,6 +2492,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getInputData", getInputData);
   Nan::SetPrototypeMethod(tpl, "addSlider", addSlider);
   Nan::SetPrototypeMethod(tpl, "sliderSample", sliderSample);
+  Nan::SetPrototypeMethod(tpl, "exportSliderGraph", exportSliderGraph);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2778,6 +2789,7 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
   string name;
   vector<Comp::LayerParamInfo> params;
+  vector<shared_ptr<Comp::ParamFunction>> funcs;
 
   if (info[0]->IsString() && info[1]->IsArray()) {
     v8::String::Utf8Value sliderName(info[0]->ToString());
@@ -2812,44 +2824,40 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
         Nan::ThrowError("Parameter objects must have an adjustmentType field");
       }
 
-      if (objData->HasOwnProperty(Nan::New("min").ToLocalChecked())) {
-        param._min = objData->Get(Nan::New("min").ToLocalChecked())->NumberValue();
-      }
-      else {
-        param._min = 0;
-      }
+      // now looking for function data info
+      v8::String::Utf8Value t(excGet(objData, "type")->ToString());
+      string funcType = string(*t);
 
-      if (objData->HasOwnProperty(Nan::New("max").ToLocalChecked())) {
-        param._max = objData->Get(Nan::New("max").ToLocalChecked())->NumberValue();
-      }
-      else {
-        param._max = 1;
-      }
+      if (funcType == "dynamicSine") {
+        float f = excGet(objData, "f")->NumberValue();
+        float phase = excGet(objData, "phase")->NumberValue();
+        float A0 = excGet(objData, "A0")->NumberValue();
+        float A1 = excGet(objData, "A1")->NumberValue();
+        float D0 = excGet(objData, "D0")->NumberValue();
+        float D1 = excGet(objData, "D1")->NumberValue();
 
-      if (objData->HasOwnProperty(Nan::New("inverted").ToLocalChecked())) {
-        param._inverted = objData->Get(Nan::New("inverted").ToLocalChecked())->BooleanValue();
+        shared_ptr<Comp::ParamFunction> func = shared_ptr<Comp::ParamFunction>(new Comp::DynamicSine(f, phase, A0, A1, D0, D1));
+        funcs.push_back(func);
+      }
+      else if (funcType == "sawtooth") {
+        int cycles = excGet(objData, "cycles")->Int32Value();
+        float min = excGet(objData, "min")->NumberValue();
+        float max = excGet(objData, "max")->NumberValue();
+        bool inverted = excGet(objData, "inverted")->BooleanValue();
+
+        shared_ptr<Comp::ParamFunction> func = shared_ptr<Comp::ParamFunction>(new Comp::Sawtooth(cycles, min, max, inverted));
+        funcs.push_back(func);
       }
       else {
-        param._inverted = false;
+        Nan::ThrowError(string("Unrecognized function type " + funcType).c_str());
       }
 
       params.push_back(param);
     }
   }
 
-  Comp::Slider s(params);
+  Comp::Slider s(params, funcs);
   s._name = name;
-
-  if (info[2]->IsArray()) {
-    vector<int> order;
-    v8::Local<v8::Array> orderData = info[2].As<v8::Array>();
-
-    for (int i = 0; i < orderData->Length(); i++) {
-      order.push_back(orderData->Get(i)->Int32Value());
-    }
-
-    s.setOrder(order);
-  }
 
   m->_model->addSlider(name, s);
 }
@@ -2890,4 +2898,28 @@ void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info
   ret->Set(Nan::New("metadata").ToLocalChecked(), metadata);
 
   info.GetReturnValue().Set(ret);
+}
+
+void ModelWrapper::exportSliderGraph(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.exportSliderGraph");
+
+  if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsString()) {
+    Nan::ThrowError("exportSliderGraph(string, string, [int]) argument error");
+  }
+
+  v8::String::Utf8Value str(info[0]->ToString());
+  string id = string(*str);
+
+  v8::String::Utf8Value str2(info[1]->ToString());
+  string filename = string(*str2);
+
+  int n = 1000;
+
+  if (info[2]->IsInt32()) {
+    n = info[2]->Int32Value();
+  }
+
+  m->_model->getSlider(id).exportGraphData(filename, n);
 }

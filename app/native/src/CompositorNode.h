@@ -215,6 +215,7 @@ private:
   static void getInputData(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void exportSliderGraph(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {
@@ -261,3 +262,5 @@ struct asyncSampleEventData {
   map<string, string> meta2;
   CompositorWrapper* c;
 };
+
+v8::Local<v8::Value> excGet(v8::Local<v8::Object>& obj, string key);

@@ -367,7 +367,7 @@ DynamicSine::DynamicSine(float f, float phase, float A0, float A1, float D0, flo
 
 float DynamicSine::eval(float x)
 {
-  float freq = M_2_PI * _f;
+  float freq = 2 * M_PI * _f;
 
   // lerp for A and D
   float A = _A0 * (1 - x) + _A1 * x;
@@ -380,48 +380,23 @@ Slider::Slider() {
   // empty constructor
 }
 
-Slider::Slider(vector<LayerParamInfo> params) : _params(params) {
-  for (int i = 0; i < params.size(); i++) {
-    _order.push_back(i);
-  }
-}
-
-Slider::Slider(vector<LayerParamInfo> params, vector<int> order) : _params(params), _order(order)
+Slider::Slider(vector<LayerParamInfo> params, vector<shared_ptr<ParamFunction>> funcs) : _params(params), _funcs(funcs)
 {
-  // assert order length = param length, revert to default order if not true
-  if (_order.size() != _params.size()) {
-    getLogger()->log("Parameter count does not match order count. Reverting to default order...", LogLevel::WARN);
-    _order.clear();
-
-    for (int i = 0; i < params.size(); i++) {
-      _order.push_back(i);
-    }
-  }
 }
 
 Context Slider::sample(const Context & in, float val)
 {
   // the sampling function for this works like this at the moment:
-  // - A numeric value from 0-1 is given as input
-  // - each parameter is sampled from min to max (which is usually 0-1) based on the order
-  //   order n's value is fmod(val * (n + 1), 1)
+  // - just sample the function for each parameter at the given value
   Context out(in);
 
-  for (int i = 0; i < _order.size(); i++) {
-    int active = _order[active];
+  // abort early if functions and parameters aren't the same size
+  if (_params.size() != _funcs.size())
+    return out;
 
-    float pval = fmod(val * (i + 1), 1);
+  for (int i = 0; i < _params.size(); i++) {
     LayerParamInfo param = _params[i];
-    float range = param._max - param._min;
-    pval *= range + param._min;
-
-    // special casing the rightmost slider point
-    if (val == 1)
-      pval = range + param._min;
-
-    if (param._inverted) {
-      pval = (range + param._min) - pval;
-    }
+    float pval = _funcs[i]->eval(val);
 
     if (param._type == AdjustmentType::OPACITY) {
       out[param._name].setOpacity(pval);
@@ -434,36 +409,55 @@ Context Slider::sample(const Context & in, float val)
   return out;
 }
 
-void Slider::addParameter(LayerParamInfo param)
+void Slider::addParameter(LayerParamInfo param, shared_ptr<ParamFunction> func)
 {
   _params.push_back(param);
-  _order.push_back(_order.size());
+  _funcs.push_back(func);
 }
 
-void Slider::replaceParameters(vector<LayerParamInfo> params)
+void Slider::replaceParameters(vector<LayerParamInfo> params, vector<shared_ptr<ParamFunction>> funcs)
 {
   removeAllParameters();
-
-  for (auto& p : params) {
-    addParameter(p);
-  }
-}
-
-void Slider::setOrder(vector<int> order)
-{
-  // assert order length is equal to param length, do nothing if false
-  if (order.size() != _params.size()) {
-    getLogger()->log("Parameter count does not match order count. Ignoring setOrder function...", LogLevel::WARN);
-    return;
-  }
-
-  _order = order;
+  _params = params;
+  _funcs = funcs;
 }
 
 void Slider::removeAllParameters()
 {
   _params.clear();
-  _order.clear();
+  _funcs.clear();
+}
+
+void Slider::exportGraphData(string filename, int n)
+{
+  nlohmann::json out;
+
+  for (int i = 0; i < _params.size(); i++) {
+    LayerParamInfo param = _params[i];
+    shared_ptr<ParamFunction> f = _funcs[i];
+
+    nlohmann::json data;
+    string name = param._name + ":" + param._param;
+    data["paramName"] = name;
+    data["type"] = param._type;
+
+    nlohmann::json xs;
+    nlohmann::json ys;
+
+    for (int j = 0; j < n; j++) {
+      float val = (float)j / n;
+      xs.push_back(val);
+      ys.push_back(f->eval(val));
+    }
+
+    data["x"] = xs;
+    data["y"] = ys;
+
+    out[name] = data;
+  }
+
+  ofstream file(filename);
+  file << out.dump(2);
 }
 
 Model::Model(Compositor* c) : _comp(c)

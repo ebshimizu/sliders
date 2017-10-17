@@ -376,6 +376,43 @@ float DynamicSine::eval(float x)
   return A * sin(freq * x + _phase) + D;
 }
 
+LinearInterp::LinearInterp(vector<float> xs, vector<float> ys) : _xs(xs), _ys(ys) {
+
+}
+
+float LinearInterp::eval(float x)
+{
+  // find the interval
+  int start = -1;
+  for (int i = 0; i < (_xs.size() - 1); i++) {
+    if (x >= _xs[i] && x < _xs[i + 1]) {
+      start = i;
+    }
+  }
+
+  float ymin, ymax, xmin, xmax;
+
+  // if the interval wasn't found, do some boudns clamps
+  if (start == -1) {
+    if (x < _xs[0]) {
+      return _ys[0];
+    }
+    else if (x >= _xs[_xs.size() - 1]) {
+      return _ys[_ys.size() - 1];
+    }
+  }
+  else {
+    ymin = _ys[start];
+    ymax = _ys[start + 1];
+    xmin = _xs[start];
+    xmax = _xs[start + 1];
+  }
+
+  // compute a simple lerp
+  float t = (x - xmin) / (xmax - xmin);
+  return ymin * (1 - t) + ymax * t;
+}
+
 Slider::Slider() {
   // empty constructor
 }

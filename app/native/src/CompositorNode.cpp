@@ -2848,6 +2848,21 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
         shared_ptr<Comp::ParamFunction> func = shared_ptr<Comp::ParamFunction>(new Comp::Sawtooth(cycles, min, max, inverted));
         funcs.push_back(func);
       }
+      else if (funcType == "lerp") {
+        vector<float> xs;
+        vector<float> ys;
+
+        auto xa = excGet(objData, "xs").As<v8::Array>();
+        auto ya = excGet(objData, "ys").As<v8::Array>();
+
+        for (int i = 0; i < xa->Length(); i++) {
+          xs.push_back(xa->Get(i)->NumberValue());
+          ys.push_back(ya->Get(i)->NumberValue());
+        }
+
+        shared_ptr<Comp::ParamFunction> func = shared_ptr<Comp::ParamFunction>(new Comp::LinearInterp(xs, ys));
+        funcs.push_back(func);
+      }
       else {
         Nan::ThrowError(string("Unrecognized function type " + funcType).c_str());
       }

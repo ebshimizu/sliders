@@ -155,6 +155,16 @@ public:
   float _D1;
 };
 
+class LinearInterp : public ParamFunction {
+public:
+  LinearInterp(vector<float> xs, vector<float> ys);
+
+  virtual float eval(float x) override;
+
+  vector<float> _xs;
+  vector<float> _ys;
+};
+
 class Slider {
 public:
   Slider();

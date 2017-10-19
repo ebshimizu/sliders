@@ -224,6 +224,11 @@ public:
   void deleteSlider(string name);
   vector<string> getSliderNames();
 
+  // automatically creates a file from a series of contexts (loaded from files)
+  // basically just does a linear interp from one example to the next, with horizontal
+  // distance proportional to distance in feature space
+  void sliderFromExamples(string name, vector<string> files);
+
 private:
   // generates data structures for some non-parametric search methods
   // based off Exploratory Modeling with Collaborative Design Spaces (Talton et al.)

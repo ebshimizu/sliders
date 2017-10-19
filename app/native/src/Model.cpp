@@ -745,6 +745,78 @@ vector<string> Model::getSliderNames()
   return ids;
 }
 
+void Model::sliderFromExamples(string name, vector<string> files)
+{
+  // load all the files
+  vector<Context> samples;
+  for (auto& f : files) {
+    samples.push_back(_comp->contextFromDarkroom(f));
+  }
+
+  // perform an analysis
+  map<string, vector<Context>> a;
+  a[name] = samples;
+  analyze(a);
+
+  // the analysis is only really used to identify which parameters are relevant
+  ModelInfo info = _trainInfo[name];
+
+  // determine keyframe locations
+  vector<float> dists;
+  float total = 0;
+
+  for (int i = 0; i < samples.size() - 1; i++) {
+    // take difference between vectors
+    float dist = (info.contextToAxisVector(samples[i]) - info.contextToAxisVector(samples[i + 1])).norm();
+    dists.push_back(dist);
+    total += dist;
+  }
+
+  // normalize and place x
+  vector<float> xs;
+  xs.push_back(0);
+  for (int i = 0; i < dists.size(); i++) {
+    xs.push_back(xs[i] + (dists[i] / total));
+  }
+
+  // create the data for each parameter
+  vector<LayerParamInfo> params;
+  vector<shared_ptr<ParamFunction>> funcs;
+
+  for (auto& p : info._activeParams) {
+    vector<float> ys;
+
+    for (int i = 0; i < xs.size(); i++) {
+      Context& c = samples[i];
+
+      // get the param
+      float val;
+
+      Layer& l = c[p.second._name];
+      if (p.second._type == AdjustmentType::OPACITY) {
+        if (l._visible) {
+          val = l.getOpacity();
+        }
+        else {
+          val = 0;
+        }
+      }
+      else {
+        val = l.getAdjustment(p.second._type)[p.second._param];
+      }
+
+      ys.push_back(val);
+    }
+
+    // create the data n stuff
+    params.push_back(p.second);
+    funcs.push_back(shared_ptr<ParamFunction>(new LinearInterp(xs, ys)));
+  }
+
+  // create the slider
+  addSlider(name, Slider(params, funcs));
+}
+
 float Model::gaussianKernel(Eigen::VectorXf& x, Eigen::VectorXf& xi, Eigen::MatrixXf& sigmai)
 {
   int n = x.size();

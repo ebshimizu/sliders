@@ -2493,6 +2493,7 @@ void ModelWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addSlider", addSlider);
   Nan::SetPrototypeMethod(tpl, "sliderSample", sliderSample);
   Nan::SetPrototypeMethod(tpl, "exportSliderGraph", exportSliderGraph);
+  Nan::SetPrototypeMethod(tpl, "addSliderFromExamples", addSliderFromExamples);
 
   modelConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Model").ToLocalChecked(), tpl->GetFunction());
@@ -2875,6 +2876,32 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
   s._name = name;
 
   m->_model->addSlider(name, s);
+}
+
+void ModelWrapper::addSliderFromExamples(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // input is a name, array of strings
+  ModelWrapper* m = ObjectWrap::Unwrap<ModelWrapper>(info.Holder());
+  nullcheck(m->_model, "model.addSliderFromExamples");
+
+  string name;
+  vector<string> files;
+
+  if (info[0]->IsString() && info[1]->IsArray()) {
+    v8::String::Utf8Value sliderName(info[0]->ToString());
+    name = string(*sliderName);
+
+    v8::Local<v8::Array> filenames = info[1].As<v8::Array>();
+    for (int i = 0; i < filenames->Length(); i++) {
+      v8::String::Utf8Value fname(filenames->Get(i)->ToString());
+      files.push_back(string(*fname));
+    }
+
+    m->_model->sliderFromExamples(name, files);
+  }
+  else {
+    Nan::ThrowError("addSliderFromExample(string, array) argument error");
+  }
 }
 
 void ModelWrapper::sliderSample(const Nan::FunctionCallbackInfo<v8::Value>& info)

@@ -497,6 +497,57 @@ void Slider::exportGraphData(string filename, int n)
   file << out.dump(2);
 }
 
+UISlider::UISlider(string layer, string param, AdjustmentType type) :
+  _layer(layer), _param(param), _type(type)
+{
+  _initVal = 0;
+  _val = 0;
+
+  _displayName = layer + ":" + param;
+}
+
+UISlider::UISlider(string layer, string param, AdjustmentType type, string displayName) :
+  _layer(layer), _param(param), _type(type), _displayName(displayName)
+{
+  _initVal = 0;
+  _val = 0;
+}
+
+Context UISlider::setVal(float x, Context c)
+{
+  _val = x;
+
+  if (c.count(_layer) > 0) {
+    if (_type == AdjustmentType::OPACITY) {
+      c[_layer].setOpacity(_val);
+    }
+    else if (_type == AdjustmentType::SELECTIVE_COLOR) {
+      // tbd
+    }
+    else {
+      c[_layer].addAdjustment(_type, _param, _val);
+    }
+  }
+
+  // c is a copy so we gotta return it to commit the changes
+  return c;
+}
+
+void UISlider::setVal(Context & c)
+{
+  if (c.count(_layer) > 0) {
+    if (_type == AdjustmentType::OPACITY) {
+      _val = c[_layer].getOpacity();
+    }
+    else if (_type == AdjustmentType::SELECTIVE_COLOR) {
+
+    }
+    else {
+      _val = c[_layer].getAdjustment(_type)[_param];
+    }
+  }
+}
+
 Model::Model(Compositor* c) : _comp(c)
 {
 }

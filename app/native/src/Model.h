@@ -191,6 +191,36 @@ private:
   vector<shared_ptr<ParamFunction>> _funcs;
 };
 
+// collection of ui elements used by the interface
+// these elements are basically self-contained and just detail how to modify a given
+// context according to its internal rules. If at some point they need to be managed by a
+// non-ui object, an abstract class will be defined and they'll live in the Model object
+class UISlider {
+public:
+  UISlider(string layer, string param, AdjustmentType type);
+  UISlider(string layer, string param, AdjustmentType type, string displayName);
+
+  string _displayName;
+
+  Context setVal(float x, Context c);
+
+  // sets the value based on current context values
+  void setVal(Context& c);
+
+  float getVal() { return _val; }
+  string getLayer() { return _layer; }
+  string getParam() { return _param; }
+  AdjustmentType getType() { return _type; }
+
+private:
+  string _layer;
+  string _param;
+  AdjustmentType _type;
+
+  float _initVal;
+  float _val;
+};
+
 // the model class creates and samples from a model defined by a series of examples
 // what this means specifically is yet to be determined
 class Model {

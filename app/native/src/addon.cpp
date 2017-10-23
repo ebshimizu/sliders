@@ -7,6 +7,7 @@ void InitAll(v8::Local<v8::Object> exports) {
   CompositorWrapper::Init(exports);
   ContextWrapper::Init(exports);
   ModelWrapper::Init(exports);
+  UISliderWrapper::Init(exports);
   exports->Set(Nan::New("log").ToLocalChecked(), Nan::New<v8::Function>(log));
   exports->Set(Nan::New("setLogLocation").ToLocalChecked(), Nan::New<v8::Function>(setLogLocation));
   exports->Set(Nan::New("setLogLevel").ToLocalChecked(), Nan::New<v8::Function>(setLogLevel));

@@ -176,6 +176,7 @@ Nan::Persistent<v8::Function> LayerRef::layerConstructor;
 Nan::Persistent<v8::Function> CompositorWrapper::compositorConstructor;
 Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
 Nan::Persistent<v8::Function> ModelWrapper::modelConstructor;
+Nan::Persistent<v8::Function> UISliderWrapper::uiSliderConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -2964,4 +2965,144 @@ void ModelWrapper::exportSliderGraph(const Nan::FunctionCallbackInfo<v8::Value>&
   }
 
   m->_model->getSlider(id).exportGraphData(filename, n);
+}
+
+void UISliderWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("Slider").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "setVal", setVal);
+  Nan::SetPrototypeMethod(tpl, "getVal", getVal);
+  Nan::SetPrototypeMethod(tpl, "displayName", displayName);
+  Nan::SetPrototypeMethod(tpl, "layer", layer);
+  Nan::SetPrototypeMethod(tpl, "param", param);
+  Nan::SetPrototypeMethod(tpl, "type", type);
+
+  uiSliderConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("Slider").ToLocalChecked(), tpl->GetFunction());
+}
+
+UISliderWrapper::UISliderWrapper(Comp::UISlider* s) : _slider(s) {
+
+}
+
+UISliderWrapper::~UISliderWrapper()
+{
+  delete _slider;
+}
+
+void UISliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // at the moment we don't need to wrap internal objects, in the future this might
+  // not be true.
+  string layer;
+  string param;
+  Comp::AdjustmentType t;
+
+  if (info.Length() == 3) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    layer = string(*i0);
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    param = string(*i1);
+
+    t = (Comp::AdjustmentType)(info[2]->Int32Value());
+
+    Comp::UISlider* slider = new Comp::UISlider(layer, param, t);
+    UISliderWrapper* sw = new UISliderWrapper(slider);
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
+  }
+  else {
+    Nan::ThrowError("Slider constructor argument error: requires string, string, int");
+  }
+}
+
+void UISliderWrapper::setVal(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.setVal");
+
+  if (info[0]->IsNumber()) {
+    float val = info[0]->NumberValue();
+
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[1]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    Comp::Context ctx = s->_slider->setVal(val, c->_context);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+    v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+    info.GetReturnValue().Set(ctxInst);
+  }
+  else if (info[0]->IsObject()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    s->_slider->setVal(c->_context);
+  }
+  else {
+    Nan::ThrowError("setVal argument error");
+  }
+}
+
+void UISliderWrapper::getVal(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.getVal");
+
+  info.GetReturnValue().Set(Nan::New(s->_slider->getVal()));
+}
+
+void UISliderWrapper::displayName(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.displayName");
+
+  if (info.Length() == 0) {
+    info.GetReturnValue().Set(Nan::New(s->_slider->_displayName).ToLocalChecked());
+  }
+  else {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    s->_slider->_displayName = string(*i0);
+  }
+}
+
+void UISliderWrapper::layer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.layer");
+
+  info.GetReturnValue().Set(Nan::New(s->_slider->getLayer()).ToLocalChecked());
+}
+
+void UISliderWrapper::param(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.param");
+
+  info.GetReturnValue().Set(Nan::New(s->_slider->getParam()).ToLocalChecked());
+}
+
+void UISliderWrapper::type(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.type");
+
+  info.GetReturnValue().Set(Nan::New(s->_slider->getType()));
 }

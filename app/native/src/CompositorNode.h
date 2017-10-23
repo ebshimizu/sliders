@@ -219,6 +219,26 @@ private:
   static void exportSliderGraph(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
+class UISliderWrapper : public Nan::ObjectWrap {
+public: 
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> uiSliderConstructor;
+
+  Comp::UISlider* _slider;
+
+private:
+  explicit UISliderWrapper(Comp::UISlider* s);
+  ~UISliderWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void setVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void displayName(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void layer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void param(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
+};
+
 class RenderWorker : public Nan::AsyncWorker {
 public:
   RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c);

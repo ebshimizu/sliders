@@ -33,7 +33,7 @@ class Slider {
     if ("val" in dat) {
       var newContext = this.slider.setVal(dat.val, dat.context);
       c.setContext(newContext);
-      updateLayercontrols();
+      updateLayerControls();
     }
     else {
       this.slider.setVal(dat.context);
@@ -42,9 +42,9 @@ class Slider {
 
   // constructs the ui element, inserts it into the container, and binds the proper events
   createUI(container) {
-    var html = '<div class="ui item">';
+    var html = '<div class="ui item" sliderName="' + this.displayName + '">';
     html += '<div class="content">';
-    html += '<div class="header">' + this.displayName + '</div>';
+    //html += '<div class="header">' + this.displayName + '</div>';
     html += '<div class="parameter" sliderName="' + this.displayName + '">';
     html += '<div class="paramLabel">' + this.displayName+ '</div>';
     html += '<div class="paramSlider" sliderName="' + this.displayName + '"></div>';
@@ -68,17 +68,18 @@ class Slider {
       step: 0.001,
       value: this.value,
       //stop: function (event, ui) { highLevelSliderChange(name, ui); },
-      //slide: function (event, ui) { highLevelSliderChange(name, ui); },
+      slide: function (event, ui) { $(i).val(String(ui.value.toFixed(3))); },
       change: function (event, ui) { self.sliderCallback(ui); }
     });
 
-    $(i).val(String(this.value));
+    $(i).val(String(this.value.toFixed(3)));
 
     // input box events
     $(i).blur(function () {
       var data = parseFloat($(this).val());
       $(s).slider("value", data);
     });
+
     $(i).keydown(function (event) {
       if (event.which != 13)
         return;
@@ -93,6 +94,10 @@ class Slider {
     $(i).val(String(ui.value.toFixed(3)))
 
     this.setVal({ val: ui.value, context: c.getContext() });
+  }
+
+  deleteUI() {
+    $('.item[sliderName="' + this.displayName + '"]').remove();
   }
 }
 

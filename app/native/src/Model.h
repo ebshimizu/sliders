@@ -221,6 +221,38 @@ private:
   float _val;
 };
 
+// metaslider is like the regular Slider class with a lerp function.
+// a second class is being written to enforce some consistency in how metasliders work
+// (since slider function maps arbitrary functions to params, here they are always linear interps)
+class UIMetaSlider {
+public:
+  UIMetaSlider(string displayName);
+  ~UIMetaSlider();
+
+  void addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys);
+  void addSlider(string layer, string param, AdjustmentType t, float min, float max);
+
+  UISlider* getSlider(string id);
+
+  int size();
+  vector<string> names();
+
+  void deleteSlider(string id);
+
+  void setPoints(string id, vector<float> xs, vector<float> ys);
+
+  // given a context, sets the value for each parameter in the meta slider
+  Context setContext(float x, Context c);
+
+  string _displayName;
+
+private:
+  map<string, UISlider*> _sliders;
+  map<string, shared_ptr<LinearInterp>> _fs;
+  
+  float _val;
+};
+
 // the model class creates and samples from a model defined by a series of examples
 // what this means specifically is yet to be determined
 class Model {

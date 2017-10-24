@@ -548,6 +548,82 @@ void UISlider::setVal(Context & c)
   }
 }
 
+UIMetaSlider::UIMetaSlider(string displayName) : _displayName(displayName), _val(0) {
+
+}
+
+UIMetaSlider::~UIMetaSlider() {
+  for (auto& s : _sliders) {
+    delete s.second;
+    s.second = nullptr;  // the node library checks this to see if the object exists
+  }
+}
+
+void UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys)
+{
+  UISlider* s = new UISlider(layer, param, t);
+  shared_ptr<LinearInterp> f = shared_ptr<LinearInterp>(new LinearInterp(xs, ys));
+
+  _sliders[s->_displayName] = s;
+  _fs[s->_displayName] = f;
+}
+
+void UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, float min, float max)
+{
+  addSlider(layer, param, t, { 0, 1 }, { min, max });
+}
+
+UISlider* UIMetaSlider::getSlider(string id)
+{
+  if (_sliders.count(id) > 0) {
+    return _sliders[id];
+  }
+
+  return nullptr;
+}
+
+int UIMetaSlider::size()
+{
+  return _sliders.size();
+}
+
+vector<string> UIMetaSlider::names()
+{
+  vector<string> n;
+  for (auto& s : _sliders) {
+    n.push_back(s.first);
+  }
+
+  return n;
+}
+
+void UIMetaSlider::deleteSlider(string id)
+{
+  _sliders.erase(id);
+  _fs.erase(id);
+}
+
+void UIMetaSlider::setPoints(string id, vector<float> xs, vector<float> ys)
+{
+  if (_fs.count(id) > 0) {
+    _fs[id]->_xs = xs;
+    _fs[id]->_ys = ys;
+  }
+}
+
+Context UIMetaSlider::setContext(float x, Context c)
+{
+  Context ret(c);
+  _val = x;
+
+  for (auto& s : _sliders) {
+    float val = _fs[s.first]->eval(x);
+    ret = s.second->setVal(val, c);
+  }
+
+  return ret;
+}
+
 Model::Model(Compositor* c) : _comp(c)
 {
 }

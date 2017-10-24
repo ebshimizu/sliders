@@ -7,6 +7,7 @@ var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
+const uiTools = require('./uiToolkit');
 const saveVersion = 0.37;
 const versionString = "0.1";
 
@@ -107,7 +108,8 @@ const adjType = {
   "LIGHTER_COLORIZE": 9,
   "OVERWRITE_COLOR": 10,
   "INVERT": 11,
-  "BRIGHTNESS": 12
+  "BRIGHTNESS": 12,
+  "OPACITY": 1000
 };
 
 const num2Str = {
@@ -3000,6 +3002,7 @@ function updateColor(layer, adjustment, color) {
 function deleteAllControls() {
   // may need to unlink callbacks
   $('#layerControls').html('');
+  deleteAllUIComponents();
 }
 
 function toggleGroupVisibility(group, doc) {
@@ -4603,18 +4606,35 @@ function createModel() {
       "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/scribbles/scribbles_strong_2.dark",
     ]
   });
-  tempModel.addSlider("FG Watercolor", [
-    { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000, "type" : "dynamicSine", "f" : 10, "A0" : 0, "A1" : 0.2, "D0" : 0, "D1" : 0.8, "phase" : 0 },
-    //{ "layerName": "Reveal Normal Photo (Brush Mask)", "min" : 0, "max" : 0.5, "param": "opacity", "adjustmentType": 1000, "inverted" : true },
-    { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 2.5 },
-    { "layerName": " Splatter Texture", "param": "opactiy", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 5 },
-    { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 7.5 },
-    { "layerName": "PC_3", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 0 },
-    { "layerName": "PC_4", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 5 },
-    { "layerName": "PC_5", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 10 },
-    { "layerName": "PC_6", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 15 },
-  ])
+  //tempModel.addSlider("FG Watercolor", [
+  //  { "layerName": "PC_1", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 0 },
+  //  { "layerName": "Reveal Normal Photo (Brush Mask)", "param": "opacity", "adjustmentType": 1000, "type": "lerp", "xs": [0, 0.3], "ys": [1, 0] },
+  //  { "layerName": "PC_2", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 2.5 },
+  //  { "layerName": " Splatter Texture", "param": "opactiy", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 5 },
+  //  { "layerName": "Main Photo Visibility", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 7, "A0": 0, "A1": 0.4, "D0": 0, "D1": 0.8, "phase": 7.5 }
+    //{ "layerName": "PC_3", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 0 },
+    //{ "layerName": "PC_4", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 5 },
+    //{ "layerName": "PC_5", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 10 },
+    //{ "layerName": "PC_6", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 20, "A0": 0.5, "A1": 0.5, "D0": 0.5, "D1": 0.5, "phase": 15 },
+  //]);
+  //tempModel.addSlider("BG Watercolor", [
+  //  { "layerName": "BG_Texture_1", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 0 },
+  //  { "layerName": "BG_Texture_2", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 1 },
+  //  { "layerName": "Watercolor Texture_4", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 2 },
+  //  { "layerName": " Watercolor Texture_3", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 3 },
+  //  { "layerName": "Watercolor Texture_2", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 4 },
+  //  { "layerName": "Watercolor Texture_1", "param": "opacity", "adjustmentType": 1000, "type": "dynamicSine", "f": 10, "A0": 0.1, "A1": 0.2, "D0": 0, "D1": 0.8, "phase": 5 }
+  //]);
   //tempModel.addSchema("C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/sf_schema.json");
+  tempModel.addSliderFromExamples("FG Watercolor", [
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_weak_2.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_weak_1.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_weak_3.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_moderate_2.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_moderate_1.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_strong_2.dark",
+    "C:/Users/falindrith/Dropbox/Documents/research/sliders_project/test_images/misc_actions/sf/axis_defs/fg_watercolor/fgwc_strong_1.dark"
+  ]);
 }
 
 function report() {
@@ -4724,4 +4744,52 @@ function highLevelSliderChange(sliderName, ui) {
 
   var i = '.paramInput[sliderName="' + sliderName + '"] input';
   $(i).val(String(ui.value.toFixed(3)));
+}
+
+/*===========================================================================*/
+/* Custom UI Components                                                      */
+/*===========================================================================*/
+
+var g_uiComponents = {};
+
+function addSlider(layer, param, type) {
+  var slider = new uiTools.Slider(layer, param, type);
+  slider.setVal({ 'context': c.getContext() });
+  slider.createUI($('#sliderItems'));
+
+  g_uiComponents[slider.displayName] = slider;
+}
+
+function deleteSlider(name) {
+  g_uiComponents[name].deleteUI();
+  delete g_uiComponents[name];
+}
+
+function deleteAllUIComponents() {
+  $('#sliderItems').empty();
+  g_uiComponents = {};
+}
+
+// add individual sliders for each param in the image
+function addAllParamSliders() {
+  // go through the current context and extract all the params
+  var ctx = c.getContext();
+  var layerNames = ctx.keys();
+
+  for (var name in layerNames) {
+    var layer = c.getLayer(layerNames[name]);
+
+    addSlider(layerNames[name], "opacity", adjType["OPACITY"]);
+
+    // adjustments
+    var adjustments = layer.getAdjustments();
+
+    for (var i = 0; i < adjustments.length; i++) {
+      var data = layer.getAdjustment(adjustments[i]);
+
+      for (var paramName in data) {
+        addSlider(layerNames[name], paramName, adjustments[i]);
+      }
+    }
+  }
 }

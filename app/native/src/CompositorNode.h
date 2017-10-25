@@ -226,6 +226,8 @@ public:
 
   Comp::UISlider* _slider;
 
+  // slider object might be owned by somethin else
+  bool _deleteOnDestroy;
 private:
   explicit UISliderWrapper(Comp::UISlider* s);
   ~UISliderWrapper();
@@ -237,6 +239,29 @@ private:
   static void layer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void param(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
+};
+
+class UIMetaSliderWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> uiMetaSliderConstructor;
+
+  Comp::UIMetaSlider* _mSlider;
+
+private:
+  explicit UIMetaSliderWrapper(Comp::UIMetaSlider* s);
+  ~UIMetaSliderWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getSlider(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void size(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void names(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteSlider(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void setPoints(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void setContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void displayName(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {

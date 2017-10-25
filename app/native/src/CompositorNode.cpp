@@ -177,6 +177,7 @@ Nan::Persistent<v8::Function> CompositorWrapper::compositorConstructor;
 Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
 Nan::Persistent<v8::Function> ModelWrapper::modelConstructor;
 Nan::Persistent<v8::Function> UISliderWrapper::uiSliderConstructor;
+Nan::Persistent<v8::Function> UIMetaSliderWrapper::uiMetaSliderConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -2988,18 +2989,17 @@ void UISliderWrapper::Init(v8::Local<v8::Object> exports)
 }
 
 UISliderWrapper::UISliderWrapper(Comp::UISlider* s) : _slider(s) {
-
+  _deleteOnDestroy = true;
 }
 
 UISliderWrapper::~UISliderWrapper()
 {
-  delete _slider;
+  if (_deleteOnDestroy)
+    delete _slider;
 }
 
 void UISliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
-  // at the moment we don't need to wrap internal objects, in the future this might
-  // not be true.
   string layer;
   string param;
   Comp::AdjustmentType t;
@@ -3018,6 +3018,11 @@ void UISliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     sw->Wrap(info.This());
 
     info.GetReturnValue().Set(info.This());
+  }
+  else if (info[0]->IsExternal()) {
+    Comp::UISlider* i = static_cast<Comp::UISlider*>(info[0].As<v8::External>()->Value());
+    UISliderWrapper* sw = new UISliderWrapper(i);
+    sw->_deleteOnDestroy = false;
   }
   else {
     Nan::ThrowError("Slider constructor argument error: requires string, string, int");
@@ -3106,3 +3111,253 @@ void UISliderWrapper::type(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
   info.GetReturnValue().Set(Nan::New(s->_slider->getType()));
 }
+
+void UIMetaSliderWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("MetaSlider").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "addSlider", addSlider);
+  Nan::SetPrototypeMethod(tpl, "getSlider", getSlider);
+  Nan::SetPrototypeMethod(tpl, "size", size);
+  Nan::SetPrototypeMethod(tpl, "names", names);
+  Nan::SetPrototypeMethod(tpl, "deleteSlider", deleteSlider);
+  Nan::SetPrototypeMethod(tpl, "setPoints", setPoints);
+  Nan::SetPrototypeMethod(tpl, "setContext", setContext);
+  Nan::SetPrototypeMethod(tpl, "displayName", displayName);
+  Nan::SetPrototypeMethod(tpl, "getVal", getVal);
+
+  uiMetaSliderConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("MetaSlider").ToLocalChecked(), tpl->GetFunction());
+}
+
+UIMetaSliderWrapper::UIMetaSliderWrapper(Comp::UIMetaSlider* s) : _mSlider(s) {
+
+}
+
+UIMetaSliderWrapper::~UIMetaSliderWrapper()
+{
+  delete _mSlider;
+}
+
+void UIMetaSliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    Comp::UIMetaSlider* slider = new Comp::UIMetaSlider(name);
+    UIMetaSliderWrapper* sw = new UIMetaSliderWrapper(slider);
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
+  }
+  else {
+    Nan::ThrowError("MetaSlider requires a name");
+  }
+}
+
+void UIMetaSliderWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.addSlider");
+
+  if (info.Length() == 5) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string layer(*i0);
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string param(*i1);
+
+    Comp::AdjustmentType t = (Comp::AdjustmentType)(info[2]->Int32Value());
+
+    // arrays
+    if (info[3]->IsArray() && info[4]->IsArray()) {
+      vector<float> xs;
+      vector<float> ys;
+
+      v8::Local<v8::Array> xsr = info[3].As<v8::Array>();
+      v8::Local<v8::Array> ysr = info[4].As<v8::Array>();
+
+      if (xsr->Length() != ysr->Length()) {
+        Nan::ThrowError("Array lengths do not match, slider not added");
+      }
+
+      for (int i = 0; i < xsr->Length(); i++) {
+        xs.push_back(xsr->Get(i)->NumberValue());
+        ys.push_back(ysr->Get(i)->NumberValue());
+      }
+
+      string sliderName = s->_mSlider->addSlider(layer, param, t, xs, ys);
+      info.GetReturnValue().Set(Nan::New(sliderName).ToLocalChecked());
+    }
+    // or min/max floats
+    else {
+      float min = info[3]->NumberValue();
+      float max = info[4]->NumberValue();
+
+      string sliderName = s->_mSlider->addSlider(layer, param, t, min, max);
+      info.GetReturnValue().Set(Nan::New(sliderName).ToLocalChecked());
+    }
+  }
+  else {
+    Nan::ThrowError("addSlider(string, string, int, Array, Array) argument error");
+  }
+}
+
+void UIMetaSliderWrapper::getSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.getSlider");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string id(*i0);
+
+    Comp::UISlider* slider = s->_mSlider->getSlider(id);
+
+    if (slider == nullptr) {
+      info.GetReturnValue().Set(Nan::New(Nan::Null));
+    }
+    else {
+      v8::Local<v8::Function> cons = Nan::New<v8::Function>(UISliderWrapper::uiSliderConstructor);
+      const int argc = 1;
+      v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(slider) };
+
+      info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+    }
+  }
+  else {
+    Nan::ThrowError("getSlider(string) arugment error");
+  }
+}
+
+void UIMetaSliderWrapper::size(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.size");
+
+  info.GetReturnValue().Set(Nan::New(s->_mSlider->size()));
+}
+
+void UIMetaSliderWrapper::names(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.names");
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  vector<string> names = s->_mSlider->names();
+
+  for (int i = 0; i < names.size(); i++) {
+    ret->Set(i, Nan::New(names[i]).ToLocalChecked());
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void UIMetaSliderWrapper::deleteSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.deleteSlider");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string id(*i0);
+
+    s->_mSlider->deleteSlider(id);
+  }
+}
+
+void UIMetaSliderWrapper::setPoints(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.setPoints");
+
+  if (info.Length() == 3) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string id(*i0);
+
+    vector<float> xs;
+    vector<float> ys;
+
+    if (info[1]->IsArray() && info[2]->IsArray()) {
+      v8::Local<v8::Array> a1 = info[1].As<v8::Array>();
+      v8::Local<v8::Array> a2 = info[2].As<v8::Array>();
+
+      if (a1->Length() == a2->Length()) {
+        for (int i = 0; i < a1->Length(); i++) {
+          xs.push_back(a1->Get(i)->NumberValue());
+          ys.push_back(a2->Get(i)->NumberValue());
+        }
+
+        s->_mSlider->setPoints(id, xs, ys);
+      }
+      else {
+        Nan::ThrowError("setPoints array lengths do not match");
+      }
+    }
+    else {
+      Nan::ThrowError("setPoints(string, Array, Array) argument error");
+    }
+  }
+  else {
+    Nan::ThrowError("setPoints(string, Array, Array) argument error");
+  }
+}
+
+void UIMetaSliderWrapper::setContext(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.setContext");
+
+  if (info.Length() == 2) {
+    float val = info[0]->NumberValue();
+
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[1]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    Comp::Context ctx = s->_mSlider->setContext(val, c->_context);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+    v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+    info.GetReturnValue().Set(ctxInst);
+  }
+  else {
+    Nan::ThrowError("setContext(float, context) argument error");
+  }
+}
+
+void UIMetaSliderWrapper::displayName(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.displayName");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    s->_mSlider->_displayName = name;
+  }
+  else {
+    info.GetReturnValue().Set(Nan::New(s->_mSlider->_displayName).ToLocalChecked());
+  }
+}
+
+void UIMetaSliderWrapper::getVal(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.getVal");
+
+  info.GetReturnValue().Set(Nan::New(s->_mSlider->getVal()));
+}
+

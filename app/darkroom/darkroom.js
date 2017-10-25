@@ -4793,3 +4793,66 @@ function addAllParamSliders() {
     }
   }
 }
+
+// right now there's no ui elements to manually create metasliders or load
+// them from a config file, so this is basically the load function for now
+function addTestMetaSliders() {
+  // shimmer is up first, add two sliders
+
+  var fgs = new uiTools.MetaSlider("FG Sparkles");
+  fgs.addSlider("a1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a4", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a5", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a6", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a7", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a8", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a9", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a10", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a11", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a12", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a13", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a14", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a15", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a16", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a17", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a18", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a19", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a20", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a21", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a22", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a23", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a24", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a25", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a26", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a27", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a28", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a29", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  fgs.addSlider("a30", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+
+  fgs.createUI($('#sliderItems'));
+  g_uiComponents[fgs.displayName] = fgs;
+
+  var bgs = new uiTools.MetaSlider("BG Sparkles");
+  bgs.addSlider("b1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b4", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b5", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b6", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b7", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b8", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b9", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b10", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b11", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  bgs.addSlider("b12", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+
+  bgs.createUI($('#sliderItems'));
+  g_uiComponents[bgs.displayName] = bgs;
+
+  addSlider("Background Tint", "r", adjType["OVERWRITE_COLOR"]);
+  addSlider("Background Tint", "g", adjType["OVERWRITE_COLOR"]);
+  addSlider("Background Tint", "b", adjType["OVERWRITE_COLOR"]);
+  addSlider("Background Tint", "a", adjType["OVERWRITE_COLOR"]);
+}

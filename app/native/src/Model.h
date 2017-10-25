@@ -229,8 +229,8 @@ public:
   UIMetaSlider(string displayName);
   ~UIMetaSlider();
 
-  void addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys);
-  void addSlider(string layer, string param, AdjustmentType t, float min, float max);
+  string addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys);
+  string addSlider(string layer, string param, AdjustmentType t, float min, float max);
 
   UISlider* getSlider(string id);
 
@@ -243,6 +243,8 @@ public:
 
   // given a context, sets the value for each parameter in the meta slider
   Context setContext(float x, Context c);
+
+  float getVal() { return _val; }
 
   string _displayName;
 

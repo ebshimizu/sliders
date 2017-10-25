@@ -559,18 +559,21 @@ UIMetaSlider::~UIMetaSlider() {
   }
 }
 
-void UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys)
+string UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, vector<float> xs, vector<float> ys)
 {
   UISlider* s = new UISlider(layer, param, t);
   shared_ptr<LinearInterp> f = shared_ptr<LinearInterp>(new LinearInterp(xs, ys));
+  s->_displayName = _displayName + ":" + s->_displayName;
 
   _sliders[s->_displayName] = s;
   _fs[s->_displayName] = f;
+
+  return s->_displayName;
 }
 
-void UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, float min, float max)
+string UIMetaSlider::addSlider(string layer, string param, AdjustmentType t, float min, float max)
 {
-  addSlider(layer, param, t, { 0, 1 }, { min, max });
+  return addSlider(layer, param, t, { 0, 1 }, { min, max });
 }
 
 UISlider* UIMetaSlider::getSlider(string id)
@@ -618,7 +621,7 @@ Context UIMetaSlider::setContext(float x, Context c)
 
   for (auto& s : _sliders) {
     float val = _fs[s.first]->eval(x);
-    ret = s.second->setVal(val, c);
+    ret = s.second->setVal(val, ret);
   }
 
   return ret;

@@ -264,6 +264,25 @@ private:
   static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
+class UISamplerWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> uiSamplerConstructor;
+
+  Comp::UISampler* _sampler;
+private:
+  explicit UISamplerWrapper(Comp::UISampler* s);
+  ~UISamplerWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void displayName(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addParam(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteParam(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void params(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void sample(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void eval(const Nan::FunctionCallbackInfo<v8::Value>& info);
+};
+
 class RenderWorker : public Nan::AsyncWorker {
 public:
   RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c);

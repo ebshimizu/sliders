@@ -1,3 +1,7 @@
+// note: not sure if comp is actually required here since it should be in scope from
+// earlier included scripts
+// speaking of "scope" in javascript, blindly calling functions that affect the global
+// ui state and the global compositor object (c) is totally ok here
 const comp = require('../native/build/Release/compositor');
 
 class Slider {
@@ -205,5 +209,34 @@ class MetaSlider {
   }
 }
 
+class Sampler {
+  constructor(displayName) {
+    this.sampler = new comp.Sampler(displayName);
+  }
+
+  get keys() {
+    return this.sampler.params();
+  }
+
+  get displayName() {
+    return this.sampler.displayName();
+  }
+
+  sample(x) {
+    var newCtx = this.sampler.sample(x, c.getContext());
+    c.setContext(newCtx);
+    updateLayerControls();
+  }
+
+  eval() {
+    return this.sampler.eval(c.getContext());
+  }
+
+  addParam(layer, param, type) {
+    this.sampler.addParam(layer, param, type);
+  }
+}
+
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
+exports.Sampler = Sampler;

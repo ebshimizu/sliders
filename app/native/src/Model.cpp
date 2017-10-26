@@ -38,6 +38,11 @@ int LayerParamInfo::count()
   return _vals.size();
 }
 
+string LayerParamInfo::id()
+{
+  return _name + ":" + _param + ":" + to_string(_type);
+}
+
 ModelInfo::ModelInfo(string name) : _name(name)
 {
 }
@@ -625,6 +630,91 @@ Context UIMetaSlider::setContext(float x, Context c)
   }
 
   return ret;
+}
+
+UISampler::UISampler(string displayName) : _displayName(displayName) {
+  _objEvalMode = AxisEvalFuncType::AVERAGE;
+}
+
+UISampler::~UISampler() {
+}
+
+void UISampler::setObjectiveMode(AxisEvalFuncType t)
+{
+  _objEvalMode = t;
+}
+
+string UISampler::addParam(LayerParamInfo p)
+{
+  _params[p.id()] = p;
+}
+
+void UISampler::deleteParam(string id)
+{
+  _params.erase(id);
+}
+
+vector<string> UISampler::params()
+{
+  vector<string> ret;
+  for (auto& p : _params) {
+    ret.push_back(p.first);
+  }
+  return ret;
+}
+
+Context UISampler::sample(float x, Context c)
+{
+  // for now it's just going to randomly select things in a gaussian
+  // around the given point
+  random_device rd;
+  mt19937 gen(rd());
+  normal_distribution<float> dist(x, 0.2);
+
+  for (auto& p : _params) {
+    if (c.count(p.second._name) > 0) {
+      if (p.second._type == OPACITY) {
+        c[p.second._name].setOpacity(dist(gen));
+      }
+      else if (p.second._type == SELECTIVE_COLOR) {
+        // tbd
+      }
+      else {
+        c[p.second._name].addAdjustment(p.second._type, p.second._param, dist(gen));
+      }
+    }
+  }
+
+  return c;
+}
+
+float UISampler::eval(Context& c)
+{
+  if (_objEvalMode == AxisEvalFuncType::AVERAGE) {
+    float sum = 0;
+    int count = 0;
+
+    for (auto& p : _params) {
+      if (c.count(p.second._name) > 0) {
+        if (p.second._type == OPACITY) {
+          sum += c[p.second._name].getOpacity();
+        }
+        else if (p.second._type == SELECTIVE_COLOR) {
+          //tbd
+        }
+        else {
+          sum += c[p.second._name].getAdjustment(p.second._type)[p.second._param];
+        }
+
+        count++;
+      }
+    }
+
+    if (count == 0)
+      return 0;
+
+    return sum / count;
+  }
 }
 
 Model::Model(Compositor* c) : _comp(c)

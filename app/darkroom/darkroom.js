@@ -4834,6 +4834,42 @@ function addTestMetaSliders() {
   fgs.createUI($('#sliderItems'));
   g_uiComponents[fgs.displayName] = fgs;
 
+  // sampler
+  var fgsam = new uiTools.Sampler("FG Sparkle Quantity");
+  fgsam.addParam("a1", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a2", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a3", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a4", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a5", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a6", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a7", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a8", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a9", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a10", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a11", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a12", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a13", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a14", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a15", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a16", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a17", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a18", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a19", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a20", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a21", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a22", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a23", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a24", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a25", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a26", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a27", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a28", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a29", "opacity", adjType["OPACITY"]);
+  fgsam.addParam("a30", "opacity", adjType["OPACITY"]);
+
+  g_uiComponents[fgsam.displayName] = fgsam;
+  // ui not done yet for this
+
   var bgs = new uiTools.MetaSlider("BG Sparkles");
   bgs.addSlider("b1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   bgs.addSlider("b2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
@@ -4850,6 +4886,22 @@ function addTestMetaSliders() {
 
   bgs.createUI($('#sliderItems'));
   g_uiComponents[bgs.displayName] = bgs;
+
+  var bgsam = new uiTools.Sampler("BG Sparkles Quantity");
+  bgsam.addParam("b1", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b2", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b3", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b4", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b5", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b6", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b7", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b8", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b9", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b10", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b11", "opacity", adjType["OPACITY"]);
+  bgsam.addParam("b12", "opacity", adjType["OPACITY"]);
+
+  g_uiComponents[bgsam.displayName] = bgsam;
 
   addSlider("Background Tint", "r", adjType["OVERWRITE_COLOR"]);
   addSlider("Background Tint", "g", adjType["OVERWRITE_COLOR"]);

@@ -178,6 +178,7 @@ Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
 Nan::Persistent<v8::Function> ModelWrapper::modelConstructor;
 Nan::Persistent<v8::Function> UISliderWrapper::uiSliderConstructor;
 Nan::Persistent<v8::Function> UIMetaSliderWrapper::uiMetaSliderConstructor;
+Nan::Persistent<v8::Function> UISamplerWrapper::uiSamplerConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -3361,3 +3362,163 @@ void UIMetaSliderWrapper::getVal(const Nan::FunctionCallbackInfo<v8::Value>& inf
   info.GetReturnValue().Set(Nan::New(s->_mSlider->getVal()));
 }
 
+void UISamplerWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("Sampler").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "addParam", addParam);
+  Nan::SetPrototypeMethod(tpl, "deleteParam", deleteParam);
+  Nan::SetPrototypeMethod(tpl, "params", params);
+  Nan::SetPrototypeMethod(tpl, "sample", sample);
+  Nan::SetPrototypeMethod(tpl, "eval", eval);
+  Nan::SetPrototypeMethod(tpl, "displayName", displayName);
+
+  uiSamplerConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("Sampler").ToLocalChecked(), tpl->GetFunction());
+}
+
+UISamplerWrapper::UISamplerWrapper(Comp::UISampler* s) {
+  _sampler = s;
+}
+
+UISamplerWrapper::~UISamplerWrapper()
+{
+  delete _sampler;
+}
+
+void UISamplerWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    Comp::UISampler* slider = new Comp::UISampler(name);
+    UISamplerWrapper* sw = new UISamplerWrapper(slider);
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
+  }
+  else {
+    Nan::ThrowError("Sampler requires a name");
+  }
+}
+
+void UISamplerWrapper::displayName(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.displayName");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    s->_sampler->_displayName = name;
+  }
+  else {
+    info.GetReturnValue().Set(Nan::New(s->_sampler->_displayName).ToLocalChecked());
+  }
+}
+
+void UISamplerWrapper::addParam(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.addParam");
+
+  if (info.Length() == 3) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string layer(*i0);
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string param(*i1);
+
+    Comp::AdjustmentType t = (Comp::AdjustmentType)(info[2]->Int32Value());
+
+    Comp::LayerParamInfo p(t, layer, param);
+    string id = s->_sampler->addParam(p);
+
+    info.GetReturnValue().Set(Nan::New(id).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("addParam(string, string, int) argument error");
+  }
+}
+
+void UISamplerWrapper::deleteParam(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.deleteParam");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string id(*i0);
+
+    s->_sampler->deleteParam(id);
+  }
+}
+
+void UISamplerWrapper::params(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.params");
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  vector<string> names = s->_sampler->params();
+
+  for (int i = 0; i < names.size(); i++) {
+    ret->Set(i, Nan::New(names[i]).ToLocalChecked());
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void UISamplerWrapper::sample(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.sample");
+
+  if (info.Length() == 2) {
+    float val = info[0]->NumberValue();
+
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[1]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    Comp::Context ctx = s->_sampler->sample(val, c->_context);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+    v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+    info.GetReturnValue().Set(ctxInst);
+  }
+  else {
+    Nan::ThrowError("setContext(float, context) argument error");
+  }
+}
+
+void UISamplerWrapper::eval(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.eval");
+
+  if (info.Length() == 1) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    info.GetReturnValue().Set(Nan::New(s->_sampler->eval(c->_context)));
+  }
+  else {
+    Nan::ThrowError("eval(context) argument error");
+  }
+}

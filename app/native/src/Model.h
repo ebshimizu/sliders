@@ -15,6 +15,7 @@ public:
 
   void addSample(double val);
   int count();
+  string id();
 
   string _name;
   string _param;
@@ -253,6 +254,31 @@ private:
   map<string, shared_ptr<LinearInterp>> _fs;
   
   float _val;
+};
+
+// a sampler will take a set of parameters, a specified objective function, and then returns
+// contexts that satisfy a target objective function value
+class UISampler {
+public:
+  UISampler(string displayName);
+  ~UISampler();
+
+  void setObjectiveMode(AxisEvalFuncType t);
+
+  string addParam(LayerParamInfo p);
+  void deleteParam(string id);
+
+  vector<string> params();
+
+  Context sample(float x, Context c);
+
+  float eval(Context& c);
+
+  string _displayName;
+
+private:
+  AxisEvalFuncType _objEvalMode;
+  map<string, LayerParamInfo> _params;
 };
 
 // the model class creates and samples from a model defined by a series of examples

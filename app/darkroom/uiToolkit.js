@@ -275,6 +275,27 @@ class Sampler {
   addParam(layer, param, type) {
     this.sampler.addParam(layer, param, type);
   }
+
+  createUI(container) {
+    var html = '<div class="ui item" controlName="' + this.displayName + '">';
+    html += '<div class="content">';
+    html += '<div class="header">' + this.displayName + '</div>';
+    html += '<div class="score">' + this.eval().toFixed(3) + '</div>';
+    html += '<div class="four small ui buttons">';
+    html += '<button class="ui button" buttonVal="low">A Little</button>';
+    html += '<button class="ui button" buttonVal="medium">Some</button>';
+    html += '<button class="ui button" buttonVal="high">A Lot</button>';
+    html += '<button class="ui active button" buttonVal="all">All</button>';
+    html += '</div></div></div>';
+
+    container.append(html);
+
+    // event bindings
+  }
+
+  deleteUI() {
+    $('.item[controlName="' + this.displayName + '"]').remove();
+  }
 }
 
 exports.Slider = Slider;

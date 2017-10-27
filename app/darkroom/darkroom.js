@@ -4753,7 +4753,7 @@ function highLevelSliderChange(sliderName, ui) {
 var g_uiComponents = {};
 
 function addSlider(layer, param, type) {
-  var slider = new uiTools.Slider({ 'layer': layer, 'param': param, 'type': type });
+  var slider = new uiTools.Slider({ 'name': layer, 'param': param, 'type': type });
   slider.setVal({ 'context': c.getContext() });
   slider.createUI($('#sliderItems'));
 
@@ -4867,8 +4867,8 @@ function addTestMetaSliders() {
   fgsam.addParam("a29", "opacity", adjType["OPACITY"]);
   fgsam.addParam("a30", "opacity", adjType["OPACITY"]);
 
+  fgsam.createUI($('#sliderItems'));
   g_uiComponents[fgsam.displayName] = fgsam;
-  // ui not done yet for this
 
   var bgs = new uiTools.MetaSlider("BG Sparkles");
   bgs.addSlider("b1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
@@ -4901,6 +4901,7 @@ function addTestMetaSliders() {
   bgsam.addParam("b11", "opacity", adjType["OPACITY"]);
   bgsam.addParam("b12", "opacity", adjType["OPACITY"]);
 
+  bgsam.createUI($('#sliderItems'));
   g_uiComponents[bgsam.displayName] = bgsam;
 
   addSlider("Background Tint", "r", adjType["OVERWRITE_COLOR"]);

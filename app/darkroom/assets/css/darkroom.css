@@ -569,3 +569,11 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 #setConstraintLayerColor {
     border: 1px solid black;
 }
+
+#sliderItems .ui.item .ui.list {
+    padding-left: 3em;
+}
+
+#sliderItems .ui.item .divider {
+    cursor: pointer;
+}

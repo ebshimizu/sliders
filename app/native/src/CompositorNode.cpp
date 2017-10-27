@@ -3024,6 +3024,9 @@ void UISliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     Comp::UISlider* i = static_cast<Comp::UISlider*>(info[0].As<v8::External>()->Value());
     UISliderWrapper* sw = new UISliderWrapper(i);
     sw->_deleteOnDestroy = false;
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
   }
   else {
     Nan::ThrowError("Slider constructor argument error: requires string, string, int");

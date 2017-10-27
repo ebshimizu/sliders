@@ -5,8 +5,13 @@
 const comp = require('../native/build/Release/compositor');
 
 class Slider {
-  constructor(name, param, type) {
-    this.slider = new comp.Slider(name, param, type);
+  constructor(data) {
+    if ('slider' in data) {
+      this.slider = data.slider;
+    }
+    else {
+      this.slider = new comp.Slider(data.name, data.param, data.type);
+    }
   }
 
   get displayName() {
@@ -44,6 +49,14 @@ class Slider {
     }
   }
 
+  refreshUI() {
+    // updates the ui elements without triggering a re-render
+    var i = '.paramInput[sliderName="' + this.displayName + '"] input';
+    var s = '.paramSlider[sliderName="' + this.displayName + '"]'; 
+    $(i).val(String(this.value.toFixed(3)));
+    $(s).slider("value", this.value);
+  }
+
   // constructs the ui element, inserts it into the container, and binds the proper events
   createUI(container) {
     var html = '<div class="ui item" sliderName="' + this.displayName + '">';
@@ -71,9 +84,9 @@ class Slider {
       min: 0,
       step: 0.001,
       value: this.value,
-      //stop: function (event, ui) { highLevelSliderChange(name, ui); },
+      stop: function (event, ui) { self.sliderCallback(ui); },
       slide: function (event, ui) { $(i).val(String(ui.value.toFixed(3))); },
-      change: function (event, ui) { self.sliderCallback(ui); }
+      //change: function (event, ui) { self.sliderCallback(ui); }
     });
 
     $(i).val(String(this.value.toFixed(3)));
@@ -95,7 +108,7 @@ class Slider {
 
   sliderCallback(ui) {
     var i = '.paramInput[sliderName="' + this.displayName + '"] input';
-    $(i).val(String(ui.value.toFixed(3)))
+    $(i).val(String(ui.value.toFixed(3)));
 
     this.setVal({ val: ui.value, context: c.getContext() });
   }
@@ -129,6 +142,11 @@ class MetaSlider {
 
   setContext(val, context) {
     var newCtx = this.mainSlider.setContext(val, context);
+
+    for (var id in this.subSliders) {
+      this.subSliders[id].refreshUI();
+    }
+
     c.setContext(newCtx);
     updateLayerControls();
   }
@@ -138,7 +156,7 @@ class MetaSlider {
 
     // ui handling nonsense now
     var slider = this.mainSlider.getSlider(id);
-    this.subSliders[id] = slider;
+    this.subSliders[id] = new Slider({ 'slider': slider });
   }
 
   deleteSlider(id) {
@@ -157,9 +175,21 @@ class MetaSlider {
     html += '<div class="paramLabel">' + this.displayName + '</div>';
     html += '<div class="paramSlider" sliderName="' + this.displayName + '"></div>';
     html += '<div class="paramInput ui inverted transparent input" sliderName="' + this.displayName + '"><input type="text"></div>';
-    html += '</div></div></div>';
+    html += '</div>';
+
+    // we need a sub list here
+    html += '<div class="ui horizontal fitted inverted divider">Component Sliders</div><div class="ui list"></div>';
+
+    html += '</div></div>';
 
     container.append(html);
+
+    var sectionID = '.item[sliderName="' + this.displayName + '"] .ui.list';
+    $(sectionID).transition('hide');
+
+    $('.item[sliderName="' + this.displayName + '"] .divider').click(function () {
+      $(sectionID).transition('fade down');
+    });
 
     // event bindings
     var s = '.paramSlider[sliderName="' + this.displayName + '"]';
@@ -176,7 +206,12 @@ class MetaSlider {
       step: 0.001,
       value: this.value,
       //stop: function (event, ui) { highLevelSliderChange(name, ui); },
-      slide: function (event, ui) { $(i).val(String(ui.value.toFixed(3))); },
+      slide: function (event, ui) {
+        $(i).val(String(ui.value.toFixed(3)));
+        for (var id in this.subSliders) {
+          this.subSliders[id].refreshUI();
+        }
+      },
       change: function (event, ui) { self.sliderCallback(ui); }
     });
 
@@ -195,6 +230,11 @@ class MetaSlider {
       var data = parseFloat($(this).val());
       $(s).slider("value", data);
     });
+
+    // add the subslider elements
+    for (var id in this.subSliders) {
+      this.subSliders[id].createUI($('.item[sliderName="' + this.displayName + '"] .list'));
+    }
   }
 
   sliderCallback(ui) {

@@ -4753,7 +4753,7 @@ function highLevelSliderChange(sliderName, ui) {
 var g_uiComponents = {};
 
 function addSlider(layer, param, type) {
-  var slider = new uiTools.Slider(layer, param, type);
+  var slider = new uiTools.Slider({ 'layer': layer, 'param': param, 'type': type });
   slider.setVal({ 'context': c.getContext() });
   slider.createUI($('#sliderItems'));
 

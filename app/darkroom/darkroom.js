@@ -4906,8 +4906,19 @@ function addTestMetaSliders() {
   bgsam.createUI($('#sliderItems'));
   g_uiComponents[bgsam.displayName] = bgsam;
 
-  addSlider("Background Tint", "r", adjType["OVERWRITE_COLOR"]);
-  addSlider("Background Tint", "g", adjType["OVERWRITE_COLOR"]);
-  addSlider("Background Tint", "b", adjType["OVERWRITE_COLOR"]);
+  var testCP = new uiTools.ColorPicker("Background Tint", adjType["OVERWRITE_COLOR"]);
+  testCP.createUI($('#sliderItems'));
+  g_uiComponents[testCP.displayName] = testCP;
   addSlider("Background Tint", "a", adjType["OVERWRITE_COLOR"]);
+
+  // other stuff
+  addSlider("Photo Sharpening", "opacity", adjType["OPACITY"]);
+  addSlider("Your Photo", "opacity", adjType["OPACITY"]);
+
+  var blurs = new uiTools.MetaSlider("BG Blur");
+  blurs.addSlider("Background Blur 1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+  blurs.addSlider("Background Blur 2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+
+  blurs.createUI($('#sliderItems'));
+  g_uiComponents[blurs.displayName] = blurs;
 }

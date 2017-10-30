@@ -350,6 +350,82 @@ class Sampler {
   }
 }
 
+class ColorPicker {
+  constructor(layer, type) {
+    this._layer = layer;
+    this._type = type;
+  }
+
+  get displayName() {
+    return this.layer + this.type;
+  }
+
+  get layer() {
+    return this._layer;
+  }
+
+  get type() {
+    return this._type;
+  }
+
+  createUI(container) {
+    var html = '<div class="ui item" controlName="' + this.displayName + '">';
+    html += '<div class="header">' + this.displayName + '</div>';
+    html += '<div class="paramColor" paramName="colorPicker"></div>';
+    html += '</div>';
+
+    container.append(html);
+
+    // callbacks and init
+    var selector = '.item[controlName="' + this.displayName + '"] .paramColor';
+    var self = this;
+
+    $(selector).click(function () {
+      if ($('#colorPicker').hasClass('hidden')) {
+        // move color picker to spot
+        var thisElem = $(selector);
+        var offset = thisElem.offset();
+
+        var adj = c.getLayer(self.layer).getAdjustment(self.type);
+        cp.setColor({ "r": adj.r * 255, "g": adj.g * 255, "b": adj.b * 255 }, 'rgb');
+        cp.startRender();
+
+        $("#colorPicker").css({ 'right': '', 'top': '' });
+        if (offset.top + thisElem.height() + $('#colorPicker').height() > $('body').height()) {
+          $('#colorPicker').css({ "right": "10px", top: offset.top - $('#colorPicker').height() });
+        }
+        else {
+          $('#colorPicker').css({ "right": "10px", top: offset.top + thisElem.height() });
+        }
+
+        // assign callbacks to update proper color
+        cp.color.options.actionCallback = function (e, action) {
+          console.log(action);
+          if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+            var color = cp.color.colors.rgb;
+            updateColor(c.getLayer(self.layer), self.type, color);
+            $(thisElem).css({ "background-color": "#" + cp.color.colors.HEX });
+
+            updateLayerControls();
+          }
+        };
+
+        $('#colorPicker').addClass('visible');
+        $('#colorPicker').removeClass('hidden');
+      }
+      else {
+        $('#colorPicker').addClass('hidden');
+        $('#colorPicker').removeClass('visible');
+      }
+    });
+
+    var adj = c.getLayer(this.layer).getAdjustment(this.type);
+    var colorStr = "rgb(" + parseInt(adj.r * 255) + "," + parseInt(adj.g * 255) + "," + parseInt(adj.b * 255) + ")";
+    $(selector).css({ "background-color": colorStr });
+  }
+}
+
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
 exports.Sampler = Sampler;
+exports.ColorPicker = ColorPicker;

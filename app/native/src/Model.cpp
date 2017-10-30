@@ -682,29 +682,81 @@ vector<string> UISampler::params()
   return ret;
 }
 
-Context UISampler::sample(float x, Context c)
+Context UISampler::sample(float x, Context ctx)
 {
-  // for now it's just going to randomly select things in a gaussian
-  // around the given point
+  // use the lighting code
+  vector<float> results;
+  vector<int> c;
+  vector<float> s;
+
   random_device rd;
   mt19937 gen(rd());
-  normal_distribution<float> dist(x, 0.2);
+  uniform_real_distribution<float> zeroOne(0, 1);
 
   for (auto& p : _params) {
-    if (c.count(p.second._name) > 0) {
-      if (p.second._type == OPACITY) {
-        c[p.second._name].setOpacity(dist(gen));
-      }
-      else if (p.second._type == SELECTIVE_COLOR) {
-        // tbd
+    // sparsity constraint
+    if (zeroOne(gen) > x) {
+      results.push_back(0);
+      c.push_back(3);
+      s.push_back(1);
+    }
+    else {
+      if (p.second._type == AdjustmentType::OPACITY) {
+        results.push_back(ctx[p.second._name].getOpacity());
       }
       else {
-        c[p.second._name].addAdjustment(p.second._type, p.second._param, dist(gen));
+        results.push_back(ctx[p.second._name].getAdjustment(p.second._type)[p.second._param]);
       }
+
+      c.push_back(0);
+      s.push_back(1);
     }
   }
 
-  return c;
+  // hey look it's the lighting code
+  GibbsSamplingGaussianMixturePrior(results, c, s, results.size(), 0, x, x, false);
+
+  int i = 0;
+  for (auto& p : _params) {
+    float val = results[i];
+
+    if (p.second._inverted) {
+      val = 1 - val;
+    }
+
+    if (p.second._type == AdjustmentType::OPACITY) {
+      ctx[p.second._name].setOpacity(val);
+    }
+    else {
+      ctx[p.second._name].getAdjustment(p.second._type)[p.second._param] = val;
+    }
+
+    i++;
+  }
+
+  return ctx;
+
+  // for now it's just going to randomly select things in a gaussian
+  // around the given point
+  //random_device rd;
+  //mt19937 gen(rd());
+  //normal_distribution<float> dist(x, 0.2);
+
+  //for (auto& p : _params) {
+  //  if (ctx.count(p.second._name) > 0) {
+  //    if (p.second._type == OPACITY) {
+  //      ctx[p.second._name].setOpacity(dist(gen));
+  //    }
+  //    else if (p.second._type == SELECTIVE_COLOR) {
+        // tbd
+  //    }
+  //    else {
+  //      ctx[p.second._name].addAdjustment(p.second._type, p.second._param, dist(gen));
+  //    }
+  //  }
+  //}
+
+  return ctx;
 }
 
 float UISampler::eval(Context& c)

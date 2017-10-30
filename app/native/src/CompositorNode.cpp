@@ -3134,6 +3134,7 @@ void UIMetaSliderWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "setContext", setContext);
   Nan::SetPrototypeMethod(tpl, "displayName", displayName);
   Nan::SetPrototypeMethod(tpl, "getVal", getVal);
+  Nan::SetPrototypeMethod(tpl, "reassignMax", reassignMax);
 
   uiMetaSliderConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("MetaSlider").ToLocalChecked(), tpl->GetFunction());
@@ -3363,6 +3364,20 @@ void UIMetaSliderWrapper::getVal(const Nan::FunctionCallbackInfo<v8::Value>& inf
   nullcheck(s->_mSlider, "MetaSlider.getVal");
 
   info.GetReturnValue().Set(Nan::New(s->_mSlider->getVal()));
+}
+
+void UIMetaSliderWrapper::reassignMax(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.reassignMax");
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Internal Error: Context object found is empty!");
+  }
+  ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+  s->_mSlider->reassignMax(c->_context);
 }
 
 void UISamplerWrapper::Init(v8::Local<v8::Object> exports)

@@ -262,6 +262,7 @@ private:
   static void setContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void displayName(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void reassignMax(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class UISamplerWrapper : public Nan::ObjectWrap {

@@ -632,6 +632,25 @@ Context UIMetaSlider::setContext(float x, Context c)
   return ret;
 }
 
+void UIMetaSlider::reassignMax(Context c)
+{
+  for (auto& s : _sliders) {
+    float newMax;
+
+    if (s.second->getType() == AdjustmentType::OPACITY) {
+      newMax = c[s.second->getLayer()].getOpacity();
+    }
+    else if (s.second->getType() == AdjustmentType::SELECTIVE_COLOR) {
+      // TODO
+    }
+    else {
+      newMax = c[s.second->getLayer()].getAdjustment(s.second->getType())[s.second->getParam()];
+    }
+
+    setPoints(s.first, { 0, 1 }, { 0, newMax });
+  }
+}
+
 UISampler::UISampler(string displayName) : _displayName(displayName) {
   _objEvalMode = AxisEvalFuncType::AVERAGE;
 }

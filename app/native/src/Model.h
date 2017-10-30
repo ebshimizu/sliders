@@ -245,6 +245,11 @@ public:
   // given a context, sets the value for each parameter in the meta slider
   Context setContext(float x, Context c);
 
+  // reassigns the maximum sub-slider values to be the value in the given context
+  // this falls under the "oddly-specific" category of functions and is present to
+  // basically make shimmer work correctly
+  void reassignMax(Context c);
+
   float getVal() { return _val; }
 
   string _displayName;

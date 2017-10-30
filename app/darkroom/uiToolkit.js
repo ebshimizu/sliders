@@ -247,11 +247,25 @@ class MetaSlider {
   deleteUI() {
     $('.item[sliderName="' + this.displayName + '"]').remove();
   }
+
+  updateMax(ctx) {
+    this.mainSlider.reassignMax(ctx);
+
+    // updating the max may have chagned the context, so do that here too
+    var newCtx = this.mainSlider.setContext(this.value, ctx);
+
+    for (var id in this.subSliders) {
+      this.subSliders[id].refreshUI();
+    }
+
+    c.setContext(newCtx);
+  }
 }
 
 class Sampler {
   constructor(displayName) {
     this.sampler = new comp.Sampler(displayName);
+    this.linkedMetaSlider = null;
   }
 
   get keys() {
@@ -262,9 +276,25 @@ class Sampler {
     return this.sampler.displayName();
   }
 
+  set linkedMetaSlider(uiElem) {
+    this._linkedMetaSlider = uiElem;
+  }
+
+  get linkedMetaSlider() {
+    return this._linkedMetaSlider;
+  }
+
   sample(x) {
     var newCtx = this.sampler.sample(x, c.getContext());
     c.setContext(newCtx);
+
+    // this can change the value of the context, so recompute score after this step
+    if (this.linkedMetaSlider) {
+      this.linkedMetaSlider.updateMax(newCtx);
+    }
+
+    $('.item[controlName="' + this.displayName + '"] .score').text(this.eval().toFixed(3));
+
     updateLayerControls();
   }
 
@@ -289,8 +319,30 @@ class Sampler {
     html += '</div></div></div>';
 
     container.append(html);
+    var cname = this.displayName;
+    var self = this;
 
     // event bindings
+    $('.item[controlName="' + this.displayName + '"] .button').click(function () {
+      var type = $(this).attr('buttonVal');
+
+      // eventually these shortcuts will probably be replaced by actual params
+      if (type === 'low') {
+        self.sample(0.25);
+      }
+      else if (type === 'medium') {
+        self.sample(0.5);
+      }
+      else if (type === 'high') {
+        self.sample(0.75);
+      }
+      else if (type === 'all') {
+        self.sample(1);
+      }
+
+      $('.item[controlName="' + cname + '"] .button').removeClass('active');
+      $(this).addClass('active');
+    });
   }
 
   deleteUI() {

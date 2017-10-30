@@ -4867,6 +4867,7 @@ function addTestMetaSliders() {
   fgsam.addParam("a29", "opacity", adjType["OPACITY"]);
   fgsam.addParam("a30", "opacity", adjType["OPACITY"]);
 
+  fgsam.linkedMetaSlider = fgs;
   fgsam.createUI($('#sliderItems'));
   g_uiComponents[fgsam.displayName] = fgsam;
 
@@ -4901,6 +4902,7 @@ function addTestMetaSliders() {
   bgsam.addParam("b11", "opacity", adjType["OPACITY"]);
   bgsam.addParam("b12", "opacity", adjType["OPACITY"]);
 
+  bgsam.linkedMetaSlider = bgs;
   bgsam.createUI($('#sliderItems'));
   g_uiComponents[bgsam.displayName] = bgsam;
 

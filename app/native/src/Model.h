@@ -205,6 +205,9 @@ public:
 
   Context setVal(float x, Context c);
 
+  // sets the val without updating an associated context
+  void setVal(float x) { _val = x; }
+
   // sets the value based on current context values
   void setVal(Context& c);
 

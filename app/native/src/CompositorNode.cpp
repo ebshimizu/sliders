@@ -2984,6 +2984,7 @@ void UISliderWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "layer", layer);
   Nan::SetPrototypeMethod(tpl, "param", param);
   Nan::SetPrototypeMethod(tpl, "type", type);
+  Nan::SetPrototypeMethod(tpl, "toJSON", toJSON);
 
   uiSliderConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Slider").ToLocalChecked(), tpl->GetFunction());
@@ -3024,6 +3025,22 @@ void UISliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     Comp::UISlider* i = static_cast<Comp::UISlider*>(info[0].As<v8::External>()->Value());
     UISliderWrapper* sw = new UISliderWrapper(i);
     sw->_deleteOnDestroy = false;
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
+  }
+  else if (info[0]->IsObject()) {
+    // json object init
+    v8::Local<v8::Object> obj = info[0].As<v8::Object>();
+    v8::String::Utf8Value l(obj->Get(Nan::New("layer").ToLocalChecked())->ToString());
+    v8::String::Utf8Value p(obj->Get(Nan::New("param").ToLocalChecked())->ToString());
+    Comp::AdjustmentType t = (Comp::AdjustmentType)obj->Get(Nan::New("type").ToLocalChecked())->Int32Value();
+    v8::String::Utf8Value dn(obj->Get(Nan::New("displayName").ToLocalChecked())->ToString());
+
+    Comp::UISlider* i = new Comp::UISlider(string(*l), string(*p), t, string(*dn));
+    i->setVal(obj->Get(Nan::New("value").ToLocalChecked())->NumberValue());
+
+    UISliderWrapper* sw = new UISliderWrapper(i);
     sw->Wrap(info.This());
 
     info.GetReturnValue().Set(info.This());
@@ -3114,6 +3131,22 @@ void UISliderWrapper::type(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(s->_slider, "slider.type");
 
   info.GetReturnValue().Set(Nan::New(s->_slider->getType()));
+}
+
+void UISliderWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISliderWrapper* s = ObjectWrap::Unwrap<UISliderWrapper>(info.Holder());
+  nullcheck(s->_slider, "slider.toJSON");
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  ret->Set(Nan::New("layer").ToLocalChecked(), Nan::New(s->_slider->getLayer()).ToLocalChecked());
+  ret->Set(Nan::New("param").ToLocalChecked(), Nan::New(s->_slider->getParam()).ToLocalChecked());
+  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New(s->_slider->getType()));
+  ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_slider->_displayName).ToLocalChecked());
+  ret->Set(Nan::New("value").ToLocalChecked(), Nan::New(s->_slider->getVal()));
+
+  info.GetReturnValue().Set(ret);
 }
 
 void UIMetaSliderWrapper::Init(v8::Local<v8::Object> exports)

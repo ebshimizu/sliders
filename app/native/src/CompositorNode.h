@@ -239,6 +239,7 @@ private:
   static void layer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void param(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class UIMetaSliderWrapper : public Nan::ObjectWrap {

@@ -9,6 +9,9 @@ class Slider {
     if ('slider' in data) {
       this.slider = data.slider;
     }
+    if ('json' in data) {
+      this.slider = new comp.Slider(data.json);
+    }
     else {
       this.slider = new comp.Slider(data.name, data.param, data.type);
     }
@@ -47,6 +50,10 @@ class Slider {
     else {
       this.slider.setVal(dat.context);
     }
+  }
+
+  toJSON() {
+    return this.slider.toJSON();
   }
 
   refreshUI() {

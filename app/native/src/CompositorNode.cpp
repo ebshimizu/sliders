@@ -3145,7 +3145,7 @@ void UISliderWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
   ret->Set(Nan::New("type").ToLocalChecked(), Nan::New(s->_slider->getType()));
   ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_slider->_displayName).ToLocalChecked());
   ret->Set(Nan::New("value").ToLocalChecked(), Nan::New(s->_slider->getVal()));
-  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("Slider").ToLocalChecked());
+  ret->Set(Nan::New("UIType").ToLocalChecked(), Nan::New("Slider").ToLocalChecked());
 
   info.GetReturnValue().Set(ret);
 }
@@ -3459,7 +3459,7 @@ void UIMetaSliderWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& inf
   // metaslider info
   ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_mSlider->_displayName).ToLocalChecked());
   ret->Set(Nan::New("value").ToLocalChecked(), Nan::New(s->_mSlider->getVal()));
-  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("MetaSlider").ToLocalChecked());
+  ret->Set(Nan::New("UIType").ToLocalChecked(), Nan::New("MetaSlider").ToLocalChecked());
 
   v8::Local<v8::Object> sliders = Nan::New<v8::Object>();
   // slider data extraction
@@ -3556,9 +3556,15 @@ void UISamplerWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
       inf._name = string(*layer);
       inf._param = string(*param);
       inf._type = t;
+      inf._inverted = false;
 
       sampler->addParam(inf);
     }
+
+    UISamplerWrapper* sw = new UISamplerWrapper(sampler);
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
   }
   else {
     Nan::ThrowError("Sampler requires a name");
@@ -3689,7 +3695,7 @@ void UISamplerWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
   ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_sampler->_displayName).ToLocalChecked());
   ret->Set(Nan::New("objEvalMode").ToLocalChecked(), Nan::New(s->_sampler->getEvalMode()));
-  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("Sampler").ToLocalChecked());
+  ret->Set(Nan::New("UIType").ToLocalChecked(), Nan::New("Sampler").ToLocalChecked());
 
   // parameter dump
   vector<string> ids = s->_sampler->params();

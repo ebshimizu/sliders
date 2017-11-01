@@ -675,6 +675,8 @@ void UISampler::setObjectiveMode(AxisEvalFuncType t)
 string UISampler::addParam(LayerParamInfo p)
 {
   _params[p.id()] = p;
+
+  return p.id();
 }
 
 void UISampler::deleteParam(string id)

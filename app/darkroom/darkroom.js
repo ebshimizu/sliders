@@ -4835,7 +4835,7 @@ function addTestMetaSliders() {
   g_uiComponents[fgs.displayName] = fgs;
 
   // sampler
-  var fgsam = new uiTools.Sampler("FG Sparkle Quantity");
+  var fgsam = new uiTools.Sampler({ name: "FG Sparkle Quantity" });
   fgsam.addParam("a1", "opacity", adjType["OPACITY"]);
   fgsam.addParam("a2", "opacity", adjType["OPACITY"]);
   fgsam.addParam("a3", "opacity", adjType["OPACITY"]);
@@ -4888,7 +4888,7 @@ function addTestMetaSliders() {
   bgs.createUI($('#sliderItems'));
   g_uiComponents[bgs.displayName] = bgs;
 
-  var bgsam = new uiTools.Sampler("BG Sparkles Quantity");
+  var bgsam = new uiTools.Sampler({ name: "BG Sparkles Quantity" });
   bgsam.addParam("b1", "opacity", adjType["OPACITY"]);
   bgsam.addParam("b2", "opacity", adjType["OPACITY"]);
   bgsam.addParam("b3", "opacity", adjType["OPACITY"]);
@@ -4941,9 +4941,42 @@ function loadCustomUI(file) {
       throw err;
     }
 
-    var data = JSON.parse(file);
+    var data = JSON.parse(data);
 
     // convert into actual objects
+    for (var id in data) {
+      var elem = data[id];
 
+      if (elem.UIType === "Slider") {
+        var slider = new uiTools.Slider({ json: elem });
+        g_uiComponents[slider.displayName] = slider;
+      }
+      else if (elem.UIType === "MetaSlider") {
+        var slider = new uiTools.MetaSlider({ json: elem });
+        g_uiComponents[slider.displayName] = slider;
+      }
+      else if (elem.UIType === "Sampler") {
+        var sampler = new uiTools.Sampler({ json: elem });
+        g_uiComponents[sampler.displayName] = sampler;
+      }
+      else if (elem.UIType === "ColorPicker") {
+        var color = new uiTools.ColorPicker(elem.layer, elem.type);
+        g_uiComponents[color.displayName] = color;
+      }
+    }
+
+    // link samplers to metasliders (if applicable)
+    for (var id in g_uiComponents) {
+      if (g_uiComponents[id].UIType === "Sampler") {
+        if (data[id].linkedMetaSlider) {
+          g_uiComponents[id].linkedMetaSlider = g_uiComponents[data[id].linkedMetaSlider];
+        }
+      }
+    }
+
+    // generate ui
+    for (var id in g_uiComponents) {
+      g_uiComponents[id].createUI($('#sliderItems'));
+    }
   });
 }

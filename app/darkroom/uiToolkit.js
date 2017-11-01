@@ -9,7 +9,7 @@ class Slider {
     if ('slider' in data) {
       this.slider = data.slider;
     }
-    if ('json' in data) {
+    else if ('json' in data) {
       this.slider = new comp.Slider(data.json);
     }
     else {
@@ -39,6 +39,10 @@ class Slider {
 
   get value() {
     return this.slider.getVal();
+  }
+
+  get UIType() {
+    return "Slider";
   }
 
   setVal(dat) {
@@ -129,9 +133,10 @@ class MetaSlider {
   constructor(obj) {
     if ('json' in obj) {
       this.mainSlider = new comp.MetaSlider(obj.json)
+      this.subSliders = {};
 
       for (var id in this.keys) {
-        this.subSliders[this.keys[id]] = this.mainSlider.getSlider(this.keys[id]);
+        this.subSliders[this.keys[id]] = new Slider({ slider: this.mainSlider.getSlider(this.keys[id]) });
       }
     }
     else {
@@ -154,6 +159,10 @@ class MetaSlider {
 
   get value() {
     return this.mainSlider.getVal();
+  }
+
+  get UIType() {
+    return "MetaSlider";
   }
 
   setContext(val, context) {
@@ -283,9 +292,14 @@ class MetaSlider {
 }
 
 class Sampler {
-  constructor(displayName) {
-    this.sampler = new comp.Sampler(displayName);
-    this.linkedMetaSlider = null;
+  constructor(obj) {
+    if ('name' in obj) {
+      this.sampler = new comp.Sampler(obj.name);
+      this.linkedMetaSlider = null;
+    }
+    else if ('json' in obj) {
+      this.sampler = new comp.Sampler(obj.json);
+    }
   }
 
   get keys() {
@@ -302,6 +316,10 @@ class Sampler {
 
   get linkedMetaSlider() {
     return this._linkedMetaSlider;
+  }
+
+  get UIType() {
+    return "Sampler";
   }
 
   sample(x) {
@@ -399,6 +417,10 @@ class ColorPicker {
 
   get type() {
     return this._type;
+  }
+
+  toJSON() {
+    return { type: this._type, layer: this._layer, UIType: "ColorPicker" };
   }
 
   createUI(container) {

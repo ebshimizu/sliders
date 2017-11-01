@@ -590,6 +590,15 @@ UISlider* UIMetaSlider::getSlider(string id)
   return nullptr;
 }
 
+shared_ptr<LinearInterp> UIMetaSlider::getFunc(string id)
+{
+  if (_fs.count(id) > 0) {
+    return _fs[id];
+  }
+
+  return nullptr;
+}
+
 int UIMetaSlider::size()
 {
   return _sliders.size();
@@ -680,6 +689,15 @@ vector<string> UISampler::params()
     ret.push_back(p.first);
   }
   return ret;
+}
+
+LayerParamInfo UISampler::getParamInfo(string id)
+{
+  if (_params.count(id) > 0) {
+    return _params[id];
+  }
+
+  return LayerParamInfo();
 }
 
 Context UISampler::sample(float x, Context ctx)

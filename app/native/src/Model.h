@@ -237,6 +237,7 @@ public:
   string addSlider(string layer, string param, AdjustmentType t, float min, float max);
 
   UISlider* getSlider(string id);
+  shared_ptr<LinearInterp> getFunc(string id);
 
   int size();
   vector<string> names();
@@ -277,11 +278,13 @@ public:
   void deleteParam(string id);
 
   vector<string> params();
+  LayerParamInfo getParamInfo(string id);
 
   Context sample(float x, Context c);
 
   float eval(Context& c);
 
+  AxisEvalFuncType getEvalMode() { return _objEvalMode; }
   string _displayName;
 
 private:

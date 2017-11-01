@@ -264,6 +264,7 @@ private:
   static void displayName(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void reassignMax(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class UISamplerWrapper : public Nan::ObjectWrap {
@@ -283,6 +284,7 @@ private:
   static void params(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void sample(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void eval(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info);
 };
 
 class RenderWorker : public Nan::AsyncWorker {

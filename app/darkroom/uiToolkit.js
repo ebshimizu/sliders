@@ -126,9 +126,18 @@ class Slider {
 }
 
 class MetaSlider {
-  constructor(name) {
-    this.mainSlider = new comp.MetaSlider(name);
-    this.subSliders = {};
+  constructor(obj) {
+    if ('json' in obj) {
+      this.mainSlider = new comp.MetaSlider(obj.json)
+
+      for (var id in this.keys) {
+        this.subSliders[this.keys[id]] = this.mainSlider.getSlider(this.keys[id]);
+      }
+    }
+    else {
+      this.mainSlider = new comp.MetaSlider(obj.name);
+      this.subSliders = {};
+    }
   }
 
   get displayName() {
@@ -170,6 +179,10 @@ class MetaSlider {
     this.mainSlider.deleteSlider(id);
 
     delete this.subSliders[id];
+  }
+
+  toJSON() {
+    return this.mainSlider.toJSON();
   }
 
   // constructs the ui element, inserts it into the container, and binds the proper events
@@ -311,6 +324,19 @@ class Sampler {
 
   addParam(layer, param, type) {
     this.sampler.addParam(layer, param, type);
+  }
+
+  toJSON() {
+    var core = this.sampler.toJSON();
+
+    if (this.linkedMetaSlider) {
+      core.linkedMetaSlider = this.linkedMetaSlider.displayName;
+    }
+    else {
+      core.linkedMetaSlider = null;
+    }
+
+    return core;
   }
 
   createUI(container) {

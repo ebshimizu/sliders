@@ -3145,6 +3145,7 @@ void UISliderWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
   ret->Set(Nan::New("type").ToLocalChecked(), Nan::New(s->_slider->getType()));
   ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_slider->_displayName).ToLocalChecked());
   ret->Set(Nan::New("value").ToLocalChecked(), Nan::New(s->_slider->getVal()));
+  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("Slider").ToLocalChecked());
 
   info.GetReturnValue().Set(ret);
 }
@@ -3168,6 +3169,7 @@ void UIMetaSliderWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "displayName", displayName);
   Nan::SetPrototypeMethod(tpl, "getVal", getVal);
   Nan::SetPrototypeMethod(tpl, "reassignMax", reassignMax);
+  Nan::SetPrototypeMethod(tpl, "toJSON", toJSON);
 
   uiMetaSliderConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("MetaSlider").ToLocalChecked(), tpl->GetFunction());
@@ -3189,6 +3191,40 @@ void UIMetaSliderWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     string name(*i0);
 
     Comp::UIMetaSlider* slider = new Comp::UIMetaSlider(name);
+    UIMetaSliderWrapper* sw = new UIMetaSliderWrapper(slider);
+    sw->Wrap(info.This());
+
+    info.GetReturnValue().Set(info.This());
+  }
+  else if (info[0]->IsObject()) {
+    v8::Local<v8::Object> obj = info[0].As<v8::Object>();
+    v8::String::Utf8Value name(obj->Get(Nan::New("displayName").ToLocalChecked())->ToString());
+
+    Comp::UIMetaSlider* slider = new Comp::UIMetaSlider(string(*name));
+
+    // slider loading time
+    v8::Local<v8::Object> sliders = obj->Get(Nan::New("subSliders").ToLocalChecked()).As<v8::Object>();
+    auto ids = sliders->GetOwnPropertyNames();
+    for (int i = 0; i < ids->Length(); i++) {
+      auto sliderObj = sliders->Get(ids->Get(i)).As<v8::Object>();
+
+      v8::String::Utf8Value layer(sliderObj->Get(Nan::New("layer").ToLocalChecked())->ToString());
+      v8::String::Utf8Value param(sliderObj->Get(Nan::New("param").ToLocalChecked())->ToString());
+      Comp::AdjustmentType t = (Comp::AdjustmentType)sliderObj->Get(Nan::New("type").ToLocalChecked())->Int32Value();
+
+      vector<float> xs;
+      vector<float> ys;
+      auto xsa = sliderObj->Get(Nan::New("xs").ToLocalChecked()).As<v8::Array>();
+      auto ysa = sliderObj->Get(Nan::New("ys").ToLocalChecked()).As<v8::Array>();
+
+      for (int i = 0; i < xsa->Length(); i++) {
+        xs.push_back(xsa->Get(i)->NumberValue());
+        ys.push_back(ysa->Get(i)->NumberValue());
+      }
+
+      slider->addSlider(string(*layer), string(*param), t, xs, ys);
+    }
+
     UIMetaSliderWrapper* sw = new UIMetaSliderWrapper(slider);
     sw->Wrap(info.This());
 
@@ -3413,6 +3449,48 @@ void UIMetaSliderWrapper::reassignMax(const Nan::FunctionCallbackInfo<v8::Value>
   s->_mSlider->reassignMax(c->_context);
 }
 
+void UIMetaSliderWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UIMetaSliderWrapper* s = ObjectWrap::Unwrap<UIMetaSliderWrapper>(info.Holder());
+  nullcheck(s->_mSlider, "MetaSlider.toJSON");
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  // metaslider info
+  ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_mSlider->_displayName).ToLocalChecked());
+  ret->Set(Nan::New("value").ToLocalChecked(), Nan::New(s->_mSlider->getVal()));
+  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("MetaSlider").ToLocalChecked());
+
+  v8::Local<v8::Object> sliders = Nan::New<v8::Object>();
+  // slider data extraction
+  for (auto& name : s->_mSlider->names()) {
+    v8::Local<v8::Object> sld = Nan::New<v8::Object>();
+    Comp::UISlider* slider = s->_mSlider->getSlider(name);
+    auto func = s->_mSlider->getFunc(name);
+
+    sld->Set(Nan::New("layer").ToLocalChecked(), Nan::New(slider->getLayer()).ToLocalChecked());
+    sld->Set(Nan::New("param").ToLocalChecked(), Nan::New(slider->getParam()).ToLocalChecked());
+    sld->Set(Nan::New("type").ToLocalChecked(), Nan::New(slider->getType()));
+
+    // points
+    v8::Local<v8::Array> xs = Nan::New<v8::Array>();
+    v8::Local<v8::Array> ys = Nan::New<v8::Array>();
+
+    for (int i = 0; i < func->_xs.size(); i++) {
+      xs->Set(i, Nan::New(func->_xs[i]));
+      ys->Set(i, Nan::New(func->_ys[i]));
+    }
+
+    sld->Set(Nan::New("xs").ToLocalChecked(), xs);
+    sld->Set(Nan::New("ys").ToLocalChecked(), ys);
+
+    sliders->Set(Nan::New(name).ToLocalChecked(), sld);
+  }
+  ret->Set(Nan::New("subSliders").ToLocalChecked(), sliders);
+
+  info.GetReturnValue().Set(ret);
+}
+
 void UISamplerWrapper::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -3428,6 +3506,7 @@ void UISamplerWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "sample", sample);
   Nan::SetPrototypeMethod(tpl, "eval", eval);
   Nan::SetPrototypeMethod(tpl, "displayName", displayName);
+  Nan::SetPrototypeMethod(tpl, "toJSON", toJSON);
 
   uiSamplerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Sampler").ToLocalChecked(), tpl->GetFunction());
@@ -3453,6 +3532,33 @@ void UISamplerWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
     sw->Wrap(info.This());
 
     info.GetReturnValue().Set(info.This());
+  }
+  else if (info[0]->IsObject()) {
+    v8::Local<v8::Object> obj = info[0].As<v8::Object>();
+
+    v8::String::Utf8Value dn(obj->Get(Nan::New("displayName").ToLocalChecked())->ToString());
+    Comp::AxisEvalFuncType type = (Comp::AxisEvalFuncType)obj->Get(Nan::New("objEvalMode").ToLocalChecked())->Int32Value();
+
+    Comp::UISampler* sampler = new Comp::UISampler(string(*dn));
+    sampler->setObjectiveMode(type);
+
+    // params
+    v8::Local<v8::Object> params = obj->Get(Nan::New("params").ToLocalChecked()).As<v8::Object>();
+    auto names = params->GetOwnPropertyNames();
+    for (int i = 0; i < names->Length(); i++) {
+      v8::Local<v8::Object> p = params->Get(names->Get(i)).As<v8::Object>();
+      Comp::LayerParamInfo inf;
+
+      v8::String::Utf8Value layer(p->Get(Nan::New("layer").ToLocalChecked())->ToString());
+      v8::String::Utf8Value param(p->Get(Nan::New("param").ToLocalChecked())->ToString());
+      Comp::AdjustmentType t = (Comp::AdjustmentType)p->Get(Nan::New("type").ToLocalChecked())->Int32Value();
+
+      inf._name = string(*layer);
+      inf._param = string(*param);
+      inf._type = t;
+
+      sampler->addParam(inf);
+    }
   }
   else {
     Nan::ThrowError("Sampler requires a name");
@@ -3572,4 +3678,35 @@ void UISamplerWrapper::eval(const Nan::FunctionCallbackInfo<v8::Value>& info)
   else {
     Nan::ThrowError("eval(context) argument error");
   }
+}
+
+void UISamplerWrapper::toJSON(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  UISamplerWrapper* s = ObjectWrap::Unwrap<UISamplerWrapper>(info.Holder());
+  nullcheck(s->_sampler, "Sampler.toJSON");
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  ret->Set(Nan::New("displayName").ToLocalChecked(), Nan::New(s->_sampler->_displayName).ToLocalChecked());
+  ret->Set(Nan::New("objEvalMode").ToLocalChecked(), Nan::New(s->_sampler->getEvalMode()));
+  ret->Set(Nan::New("type").ToLocalChecked(), Nan::New("Sampler").ToLocalChecked());
+
+  // parameter dump
+  vector<string> ids = s->_sampler->params();
+  v8::Local<v8::Object> params = Nan::New<v8::Object>();
+
+  for (auto& id : ids) {
+    Comp::LayerParamInfo info = s->_sampler->getParamInfo(id);
+
+    v8::Local<v8::Object> pinfo = Nan::New<v8::Object>();
+    pinfo->Set(Nan::New("layer").ToLocalChecked(), Nan::New(info._name).ToLocalChecked());
+    pinfo->Set(Nan::New("param").ToLocalChecked(), Nan::New(info._param).ToLocalChecked());
+    pinfo->Set(Nan::New("type").ToLocalChecked(), Nan::New(info._type));
+
+    params->Set(Nan::New(id).ToLocalChecked(), pinfo);
+  }
+
+  ret->Set(Nan::New("params").ToLocalChecked(), params);
+
+  info.GetReturnValue().Set(ret);
 }

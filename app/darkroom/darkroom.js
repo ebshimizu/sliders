@@ -4799,7 +4799,7 @@ function addAllParamSliders() {
 function addTestMetaSliders() {
   // shimmer is up first, add two sliders
 
-  var fgs = new uiTools.MetaSlider("FG Sparkles");
+  var fgs = new uiTools.MetaSlider({ name: "FG Sparkles" });
   fgs.addSlider("a1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   fgs.addSlider("a2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   fgs.addSlider("a3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
@@ -4871,7 +4871,7 @@ function addTestMetaSliders() {
   fgsam.createUI($('#sliderItems'));
   g_uiComponents[fgsam.displayName] = fgsam;
 
-  var bgs = new uiTools.MetaSlider("BG Sparkles");
+  var bgs = new uiTools.MetaSlider({ name: "BG Sparkles" });
   bgs.addSlider("b1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   bgs.addSlider("b2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   bgs.addSlider("b3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
@@ -4915,10 +4915,35 @@ function addTestMetaSliders() {
   addSlider("Photo Sharpening", "opacity", adjType["OPACITY"]);
   addSlider("Your Photo", "opacity", adjType["OPACITY"]);
 
-  var blurs = new uiTools.MetaSlider("BG Blur");
+  var blurs = new uiTools.MetaSlider({ name: "BG Blur" });
   blurs.addSlider("Background Blur 1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
   blurs.addSlider("Background Blur 2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
 
   blurs.createUI($('#sliderItems'));
   g_uiComponents[blurs.displayName] = blurs;
+}
+
+// exports the current custom UI to a file
+function exportCustomUI(file) {
+  fs.writeFile(file, JSON.stringify(g_uiComponents, null, 2), (err) => {
+    if (err) {
+      showStatusMsg(err.toString(), "ERROR", "Error Saving UI File");
+    }
+    else {
+      showStatusMsg(file, "OK", "UI File Saved");
+    }
+  });
+}
+
+function loadCustomUI(file) {
+  fs.readFile(file, function (err, data) {
+    if (err) {
+      throw err;
+    }
+
+    var data = JSON.parse(file);
+
+    // convert into actual objects
+
+  });
 }

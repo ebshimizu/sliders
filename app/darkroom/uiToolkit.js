@@ -401,6 +401,51 @@ class Sampler {
   }
 }
 
+class DeterministicSampler extends MetaSlider {
+  constructor(obj) {
+    super(obj);
+    this._linkedMetaSlider = null;
+  }
+
+  toJSON() {
+    var obj = this.mainSlider.toJSON();
+    obj.UIType = "DeterministicSampler";
+
+    if (this.linkedMetaSlider) {
+      obj.linkedMetaSlider = this.linkedMetaSlider.displayName;
+    }
+    else {
+      obj.linkedMetaSlider = null;
+    }
+
+    return obj;
+  }
+
+  // everything is basically the same except for the update function and having a linked slider
+  set linkedMetaSlider(uiElem) {
+    this._linkedMetaSlider = uiElem;
+  }
+
+  get linkedMetaSlider() {
+    return this._linkedMetaSlider;
+  }
+
+  get UIType() {
+    return "DeterministicSampler";
+  }
+
+  sliderCallback(ui) {
+    var i = '.paramInput[sliderName="' + this.displayName + '"] input';
+    $(i).val(String(ui.value.toFixed(3)))
+
+    this.setContext(ui.value, c.getContext());
+
+    if (this.linkedMetaSlider) {
+      this.linkedMetaSlider.updateMax(c.getContext());
+    }
+  }
+}
+
 class ColorPicker {
   constructor(layer, type) {
     this._layer = layer;
@@ -483,4 +528,5 @@ class ColorPicker {
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
 exports.Sampler = Sampler;
+exports.DeterministicSampler = DeterministicSampler;
 exports.ColorPicker = ColorPicker;

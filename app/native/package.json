@@ -5,7 +5,7 @@
   "main": "compositor.js",
   "private": true,
   "dependencies": {
-    "nan": "^2.0.0",
+    "nan": "^2.7.0",
     "node-gyp": "^3.6.2"
   },
   "gypfile": true

@@ -334,6 +334,8 @@ function initUI() {
   $('#exportSampleData').click(exportSampleData);
   $('#importSampleData').click(importSampleData);
   $('#mapViz canvas').mousemove(mapMouseMove);
+  $('#saveUIConfig').click(saveCustomUI);
+  $('#openUIConfig').click(openCustomUI);
 
   // render size options
   $('#renderSize a.item').click(function () {
@@ -4568,11 +4570,37 @@ function resetEditMenu() {
 /* Dimensionality Reduction and Visualization                                */
 /*===========================================================================*/
 
-function runPCA() {
+function runPCA(samples) {
   dr = new drt.DR(c, $('#mapViz canvas'));
 
-  dr.setSamples(g_sampleIndex);
+  if (samples) {
+    dr.setSamples(samples);
+  }
+  else {
+    dr.setSamples(g_sampleIndex);
+  }
   dr.embed("PCA");
+}
+
+function runPCAOnFolder(dir) {
+  fs.readdir(dir, function (err, files) {
+    if (err) {
+      throw err;
+    }
+
+    var samples = [];
+
+    for (var f in files) {
+      var fname = dir + files[f];
+      console.log("Reading " + fname);
+      var ctx = c.contextFromDarkroom(fname);
+      var img = c.renderContext(ctx);
+      var meta = { file: fname };
+      samples.push(new Sample(img, ctx, meta));
+    }
+
+    runPCA(samples);
+  });
 }
 
 function mapMouseMove(event) {
@@ -4760,6 +4788,66 @@ function addSlider(layer, param, type) {
   g_uiComponents[slider.displayName] = slider;
 }
 
+function addMetaSlider(name, params) {
+  var ms = new uiTools.MetaSlider({ 'name': name });
+
+  for (var p in params) {
+    var param = params[p];
+
+    // defaults to [0,1], will leave like this unless otherwise needed
+    ms.addSlider(param.layer, param.param, param.type, [0, 1], [0, 1]);
+  }
+
+  ms.createUI($('#sliderItems'));
+  g_uiComponents[ms.displayName] = ms;
+}
+
+// instead of a sampler, creates a metaslider that adds in the layers in random order
+// instead of sampling it
+function addDeterministicSampler(name, params, link) {
+  var ds = new uiTools.DeterministicSampler({ 'name': name });
+
+  // determine interval
+  var interval = 1 / params.length;
+
+  for (var i = 0; i < params.length; i++) {
+    var x = [0, interval * i, 1];
+    var y = [0, 0, 1];
+
+    ds.addSlider(params[i].layer, params[i].param, params[i].type, x, y);
+  }
+
+  if (link) {
+    ds.linkedMetaSlider = g_uiComponents[link];
+  }
+
+  ds.createUI($('#sliderItems'));
+  g_uiComponents[ds.displayName] = ds;
+}
+
+function addSampler(name, params, link) {
+  var sampler = new uiTools.Sampler({ 'name': name });
+
+  for (var p in params) {
+    var param = params[p];
+
+    sampler.addParam(param.layer, param.param, param.type);
+  }
+
+  if (link) {
+    sampler.linkedMetaSlider = g_uiComponents[link];
+  }
+
+  sampler.createUI($('#sliderItems'));
+  g_uiComponents[sampler.displayName] = sampler;
+}
+
+function addColorPicker(layer, type) {
+  var color = new uiTools.ColorPicker(layer, type);
+  color.createUI($('#sliderItems'));
+  g_uiComponents[color.displayName] = color;
+}
+
 function deleteSlider(name) {
   g_uiComponents[name].deleteUI();
   delete g_uiComponents[name];
@@ -4794,133 +4882,19 @@ function addAllParamSliders() {
   }
 }
 
-// right now there's no ui elements to manually create metasliders or load
-// them from a config file, so this is basically the load function for now
-function addTestMetaSliders() {
-  // shimmer is up first, add two sliders
+function saveCustomUI() {
+  dialog.showSaveDialog({
+    filters: [{ name: 'Darkroom UI File', extensions: ['drui'] }],
+    title: "Save UI Config"
+  }, function (filePaths) {
+    if (filePaths === undefined) {
+      return;
+    }
 
-  var fgs = new uiTools.MetaSlider({ name: "FG Sparkles" });
-  fgs.addSlider("a1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a4", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a5", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a6", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a7", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a8", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a9", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a10", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a11", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a12", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a13", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a14", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a15", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a16", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a17", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a18", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a19", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a20", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a21", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a22", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a23", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a24", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a25", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a26", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a27", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a28", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a29", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  fgs.addSlider("a30", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
+    var file = filePaths;
 
-  fgs.createUI($('#sliderItems'));
-  g_uiComponents[fgs.displayName] = fgs;
-
-  // sampler
-  var fgsam = new uiTools.Sampler({ name: "FG Sparkle Quantity" });
-  fgsam.addParam("a1", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a2", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a3", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a4", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a5", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a6", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a7", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a8", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a9", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a10", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a11", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a12", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a13", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a14", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a15", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a16", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a17", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a18", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a19", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a20", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a21", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a22", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a23", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a24", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a25", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a26", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a27", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a28", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a29", "opacity", adjType["OPACITY"]);
-  fgsam.addParam("a30", "opacity", adjType["OPACITY"]);
-
-  fgsam.linkedMetaSlider = fgs;
-  fgsam.createUI($('#sliderItems'));
-  g_uiComponents[fgsam.displayName] = fgsam;
-
-  var bgs = new uiTools.MetaSlider({ name: "BG Sparkles" });
-  bgs.addSlider("b1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b3", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b4", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b5", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b6", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b7", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b8", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b9", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b10", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b11", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  bgs.addSlider("b12", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-
-  bgs.createUI($('#sliderItems'));
-  g_uiComponents[bgs.displayName] = bgs;
-
-  var bgsam = new uiTools.Sampler({ name: "BG Sparkles Quantity" });
-  bgsam.addParam("b1", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b2", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b3", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b4", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b5", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b6", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b7", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b8", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b9", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b10", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b11", "opacity", adjType["OPACITY"]);
-  bgsam.addParam("b12", "opacity", adjType["OPACITY"]);
-
-  bgsam.linkedMetaSlider = bgs;
-  bgsam.createUI($('#sliderItems'));
-  g_uiComponents[bgsam.displayName] = bgsam;
-
-  var testCP = new uiTools.ColorPicker("Background Tint", adjType["OVERWRITE_COLOR"]);
-  testCP.createUI($('#sliderItems'));
-  g_uiComponents[testCP.displayName] = testCP;
-  addSlider("Background Tint", "a", adjType["OVERWRITE_COLOR"]);
-
-  // other stuff
-  addSlider("Photo Sharpening", "opacity", adjType["OPACITY"]);
-  addSlider("Your Photo", "opacity", adjType["OPACITY"]);
-
-  var blurs = new uiTools.MetaSlider({ name: "BG Blur" });
-  blurs.addSlider("Background Blur 1", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-  blurs.addSlider("Background Blur 2", "opacity", adjType["OPACITY"], [0, 1], [0, 1]);
-
-  blurs.createUI($('#sliderItems'));
-  g_uiComponents[blurs.displayName] = blurs;
+    exportCustomUI(file);
+  })
 }
 
 // exports the current custom UI to a file
@@ -4932,6 +4906,20 @@ function exportCustomUI(file) {
     else {
       showStatusMsg(file, "OK", "UI File Saved");
     }
+  });
+}
+
+function openCustomUI() {
+  dialog.showOpenDialog({
+    filters: [{ name: 'Darkroom UI File', extensions: ['drui'] }],
+    title: "Load UI Config"
+  }, function (filePaths) {
+    if (filePaths === undefined) {
+      return;
+    }
+
+    var file = filePaths[0];
+    loadCustomUI(file);
   });
 }
 
@@ -4963,11 +4951,15 @@ function loadCustomUI(file) {
         var color = new uiTools.ColorPicker(elem.layer, elem.type);
         g_uiComponents[color.displayName] = color;
       }
+      else if (elem.UIType === "DeterministicSampler") {
+        var sampler = new uiTools.DeterministicSampler({ json: elem });
+        g_uiComponents[sampler.displayName] = sampler;
+      }
     }
 
     // link samplers to metasliders (if applicable)
     for (var id in g_uiComponents) {
-      if (g_uiComponents[id].UIType === "Sampler") {
+      if (g_uiComponents[id].UIType === "Sampler" || g_uiComponents[id].UIType === "DeterministicSampler") {
         if (data[id].linkedMetaSlider) {
           g_uiComponents[id].linkedMetaSlider = g_uiComponents[data[id].linkedMetaSlider];
         }

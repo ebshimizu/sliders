@@ -1464,6 +1464,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addSearchGroup", addSearchGroup);
   Nan::SetPrototypeMethod(tpl, "clearSearchGroups", clearSearchGroups);
   Nan::SetPrototypeMethod(tpl, "contextFromVector", contextFromVector);
+  Nan::SetPrototypeMethod(tpl, "contextFromDarkroom", contextFromDarkroom);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2423,6 +2424,21 @@ void CompositorWrapper::contextFromVector(const Nan::FunctionCallbackInfo<v8::Va
   else {
     Nan::ThrowError("contextFromVector was not given a vector");
   }
+}
+
+void CompositorWrapper::contextFromDarkroom(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.contextFromDarkroom");
+
+  v8::String::Utf8Value f(info[0]->ToString());
+  Comp::Context ctx = c->_compositor->contextFromDarkroom(string(*f));
+
+  const int argc = 1;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

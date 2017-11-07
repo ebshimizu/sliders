@@ -218,7 +218,7 @@ namespace Comp {
 
   int Compositor::size()
   {
-    return (int)_primary.size();
+    return (int)_layerOrder.size();
   }
 
   int Compositor::getWidth(string size)

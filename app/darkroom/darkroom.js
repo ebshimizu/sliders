@@ -334,6 +334,7 @@ function initUI() {
   $('#exportSampleData').click(exportSampleData);
   $('#importSampleData').click(importSampleData);
   $('#mapViz canvas').mousemove(mapMouseMove);
+  $('#mapViz canvas').mouseup(mapMouseUp);
   $('#saveUIConfig').click(saveCustomUI);
   $('#openUIConfig').click(openCustomUI);
 
@@ -4606,6 +4607,13 @@ function runPCAOnFolder(dir) {
 function mapMouseMove(event) {
   if (dr) {
     dr.mouseMove(event);
+  }
+}
+
+// moves the current projected point and updates the render
+function mapMouseUp(event) {
+  if (dr) {
+    dr.mouseUp(event);
   }
 }
 

@@ -112,6 +112,34 @@ class DR {
     }
   }
 
+  mouseUp(event) {
+    if (this.imgData) {
+      // scale factors
+      var displayW = this.canvas.width();
+      var displayH = this.canvas.height();
+
+      var screenX = event.offsetX * (this.width / displayW);
+      var screenY = event.offsetY * (this.height / displayH);
+
+      // lock to integer vals
+      screenX = Math.round(screenX);
+      screenY = Math.round(screenY);
+
+      var local = this.screenToLocal(screenX, screenY);
+
+      // this assumes a reproject exists on the object
+      // the fact that i can write this without defining a reproject function in the base class is
+      // a bit worrying
+      this.currentPoint = [local];
+      var rp = this.reproject([local]);
+      var newCtx = this.compositor.contextFromVector(rp[0]);
+
+      c.setContext(newCtx);
+      updateLayerControls();
+      this.draw(this.points);
+    }
+  }
+
   showPopup(x, y, id) {
     // place elements
     // image

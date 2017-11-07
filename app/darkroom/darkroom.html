@@ -248,7 +248,6 @@
             <div class="ui top attached inverted grey mini menu" id="samplesTabs">
                 <a class="item active" data-tab="results">Search Results</a>
                 <a class="item" data-tab="sideboard">Saved Results</a>
-                <a class="item" data-tab="embedding">Map Visualization</a>
             </div>
             <div class="ui top attached inverted segment" id="samples">
                 <div class="ui active tab" data-tab="results">
@@ -261,11 +260,6 @@
 
                     </div>
                 </div>
-                <div class="ui tab" data-tab="embedding">
-                    <div id="mapViz">
-                        <canvas></canvas>
-                    </div>
-                </div>
             </div>
         </div>
         <!-- END SAMPLE CONTAINER -->
@@ -274,6 +268,7 @@
             <div class="layerWrapper">
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
                     <a class="item" data-tab="customui">Custom UI</a>
+                    <a class="item" data-tab="embedding">2D Map</a>
                     <a class="item active" data-tab="layers">Photoshop Layers</a>
                     <a class="item" data-tab="edits">Edits</a>
                     <a class="item" data-tab="history">History</a>
@@ -333,6 +328,11 @@
 
                     </div>
                     -->
+                </div>
+                <div class="ui tab" data-tab="embedding">
+                    <div id="mapViz">
+                        <canvas></canvas>
+                    </div>
                 </div>
             </div>
         </div>

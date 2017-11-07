@@ -1,10 +1,14 @@
 const PCAlib = require('ml-pca');
+const matrixLib = require('ml-matrix');
+const Matrix = matrixLib.Matrix;
 
 class DR {
   constructor(compositor, canvas) {
     this.samples = {};
     this.canvas = canvas;
     this.compositor = compositor;
+    this.ids = [];
+    this.points = [];
 
     this.width = 2000;
     this.height = 2000;
@@ -19,56 +23,6 @@ class DR {
     this.canvas.attr({ width: this.width, height: this.height });
     this.graphics = this.canvas[0].getContext("2d");
     this.graphics.clearRect(0, 0, this.width, this.height);
-  }
-
-  // runs PCA on the current set of samples
-  // doesn't return anything, results are self-contained until accessed
-  // also automatically computes the projection itself
-  PCA() {
-    // collect data into proper format
-    // 2D-array, uses layer data instead of pixel data here
-    var data = [];
-
-    for (var s in this.samples) {
-      data.push(this.samples[s].context.layerVector(this.compositor));
-    }
-
-    this.pca = new PCAlib(data);
-  }
-
-  PCAProject(points, dims) {
-    return this.pca.predict(points, { 'nComponents': dims });
-  }
-
-  // computes and draws the embedding of the current dataset
-  // draws the embedding of the current dataset
-  // Params:
-  // - alg: String indicating the method to use for the embedding
-  // - options: various settings for the embedding
-  embed(alg, options = {}) {
-    var method, projection;
-
-    // run DR method
-    if (alg === "PCA") {
-      this.PCA();
-    }
-
-    var data = [];
-    this.ids = [];
-
-    for (var s in this.samples) {
-      data.push(this.samples[s].context.layerVector(this.compositor));
-      this.ids.push(s);
-    }
-
-    // project
-    this.points;
-    if (alg === "PCA") {
-      this.points = this.PCAProject(data, 2);
-    }
-
-    // draw everything on the canvas
-    this.draw(this.points);
   }
 
   draw(points) {
@@ -87,6 +41,18 @@ class DR {
 
       this.graphics.fillStyle = "#FFFFFF";
       this.graphics.strokeStyle = "#FFFFFF";
+
+      this.graphics.beginPath();
+      this.graphics.arc(screenPt[0], screenPt[1], 10, 0, Math.PI * 2);
+      this.graphics.fill();
+    }
+
+    if (this.currentPoint) {
+      var pt = this.currentPoint[0];
+      var screenPt = this.localToScreen(pt[0], pt[1]);
+
+      this.graphics.fillStyle = "#00FF00";
+      this.graphics.strokeStyle = "#00FF00";
 
       this.graphics.beginPath();
       this.graphics.arc(screenPt[0], screenPt[1], 10, 0, Math.PI * 2);
@@ -240,4 +206,67 @@ class DR {
   }
 }
 
-exports.DR = DR;
+class PCA extends DR {
+  constructor(compositor, canvas) {
+    super(compositor, canvas);
+  }
+
+  // sets up data set, does initial projections, etc.
+  analyze() {
+    // collect data into proper format
+    // 2D-array, uses layer data instead of pixel data here
+    var data = [];
+
+    for (var s in this.samples) {
+      data.push(this.samples[s].context.layerVector(this.compositor));
+    }
+
+    this.pca = new PCAlib(data);
+  }
+
+  project(points, dims) {
+    return this.pca.predict(points, { 'nComponents': dims });
+  }
+
+  reproject(points) {
+    var pts = new Matrix(points);
+    var V = this.pca.U.subMatrix(0, this.pca.U.rows - 1, 0, 1);
+    var Vt = V.transpose();
+
+    pts = pts.mmul(Vt);
+    if (this.pca.center) {
+      pts.addRowVector(this.pca.means);
+    }
+
+    return pts;
+  }
+
+  // computes and draws the embedding of the current dataset
+  // draws the embedding of the current dataset
+  // Params:
+  // - alg: String indicating the method to use for the embedding
+  // - options: various settings for the embedding
+  embed(options = {}) {
+    var method, projection;
+
+    // run DR method
+    this.analyze();
+
+    var data = [];
+    this.ids = [];
+
+    for (var s in this.samples) {
+      data.push(this.samples[s].context.layerVector(this.compositor));
+      this.ids.push(s);
+    }
+
+    // project
+    this.points = this.project(data, 2);
+    this.currentPoint = this.project([this.compositor.getContext().layerVector(this.compositor)], 2);
+
+    // draw everything on the canvas
+    this.draw(this.points);
+  }
+}
+
+exports.PCA = PCA;

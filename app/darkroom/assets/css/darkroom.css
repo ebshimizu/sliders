@@ -395,15 +395,13 @@ body .ui.basic.modal p {
 }
 
 #mapViz {
-    overflow: scroll;
-    height: 100%;
-    margin-left: -14px;
-    margin-right: -10px;
+    overflow: hidden;
+    height: calc(100% - 26px);
 }
 
 #mapViz canvas {
-    width: 1000px;
-    height: 1000px;
+    width: 100%;
+    height: auto;
 }
 
 #mapVizPopup {

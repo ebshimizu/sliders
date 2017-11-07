@@ -4571,7 +4571,7 @@ function resetEditMenu() {
 /*===========================================================================*/
 
 function runPCA(samples) {
-  dr = new drt.DR(c, $('#mapViz canvas'));
+  dr = new drt.PCA(c, $('#mapViz canvas'));
 
   if (samples) {
     dr.setSamples(samples);
@@ -4811,8 +4811,8 @@ function addDeterministicSampler(name, params, link) {
   var interval = 1 / params.length;
 
   for (var i = 0; i < params.length; i++) {
-    var x = [0, interval * i, 1];
-    var y = [0, 0, 1];
+    var x = [0, interval * (i + 1), 1];
+    var y = [0, 1, 1];
 
     ds.addSlider(params[i].layer, params[i].param, params[i].type, x, y);
   }

@@ -421,6 +421,17 @@ class DeterministicSampler extends MetaSlider {
     return obj;
   }
 
+  setContext(val, scale, context) {
+    var newCtx = this.mainSlider.setContext(val, scale, context);
+
+    for (var id in this.subSliders) {
+      this.subSliders[id].refreshUI();
+    }
+
+    c.setContext(newCtx);
+    updateLayerControls();
+  }
+
   // everything is basically the same except for the update function and having a linked slider
   set linkedMetaSlider(uiElem) {
     this._linkedMetaSlider = uiElem;
@@ -434,11 +445,131 @@ class DeterministicSampler extends MetaSlider {
     return "DeterministicSampler";
   }
 
+  // constructs the ui element, inserts it into the container, and binds the proper events
+  // also creates the subslider elements (eventually)
+  createUI(container) {
+    var html = '<div class="ui item" sliderName="' + this.displayName + '">';
+    html += '<div class="content">';
+    html += '<div class="header">' + this.displayName + '</div>';
+    html += '<div class="parameter" sliderName="' + this.displayName + '">';
+    html += '<div class="paramLabel">' + this.displayName + ' Amount</div>';
+    html += '<div class="paramSlider" sliderName="' + this.displayName + '"></div>';
+    html += '<div class="paramInput ui inverted transparent input" sliderName="' + this.displayName + '"><input type="text"></div>';
+    html += '</div>';
+
+    html += '<div class="parameter" sliderName="' + this.displayName + '-str">';
+    html += '<div class="paramLabel">' + this.displayName + ' Strength</div>';
+    html += '<div class="paramSlider" sliderName="' + this.displayName + '-str"></div>';
+    html += '<div class="paramInput ui inverted transparent input" sliderName="' + this.displayName + '-str"><input type="text"></div>';
+    html += '</div>';
+
+    // we need a sub list here
+    html += '<div class="ui horizontal fitted inverted divider">Component Sliders</div><div class="ui list"></div>';
+
+    html += '</div></div>';
+
+    container.append(html);
+
+    var sectionID = '.item[sliderName="' + this.displayName + '"] .ui.list';
+    $(sectionID).transition('hide');
+
+    $('.item[sliderName="' + this.displayName + '"] .divider').click(function () {
+      $(sectionID).transition('fade down');
+    });
+
+    // event bindings
+    var s = '.paramSlider[sliderName="' + this.displayName + '"]';
+    var i = '.paramInput[sliderName="' + this.displayName + '"] input';
+
+    let self = this;
+
+    // event bindings
+    $(s).slider({
+      orientation: "horizontal",
+      range: "min",
+      max: 1,
+      min: 0,
+      step: 0.001,
+      value: this.value,
+      //stop: function (event, ui) { highLevelSliderChange(name, ui); },
+      slide: function (event, ui) {
+        $(i).val(String(ui.value.toFixed(3)));
+        for (var id in this.subSliders) {
+          this.subSliders[id].refreshUI();
+        }
+      },
+      change: function (event, ui) { self.sliderCallback(ui); }
+    });
+
+    $(i).val(String(this.value.toFixed(3)));
+
+    // input box events
+    $(i).blur(function () {
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+    });
+
+    $(i).keydown(function (event) {
+      if (event.which != 13)
+        return;
+
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+    });
+
+    var s2 = '.paramSlider[sliderName="' + this.displayName + '-str"]';
+    var i2 = '.paramInput[sliderName="' + this.displayName + '-str"] input';
+
+    // event bindings
+    $(s2).slider({
+      orientation: "horizontal",
+      range: "min",
+      max: 1,
+      min: 0,
+      step: 0.001,
+      value: this.value,
+      //stop: function (event, ui) { highLevelSliderChange(name, ui); },
+      slide: function (event, ui) {
+        $(i).val(String(ui.value.toFixed(3)));
+        for (var id in this.subSliders) {
+          this.subSliders[id].refreshUI();
+        }
+      },
+      change: function (event, ui) { self.sliderCallback(ui); }
+    });
+
+    $(i2).val(String(this.value.toFixed(3)));
+
+    // input box events
+    $(i2).blur(function () {
+      var data = parseFloat($(this).val());
+      $(s2).slider("value", data);
+    });
+
+    $(i2).keydown(function (event) {
+      if (event.which != 13)
+        return;
+
+      var data = parseFloat($(this).val());
+      $(s2).slider("value", data);
+    });
+
+    // add the subslider elements
+    for (var id in this.subSliders) {
+      this.subSliders[id].createUI($('.item[sliderName="' + this.displayName + '"] .list'));
+    }
+  }
+
   sliderCallback(ui) {
     var i = '.paramInput[sliderName="' + this.displayName + '"] input';
-    $(i).val(String(ui.value.toFixed(3)))
+    var i2 = '.paramInput[sliderName="' + this.displayName + '-str"] input';
+    var s = '.paramSlider[sliderName="' + this.displayName + '"]';
+    var s2 = '.paramSlider[sliderName="' + this.displayName + '-str"]';
 
-    this.setContext(ui.value, c.getContext());
+    $(i).val(String($(s).slider("value").toFixed(3)));
+    $(i2).val(String($(s2).slider("value").toFixed(3)));
+
+    this.setContext($(s).slider("value"), $(s2).slider("value"), c.getContext());
 
     if (this.linkedMetaSlider) {
       this.linkedMetaSlider.updateMax(c.getContext());

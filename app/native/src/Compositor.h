@@ -160,6 +160,9 @@ namespace Comp {
     // acting as the key to map back to the context when needed.
     vector<double> contextToVector(Context c, nlohmann::json& key);
 
+    // updates the cached key 
+    vector<double> contextToVector(Context c);
+
     // uses the cached key to deserialize a vector
     Context vectorToContext(vector<double> v);
 

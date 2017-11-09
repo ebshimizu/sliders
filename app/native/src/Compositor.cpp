@@ -1524,26 +1524,31 @@ namespace Comp {
 
   vector<double> Compositor::contextToVector(Context c, nlohmann::json& key)
   {
-  // add the parameter data to the key
-  key = nlohmann::json::array();
+    // add the parameter data to the key
+    key = nlohmann::json::array();
 
-  for (auto& l : _layerOrder) {
-    // gather parameter info for all layers
-    c[l].addParams(key);
+    for (auto& l : _layerOrder) {
+      // gather parameter info for all layers
+      c[l].addParams(key);
+    }
+
+    // dump values into a vector
+    vector<double> vals;
+    for (int i = 0; i < key.size(); i++) {
+      vals.push_back(key[i]["value"]);
+    }
+
+    // some extremely verbose logging
+    // dump the json file
+    //stringstream ss;
+    //getLogger()->log(key.dump(2), DBG);
+
+    return vals;
   }
 
-  // dump values into a vector
-  vector<double> vals;
-  for (int i = 0; i < key.size(); i++) {
-    vals.push_back(key[i]["value"]);
-  }
-
-  // some extremely verbose logging
-  // dump the json file
-  //stringstream ss;
-  //getLogger()->log(key.dump(2), DBG);
-
-  return vals;
+  vector<double> Compositor::contextToVector(Context c)
+  {
+    return contextToVector(c, _vectorKey);
   }
 
   Context Compositor::vectorToContext(vector<double> v)

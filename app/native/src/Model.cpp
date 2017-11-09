@@ -641,6 +641,19 @@ Context UIMetaSlider::setContext(float x, Context c)
   return ret;
 }
 
+Context UIMetaSlider::setContext(float x, float scale, Context ctx)
+{
+  Context ret(ctx);
+  _val = x;
+
+  for (auto& s : _sliders) {
+    float val = _fs[s.first]->eval(x) * scale;
+    ret = s.second->setVal(val, ret);
+  }
+
+  return ret;
+}
+
 void UIMetaSlider::reassignMax(Context c)
 {
   for (auto& s : _sliders) {

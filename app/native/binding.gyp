@@ -35,6 +35,8 @@
 				"src/third_party/libsvm/svm.cpp",
 				"src/gibbs_with_gaussian_mixture.cpp",
 				"src/gibbs_with_gaussian_mixture.h",
+				"src/DimRed.cpp",
+				"src/DimRed.h",
 				"../../expression_tree/expressionContext.h",
 				"../../expression_tree/expressionStep.h"
 			],

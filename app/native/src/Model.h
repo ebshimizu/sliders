@@ -249,6 +249,10 @@ public:
   // given a context, sets the value for each parameter in the meta slider
   Context setContext(float x, Context ctx);
 
+  // scale modifies the values by the given multiplier before returning
+  // scale does not affect the maximum value of the metasliders
+  Context setContext(float x, float scale, Context ctx);
+
   // reassigns the maximum sub-slider values to be the value in the given context
   // this falls under the "oddly-specific" category of functions and is present to
   // basically make shimmer work correctly

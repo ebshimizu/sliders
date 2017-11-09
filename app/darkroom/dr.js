@@ -133,10 +133,10 @@ class DR {
       this.currentPoint = [local];
       var rp = this.reproject([local]);
       var newCtx = this.compositor.contextFromVector(rp[0]);
+      this.draw(this.points);
 
       c.setContext(newCtx);
       updateLayerControls();
-      this.draw(this.points);
     }
   }
 

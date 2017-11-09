@@ -3422,8 +3422,27 @@ void UIMetaSliderWrapper::setContext(const Nan::FunctionCallbackInfo<v8::Value>&
 
     info.GetReturnValue().Set(ctxInst);
   }
+  else if (info.Length() == 3) {
+    float val = info[0]->NumberValue();
+    float scale = info[1]->NumberValue();
+
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[2]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Internal Error: Context object found is empty!");
+    }
+    ContextWrapper* c = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    Comp::Context ctx = s->_mSlider->setContext(val, scale, c->_context);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&ctx) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
+    v8::Local<v8::Object> ctxInst = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+
+    info.GetReturnValue().Set(ctxInst);
+  }
   else {
-    Nan::ThrowError("setContext(float, context) argument error");
+    Nan::ThrowError("setContext(float[, float], context) argument error");
   }
 }
 

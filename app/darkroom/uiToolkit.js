@@ -530,7 +530,7 @@ class DeterministicSampler extends MetaSlider {
       value: this.value,
       //stop: function (event, ui) { highLevelSliderChange(name, ui); },
       slide: function (event, ui) {
-        $(i).val(String(ui.value.toFixed(3)));
+        $(i2).val(String(ui.value.toFixed(3)));
         for (var id in this.subSliders) {
           this.subSliders[id].refreshUI();
         }

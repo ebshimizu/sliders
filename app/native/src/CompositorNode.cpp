@@ -260,8 +260,8 @@ void ImageWrapper::getData(const Nan::FunctionCallbackInfo<v8::Value>& info) {
   ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
   nullcheck(image->_image, "image.data");
 
-  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
   auto data = image->_image->getData();
+  v8::Local<v8::Uint8ClampedArray> ret = v8::Uint8ClampedArray::New(v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), data.size()), 0, data.size());
   for (int i = 0; i < data.size(); i++) {
     ret->Set(i, Nan::New(data[i]));
   }

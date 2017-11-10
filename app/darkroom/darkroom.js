@@ -3166,9 +3166,19 @@ function renderImage(callerName) {
     g_history[myHistoryID] = { context: c.getContext() };
 
     c.asyncRender(settings.renderSize, function (err, img) {
-      var dat = 'data:image/png;base64,';
-      dat += img.base64();
-      $("#render").html('<img src="' + dat + '"" />');
+      //var dat = 'data:image/png;base64,';
+      //dat += img.base64();
+      //$("#render").html('<img src="' + dat + '"" />');
+      var canvas = $('#renderCanvas');
+      var ctx = canvas[0].getContext("2d");
+      var w = canvas[0].width;
+      var h = canvas[0].height;
+
+      var imDat = new ImageData(img.data(), img.width(), img.height());
+      createImageBitmap(imDat).then(function (imbit) {
+        ctx.drawImage(imbit, 0, 0, w, h);
+      });
+
       removeRenderLog(myRenderID);
 
       // more history time
@@ -3206,12 +3216,23 @@ function removeRenderLog(renderID) {
 
 function addHistory(id) {
   var html = '<div class="ui item">';
-  html += '<div class="ui medium image"><img src="data:image/png;base64,' + g_history[id].img.base64() + '" /></div>';
+  html += '<div class="ui medium image"><canvas id="history_' + id + '" width="' + g_history[id].img.width() + '" height="' + g_history[id].img.height() + '"></canvas></div>';
   html += '<div class="ui middle aligned content"><div class="header">History ID: ' + id + '</div>';
   html += '<div class="ui divider"></div><div class="description"><div class="ui inverted mini button" historyID="' + id + '">Restore</div></div>';
   html += '</div>';
 
   $("#historyItems").prepend(html);
+
+  // draw to canvas
+  var canvas = $('#history_' + id);
+  var ctx = canvas[0].getContext("2d");
+  var w = canvas[0].width;
+  var h = canvas[0].height;
+
+  var imDat = new ImageData(g_history[id].img.data(), g_history[id].img.width(), g_history[id].img.height());
+  createImageBitmap(imDat).then(function (imbit) {
+    ctx.drawImage(imbit, 0, 0, w, h);
+  });
 
   $('.button[historyID="' + id + '"]').click(function () {
     c.setContext(g_history[id].context);
@@ -3739,6 +3760,10 @@ function initCanvas() {
 
   var canvas = $('#maskCanvas');
   canvas.attr({ width: w, height: h });
+
+  var renderCanvas = $('#renderCanvas');
+  renderCanvas.attr({ width: w, height: h });
+
   g_ctx = canvas[0].getContext("2d");
   g_ctx.clearRect(0, 0, w, h);
   g_ctx.strokeStyle = "#FFFFFF";

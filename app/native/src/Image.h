@@ -120,12 +120,27 @@ namespace Comp {
     void eliminateBinsSSIM(vector<Eigen::VectorXd>& bins, int patchSize, double threshold,
       double a = 0, double b = 0, double g = 1);
 
+    // performs an analysis of the image contents and fills in a number of stats
+    void analyze();
+
+    float totalAlpha() { return _totalAlpha; }
+    float avgAlpha() { return _avgAlpha; }
+    float totalLuma() { return _totalLuma; }
+    float avgLuma() { return _avgLuma; }
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);
 
     unsigned int _w;
     unsigned int _h;
+
+    // some stats
+    float _totalAlpha;
+    float _avgAlpha;
+    float _totalLuma;
+    float _avgLuma;
+    // spatial frequencies?
 
     // originating filename
     string _filename;

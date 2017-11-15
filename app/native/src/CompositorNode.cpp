@@ -202,6 +202,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "structBinDiff", structBinDiff);
   Nan::SetPrototypeMethod(tpl, "structPctDiff", structPctDiff);
   Nan::SetPrototypeMethod(tpl, "MSSIM", structSSIMDiff);
+  Nan::SetPrototypeMethod(tpl, "stats", stats);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -473,6 +474,20 @@ void ImageWrapper::structSSIMDiff(const Nan::FunctionCallbackInfo<v8::Value>& in
   double res = y->_image->MSSIM(image->_image, patchSize, a, b, g);
 
   info.GetReturnValue().Set(Nan::New(res));
+}
+
+void ImageWrapper::stats(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  ret->Set(Nan::New("avgAlpha").ToLocalChecked(), Nan::New(image->_image->avgAlpha()));
+  ret->Set(Nan::New("avgLuma").ToLocalChecked(), Nan::New(image->_image->avgLuma()));
+  ret->Set(Nan::New("totalAlpha").ToLocalChecked(), Nan::New(image->_image->totalAlpha()));
+  ret->Set(Nan::New("totalLuma").ToLocalChecked(), Nan::New(image->_image->totalLuma()));
+
+  info.GetReturnValue().Set(ret);
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

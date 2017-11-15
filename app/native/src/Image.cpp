@@ -12,6 +12,7 @@ namespace Comp {
   Image::Image(string filename)
   {
     loadFromFile(filename);
+    analyze();
   }
 
   Image::Image(unsigned int w, unsigned int h, string & data)
@@ -27,6 +28,8 @@ namespace Comp {
     if (error) {
       getLogger()->log("Error interpreting base64 data. Potentitally fatal.", Comp::ERR);
     }
+
+    analyze();
   }
 
   Image::Image(const Image & other)
@@ -35,6 +38,10 @@ namespace Comp {
     _h = other._h;
     _data = other._data;
     _filename = other._filename;
+    _totalAlpha = other._totalAlpha;
+    _totalLuma = other._totalLuma;
+    _avgAlpha = other._avgAlpha;
+    _avgLuma = other._avgLuma;
   }
 
   Image & Image::operator=(const Image & other)
@@ -47,6 +54,10 @@ namespace Comp {
     _h = other._h;
     _data = other._data;
     _filename = other._filename;
+    _totalAlpha = other._totalAlpha;
+    _totalLuma = other._totalLuma;
+    _avgAlpha = other._avgAlpha;
+    _avgLuma = other._avgLuma;
     return *this;
   }
 
@@ -526,6 +537,31 @@ namespace Comp {
         bins[i] = Eigen::VectorXd();
       }
     }
+  }
+
+  void Image::analyze()
+  {
+    // in an attempt to quantify the "importance" of a layer, calculate some stats here
+    // alpha / luma
+    _totalAlpha = 0;
+    _totalLuma = 0;
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      int idx = i * 4;
+      float a = _data[i + 3] / 255.0f;
+
+      auto Lab = Utils<float>::RGBToLab(a * (_data[i] / 255.0f), a* (_data[i + 1] / 255.0f), a* (_data[i + 2] / 255.0f));
+
+      _totalAlpha += a;
+      _totalLuma += Lab._L;
+    }
+
+    _avgAlpha = _totalAlpha / (_data.size() / 4);
+    _avgLuma = _totalLuma / (_data.size() / 4);
+    
+    stringstream ss;
+    ss << "Analysis complete\nTotal Alpha: " << _totalAlpha << "\nAverage Alpha: " << _avgAlpha << "\nTotal Luma: " << _totalLuma << "\nAverage Luma: " << _avgLuma;
+    getLogger()->log(ss.str());
   }
 
   void Image::loadFromFile(string filename)

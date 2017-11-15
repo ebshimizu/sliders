@@ -3174,6 +3174,8 @@ function renderImage(callerName) {
       var w = canvas[0].width;
       var h = canvas[0].height;
 
+      ctx.clearRect(0, 0, w, h);
+
       var imDat = new ImageData(img.data(), img.width(), img.height());
       createImageBitmap(imDat).then(function (imbit) {
         ctx.drawImage(imbit, 0, 0, w, h);
@@ -4856,6 +4858,38 @@ function addDeterministicSampler(name, params, link) {
 
   ds.createUI($('#sliderItems'));
   g_uiComponents[ds.displayName] = ds;
+}
+
+function autoDeterministicSampler(name, ctx) {
+  // takes a context, sorts the layers, adds a deterministic sampler
+  var keys = ctx.keys();
+  var dat = [];
+
+  for (var i in keys) {
+    var id = keys[i];
+
+    var layer = ctx.getLayer(id);
+    if (!layer.isAdjustmentLayer()) {
+      var stats = layer.image().stats();
+      stats.id = id;
+      dat.push(stats);
+    }
+  }
+
+  dat.sort(function (a, b) {
+    return -(a.totalAlpha - b.totalAlpha);
+  });
+
+  var params = [];
+  for (var i in dat) {
+    var d = dat[i];
+
+    if (d.id !== "brush") {
+      params.push({ layer: d.id, param: "opacity", type: adjType["OPACITY"] });
+    }
+  }
+
+  addDeterministicSampler(name, params, null);
 }
 
 function addSampler(name, params, link) {

@@ -51,6 +51,7 @@ private:
   static void structAvgBinDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void structPctDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void structSSIMDiff(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void stats(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Image* _image;
   bool _deleteOnDestruct;

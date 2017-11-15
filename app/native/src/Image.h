@@ -123,6 +123,8 @@ namespace Comp {
     // performs an analysis of the image contents and fills in a number of stats
     void analyze();
 
+    Image* diff(Image* other);
+
     float totalAlpha() { return _totalAlpha; }
     float avgAlpha() { return _avgAlpha; }
     float totalLuma() { return _totalLuma; }

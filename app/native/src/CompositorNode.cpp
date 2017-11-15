@@ -203,6 +203,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "structPctDiff", structPctDiff);
   Nan::SetPrototypeMethod(tpl, "MSSIM", structSSIMDiff);
   Nan::SetPrototypeMethod(tpl, "stats", stats);
+  Nan::SetPrototypeMethod(tpl, "diff", diff);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -488,6 +489,25 @@ void ImageWrapper::stats(const Nan::FunctionCallbackInfo<v8::Value>& info)
   ret->Set(Nan::New("totalLuma").ToLocalChecked(), Nan::New(image->_image->totalLuma()));
 
   info.GetReturnValue().Set(ret);
+}
+
+void ImageWrapper::diff(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+
+  Comp::Image* d = image->_image->diff(y->_image);
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(d), Nan::New(true) };
+
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

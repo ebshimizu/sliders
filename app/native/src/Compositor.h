@@ -279,6 +279,10 @@ namespace Comp {
     template <typename T>
     inline void selectiveColor(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj, Layer& l);
 
+    // specific version for standard renderer
+    template <typename T>
+    inline void selectiveColor(typename Utils<T>::RGBAColorT& adjPx, map<string, map<string, float>>& data, bool rel);
+
     // Color Balance
     inline void colorBalanceAdjust(Image* adjLayer, map<string, float> adj);
 
@@ -1007,16 +1011,8 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
+  inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT& adjPx, map<string, map<string, float>>& data, bool rel)
   {
-    map<string, map<string, float>> data = l.getSelectiveColor();
-
-    for (auto& c : data) {
-      for (auto& p : c.second) {
-        p.second = (p.second - 0.5) * 2;
-      }
-    }
-
     // convert to hsl
     Utils<T>::HSLColorT hslColor = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
     T chroma = max(adjPx._r, max(adjPx._g, adjPx._b)) - min(adjPx._r, min(adjPx._g, adjPx._b));
@@ -1062,7 +1058,7 @@ namespace Comp {
     // do the adjustment
     Utils<T>::CMYKColorT cmykColor = Utils<T>::RGBToCMYK(adjPx._r, adjPx._g, adjPx._b);
 
-    if (adj["relative"] > 0) {
+    if (rel) {
       // relative
       cmykColor._c += cmykColor._c * (w1 * data[c1]["cyan"] + w2 * data[c2]["cyan"]) * wc + (w3 * data[c3]["cyan"] + w4 * data[c4]["cyan"]) * (1 - wc);
       cmykColor._m += cmykColor._m * (w1 * data[c1]["magenta"] + w2 * data[c2]["magenta"]) * wc + (w3 * data[c3]["magenta"] + w4 * data[c4]["magenta"]) * (1 - wc);
@@ -1081,6 +1077,20 @@ namespace Comp {
     adjPx._r = clamp<T>(res._r, 0, 1);
     adjPx._g = clamp<T>(res._g, 0, 1);
     adjPx._b = clamp<T>(res._b, 0, 1);
+  }
+
+  template<typename T>
+  inline void Compositor::selectiveColor(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj, Layer & l)
+  {
+    map<string, map<string, float>> data = l.getSelectiveColor();
+
+    for (auto& c : data) {
+      for (auto& p : c.second) {
+        p.second = (p.second - 0.5) * 2;
+      }
+    }
+
+    selectiveColor<T>(adjPx, data, adj["relative"] > 0);
   }
 
   template<>
@@ -1267,10 +1277,10 @@ namespace Comp {
   template<typename T>
   inline void Compositor::overwriteColorAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
   {
-    T sr = adj["r"];
-    T sg = adj["g"];
-    T sb = adj["b"];
-    T a = adj["a"];
+    T& sr = adj["r"];
+    T& sg = adj["g"];
+    T& sb = adj["b"];
+    T& a = adj["a"];
 
     // blend the resulting colors according to alpha
     adjPx._r = clamp<T>(sr * a + adjPx._r * (1 - a), 0, 1);

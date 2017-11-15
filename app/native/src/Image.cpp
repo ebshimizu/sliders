@@ -564,6 +564,29 @@ namespace Comp {
     getLogger()->log(ss.str());
   }
 
+  Image * Image::diff(Image * other)
+  {
+    // normalized basic diff visualization for an image
+    // 3-channel (idk maybe it'll work)
+    // input image is assumed to be the prior state
+    Image* ret = new Image(_w, _h);
+    vector<unsigned char>& diffs = ret->getData();
+    vector<unsigned char> od = other->getData();
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      int idx = i * 4;
+
+      // alpha
+      diffs[idx + 3] = 255;
+
+      diffs[idx] = (((int)_data[idx] - (int)od[idx]) / 2) + 127;
+      diffs[idx + 1] = (((int)_data[idx + 1] - (int)od[idx + 1]) / 2) + 127;
+      diffs[idx + 2] = (((int)_data[idx + 2] - (int)od[idx + 2]) / 2) + 127;
+    }
+    
+    return ret;
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

@@ -1401,9 +1401,19 @@ namespace Comp {
     // coordinates get rather odd in a cone
     vector<unsigned char>& img = adjLayer->getData();
 
+    map<string, map<string, float>> data = l.getSelectiveColor();
+
+    for (auto& c : data) {
+      for (auto& p : c.second) {
+        p.second = (p.second - 0.5) * 2;
+      }
+    }
+
+    bool rel = adj["relative"] > 0;
+
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      selectiveColor(adjPx, adj, l);
+      selectiveColor<float>(adjPx, data, rel);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);

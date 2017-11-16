@@ -385,7 +385,7 @@ namespace Comp {
 
     for (int i = 0; i < xp.size(); i++) {
       double ssim = SSIMBinDiff(xp[i], yp[i], a, b, g);
-      getLogger()->log("ssim bin " + to_string(i) + ": " + to_string(ssim));
+      //getLogger()->log("ssim bin " + to_string(i) + ": " + to_string(ssim));
       mssim += ssim;
     }
 

@@ -456,6 +456,61 @@ namespace Comp {
 
   }
 
+  vector<Importance> Compositor::localImportance(Context c, string size)
+  {
+    if (size == "") {
+      size = "full";
+    }
+
+    vector<Importance> imp;
+    Image* base = render(c, size);
+    
+    // do the expensive stuff first, mssim & derivatives
+    // we're only going to look at opacity for now
+    // other adjustments are important but right now it's not clear how color should be handled
+    for (int i = 0; i < _layerOrder.size(); i++) {
+      Layer l = c[_layerOrder[i]];
+
+      // opacity (every layer has one)
+      Importance li;
+      li._depth = i;
+      li._layerName = l.getName();
+      li._adjType = AdjustmentType::OPACITY;
+      li._param = "opacity";
+
+      Context dc(c);
+      float dval = l.getOpacity();
+      dval = (dval <= 0.01) ? (dval + 0.01) : (dval - 0.01);
+      dc[l.getName()].setOpacity(dval);
+
+      Image* dbase = render(dc, size);
+
+      // mssim
+      li._mssim = dbase->MSSIM(base, 16, 1, 1, 1);
+
+      // derivative
+      li._deltaMag = finiteDifference(base, dbase, 0.01);
+      
+      // total alpha/luma
+      if (l.isAdjustmentLayer()) {
+        li._totalAlpha = 0;
+        li._totalLuma = 0;
+      }
+      else {
+        li._totalAlpha = getCachedImage(l.getName(), size)->totalAlpha();
+        li._totalLuma = getCachedImage(l.getName(), size)->totalLuma();
+      }
+
+      getLogger()->log("Computed importance measures for " + li._layerName + ":" + li._param + "[" + to_string(li._adjType) + "]");
+
+      imp.push_back(li);
+      delete dbase;
+    }
+
+    delete base;
+    return imp;
+  }
+
   string Compositor::renderToBase64()
   {
     Image* i = render();
@@ -937,6 +992,33 @@ namespace Comp {
     _imageData[name]["thumb"] = _imageData[name]["full"]->resize(0.15f);
     _imageData[name]["small"] = _imageData[name]["full"]->resize(0.25f);
     _imageData[name]["medium"] = _imageData[name]["full"]->resize(0.5f);
+  }
+
+  float Compositor::finiteDifference(Image * a, Image * b, float delta)
+  {
+    float sum = 0;
+
+    vector<unsigned char>& pxa = a->getData();
+    vector<unsigned char>& pxb = b->getData();
+
+    for (int i = 0; i < pxa.size() / 4; i++) {
+      int index = i * 4;
+
+      // premultiply after converting to [0,1]
+      float alphaA = pxa[i + 3] / 255.0f;
+      Eigen::Vector3f pa(pxa[i] / 255.0f, pxa[i + 1] / 255.0f, pxa[i + 2] / 255.0f);
+      pa *= alphaA;
+
+      float alphaB = pxb[i + 3] / 255.0f;
+      Eigen::Vector3f pb(pxb[i] / 255.0f, pxb[i + 1] / 255.0f, pxb[i + 2] / 255.0f);
+      pb *= alphaB;
+
+      // compute derivative magnitude
+      float mag = ((pb - pa) / delta).norm();
+      sum += mag;
+    }
+
+    return sum;
   }
 
   void Compositor::randomSearch(Context start)

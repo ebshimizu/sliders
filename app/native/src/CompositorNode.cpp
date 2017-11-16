@@ -1500,6 +1500,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "clearSearchGroups", clearSearchGroups);
   Nan::SetPrototypeMethod(tpl, "contextFromVector", contextFromVector);
   Nan::SetPrototypeMethod(tpl, "contextFromDarkroom", contextFromDarkroom);
+  Nan::SetPrototypeMethod(tpl, "localImportance", localImportance);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2474,6 +2475,48 @@ void CompositorWrapper::contextFromDarkroom(const Nan::FunctionCallbackInfo<v8::
   v8::Local<v8::Function> cons = Nan::New<v8::Function>(ContextWrapper::contextConstructor);
 
   info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void CompositorWrapper::localImportance(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.localImportance");
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+  
+  string size = "";
+
+  if (info[1]->IsString()) {
+    v8::String::Utf8Value i1(info[1]->ToString());
+    size = string(*i1);
+  }
+
+  vector<Comp::Importance> imp = c->_compositor->localImportance(ctx->_context, size);
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  int idx = 0;
+
+  for (auto& i : imp) {
+    v8::Local<v8::Object> impData = Nan::New<v8::Object>();
+
+    impData->Set(Nan::New("layerName").ToLocalChecked(), Nan::New(i._layerName).ToLocalChecked());
+    impData->Set(Nan::New("adjType").ToLocalChecked(), Nan::New(i._adjType));
+    impData->Set(Nan::New("param").ToLocalChecked(), Nan::New(i._param).ToLocalChecked());
+    impData->Set(Nan::New("depth").ToLocalChecked(), Nan::New(i._depth));
+    impData->Set(Nan::New("totalAlpha").ToLocalChecked(), Nan::New(i._totalAlpha));
+    impData->Set(Nan::New("totalLuma").ToLocalChecked(), Nan::New(i._totalLuma));
+    impData->Set(Nan::New("deltaMag").ToLocalChecked(), Nan::New(i._deltaMag));
+    impData->Set(Nan::New("mssim").ToLocalChecked(), Nan::New(i._mssim));
+
+    ret->Set(idx, impData);
+    idx++;
+  }
+
+  info.GetReturnValue().Set(ret);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

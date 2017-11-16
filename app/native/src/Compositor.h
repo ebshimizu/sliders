@@ -33,6 +33,19 @@ namespace Comp {
     EXPLORATORY
   };
 
+  // contains importance data for the given layer and parameter
+  struct Importance {
+    string _layerName;
+    AdjustmentType _adjType;
+    string _param;
+
+    float _depth;
+    float _totalAlpha;
+    float _totalLuma;
+    float _deltaMag;
+    float _mssim;
+  };
+
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
   class Compositor {
@@ -84,6 +97,13 @@ namespace Comp {
 
     // render with a given context
     Image* render(Context c, string size = "");
+
+    // computes the local importance centered at the given context
+    // returns a list of importance values that are _not_ sorted (since there are
+    // multiple ways to sort the data)
+    // image size parameter is mostly a speed control since we'll have to render a bunch of stuff
+    // in this function
+    vector<Importance> localImportance(Context c, string size = "");
 
     // Couple functions for rendering specific pixels. Mostly used by optimizers
     // i is the Pixel Number (NOT the array start number, as in i * 4 = pixel number)
@@ -175,6 +195,8 @@ namespace Comp {
     // stores standard scales of the image in the cache
     // standard sizes are: thumb - 15%, small - 25%, medium - 50%
     void cacheScaled(string name);
+
+    float finiteDifference(Image* a, Image* b, float delta);
 
     // search modes
     void randomSearch(Context start);

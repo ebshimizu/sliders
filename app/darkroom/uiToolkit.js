@@ -190,6 +190,13 @@ class MetaSlider {
     delete this.subSliders[id];
   }
 
+  deleteAllSliders() {
+    var keys = this.keys;
+    for (var id in keys) {
+      this.deleteSlider(keys[id]);
+    }
+  }
+
   toJSON() {
     return this.mainSlider.toJSON();
   }
@@ -401,22 +408,19 @@ class Sampler {
   }
 }
 
-class DeterministicSampler extends MetaSlider {
+class OrderedSlider extends MetaSlider {
   constructor(obj) {
     super(obj);
-    this._linkedMetaSlider = null;
+
+    this._importanceData = obj.importanceData;
+    this._currentSortMode = "";
   }
 
   toJSON() {
     var obj = this.mainSlider.toJSON();
-    obj.UIType = "DeterministicSampler";
+    obj.UIType = "OrderedSlider";
 
-    if (this.linkedMetaSlider) {
-      obj.linkedMetaSlider = this.linkedMetaSlider.displayName;
-    }
-    else {
-      obj.linkedMetaSlider = null;
-    }
+    obj.importanceData = this._importanceData;
 
     return obj;
   }
@@ -432,17 +436,12 @@ class DeterministicSampler extends MetaSlider {
     updateLayerControls();
   }
 
-  // everything is basically the same except for the update function and having a linked slider
-  set linkedMetaSlider(uiElem) {
-    this._linkedMetaSlider = uiElem;
-  }
-
-  get linkedMetaSlider() {
-    return this._linkedMetaSlider;
-  }
-
   get UIType() {
     return "DeterministicSampler";
+  }
+
+  set importanceData(data) {
+    this._importanceData = data;
   }
 
   // constructs the ui element, inserts it into the container, and binds the proper events
@@ -555,9 +554,38 @@ class DeterministicSampler extends MetaSlider {
     });
 
     // add the subslider elements
+    this.createSubSliderUI();
+  }
+
+  createSubSliderUI() {
     for (var id in this.subSliders) {
       this.subSliders[id].createUI($('.item[sliderName="' + this.displayName + '"] .list'));
     }
+  }
+
+  sort(key) {
+    this.deleteAllSliders();
+
+    // add sliders back in the proper order
+    this._currentSortMode = key;
+
+    this._importanceData.sort(function (a, b) {
+      return -(a[key] - b[key]);
+    });
+
+    // re-assign sliders
+    var interval = 1 / this._importanceData.length;
+
+    for (var i = 0; i < this._importanceData.length; i++) {
+      var x = [0, interval * i, interval * (i + 1), 1];
+      var y = [0, 0, 1, 1];
+
+      var param = this._importanceData[i];
+      this.addSlider(param.layerName, param.param, param.adjType, x, y);
+    }
+
+    // re-create sliders
+    this.createSubSliderUI();
   }
 
   sliderCallback(ui) {
@@ -659,5 +687,5 @@ class ColorPicker {
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
 exports.Sampler = Sampler;
-exports.DeterministicSampler = DeterministicSampler;
+exports.OrderedSlider = OrderedSlider;
 exports.ColorPicker = ColorPicker;

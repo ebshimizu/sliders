@@ -4839,8 +4839,8 @@ function addMetaSlider(name, params) {
 
 // instead of a sampler, creates a metaslider that adds in the layers in random order
 // instead of sampling it
-function addDeterministicSampler(name, params, link) {
-  var ds = new uiTools.DeterministicSampler({ 'name': name });
+function addOrderedSlider(name, params, link) {
+  var ds = new uiTools.OrderedSlider({ 'name': name });
 
   // determine interval
   var interval = 1 / params.length;
@@ -4889,7 +4889,7 @@ function autoDeterministicSampler(name, ctx) {
     }
   }
 
-  addDeterministicSampler(name, params, null);
+  addOrderedSlider(name, params, null);
 }
 
 function addSampler(name, params, link) {
@@ -5018,8 +5018,8 @@ function loadCustomUI(file) {
         var color = new uiTools.ColorPicker(elem.layer, elem.type);
         g_uiComponents[color.displayName] = color;
       }
-      else if (elem.UIType === "DeterministicSampler") {
-        var sampler = new uiTools.DeterministicSampler({ json: elem });
+      else if (elem.UIType === "OrderedSlider") {
+        var sampler = new uiTools.OrderedSlider({ json: elem, importanceData: elem.importanceData });
         g_uiComponents[sampler.displayName] = sampler;
       }
     }

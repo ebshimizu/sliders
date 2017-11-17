@@ -45,6 +45,14 @@ class Slider {
     return "Slider";
   }
 
+  get order() {
+    return this._order;
+  }
+
+  set order(value) {
+    this._order = value;
+  }
+
   setVal(dat) {
     if ("val" in dat) {
       var newContext = this.slider.setVal(dat.val, dat.context);
@@ -77,6 +85,11 @@ class Slider {
     html += '<div class="paramLabel">' + this.displayName+ '</div>';
     html += '<div class="paramSlider" sliderName="' + this.displayName + '"></div>';
     html += '<div class="paramInput ui inverted transparent input" sliderName="' + this.displayName + '"><input type="text"></div>';
+
+    if (this.order !== undefined) {
+      html += '<div class="sliderOrderLabel">' + this.order.toPrecision(4) + '</div>';
+    }
+
     html += '</div></div></div>';
 
     container.append(html);
@@ -182,6 +195,8 @@ class MetaSlider {
     // ui handling nonsense now
     var slider = this.mainSlider.getSlider(id);
     this.subSliders[id] = new Slider({ 'slider': slider });
+
+    return id;
   }
 
   deleteSlider(id) {
@@ -195,6 +210,8 @@ class MetaSlider {
     for (var id in keys) {
       this.deleteSlider(keys[id]);
     }
+
+    $('.item[sliderName="' + this.displayName + '"] .list').empty();
   }
 
   toJSON() {
@@ -450,6 +467,10 @@ class OrderedSlider extends MetaSlider {
     var html = '<div class="ui item" sliderName="' + this.displayName + '">';
     html += '<div class="content">';
     html += '<div class="header">' + this.displayName + '</div>';
+
+    // dropdown menu location
+    html += '<div class="ui selection dropdown sortModes"></div>';
+
     html += '<div class="parameter" sliderName="' + this.displayName + '">';
     html += '<div class="paramLabel">' + this.displayName + ' Amount</div>';
     html += '<div class="paramSlider" sliderName="' + this.displayName + '"></div>';
@@ -468,6 +489,8 @@ class OrderedSlider extends MetaSlider {
     html += '</div></div>';
 
     container.append(html);
+
+    this.populateDropdown();
 
     var sectionID = '.item[sliderName="' + this.displayName + '"] .ui.list';
     $(sectionID).transition('hide');
@@ -537,7 +560,8 @@ class OrderedSlider extends MetaSlider {
       change: function (event, ui) { self.sliderCallback(ui); }
     });
 
-    $(i2).val(String(this.value.toFixed(3)));
+    $(i2).val(String(1));
+    $(s2).slider("value", 1);
 
     // input box events
     $(i2).blur(function () {
@@ -563,15 +587,53 @@ class OrderedSlider extends MetaSlider {
     }
   }
 
+  populateDropdown() {
+    var menu = $('.item[sliderName="' + this.displayName + '"] .sortModes');
+
+    // remove existing options
+    menu.empty();
+    var html = '<i class="dropdown icon"></i>';
+    html += '<div class="default text">Ordering</div>';
+    html += '<div class="menu">';
+
+    // explicitly specify sort modes, the order data has a lot of extra stuff
+    html += '<div class="item" data-value="depth">Depth</div>';
+    html += '<div class="item" data-value="deltaMag">Gradient Magnitude</div>';
+    html += '<div class="item" data-value="mssim">MSSIM</div>';
+    html += '<div class="item" data-value="totalAlpha">Average Alpha</div>';
+
+    html += '</div>';
+    menu.append(html);
+
+    var self = this;
+
+    // dropdown events
+    menu.dropdown({
+      action: 'activate',
+      onChange: function (value, text, selectedItem) {
+        self.sort(value);
+      }
+    });
+    menu.dropdown('set selected', this._currentSortMode);
+  }
+
   sort(key) {
     this.deleteAllSliders();
 
     // add sliders back in the proper order
     this._currentSortMode = key;
 
-    this._importanceData.sort(function (a, b) {
-      return -(a[key] - b[key]);
-    });
+    // default order is decending but depth is like ascending so
+    if (key === "depth" || key === "mssim") {
+      this._importanceData.sort(function (a, b) {
+        return (a[key] - b[key]);
+      });
+    }
+    else {
+      this._importanceData.sort(function (a, b) {
+        return -(a[key] - b[key]);
+      });
+    }
 
     // re-assign sliders
     var interval = 1 / this._importanceData.length;
@@ -581,11 +643,15 @@ class OrderedSlider extends MetaSlider {
       var y = [0, 0, 1, 1];
 
       var param = this._importanceData[i];
-      this.addSlider(param.layerName, param.param, param.adjType, x, y);
+      var id = this.addSlider(param.layerName, param.param, param.adjType, x, y);
+      this.subSliders[id].order = param[key];
     }
 
     // re-create sliders
     this.createSubSliderUI();
+
+    // turns out we don't actually need a ui element to trigger the callback
+    this.sliderCallback(null);
   }
 
   sliderCallback(ui) {

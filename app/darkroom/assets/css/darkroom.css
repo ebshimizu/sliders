@@ -108,6 +108,11 @@ body .ui.basic.modal p {
 	text-transform: capitalize;
 }
 
+#groupsPanel .ui.list .ui.list .parameter .paramLabel {
+    font-size: 8pt;
+    overflow: hidden;
+}
+
 #layerControls .tabMenu {
 	width: 70%;
 	display: inline-block;
@@ -149,6 +154,19 @@ body .ui.basic.modal p {
 	left: 29%;
 	height: 10px;
 	top: 10px;
+}
+
+#groupsPanel .ui.list .ui.list .parameter .paramSlider {
+    width: 40%;
+}
+
+#groupsPanel .parameter .sliderOrderLabel {
+    width: 13%;
+    display: inline-block;
+    position: absolute;
+    right: 13%;
+    height: 30px;
+    padding: 7px 0;
 }
 
 #layerControls .parameter .paramColor {
@@ -586,9 +604,21 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 }
 
 #sliderItems .ui.item .ui.list {
-    padding-left: 3em;
 }
 
 #sliderItems .ui.item .divider {
     cursor: pointer;
+}
+
+#sliderItems .ui.item .content .header {
+    margin-bottom: 30px;
+    font-size: 20pt;
+    padding: 5px;
+}
+
+#sliderItems .ui.item .content .dropdown {
+    position: absolute;
+    display: block;
+    right: 10px;
+    top: 10px;
 }

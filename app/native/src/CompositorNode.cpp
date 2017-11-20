@@ -600,7 +600,6 @@ void LayerRef::height(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
 void LayerRef::image(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
-  // right now this just returns the base64 string for the image
   LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
   nullcheck(layer->_layer, "layer.image");
 

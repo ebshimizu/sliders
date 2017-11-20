@@ -120,14 +120,21 @@
                 <div id="stickyMessage">
                     <div class="ui inverted blue segment"><i class="remove icon"></i><span class="text">Messages in this window will persist until dismissed by the user or the UI</span></div>
                 </div>
-                <div id="render">
-                    <canvas id="renderCanvas"></canvas>
+                <div id="mainView" class="full">
+                    <div id="render">
+                        <canvas id="renderCanvas"></canvas>
+                    </div>
+                    <div id="preview">
+                        <canvas id="previewCanvas"></canvas>
+                    </div>
+                    <div id="mask">
+                        <canvas id="maskCanvas"></canvas>
+                    </div>
                 </div>
-                <div id="preview">
-                    <canvas id="previewCanvas"></canvas>
-                </div>
-                <div id="mask">
-                    <canvas id="maskCanvas"></canvas>
+                <div id="sideView" class="hidden">
+                    <div id="diffViz">
+                        <canvas id="diffVizCanvas"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="" id="imgStatusBar">

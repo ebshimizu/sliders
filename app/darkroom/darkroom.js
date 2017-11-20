@@ -247,6 +247,25 @@ function processFile(filename) {
 }
 
 /*===========================================================================*/
+/* Common                                                                    */
+/*===========================================================================*/
+
+// draws the given Compositor.Image on the given canvas element
+// canvas is expected to be a jquery object
+function drawImage(image, canvas) {
+  var ctx = canvas[0].getContext("2d");
+  var w = canvas[0].width;
+  var h = canvas[0].height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  var imDat = new ImageData(image.data(), image.width(), image.height());
+  createImageBitmap(imDat).then(function (imbit) {
+    ctx.drawImage(imbit, 0, 0, w, h);
+  });
+}
+
+/*===========================================================================*/
 /* Initialization                                                            */
 /*===========================================================================*/
 
@@ -3169,17 +3188,7 @@ function renderImage(callerName) {
       //var dat = 'data:image/png;base64,';
       //dat += img.base64();
       //$("#render").html('<img src="' + dat + '"" />');
-      var canvas = $('#renderCanvas');
-      var ctx = canvas[0].getContext("2d");
-      var w = canvas[0].width;
-      var h = canvas[0].height;
-
-      ctx.clearRect(0, 0, w, h);
-
-      var imDat = new ImageData(img.data(), img.width(), img.height());
-      createImageBitmap(imDat).then(function (imbit) {
-        ctx.drawImage(imbit, 0, 0, w, h);
-      });
+      drawImage(img, $('#renderCanvas'));
 
       removeRenderLog(myRenderID);
 
@@ -3765,6 +3774,9 @@ function initCanvas() {
 
   var renderCanvas = $('#renderCanvas');
   renderCanvas.attr({ width: w, height: h });
+
+  var vizCanvas = $('#diffVizCanvas');
+  vizCanvas.attr({ width: w, height: h });
 
   g_ctx = canvas[0].getContext("2d");
   g_ctx.clearRect(0, 0, w, h);
@@ -4892,6 +4904,13 @@ function autoDeterministicSampler(name, ctx) {
   addOrderedSlider(name, params, null);
 }
 
+function importanceSlider(name, size) {
+  var li = c.localImportance(c.getContext(), size); 
+
+  addOrderedSlider(name, [], null);
+  g_uiComponents[name].importanceData = li;
+}
+
 function addSampler(name, params, link) {
   var sampler = new uiTools.Sampler({ 'name': name });
 
@@ -5038,4 +5057,14 @@ function loadCustomUI(file) {
       g_uiComponents[id].createUI($('#sliderItems'));
     }
   });
+}
+
+function addSliderSelector(name, size) {
+  var li = c.localImportance(c.getContext(), size);
+
+  var slider = new uiTools.SliderSelector(name, li);
+  slider.setOrder("depth", true);
+  slider.createUI($('#sliderItems'));
+
+  g_uiComponents[name] = slider;
 }

@@ -248,7 +248,8 @@ body .ui.basic.modal p {
 }
 
 #imageContainer #render img,
-#imageContainer #render canvas
+#imageContainer #render canvas,
+#diffViz canvas
 {
 	width: 100%;
 	height: 100%;
@@ -610,10 +611,8 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     cursor: pointer;
 }
 
-#sliderItems .ui.item .content .header {
-    margin-bottom: 30px;
+#sliderItems .layerSelector .header {
     font-size: 20pt;
-    padding: 5px;
 }
 
 #sliderItems .ui.item .content .dropdown {
@@ -621,4 +620,45 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     display: block;
     right: 10px;
     top: 10px;
+}
+
+#sliderItems .layerSelector {
+    margin: 10px;
+}
+
+#sliderItems .layerSelector .selectedLabel {
+    padding: 10px 0;
+}
+
+#mainView.full,
+#sideView.full {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#mainView.half,
+#sideView.half {
+    width: 50%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+}
+
+#mainView.half {
+    left: 0;
+}
+
+#sideView.half {
+    right: 0;
+}
+
+#mainView.hidden,
+#sideView.hidden {
+    width: 0;
+    height: 0;
+    display: none;
+    position: absolute;
 }

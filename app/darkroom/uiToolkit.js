@@ -750,8 +750,133 @@ class ColorPicker {
   }
 }
 
+class SliderSelector {
+  constructor(name, orderData) {
+    this._orderData = orderData;
+    this._name = name;
+    this._selectedIndex = 0;
+    this._vizMode = "soloLayer";
+  }
+
+  get orderData() {
+    return this._orderData;
+  }
+
+  set orderData(data) {
+    this._orderData = orderData;
+  }
+
+  get name() {
+    return this._name;
+  }
+
+  set name(val) {
+    this._name = val;
+
+    // update UI here as well
+  }
+
+  get vizMode() {
+    return this._vizMode;
+  }
+
+  set vizMode(val) {
+    this._vizMode = val;
+  }
+
+  // sorts and then updates the slider's order
+  setOrder(key, ascending) {
+    // add sliders back in the proper order
+    this._currentSortMode = key;
+
+    // ascending or descending order
+    if (ascending) {
+      this._orderData.sort(function (a, b) {
+        return (a[key] - b[key]);
+      });
+    }
+    else {
+      this._orderData.sort(function (a, b) {
+        return -(a[key] - b[key]);
+      });
+    }
+  }
+
+  createUI(container) {
+    var html = '<div class="ui item layerSelector" componentName="' + this.name + '">';
+    html += '<div class="content">';
+    html += '<div class="header">' + this.name + '</div>';
+    html += '<div class="selectedLabel">Selected Layer: <span></span></div>';
+    html += '<div class="layerSelectorSlider"></div>';
+    html += '</div></div>';
+
+    container.append(html);
+
+    // cache the element in the object
+    this._uiElem = $('.layerSelector[componentName="' + this.name + '"]');
+
+    var sliderElem = this._uiElem.find('.layerSelectorSlider');
+    let self = this;
+
+    // event bindings
+    sliderElem.slider({
+      orientation: "horizontal",
+      max: self._orderData.length - 1,
+      min: 0,
+      step: 1,
+      value: self._selectedIndex,
+      start: function (event, ui) { self.startViz(); },
+      stop: function (event, ui) { self.stopViz(); },
+      slide: function (event, ui) {
+        self.setSelectedLayer(ui.value);
+      }
+    });
+  }
+
+  deleteUI() {
+    this._uiElem.remove();
+    this._uiElem = null;
+  }
+
+  setSelectedLayer(index) {
+    this._selectedIndex = Math.trunc(index);
+
+    var layerData = this._orderData[this._selectedIndex];
+    this._uiElem.find('.selectedLabel span').text(layerData.layerName);
+
+    // update visualization
+    this.updateViz();
+  }
+
+  stopViz() {
+    $('#mainView').removeClass('half').addClass('full');
+    $('#sideView').removeClass('half').addClass('hidden');
+  }
+
+  startViz() {
+    // might be some mode-dependent stuff in here at some point
+    $('#mainView').removeClass('full').addClass('half');
+    $('#sideView').removeClass('hidden').addClass('half');
+  }
+
+  updateViz() {
+    var currentLayer = this._orderData[this._selectedIndex];
+    var name = currentLayer.layerName;
+
+    if (this._vizMode === "soloLayer") {
+      // get layer image
+      var layer = c.getLayer(name);
+
+      if (!layer.isAdjustmentLayer()) {
+        drawImage(layer.image(), $('#diffVizCanvas'));
+      }
+    }
+  }
+}
+
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
 exports.Sampler = Sampler;
 exports.OrderedSlider = OrderedSlider;
 exports.ColorPicker = ColorPicker;
+exports.SliderSelector = SliderSelector;

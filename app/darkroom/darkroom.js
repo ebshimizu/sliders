@@ -259,7 +259,10 @@ function drawImage(image, canvas) {
 
   ctx.clearRect(0, 0, w, h);
 
-  var imDat = new ImageData(image.data(), image.width(), image.height());
+  var imDat = ctx.getImageData(0, 0, w, h);
+  image.writeToImageData(imDat);
+
+  //var imDat = new ImageData(image.data(), image.width(), image.height());
   createImageBitmap(imDat).then(function (imbit) {
     ctx.drawImage(imbit, 0, 0, w, h);
   });

@@ -204,6 +204,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "MSSIM", structSSIMDiff);
   Nan::SetPrototypeMethod(tpl, "stats", stats);
   Nan::SetPrototypeMethod(tpl, "diff", diff);
+  Nan::SetPrototypeMethod(tpl, "writeToImageData", writeToImageData);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -508,6 +509,20 @@ void ImageWrapper::diff(const Nan::FunctionCallbackInfo<v8::Value>& info)
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(d), Nan::New(true) };
 
   info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void ImageWrapper::writeToImageData(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  // get the data array
+  v8::Local<v8::Uint8ClampedArray> arr = info[0].As<v8::Object>()->Get(Nan::New("data").ToLocalChecked()).As<v8::Uint8ClampedArray>();
+  unsigned char *data = (unsigned char*)arr->Buffer()->GetContents().Data();
+
+  vector<unsigned char>& imData = image->_image->getData();
+  memcpy(data, &imData[0], imData.size());
+
+  // i don't think this needs to return anything?
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

@@ -268,6 +268,14 @@ function drawImage(image, canvas) {
   });
 }
 
+function clearCanvas(canvas) {
+  var ctx = canvas[0].getContext("2d");
+  var w = canvas[0].width;
+  var h = canvas[0].height;
+
+  ctx.clearRect(0, 0, w, h);
+}
+
 /*===========================================================================*/
 /* Initialization                                                            */
 /*===========================================================================*/

@@ -774,6 +774,8 @@ class SliderSelector {
     this._name = val;
 
     // update UI here as well
+    this._uiElem.find('.header').text(this._name);
+    this._uiElem.attr('componentName', this._name);
   }
 
   get vizMode() {
@@ -848,9 +850,21 @@ class SliderSelector {
     this.updateViz();
   }
 
+  get selectedLayer() {
+    return this._orderData[this._selectedIndex];
+  }
+
   stopViz() {
     $('#mainView').removeClass('half').addClass('full');
     $('#sideView').removeClass('half').addClass('hidden');
+
+    // update the selected layer controls, right now just handles
+    // single layer selection
+    if (this._layerControls) {
+      this._layerControls.deleteUI();
+    }
+    this._layerControls = new LayerControls(this.selectedLayer.layerName);
+    this._layerControls.createUI($('#layerEditControls'));
   }
 
   startViz() {
@@ -870,7 +884,298 @@ class SliderSelector {
       if (!layer.isAdjustmentLayer()) {
         drawImage(layer.image(), $('#diffVizCanvas'));
       }
+      else {
+        clearCanvas($('#diffVizCanvas'));
+      }
     }
+  }
+}
+
+// this class creates a layer control widget, including sliders for every individual
+// control. This is a partial re-write of the spaghetti in the main darkroom.js 
+// and does currently duplicate a lot of code
+class LayerControls {
+  constructor(layerName) {
+    this._name = layerName;
+    this._layer = c.getLayer(this._name);
+  }
+
+  get layer() {
+    return this._layer;
+  }
+
+  get name() {
+    return this._name;
+  }
+
+  deleteUI() {
+    if (this._uiElem) {
+      this._uiElem.remove();
+    }
+  }
+
+  // yeah so this basically copies over a lot of the stuff in "insertLayerElem" from
+  // the main darkroom.js file. Eventually it'd be nice if that code could be class-based instead
+  // but that's not really a priority at the moment.
+  createUI(container) {
+    var html = '<div class="layer" layerName="' + this._name + '">';
+    html += '<h3 class="ui grey inverted header">' + this._name + '</h3>';
+
+    if (this._layer.visible()) {
+      html += '<button class="ui icon button mini white visibleButton" layerName="' + this._name + '">';
+      html += '<i class="unhide icon"></i>';
+    }
+    else {
+      html += '<button class="ui icon button mini black visibleButton" layerName="' + this._name + '">';
+      html += '<i class="hide icon"></i>';
+    }
+
+    html += '</button>';
+
+    // i love javascript, where the definition order doesn't matter, and the scope is made up
+    html += genBlendModeMenu(this._name);
+    html += genAddAdjustmentButton(this._name);
+    html += createLayerParam(this._name, "opacity");
+
+    // separate handlers for each adjustment type
+    var adjustments = this._layer.getAdjustments();
+
+    for (var i = 0; i < adjustments.length; i++) {
+      var type = adjustments[i];
+
+      if (type === 0) {
+        // hue sat
+        html += startParamSection(name, "Hue/Saturation", type);
+        html += addSliders(name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 1) {
+        // levels
+        // TODO: Turn some of these into range sliders
+        html += startParamSection(name, "Levels");
+        html += addSliders(name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 2) {
+        // curves
+        html += startParamSection(name, "Curves");
+        html += addCurves(name, "Curves");
+        html += endParamSection(name, type);
+      }
+      else if (type === 3) {
+        // exposure
+        html += startParamSection(name, "Exposure");
+        html += addSliders(name, "Exposure", ["exposure", "offset", "gamma"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 4) {
+        // gradient
+        html += startParamSection(name, "Gradient Map");
+        html += addGradient(name);
+        html += endParamSection(name, type);
+      }
+      else if (type === 5) {
+        // selective color
+        html += startParamSection(name, "Selective Color");
+        html += addTabbedParamSection(name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
+        html += addToggle(name, "Selective Color", "relative", "Relative");
+        html += endParamSection(name, type);
+      }
+      else if (type === 6) {
+        // color balance
+        html += startParamSection(name, "Color Balance");
+        html += addSliders(name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
+        html += addToggle(name, "Color Balance", "preserveLuma", "Preserve Luma");
+        html += endParamSection(name, type);
+      }
+      else if (type === 7) {
+        // photo filter
+        html += startParamSection(name, "Photo Filter");
+        html += addColorSelector(name, "Photo Filter");
+        html += addSliders(name, "Photo Filter", ["density"]);
+        html += addToggle(name, "Photo Filter", "preserveLuma", "Preserve Luma");
+        html += endParamSection(name, type);
+      }
+      else if (type === 8) {
+        // colorize
+        html += startParamSection(name, "Colorize");
+        html += addColorSelector(name, "Colorize");
+        html += addSliders(name, "Colorize", ["alpha"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 9) {
+        // lighter colorize
+        // note name conflicts with previous params
+        html += startParamSection(name, "Lighter Colorize");
+        html += addColorSelector(name, "Lighter Colorize");
+        html += addSliders(name, "Lighter Colorize", ["alpha"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 10) {
+        html += startParamSection(name, "Overwrite Color");
+        html += addColorSelector(name, "Overwrite Color");
+        html += addSliders(name, "Overwrite Color", ["alpha"]);
+        html += endParamSection(name, type);
+      }
+      else if (type === 11) {
+        html += startParamSection(name, "Invert");
+        html += endParamSection(name, type);
+      }
+      else if (type === 12) {
+        html += startParamSection(name, "Brightness and Contrast");
+        html += addSliders(name, "Brightness and Contrast", ["brightness", "contrast"]);
+        html += endParamSection(name, type);
+      }
+    }
+
+    html += '</div>';
+
+    container.append(html);
+    this._uiElem = container.find('.layer[layerName="' + this._name + '"]');
+
+    // bindings
+    this.bindEvents();
+  }
+
+  // assumes this._uiElem exists and has been inserted into the DOM
+  bindEvents() {
+    var self = this;
+    var visibleButton = this._uiElem.find('button.visibleButton');
+    visibleButton.on('click', function () {
+      // check status of button
+      var visible = self._layer.visible();
+
+      // i think modifiers is in the global scope so it should still be ok here
+      // it still sucks there should be an actual object managing this
+      self._layer.visible(!visible && modifiers[name].groupVisible);
+      modifiers[self._name].visible = !visible;
+
+      var button = $(this);
+      if (modifiers[self._name].visible) {
+        button.html('<i class="unhide icon"></i>');
+        button.removeClass("black");
+        button.addClass("white");
+      }
+      else {
+        button.html('<i class="hide icon"></i>');
+        button.removeClass("white");
+        button.addClass("black");
+      }
+
+      // trigger render after adjusting settings
+      renderImage('layer ' + self._name + ' visibility change');
+    });
+
+    // set starting visibility
+    if (modifiers[this._name].visible) {
+      visibleButton.html('<i class="unhide icon"></i>');
+      visibleButton.removeClass("black");
+      visibleButton.addClass("white");
+    }
+    else {
+      visibleButton.html('<i class="hide icon"></i>');
+      visibleButton.removeClass("white");
+      visibleButton.addClass("black");
+    }
+
+    // blend mode
+    var blendModeMenu = this._uiElem.find('.blendModeMenu');
+    blendModeMenu.dropdown({
+      action: 'activate',
+      onChange: function (value, text) {
+        self._layer.blendMode(parseInt(value));
+        renderImage('layer ' + self._name + ' blend mode change');
+      },
+      'set selected': self._layer.blendMode()
+    });
+
+    blendModeMenu.dropdown('set selected', this._layer.blendMode());
+
+    // add adjustment menu, currently disabled in this view
+    //this._uiElem.find('.addAdjustment').dropdown({
+    //  action: 'hide',
+    //  onChange: function (value, text) {
+        // add the adjustment or something
+    //    addAdjustmentToLayer(name, parseInt(value));
+    //    regenLayerControls(name);
+    //    renderImage('layer ' + name + ' adjustment added');
+    //  }
+    //});
+
+    this.bindParam("opacity", this._layer.opacity() * 100, "", { });
+
+    // time for the parameter bindings
+  }
+
+  bindParam(paramName, initVal, section, config) {
+    var s, i;
+    var self = this;
+
+    if (section !== "") {
+      s = this._uiElem.find('div[sectionName="' + section + '"] .paramSlider[paramName="' + paramName + '"]');
+      i = this._uiElem.find('div[sectionName="' + section + '"] .paramInput[paramName="' + paramName + '"] input');
+    }
+    else {
+      s = this._uiElem.find('.paramSlider[paramName="' + paramName + '"]');
+      i = this._uiElem.find('.paramInput[paramName="' + paramName + '"] input');
+    }
+
+    // defaults
+    if (!("range" in config)) {
+      config.range = "min";
+    }
+    if (!("max" in config)) {
+      config.max = 100;
+    }
+    if (!("min" in config)) {
+      config.min = 0;
+    }
+    if (!("step" in config)) {
+      config.step = 0.1;
+    }
+
+    $(s).slider({
+      orientation: "horizontal",
+      range: config.range,
+      max: config.max,
+      min: config.min,
+      step: config.step,
+      value: initVal,
+      stop: function (event, ui) {
+        self.paramHandler(event, ui, paramName);
+        renderImage('layer ' + self._name + ' parameter ' + paramName + ' change');
+      },
+      slide: function (event, ui) { self.paramHandler(event, ui, paramName) },
+      change: function (event, ui) { self.paramHandler(event, ui, paramName) }
+    });
+
+    $(i).val(String(initVal.toFixed(2)));
+
+    // input box events
+    $(i).blur(function () {
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+      renderImage('layer ' + self._name + ' parameter ' + self._paramName + ' change');
+    });
+    $(i).keydown(function (event) {
+      if (event.which != 13)
+        return;
+
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+      renderImage('layer ' + self._name + ' parameter ' + self._paramName + ' change');
+    });
+  }
+
+  paramHandler(event, ui, paramName) {
+    if (paramName === "opacity") {
+      // update the modifiers and compute acutual value
+      modifiers[this._name].opacity = ui.value / 100;
+      this._layer.opacity((ui.value / 100) * (modifiers[this._name].groupOpacity / 100));
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
   }
 }
 

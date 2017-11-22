@@ -67,25 +67,31 @@ body .ui.basic.modal p {
     margin-top: -6px;
 }
 
-#layerControls .layer {
+#layerControls .layer,
+#layerEditControls .layer
+{
 	border-bottom: 1px solid #e8e8e8;
 	padding: 5px;
 	position: relative;
 }
 
-#layerControls .layer button.visibleButton {
+#layerControls .layer button.visibleButton,
+#layerEditControls .layer button.visibleButton {
 	position: absolute;
 	right: 2px;
 	top: 6px;
 }
 
-#layerControls .layer .addAdjustment {
+#layerControls .layer .addAdjustment,
+#layerEditControls .layer .addAdjustment 
+{
     position: absolute;
     right: 190px;
     top: 6px;
 }
 
 #layerControls .parameter,
+#layerEditControls .parameter,
 #groupsPanel .parameter {
 	height: 30px;
 	position: relative;
@@ -93,8 +99,11 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramLabel,
+#layerEditControls .parameter .paramLabel,
 #groupsPanel .parameter .paramLabel,
-#layerControls .tabLabel {
+#layerControls .tabLabel,
+#layerEditControls .tabLabel
+{
 	width: 25%;
 	text-align: center;
 	vertical-align: middle;
@@ -113,7 +122,8 @@ body .ui.basic.modal p {
     overflow: hidden;
 }
 
-#layerControls .tabMenu {
+#layerControls .tabMenu,
+#layerEditControls .tabMenu {
 	width: 70%;
 	display: inline-block;
 	position: absolute;
@@ -126,6 +136,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramInput,
+#layerEditControls .parameter .paramInput,
 #groupsPanel .parameter .paramInput { 
 	width: 13%;
 	display: inline-block;
@@ -135,6 +146,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramInput input,
+#layerEditControls .parameter .paramInput input,
 #groupsPanel .parameter .paramInput input {
 	height: 100%;
 	text-align: center;
@@ -142,11 +154,13 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramInput input:focus,
+#layerEditControls .parameter .paramInput input:focus,
 #groupsPanel .parameter .paramInput input:focus {
     border: 1px #ffffff solid !important;
 }
 
 #layerControls .parameter .paramSlider,
+#layerEditControls .parameter .paramSlider,
 #groupsPanel .parameter .paramSlider {
 	width: 55%;
 	display: inline-block;
@@ -169,7 +183,8 @@ body .ui.basic.modal p {
     padding: 7px 0;
 }
 
-#layerControls .parameter .paramColor {
+#layerControls .parameter .paramColor,
+#layerEditControls .parameter .paramColor {
 	width: 70%;
 	left: 30%;
 	height: 26px;
@@ -187,6 +202,7 @@ body .ui.basic.modal p {
     border-radius: 5px;
 }
 
+#layerEditControls .parameter .checkbox,
 #layerControls .parameter .checkbox {
 	position: absolute;
 	left: 30%;
@@ -203,7 +219,8 @@ body .ui.basic.modal p {
 	background: #000000;
 }
 
-#layerControls .layer .ui.dropdown.blendModeMenu {
+#layerControls .layer .ui.dropdown.blendModeMenu,
+#layerEditControls .layer .ui.dropdown.blendModeMenu {
     position: absolute;
     right: 40px;
     top: 6px;
@@ -214,23 +231,27 @@ body .ui.basic.modal p {
     min-width: 80px;
 }
 
-#layerControls .layer .ui.dropdown i {
+#layerControls .layer .ui.dropdown i,
+#layerEditControls .layer .ui.dropdown i {
 	top: 0.5em;
 }
 
+#layerEditControls .layer .gradientDisplay canvas,
 #layerControls .layer .gradientDisplay canvas {
 	width: 100%;
     height: 45px;
     margin: 10px auto;
 }
 
-#layerControls .layer .curveDisplay canvas {
+#layerControls .layer .curveDisplay canvas,
+#layerEditControls .layer .curveDisplay canvas {
     width: 15vw;
     height: 15vw;
     margin: 10px auto;
     display: block;
 }
 
+#layerEditControls .layer .header,
 #layerControls .layer .header {
     width: calc(100% - 230px);
 }

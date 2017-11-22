@@ -808,14 +808,17 @@ class SliderSelector {
     var html = '<div class="ui item layerSelector" componentName="' + this.name + '">';
     html += '<div class="content">';
     html += '<div class="header">' + this.name + '</div>';
+
+    // dropdown menu
+    html += this.genVizModeMenu();
+
     html += '<div class="selectedLabel">Selected Layer: <span></span></div>';
     html += '<div class="layerSelectorSlider"></div>';
     html += '</div></div>';
 
-    container.append(html);
-
-    // cache the element in the object
-    this._uiElem = $('.layerSelector[componentName="' + this.name + '"]');
+    // cache the element
+    this._uiElem = $(html);
+    container.append(this._uiElem);
 
     var sliderElem = this._uiElem.find('.layerSelectorSlider');
     let self = this;
@@ -833,6 +836,29 @@ class SliderSelector {
         self.setSelectedLayer(ui.value);
       }
     });
+
+    var menu = this._uiElem.find('.vizModeMenu');
+    menu.dropdown({
+      action: 'activate',
+      onChange: function (value, text, selectedItem) {
+        self.vizMode = value;
+      }
+    });
+    menu.dropdown('set selected', this._vizMode);
+  }
+
+  genVizModeMenu() {
+    var html = '<div class="vizModeMenu">';
+    html += '<i class="dropdown icon"></i>';
+    html += '<div class="default text">Visualization Mode</div>';
+    html += '<div class="menu">';
+
+    // explicitly specify sort modes, the order data has a lot of extra stuff
+    html += '<div class="item" data-value="soloLayer">Display Original Layer</div>';
+
+    html += '</div></div>';
+
+    return html;
   }
 
   deleteUI() {
@@ -887,6 +913,9 @@ class SliderSelector {
       else {
         clearCanvas($('#diffVizCanvas'));
       }
+    }
+    if (this._vizMode === "diff") {
+
     }
   }
 }
@@ -1060,7 +1089,7 @@ class LayerControls {
 
       // i think modifiers is in the global scope so it should still be ok here
       // it still sucks there should be an actual object managing this
-      self._layer.visible(!visible && modifiers[name].groupVisible);
+      self._layer.visible(!visible && modifiers[self.name].groupVisible);
       modifiers[self._name].visible = !visible;
 
       var button = $(this);

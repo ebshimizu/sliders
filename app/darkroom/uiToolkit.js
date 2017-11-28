@@ -848,7 +848,7 @@ class SliderSelector {
   }
 
   genVizModeMenu() {
-    var html = '<div class="vizModeMenu">';
+    var html = '<div class="ui dropdown selection vizModeMenu">';
     html += '<i class="dropdown icon"></i>';
     html += '<div class="default text">Visualization Mode</div>';
     html += '<div class="menu">';
@@ -1240,23 +1240,23 @@ class LayerControls {
       else if (type === 6) {
         // color balance
         var sectionName = "Color Balance";
-        this.bindParam(name, layer, "shadow R", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowR - 0.5) * 2, sectionName, type,
+        this.bindParam("shadow R", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowR - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "shadow G", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowG - 0.5) * 2, sectionName, type,
+        this.bindParam("shadow G", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "shadow B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).shadowB - 0.5) * 2, sectionName, type,
+        this.bindParam("shadow B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).shadowB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "mid R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midR - 0.5) * 2, sectionName, type,
+        this.bindParam("mid R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midR - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "mid G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midG - 0.5) * 2, sectionName, type,
+        this.bindParam("mid G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "mid B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midB - 0.5) * 2, sectionName, type,
+        this.bindParam("mid B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "highlight R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highR - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highR - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "highlight G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highG - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam(name, layer, "highlight B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highB - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
 
         this.bindToggle(sectionName, "preserveLuma", type);

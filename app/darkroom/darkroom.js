@@ -382,6 +382,14 @@ function initUI() {
     $(this).prepend('<i class="checkmark icon"></i>');
 
     settings.renderSize = $(this).attr("internal");
+
+    // update the canvas
+    var renderCanvas = $('#renderCanvas');
+    renderCanvas.attr({ width: w, height: h });
+
+    var vizCanvas = $('#diffVizCanvas');
+    vizCanvas.attr({ width: w, height: h });
+
     renderImage("#renderSize click callback");
   });
 

@@ -256,6 +256,12 @@ namespace Comp {
     template <typename T>
     inline T pinLight(T Dca, T Sca, T Da, T Sa);
 
+    template <typename T>
+    inline T colorBurn(T Dc, T Sc, T Da, T Sa);
+
+    template <typename T>
+    inline T vividLight(T Dc, T Sc, T Da, T Sa);
+
     void adjust(Image* adjLayer, Layer& l);
 
     // adjusts a single pixel according to the given adjustment layer
@@ -861,6 +867,30 @@ namespace Comp {
     }
     else {
       return lighten(Dca, 2 * (Sca - 0.5f), Da, Sa);
+    }
+  }
+
+  template<typename T>
+  inline T Compositor::colorBurn(T Dc, T Sc, T Da, T Sa)
+  {
+    // this is a blend that basically just happens based on color
+    if (Sc == 0)
+      return 0 * Sa + Dc * (1 - Sa);
+
+    T burn = max<T>(1 - ((1 - Dc) / Sc), 0);
+
+    // normal blend
+    return burn * Sa + Dc * (1 - Sa);
+  }
+
+  template<typename T>
+  inline T Compositor::vividLight(T Dc, T Sc, T Da, T Sa)
+  {
+    if (Sc < 0.5) {
+      return colorBurn(Dc, Sc * 2, Da, Sa);
+    }
+    else {
+      return colorDodge(Dc * Da, (T)((2 * Sc - 0.5) * Sa), Da, Sa);
     }
   }
 

@@ -444,6 +444,17 @@ namespace Comp {
           compPx[i * 4 + 1] = cvt(pinLight(ga, gb, aa, ab), ad);
           compPx[i * 4 + 2] = cvt(pinLight(ba, bb, aa, ab), ad);
         }
+        else if (l._mode == BlendMode::COLOR_BURN) {
+          // also unmultiplied colors here
+          compPx[i * 4] = cvt(colorBurn(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(colorBurn(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(colorBurn(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+        }
+        else if (l._mode == BlendMode::VIVID_LIGHT) {
+          compPx[i * 4] = cvt(vividLight(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(vividLight(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(vividLight(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+        }
       }
 
       // adjustment layer clean up, if applicable

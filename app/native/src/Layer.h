@@ -29,7 +29,9 @@ namespace Comp {
     COLOR = 10,
     LIGHTEN = 11,
     DARKEN = 12,
-    PIN_LIGHT = 13
+    PIN_LIGHT = 13,
+    COLOR_BURN = 14,
+    VIVID_LIGHT = 15
   };
 
   class Layer {

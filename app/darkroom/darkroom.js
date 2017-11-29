@@ -384,6 +384,10 @@ function initUI() {
     settings.renderSize = $(this).attr("internal");
 
     // update the canvas
+    var img = c.render(settings.renderSize);
+    var w = img.width();
+    var h = img.height()
+
     var renderCanvas = $('#renderCanvas');
     renderCanvas.attr({ width: w, height: h });
 

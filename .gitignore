@@ -86,3 +86,4 @@ app/native/debug/test.png
 app/darkroom/.vs/*
 app/darkroom/package-lock.json
 app/native/package-lock.json
+app/darkroom/build/config.gypi

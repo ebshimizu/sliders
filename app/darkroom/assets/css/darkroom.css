@@ -98,6 +98,26 @@ body .ui.basic.modal p {
 	margin: 0 0 3px 0;
 }
 
+#layerEditControls .thumb.show
+{
+    padding-left: 50%;
+    min-height: 200px;
+}
+
+#layerEditControls .thumb.show canvas {
+    display: block;
+}
+
+#layerEditControls .thumb canvas {
+    position: absolute;
+    display: none;
+    width: 48%;
+    height: 80%;
+    object-fit: contain;
+    left: 0;
+    top: 35px;
+}
+
 #layerControls .parameter .paramLabel,
 #layerEditControls .parameter .paramLabel,
 #groupsPanel .parameter .paramLabel,

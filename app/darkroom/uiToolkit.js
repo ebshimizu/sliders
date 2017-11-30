@@ -920,6 +920,218 @@ class SliderSelector {
   }
 }
 
+// due to potential layer selection methods using multiple parts of the interface,
+// everything should be managed within in this object.
+// a layer selector may or may not use a slider selector
+// as part of its selection process, and is likely to use a number of 
+// unique components
+class LayerSelector {
+  constructor(opts) {
+    // expected to be a jquery selector
+    this._selectionCanvas = $(opts.selectionCanvas);
+
+    // also a jquery selector
+    this._sidebar = $(opts.sidebar);
+
+    // string or int, not sure yet
+    this._selectionMode = opts.selectionMode;
+
+    this._rankMode = opts.rankMode;
+    this._rankThreshold = opts.rankThreshold;
+
+    this.initCanvas();
+    this.initUI();
+  }
+
+  initUI() {
+    this._sidebar.html();
+
+    // append some stuff to the thing
+    this._controlArea = $('<div class="ui inverted relaxed divided list"></div>');
+    this._sidebar.append(this._controlArea);
+  }
+
+  selectLayers() {
+    if (this._selectionMode === "localBox") {
+      // find the segments with the most "importance" then display them along with thumbnails
+      // in the sidebar
+      var x = Math.min(this._currentRect.pt1.x, this._currentRect.pt2.x);
+      var y = Math.min(this._currentRect.pt1.y, this._currentRect.pt2.y);
+      var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
+      var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
+
+      // returns the layer names and the importance values
+      var rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
+      rank.sort(function (a, b) {
+        return -(a.score - b.score);
+      });
+
+      // cull and display
+      var displayLayers = [];
+      for (var i = 0; i < rank.length; i++) {
+        if (rank[i].score > this._rankThreshold) {
+          displayLayers.push(rank[i].name);
+        }
+      }
+      this.showLayers(displayLayers);
+    }
+  }
+
+  showLayers(layers) {
+    this.deleteAllLayers();
+
+    for (var i = 0; i < layers.length; i++) {
+      var control = new LayerControls(layers[i]);
+      control.createUI(this._controlArea);
+      control.displayThumb = true;
+      this._layerControls.push(control);
+    }
+  }
+
+  deleteAllLayers() {
+    if (this._layerControls) {
+      for (var i = 0; i < this._layerControls.length; i++) {
+        this._layerControls[i].deleteUI();
+      }
+    }
+
+    this._layerControls = [];
+  }
+
+  // initializes the current selection canvas by doing the following:
+  // - unbinding any current handlers
+  // - updating the canvas size (1:1 with max res image pixels)
+  // - clearing the canvas
+  // - binding new events
+  initCanvas() {
+    // unbind
+    this._selectionCanvas.off();
+
+    // resize
+    var dims = c.imageDims("full");
+    this._selectionCanvas.attr({ width: dims.w, height: dims.h });
+
+    // clear
+    var ctx = this._selectionCanvas[0].getContext("2d");
+    ctx.clearRect(0, 0, dims.w, dims.h);
+
+    // rebind
+    var self = this;
+    this._selectionCanvas.mousedown(function (e) { self.canvasMouseDown(e) });
+    this._selectionCanvas.mouseup(function (e) { self.canvasMouseUp(e) });
+    this._selectionCanvas.mousemove(function (e) { self.canvasMouseMove(e) });
+    this._selectionCanvas.mouseout(function (e) { self.canvasMouseOut(e) });
+
+    // internal state
+    this._drawing = false;
+    this._currentRect = {};
+  }
+
+  // bindings
+  canvasMouseDown(event) {
+    // mode check
+    if (this._selectionMode === "localBox") {
+      if (!this._drawing) {
+        this._currentRect.pt1 = this.screenToLocal(event.pageX, event.pageY);
+        this._currentRect.pt2 = this._currentRect.pt1;
+        this._drawing = true;
+        this.updateCanvas();
+      }
+    }
+  }
+
+  canvasMouseUp(event) {
+    if (this._selectionMode === "localBox") {
+      if (this._drawing) {
+        this._drawing = false;
+        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+        this.updateCanvas();
+        this.selectLayers();
+      }
+    }
+  }
+
+  canvasMouseMove(event) {
+    if (this._selectionMode === "localBox") {
+      if (this._drawing) {
+        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+        this.updateCanvas();
+      }
+    }
+  }
+
+  canvasMouseOut(event) {
+    if (this._selectionMode === "localBox") {
+      if (this._drawing) {
+        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+        this.updateCanvas();
+      }
+    }
+  }
+
+  // canvas callbacks
+  updateCanvas() {
+    if (this._selectionMode === "localBox") {
+      var x = Math.min(this._currentRect.pt1.x, this._currentRect.pt2.x);
+      var y = Math.min(this._currentRect.pt1.y, this._currentRect.pt2.y);
+      var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
+      var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
+
+      var ctx = this._selectionCanvas[0].getContext("2d");
+      ctx.clearRect(0, 0, this._selectionCanvas[0].width, this._selectionCanvas[0].height);
+
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = "2";
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.stroke();
+    }
+  }
+
+  // coordinate conversion functions
+  // relative coords are [0, 1], local coords are within the bounds defined by min and max
+  // screen coords are between the canvas bounds
+  relativeToLocal(x, y) {
+    var lx = x * this._selectionCanvas[0].width;
+    var ly = y * this._selectionCanvas[0].height;
+
+    return {x: lx, y: ly};
+  }
+
+  localToRelative(x, y) {
+    var rx = x / this._selectionCanvas[0].width;
+    var ry = y / this._selectionCanvas[0].height;
+
+    return { x: rx, y: ry };
+  }
+
+  screenToRelative(x, y) {
+    // determine scale
+    var w = this._selectionCanvas[0].width;
+    var h = this._selectionCanvas[0].height;
+    var scale = Math.min(this._selectionCanvas.width() / w, this._selectionCanvas.height() / h);
+
+    // position correction
+    var offset = this._selectionCanvas.offset();
+    x = x - offset.left;
+    y = y - offset.top;
+
+    // determine the actual offset
+    w = w * scale;
+    h = h * scale;
+    var xOffset = (this._selectionCanvas.width() - w) / 2;
+    var yOffset = (this._selectionCanvas.height() - h) / 2;
+
+    // remove offset
+    return { x: ((x - xOffset) / w), y: ((y - yOffset) / h) };
+  }
+
+  screenToLocal(x, y) {
+    var rel = this.screenToRelative(x, y);
+    return this.relativeToLocal(rel.x, rel.y);
+  }
+}
+
 // this class creates a layer control widget, including sliders for every individual
 // control. This is a partial re-write of the spaghetti in the main darkroom.js 
 // and does currently duplicate a lot of code
@@ -935,6 +1147,21 @@ class LayerControls {
 
   get name() {
     return this._name;
+  }
+
+  set displayThumb(val) {
+    this._displayThumb = val;
+
+    if (this._displayThumb === true) {
+      this._uiElem.find('.thumb').addClass('show');
+    }
+    else {
+      this._uiElem.find('.thumb').removeClass('show');
+    }
+  }
+
+  get displayThumb() {
+    return this._displayThumb;
   }
 
   deleteUI() {
@@ -954,6 +1181,7 @@ class LayerControls {
 
     // bindings
     this.bindEvents();
+    this.drawThumb();
   }
 
   rebuildUI() {
@@ -961,11 +1189,22 @@ class LayerControls {
     this._uiElem = $(this.buildUI());
     container.append(this._uiElem);
     this.bindEvents();
+    this.drawThumb();
+  }
+
+  // this may need to be updated to handle a number of different modes
+  drawThumb() {
+    // draw the layer thumbnail
+    if (!this.layer.isAdjustmentLayer()) {
+      drawImage(this.layer.image(), this._uiElem.find('canvas'));
+    }
   }
 
   buildUI() {
     var html = '<div class="layer" layerName="' + this._name + '">';
     html += '<h3 class="ui grey inverted header">' + this._name + '</h3>';
+    html += '<div class="thumb">';
+    html += '<canvas></canvas>';
 
     if (this._layer.visible()) {
       html += '<button class="ui icon button mini white visibleButton" layerName="' + this._name + '">';
@@ -1074,7 +1313,7 @@ class LayerControls {
       }
     }
 
-    html += '</div>';
+    html += '</div></div>';
 
     return html;
   }
@@ -1083,6 +1322,11 @@ class LayerControls {
   bindEvents() {
     var self = this;
     var visibleButton = this._uiElem.find('button.visibleButton');
+
+    // canvas setup
+    var dims = c.imageDims("full");
+    this._uiElem.find('canvas').attr({ width: dims.w, height: dims.h });
+
     visibleButton.on('click', function () {
       // check status of button
       var visible = self._layer.visible();
@@ -1631,3 +1875,4 @@ exports.Sampler = Sampler;
 exports.OrderedSlider = OrderedSlider;
 exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
+exports.LayerSelector = LayerSelector;

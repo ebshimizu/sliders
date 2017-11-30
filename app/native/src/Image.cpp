@@ -564,6 +564,21 @@ namespace Comp {
     getLogger()->log(ss.str());
   }
 
+  double Image::avgAlpha(int x, int y, int w, int h)
+  {
+    double avg = 0;
+
+    // assumption: bounds are ok
+    for (int j = y; j <= y + h; j++) {
+      for (int i = x; i <= x + w; i++) {
+        auto px = getPixel(i, j);
+        avg += px._a;
+      }
+    }
+
+    return avg / (w * h);
+  }
+
   Image * Image::diff(Image * other)
   {
     // normalized basic diff visualization for an image

@@ -123,6 +123,9 @@ namespace Comp {
     // performs an analysis of the image contents and fills in a number of stats
     void analyze();
 
+    // specialized analysis functions
+    double avgAlpha(int x, int y, int w, int h);
+
     Image* diff(Image* other);
 
     float totalAlpha() { return _totalAlpha; }

@@ -189,6 +189,10 @@ namespace Comp {
     // takes a darkroom file and loads it, returning a context
     Context contextFromDarkroom(string file);
 
+    // computes the regional importance for the rectangle specified by x, y, w, h
+    // and returns the results in names and scores
+    void regionalImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, int w, int h);
+
   private:
     void addLayer(string name);
 

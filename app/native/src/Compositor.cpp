@@ -985,6 +985,26 @@ namespace Comp {
     _searchGroups.clear();
   }
 
+  void Compositor::regionalImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, int w, int h)
+  {
+    names.clear();
+    scores.clear();
+
+    for (auto& id : _layerOrder) {
+      names.push_back(id);
+
+      if (mode == "avgAlpha") {
+        if (!_primary[id].isAdjustmentLayer()) {
+          auto img = getCachedImage(id, "full");
+          scores.push_back(img->avgAlpha(x, y, w, h));
+        }
+        else {
+          scores.push_back(0);
+        }
+      }
+    }
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

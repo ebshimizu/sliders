@@ -168,6 +168,7 @@ private:
   static void setLayerOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getLayerNames(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void size(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void imageDimensions(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void render(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void asyncRender(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void renderContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
@@ -197,6 +198,7 @@ private:
   static void contextFromVector(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void contextFromDarkroom(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void localImportance(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void importanceInRegion(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

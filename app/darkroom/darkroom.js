@@ -30,6 +30,7 @@ var g_sideboardID = 100001;        // note: this is a huge hack to remove ID con
 var g_sideboardReserveStart = 100000;
 var maxThreads = comp.hardware_concurrency();
 var g_searchProcess;
+var g_layerSelector;
 var settings = {
   "showSampleId": true,
   "sampleRows": 6,
@@ -664,10 +665,10 @@ function initUI() {
     runSearch(this);
   });
 
-  $("#maskCanvas").mousedown(function (e) { canvasMousedown(e, this); });
-  $("#maskCanvas").mouseup(function (e) { canvasMouseup(e, this); });
-  $("#maskCanvas").mousemove(function (e) { canvasMousemove(e, this); });
-  $("#maskCanvas").mouseout(function (e) { canvasMouseup(e, this); });
+  //$("#maskCanvas").mousedown(function (e) { canvasMousedown(e, this); });
+  //$("#maskCanvas").mouseup(function (e) { canvasMouseup(e, this); });
+  //$("#maskCanvas").mousemove(function (e) { canvasMousemove(e, this); });
+  //$("#maskCanvas").mouseout(function (e) { canvasMouseup(e, this); });
 
   // mask tools
   $('#maskOpacitySlider .slider').slider({
@@ -824,6 +825,16 @@ function initUI() {
   // place version numbers
   $('#appVersionLabel').html(versionString);
   $('#saveVersionLabel').html(saveVersion);
+}
+
+function initLayerSelector() {
+  g_layerSelector = new uiTools.LayerSelector({
+    "selectionCanvas": "#maskCanvas",
+    "sidebar": "#layerEditControls",
+    "selectionMode": "localBox",
+    "rankMode": "avgAlpha",
+    "rankThreshold" : 0.01
+  });
 }
 
 // Loads UI settings from the settings object. Assumes all settings in the object
@@ -2389,6 +2400,7 @@ function importLayers(doc, path) {
   initSearch();
   renderImage('importLayers()');
   initCanvas();
+  initLayerSelector();
 }
 
 function loadLayers(doc, path, transfer) {
@@ -2516,6 +2528,7 @@ function loadLayers(doc, path, transfer) {
   initSearch();
   renderImage("loadLayers()");
   initCanvas();
+  initLayerSelector();
 
   if (ver > 0.23) {
     settings = doc.settings;

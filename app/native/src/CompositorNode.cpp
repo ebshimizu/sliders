@@ -1515,6 +1515,8 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "contextFromVector", contextFromVector);
   Nan::SetPrototypeMethod(tpl, "contextFromDarkroom", contextFromDarkroom);
   Nan::SetPrototypeMethod(tpl, "localImportance", localImportance);
+  Nan::SetPrototypeMethod(tpl, "imageDims", imageDimensions);
+  Nan::SetPrototypeMethod(tpl, "regionalImportance", importanceInRegion);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1728,6 +1730,28 @@ void CompositorWrapper::size(const Nan::FunctionCallbackInfo<v8::Value>& info)
   nullcheck(c->_compositor, "compositor.size");
 
   info.GetReturnValue().Set(Nan::New(c->_compositor->size()));
+}
+
+void CompositorWrapper::imageDimensions(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.imageDimensions");
+
+  string size;
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    size = string(*i0);
+  }
+  else {
+    size = "full";
+  }
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  ret->Set(Nan::New("w").ToLocalChecked(), Nan::New(c->_compositor->getWidth(size)));
+  ret->Set(Nan::New("h").ToLocalChecked(), Nan::New(c->_compositor->getHeight(size)));
+
+  info.GetReturnValue().Set(ret);
 }
 
 void CompositorWrapper::render(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -2531,6 +2555,40 @@ void CompositorWrapper::localImportance(const Nan::FunctionCallbackInfo<v8::Valu
   }
 
   info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::importanceInRegion(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.importanceInRegion");
+
+  // mode
+  if (info[0]->IsString() && info[1]->IsObject()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string mode(*i0);
+
+    v8::Local<v8::Object> region = info[1].As<v8::Object>();
+    int x = region->Get(Nan::New("x").ToLocalChecked())->Int32Value();
+    int y = region->Get(Nan::New("y").ToLocalChecked())->Int32Value();
+    int w = region->Get(Nan::New("w").ToLocalChecked())->Int32Value();
+    int h = region->Get(Nan::New("h").ToLocalChecked())->Int32Value();
+
+    vector<double> scores;
+    vector<string> names;
+    c->_compositor->regionalImportance(mode, names, scores, x, y, w, h);
+
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    for (int i = 0; i < scores.size(); i++) {
+      v8::Local<v8::Object> obj = Nan::New<v8::Object>();
+
+      obj->Set(Nan::New("name").ToLocalChecked(), Nan::New(names[i]).ToLocalChecked());
+      obj->Set(Nan::New("score").ToLocalChecked(), Nan::New(scores[i]));
+      ret->Set(Nan::New(i), obj);
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

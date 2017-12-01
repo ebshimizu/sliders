@@ -112,10 +112,10 @@ body .ui.basic.modal p {
     position: absolute;
     display: none;
     width: 48%;
-    height: 80%;
+    height: 75%;
     object-fit: contain;
     left: 0;
-    top: 50px;
+    top: 55px;
 }
 
 #layerControls .parameter .paramLabel,
@@ -277,7 +277,7 @@ body .ui.basic.modal p {
 }
 
 #layerEditControls .layer .header {
-    margin-bottom: 30px;
+    margin-bottom: 35px;
 }
 
 #imageContainer {

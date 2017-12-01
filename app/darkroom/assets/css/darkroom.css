@@ -115,7 +115,7 @@ body .ui.basic.modal p {
     height: 80%;
     object-fit: contain;
     left: 0;
-    top: 35px;
+    top: 50px;
 }
 
 #layerControls .parameter .paramLabel,
@@ -274,6 +274,10 @@ body .ui.basic.modal p {
 #layerEditControls .layer .header,
 #layerControls .layer .header {
     width: calc(100% - 230px);
+}
+
+#layerEditControls .layer .header {
+    margin-bottom: 30px;
 }
 
 #imageContainer {
@@ -707,4 +711,9 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 
 .depricated {
     display:none;
+}
+
+.scoreLabel {
+    position: absolute;
+    top: 30px;
 }

@@ -1061,7 +1061,7 @@ class LayerSelector {
     var displayLayers = [];
     for (var i = 0; i < rank.length; i++) {
       if (rank[i].score > this._rankThreshold) {
-        displayLayers.push(rank[i].name);
+        displayLayers.push(rank[i]);
       }
     }
     this.showLayers(displayLayers);
@@ -1071,9 +1071,10 @@ class LayerSelector {
     this.deleteAllLayers();
 
     for (var i = 0; i < layers.length; i++) {
-      var control = new LayerControls(layers[i]);
+      var control = new LayerControls(layers[i].name);
       control.createUI(this._controlArea);
       control.displayThumb = true;
+      control.scoreLabel = layers[i].score;
       this._layerControls.push(control);
     }
   }
@@ -1258,6 +1259,16 @@ class LayerControls {
     return this._displayThumb;
   }
 
+  get scoreLabel() {
+    return this._scoreLabel;
+  }
+
+  set scoreLabel(val) {
+    this._scoreLabel = val;
+    this._uiElem.find(".scoreLabel").show();
+    this._uiElem.find(".scoreLabel .detail").text(val);
+  }
+
   deleteUI() {
     if (this._uiElem) {
       this._uiElem.remove();
@@ -1297,6 +1308,7 @@ class LayerControls {
   buildUI() {
     var html = '<div class="layer" layerName="' + this._name + '">';
     html += '<h3 class="ui grey inverted header">' + this._name + '</h3>';
+    html += '<div class="ui mini label scoreLabel">Score<div class="detail"></div></div>';
     html += '<div class="thumb">';
     html += '<canvas></canvas>';
 
@@ -1645,6 +1657,7 @@ class LayerControls {
   bindParam(paramName, initVal, section, type, config) {
     var s, i;
     var self = this;
+    this._uiElem.find(".scoreLabel").hide();
 
     if (section !== "") {
       s = this._uiElem.find('div[sectionName="' + section + '"] .paramSlider[paramName="' + paramName + '"]');

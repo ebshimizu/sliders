@@ -193,6 +193,9 @@ namespace Comp {
     // and returns the results in names and scores
     void regionalImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, int w, int h);
 
+    // Importance calculated for a single point
+    void pointImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, Context& c);
+
   private:
     void addLayer(string name);
 
@@ -432,6 +435,16 @@ namespace Comp {
     // blend the layers
     for (auto id : _layerOrder) {
       Layer& l = c[id];
+      bool shouldConditionalBlend = l.shouldConditionalBlend();
+      auto cbData = l.getConditionalBlendSettings();
+      float sbMin = cbData["srcBlackMin"];
+      float sbMax = cbData["srcBlackMax"];
+      float swMin = cbData["srcWhiteMin"];
+      float swMax = cbData["srcWhiteMax"];
+      float dbMin = cbData["destBlackMin"];
+      float dbMax = cbData["destBlackMax"];
+      float dwMin = cbData["destWhiteMin"];
+      float dwMax = cbData["destWhiteMax"];
 
       if (!l._visible)
         continue;
@@ -458,6 +471,17 @@ namespace Comp {
       // alphas
       T ab = layerPx._a * l.getOpacity();
       T aa = compPx._a;
+
+      if (shouldConditionalBlend) {
+        // i'm unsure if it works literally just on the layer below it or the composition up to this point
+        T abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
+          sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
+          layerPx._r, layerPx._g, layerPx._b,
+          compPx._r, compPx._g, compPx._b);
+
+        ab = ab * abScale;
+      }
+
       T ad = aa + ab - aa * ab;
 
       compPx._a = ad;
@@ -559,6 +583,17 @@ namespace Comp {
         compPx._r = cvtT(pinLight(ra, rb, aa, ab), ad);
         compPx._g = cvtT(pinLight(ga, gb, aa, ab), ad);
         compPx._b = cvtT(pinLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR_BURN) {
+        // also unmultiplied colors here
+        compPx._r = cvtT(colorBurn(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtT(colorBurn(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtT(colorBurn(compPx._b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::VIVID_LIGHT) {
+        compPx._r = cvtT(vividLight(compPx._r, layerPx._r, aa, ab), ad);
+        compPx._g = cvtT(vividLight(compPx._g, layerPx._g, aa, ab), ad);
+        compPx._b = cvtT(vividLight(compPx._b, layerPx._b, aa, ab), ad);
       }
     }
 

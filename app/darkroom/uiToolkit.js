@@ -952,6 +952,8 @@ class LayerSelector {
   }
 
   selectLayers() {
+    var rank;
+
     if (this._selectionMode === "localBox") {
       // find the segments with the most "importance" then display them along with thumbnails
       // in the sidebar
@@ -961,20 +963,24 @@ class LayerSelector {
       var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
 
       // returns the layer names and the importance values
-      var rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
-      rank.sort(function (a, b) {
-        return -(a.score - b.score);
-      });
-
-      // cull and display
-      var displayLayers = [];
-      for (var i = 0; i < rank.length; i++) {
-        if (rank[i].score > this._rankThreshold) {
-          displayLayers.push(rank[i].name);
-        }
-      }
-      this.showLayers(displayLayers);
+      rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
     }
+    else if (this._selectionMode === "localPoint") {
+      rank = c.pointImportance(this._rankMode, { 'x': this._currentPt.x, 'y': this._currentPt.y }, c.getContext());
+    }
+
+    rank.sort(function (a, b) {
+      return -(a.score - b.score);
+    });
+
+    // cull and display
+    var displayLayers = [];
+    for (var i = 0; i < rank.length; i++) {
+      if (rank[i].score > this._rankThreshold) {
+        displayLayers.push(rank[i].name);
+      }
+    }
+    this.showLayers(displayLayers);
   }
 
   showLayers(layers) {
@@ -1037,6 +1043,9 @@ class LayerSelector {
         this._drawing = true;
         this.updateCanvas();
       }
+    }
+    else if (this._selectionMode === "localPoint") {
+      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
     }
   }
 

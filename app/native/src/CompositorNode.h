@@ -199,6 +199,7 @@ private:
   static void contextFromDarkroom(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void localImportance(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void importanceInRegion(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void pointImportance(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

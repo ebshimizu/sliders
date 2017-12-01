@@ -2591,6 +2591,44 @@ void CompositorWrapper::importanceInRegion(const Nan::FunctionCallbackInfo<v8::V
   }
 }
 
+void CompositorWrapper::pointImportance(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.pointImportance");
+
+  // mode
+  if (info[0]->IsString() && info[1]->IsObject() && info[2]->IsObject()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string mode(*i0);
+
+    v8::Local<v8::Object> region = info[1].As<v8::Object>();
+    int x = region->Get(Nan::New("x").ToLocalChecked())->Int32Value();
+    int y = region->Get(Nan::New("y").ToLocalChecked())->Int32Value();
+
+    Nan::MaybeLocal<v8::Object> maybe2 = Nan::To<v8::Object>(info[2]);
+    if (maybe2.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe2.ToLocalChecked());
+
+    vector<double> scores;
+    vector<string> names;
+    c->_compositor->pointImportance(mode, names, scores, x, y, ctx->_context);
+
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    for (int i = 0; i < scores.size(); i++) {
+      v8::Local<v8::Object> obj = Nan::New<v8::Object>();
+
+      obj->Set(Nan::New("name").ToLocalChecked(), Nan::New(names[i]).ToLocalChecked());
+      obj->Set(Nan::New("score").ToLocalChecked(), Nan::New(scores[i]));
+      ret->Set(Nan::New(i), obj);
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
+}
+
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :
   Nan::AsyncWorker(callback), _size(size), _c(c)
 {

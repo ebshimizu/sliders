@@ -1005,6 +1005,30 @@ namespace Comp {
     }
   }
 
+  void Compositor::pointImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, Context & c)
+  {
+    names.clear();
+    scores.clear();
+
+    // store the current pixel color
+    //RGBAColor srcPixel = renderPixel(c, x, y);
+
+    for (auto& id : _layerOrder) {
+      names.push_back(id);
+
+      if (mode == "alpha") {
+        if (!_primary[id].isAdjustmentLayer()) {
+          auto img = getCachedImage(id, "full");
+
+          scores.push_back(img->getPixel(x, y)._a);
+        }
+        else {
+          scores.push_back(0);
+        }
+      }
+    }
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

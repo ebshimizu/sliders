@@ -993,7 +993,7 @@ namespace Comp {
     for (auto& id : _layerOrder) {
       names.push_back(id);
 
-      if (mode == "avgAlpha") {
+      if (mode == "alpha") {
         if (!_primary[id].isAdjustmentLayer()) {
           auto img = getCachedImage(id, "full");
           scores.push_back(img->avgAlpha(x, y, w, h));
@@ -1005,26 +1005,42 @@ namespace Comp {
     }
   }
 
-  void Compositor::pointImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, Context & c)
+  void Compositor::pointImportance(string mode, map<string, double>& scores, int x, int y, Context & c)
   {
-    names.clear();
     scores.clear();
 
     // store the current pixel color
-    //RGBAColor srcPixel = renderPixel(c, x, y);
+    RGBAColor srcPixel = renderPixel<float>(c, x, y);
 
     for (auto& id : _layerOrder) {
-      names.push_back(id);
-
       if (mode == "alpha") {
         if (!_primary[id].isAdjustmentLayer()) {
           auto img = getCachedImage(id, "full");
 
-          scores.push_back(img->getPixel(x, y)._a);
+          scores[id] = (img->getPixel(x, y)._a);
         }
         else {
-          scores.push_back(0);
+          scores[id] = 0;
         }
+      }
+      else if (mode == "visibilityDelta") {
+        // the visibility delta is the magnitude of the pixel color difference
+        // with the layer's visibility toggled
+        Context toggle(c);
+        toggle[id]._visible = !toggle[id]._visible;
+        RGBAColor modPixel = renderPixel<float>(toggle, x, y);
+
+        // calculate difference
+        // premultiplied alpha
+        float rd = (srcPixel._r * srcPixel._a) - (modPixel._r * modPixel._a);
+        float gd = (srcPixel._g * srcPixel._a) - (modPixel._g * modPixel._a);
+        float bd = (srcPixel._b * srcPixel._a) - (modPixel._b * modPixel._a);
+        float diff = sqrt(rd * rd + gd * gd + bd * bd);
+
+        scores[id] = diff;
+
+        // log it 
+        getLogger()->log("visibilityDelta for " + id + ": " + to_string(diff));
       }
     }
   }

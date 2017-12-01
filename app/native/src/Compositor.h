@@ -194,7 +194,7 @@ namespace Comp {
     void regionalImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, int w, int h);
 
     // Importance calculated for a single point
-    void pointImportance(string mode, vector<string>& names, vector<double>& scores, int x, int y, Context& c);
+    void pointImportance(string mode, map<string, double>& scores, int x, int y, Context& c);
 
   private:
     void addLayer(string name);

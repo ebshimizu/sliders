@@ -1517,6 +1517,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "localImportance", localImportance);
   Nan::SetPrototypeMethod(tpl, "imageDims", imageDimensions);
   Nan::SetPrototypeMethod(tpl, "regionalImportance", importanceInRegion);
+  Nan::SetPrototypeMethod(tpl, "pointImportance", pointImportance);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2611,18 +2612,19 @@ void CompositorWrapper::pointImportance(const Nan::FunctionCallbackInfo<v8::Valu
     }
     ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe2.ToLocalChecked());
 
-    vector<double> scores;
-    vector<string> names;
-    c->_compositor->pointImportance(mode, names, scores, x, y, ctx->_context);
+    map<string, double> scores;
+    c->_compositor->pointImportance(mode, scores, x, y, ctx->_context);
 
     v8::Local<v8::Array> ret = Nan::New<v8::Array>();
 
-    for (int i = 0; i < scores.size(); i++) {
+    int i = 0;
+    for (auto& kvp : scores) {
       v8::Local<v8::Object> obj = Nan::New<v8::Object>();
 
-      obj->Set(Nan::New("name").ToLocalChecked(), Nan::New(names[i]).ToLocalChecked());
-      obj->Set(Nan::New("score").ToLocalChecked(), Nan::New(scores[i]));
+      obj->Set(Nan::New("name").ToLocalChecked(), Nan::New(kvp.first).ToLocalChecked());
+      obj->Set(Nan::New("score").ToLocalChecked(), Nan::New(kvp.second));
       ret->Set(Nan::New(i), obj);
+      i++;
     }
 
     info.GetReturnValue().Set(ret);

@@ -933,6 +933,9 @@ class LayerSelector {
     // also a jquery selector
     this._sidebar = $(opts.sidebar);
 
+    // and also a jquery selector
+    this._optUI = $(opts.optUI);
+
     // string or int, not sure yet
     this._selectionMode = opts.selectionMode;
 
@@ -944,11 +947,92 @@ class LayerSelector {
   }
 
   initUI() {
+    var self = this;
     this._sidebar.html();
 
     // append some stuff to the thing
     this._controlArea = $('<div class="ui inverted relaxed divided list"></div>');
     this._sidebar.append(this._controlArea);
+
+    // create the options
+    this._optionUIList = $('<div class="ui relaxed inverted list"></div>');
+    this._optUI.append(this._optionUIList);
+
+    // create the things
+    // ranking modes
+    var modeMenu = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" id="selectRankMenu">
+          <span class="text">[Rank Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="alpha">Average Alpha</div>
+            <div class="item" data-value="visibilityDelta">Visibility Delta</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Selected Layer Ranking</div>
+      </div>
+    </div>`);
+    this._optionUIList.append(modeMenu);
+
+    $('#selectRankMenu').dropdown({
+      action: 'activate',
+      onChange: function (value, text) {
+        self._rankMode = value;
+        $('#selectRankMenu .text').html(text);
+      }
+    });
+    $('#selectRankMenu').dropdown('set selected', this._rankMode);
+
+    // selection Modes
+    var selectionMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" id="selectModeMenu">
+          <span class="text">[Select Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="localPoint">Point</div>
+            <div class="item" data-value="localBox">Box</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Selection Mode</div>
+      </div>
+    </div>`);
+    this._optionUIList.append(selectionMode);
+
+    $('#selectModeMenu').dropdown({
+      action: 'activate',
+      onChange: function (value, text) {
+        self._selectionMode = value;
+        $('#selectModeMenu .text').html(text);
+      }
+    });
+    $('#selectModeMenu').dropdown('set selected', this._selectionMode);
+
+    // threshold
+    var thresholdSetting = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="selectThreshold">
+                  <input type="number" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Display Threshold</div>
+              <div class="description">Layers with a rank score above the threshold will be displayed</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(thresholdSetting);
+    thresholdSetting.find('input').val(this._rankThreshold);
+
+    $('#selectThreshold input').change(function () {
+      self._rankThreshold = parseFloat($(this).val());
+    });
   }
 
   selectLayers() {
@@ -1044,9 +1128,6 @@ class LayerSelector {
         this.updateCanvas();
       }
     }
-    else if (this._selectionMode === "localPoint") {
-      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
-    }
   }
 
   canvasMouseUp(event) {
@@ -1057,6 +1138,10 @@ class LayerSelector {
         this.updateCanvas();
         this.selectLayers();
       }
+    }
+    else if (this._selectionMode === "localPoint") {
+      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+      this.selectLayers();
     }
   }
 

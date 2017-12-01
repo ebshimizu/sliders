@@ -704,3 +704,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     display: none;
     position: absolute;
 }
+
+.depricated {
+    display:none;
+}

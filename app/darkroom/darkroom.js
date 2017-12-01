@@ -831,9 +831,10 @@ function initLayerSelector() {
   g_layerSelector = new uiTools.LayerSelector({
     "selectionCanvas": "#maskCanvas",
     "sidebar": "#layerEditControls",
-    "selectionMode": "localBox",
-    "rankMode": "avgAlpha",
-    "rankThreshold" : 0.01
+    "selectionMode": "localPoint",
+    "rankMode": "alpha",
+    "rankThreshold": 0.01,
+    "optUI": "#layerSelectOptionsTab"
   });
 }
 

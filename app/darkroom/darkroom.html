@@ -348,12 +348,11 @@
         <!-- SAMPLE CONTROLS -->
         <div id="sampleControls">
             <div class="ui top attached inverted grey mini menu">
-                <a class="item active" data-tab="first">Search Settings</a>
-                <a class="item" data-tab="second">Render Queue</a>
-                <a class="item" data-tab="ceresDebug">Ceres Testing</a>
+                <a class="item active" data-tab="renderQueue">Render Queue</a>
+                <a class="item" data-tab="layerSelectOptions">Layer Select Options</a>
             </div>
             <div class="ui top attached inverted segment" id="sampleControlsSegment">
-                <div class="ui tab active" data-tab="first">
+                <div class="depricated" data-tab="first">
                     <button class="ui green button" id="runSearchBtn">Start Search</button>
                     <div class="ui horizontal divider inverted header">Search Settings</div>
                     <div id="searchSettings">
@@ -806,13 +805,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="ui tab" data-tab="second" id="renderQueueTab">
+                <div class="ui tab active" data-tab="renderQueue" id="renderQueueTab">
                     <h3 class="ui inverted header">Render Queue</h3>
                     <div class="ui relaxed inverted list" id="renderQueue">
 
                     </div>
                 </div>
-                <div class="ui tab" data-tab="ceresDebug" id="debugConstraintTab">
+                <div class="ui tab" data-tab="layerSelectOptions" id="layerSelectOptionsTab">
+
+                </div>
+                <div class="depricated" data-tab="ceresDebug" id="debugConstraintTab">
                     <h3 class="ui inverted header">Ceres Testing Settings</h3>
                     <div class="ui grid">
                         <div class="three column row">

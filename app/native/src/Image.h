@@ -156,6 +156,36 @@ namespace Comp {
     // variables for the expression context
     Utils<ExpStep>::RGBAColorT _vars;
   };
+
+  // I'm putting this in image because it's small enough to fit and 
+  // it's sort of an image extension
+  class ImportanceMap {
+  public:
+    ImportanceMap(int w, int h);
+    ~ImportanceMap();
+
+    void setVal(float val, int x, int y);
+    double getVal(int x, int y);
+
+    // direct access is enabled
+    vector<double> _data;
+
+    // converts values in _data to renderable form
+    shared_ptr<Image> getDisplayableImage();
+
+    // since we allow direct access (for now) we need to compute
+    // min/max on demand instead of keeping a running total
+    double getMin();
+    double getMax();
+
+  private:
+    shared_ptr<Image> _display;
+
+    int _w;
+    int _h;
+  };
 }
+
+
 
 #endif

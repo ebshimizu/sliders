@@ -1042,7 +1042,124 @@ namespace Comp {
         // log it 
         getLogger()->log("visibilityDelta for " + id + ": " + to_string(diff));
       }
+      else if (mode == "specVisibilityDelta") {
+        // the speculative visibility delta is basically the same as the visibility
+        // delta, but with some corner case handling
+        // there are two visibility conditions: opacity > 0, visility on
+        // - if layer is visible but opacity is 0, the delta is compared to opacity 1
+        // - if layer is invisible but opacity is 0, the delta is comapred to visible + opacity 1
+        // - if layer is visible, the delta is compared to invisible
+        Context toggle(c);
+
+        if (toggle[id].getOpacity() == 0) {
+          toggle[id].setOpacity(1);
+
+          if (!toggle[id]._visible) {
+            toggle[id]._visible = true;
+          }
+        }
+        else {
+          toggle[id]._visible = !toggle[id]._visible;
+        }
+
+        RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
+
+        // calculate difference
+        // premultiplied alpha
+        float rd = (srcPixel._r * srcPixel._a) - (modPixel._r * modPixel._a);
+        float gd = (srcPixel._g * srcPixel._a) - (modPixel._g * modPixel._a);
+        float bd = (srcPixel._b * srcPixel._a) - (modPixel._b * modPixel._a);
+        float diff = sqrt(rd * rd + gd * gd + bd * bd);
+
+        scores[id] = diff;
+
+        // log it 
+        getLogger()->log("specVisibilityDelta for " + id + ": " + to_string(diff));
+      }
     }
+  }
+
+  double Compositor::pointImportance(ImportanceMapMode mode, string layer, int x, int y, Context & c)
+  {
+    // store the current pixel color
+    RGBAColor srcPixel = renderPixel<float>(c, x, y);
+
+    if (mode == ImportanceMapMode::ALPHA) {
+      if (!_primary[layer].isAdjustmentLayer()) {
+        shared_ptr<Image> img = getCachedImage(layer, "full");
+
+        return img->getPixel(x, y)._a;
+      }
+      else {
+        return 0;
+      }
+    }
+    else if (mode == ImportanceMapMode::VISIBILITY_DELTA) {
+      // the visibility delta is the magnitude of the pixel color difference
+      // with the layer's visibility toggled
+      Context toggle(c);
+      toggle[layer]._visible = !toggle[layer]._visible;
+      RGBAColor modPixel = renderPixel<float>(toggle, x, y);
+
+      // calculate difference
+      // premultiplied alpha
+      float rd = (srcPixel._r * srcPixel._a) - (modPixel._r * modPixel._a);
+      float gd = (srcPixel._g * srcPixel._a) - (modPixel._g * modPixel._a);
+      float bd = (srcPixel._b * srcPixel._a) - (modPixel._b * modPixel._a);
+      float diff = sqrt(rd * rd + gd * gd + bd * bd);
+
+      // don'T LOG IT IT DOES THIS FOR EVERY PIXEL
+      //getLogger()->log("visibilityDelta for " + id + ": " + to_string(diff));
+      return diff;
+    }
+    else if (mode == ImportanceMapMode::SPEC_VISIBILITY_DELTA) {
+      // the speculative visibility delta is basically the same as the visibility
+      // delta, but with some corner case handling
+      // there are two visibility conditions: opacity > 0, visility on
+      // - if layer is visible but opacity is 0, the delta is compared to opacity 1
+      // - if layer is invisible but opacity is 0, the delta is comapred to visible + opacity 1
+      // - if layer is visible, the delta is compared to invisible
+      Context toggle(c);
+
+      if (toggle[layer].getOpacity() == 0) {
+        toggle[layer].setOpacity(1);
+
+        if (!toggle[layer]._visible) {
+          toggle[layer]._visible = true;
+        }
+      }
+      else {
+        toggle[layer]._visible = !toggle[layer]._visible;
+      }
+
+      RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
+
+      // calculate difference
+      // premultiplied alpha
+      float rd = (srcPixel._r * srcPixel._a) - (modPixel._r * modPixel._a);
+      float gd = (srcPixel._g * srcPixel._a) - (modPixel._g * modPixel._a);
+      float bd = (srcPixel._b * srcPixel._a) - (modPixel._b * modPixel._a);
+      float diff = sqrt(rd * rd + gd * gd + bd * bd);
+
+      return diff;
+    }
+  }
+
+  shared_ptr<ImportanceMap> Compositor::computeImportanceMap(string layer, ImportanceMapMode mode, Context& current)
+  {
+    // basically we'll just run compute point importance for most modes here
+    int maxW = getWidth();
+    int maxH = getHeight();
+    shared_ptr<ImportanceMap> newMap = shared_ptr<ImportanceMap>(new ImportanceMap(maxW, maxH));
+
+    for (int y = 0; y < maxH; y++) {
+      for (int x = 0; x < maxW; x++) {
+        newMap->setVal(pointImportance(mode, layer, x, y, current), x, y);
+      }
+    }
+
+    _importanceMapCache[layer][mode] = newMap;
+    return newMap;
   }
 
   void Compositor::addLayer(string name)

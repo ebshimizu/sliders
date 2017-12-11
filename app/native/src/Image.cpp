@@ -624,4 +624,25 @@ namespace Comp {
       _filename = filename.substr(pos + 1);
     }
   }
+
+  ImportanceMap::ImportanceMap(int w, int h) : _w(w), _h(h)
+  {
+    _display = shared_ptr<Image>(new Image(_w, _h));
+    _data.resize(_w * _h);
+  }
+
+  ImportanceMap::~ImportanceMap()
+  {
+  }
+
+  void ImportanceMap::setVal(float val, int x, int y)
+  {
+    _data[x + y * _w] = val;
+  }
+
+  double ImportanceMap::getVal(int x, int y)
+  {
+    return _data[x + y * _w];
+  }
+
 }

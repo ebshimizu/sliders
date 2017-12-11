@@ -968,6 +968,7 @@ class LayerSelector {
           <div class="menu">
             <div class="item" data-value="alpha">Average Alpha</div>
             <div class="item" data-value="visibilityDelta">Visibility Delta</div>
+            <div class="item" data-value="specVisibilityDelta">Speculative Visibility Delta</div>
           </div>
         </div>
       </div>

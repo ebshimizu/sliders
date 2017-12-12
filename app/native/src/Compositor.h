@@ -213,7 +213,7 @@ namespace Comp {
     void computeAllImportanceMaps(ImportanceMapMode mode, Context& current);
 
     // importance map cache manipulation
-    shared_ptr<Image> getImportanceMap(string layer, ImportanceMapMode mode);
+    shared_ptr<ImportanceMap> getImportanceMap(string layer, ImportanceMapMode mode);
     void deleteImportanceMap(string layer, ImportanceMapMode mode);
     void deleteLayerImportanceMaps(string layer);
     void deleteImportanceMapType(ImportanceMapMode mode);

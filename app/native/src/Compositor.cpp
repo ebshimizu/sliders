@@ -1147,6 +1147,8 @@ namespace Comp {
 
   shared_ptr<ImportanceMap> Compositor::computeImportanceMap(string layer, ImportanceMapMode mode, Context& current)
   {
+    getLogger()->log("Computing importance map for " + layer + " type " + to_string(mode));
+
     // basically we'll just run compute point importance for most modes here
     int maxW = getWidth();
     int maxH = getHeight();
@@ -1160,6 +1162,65 @@ namespace Comp {
 
     _importanceMapCache[layer][mode] = newMap;
     return newMap;
+  }
+
+  void Compositor::computeAllImportanceMaps(ImportanceMapMode mode, Context & current)
+  {
+    for (auto& l : _layerOrder) {
+      computeImportanceMap(l, mode, current);
+    }
+  }
+
+  shared_ptr<ImportanceMap> Compositor::getImportanceMap(string layer, ImportanceMapMode mode)
+  {
+    if (_importanceMapCache.count(layer) > 0) {
+      if (_importanceMapCache[layer].count(mode) > 0) {
+        return _importanceMapCache[layer][mode];
+      }
+    }
+
+    return nullptr;
+  }
+
+  void Compositor::deleteImportanceMap(string layer, ImportanceMapMode mode)
+  {
+    if (_importanceMapCache.count(layer) > 0) {
+      _importanceMapCache[layer].erase(mode);
+      getLogger()->log("Deleted map " + to_string(mode) + " for layer " + layer);
+    }
+  }
+
+  void Compositor::deleteLayerImportanceMaps(string layer)
+  {
+    _importanceMapCache.erase(layer);
+    getLogger()->log("Deleted all maps for layer " + layer);
+  }
+
+  void Compositor::deleteImportanceMapType(ImportanceMapMode mode)
+  {
+    for (auto& kvp : _importanceMapCache) {
+      kvp.second.erase(mode);
+    }
+
+    getLogger()->log("Deleted all maps of type " + to_string(mode));
+  }
+
+  void Compositor::deleteAllImportanceMaps()
+  {
+    _importanceMapCache.clear();
+    getLogger()->log("Deleted all importance maps.");
+  }
+
+  void Compositor::dumpImportanceMaps(string folder)
+  {
+    // exports both an image and a raw json file containing the info about the importance maps
+    for (auto& kvp : _importanceMapCache) {
+      // for each type
+      for (auto& type : kvp.second) {
+        string base = kvp.first + "_" + to_string(type.first);
+        type.second->dump(folder, base);
+      }
+    }
   }
 
   void Compositor::addLayer(string name)

@@ -59,6 +59,25 @@ private:
   bool _deleteOnDestruct;
 };
 
+class ImportanceMapWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> importanceMapConstructor;
+
+private:
+  explicit ImportanceMapWrapper(shared_ptr<Comp::ImportanceMap> m, string name, Comp::ImportanceMapMode type);
+  ~ImportanceMapWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void image(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value>& info);
+  static void dump(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getVal(const Nan::FunctionCallbackInfo<v8::Value>& info);
+
+  shared_ptr<Comp::ImportanceMap> _m;
+  string _name;
+  Comp::ImportanceMapMode _type;
+};
+
 // LayerRef is a wrapper around a pointer to an existing layer.
 // It is not likely that we'll be instantiating layers from the JS interface,
 // instead we'll ask the compositor to load things instead. Therefore, we

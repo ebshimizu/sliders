@@ -178,6 +178,9 @@ namespace Comp {
     double getMin();
     double getMax();
 
+    // path: location, base: filename (before extension)
+    void dump(string path, string base);
+
   private:
     shared_ptr<Image> _display;
 

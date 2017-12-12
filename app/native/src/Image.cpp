@@ -637,12 +637,88 @@ namespace Comp {
 
   void ImportanceMap::setVal(float val, int x, int y)
   {
+    if (x + y * _w > _data.size()) {
+      // please don't
+      return;
+    }
+
     _data[x + y * _w] = val;
   }
 
   double ImportanceMap::getVal(int x, int y)
   {
+    if (x + y * _w > _data.size()) {
+      // please don't
+      return 0;
+    }
+
     return _data[x + y * _w];
+  }
+
+  shared_ptr<Image> ImportanceMap::getDisplayableImage()
+  {
+    double max = getMax();
+    double min = getMin();
+    vector<unsigned char>& imgData = _display->getData();
+
+    for (int i = 0; i < _data.size(); i++) {
+      unsigned char scaled = (unsigned char)((_data[i] - min) / (max - min)) * 255;
+      imgData[i * 4] = scaled;
+      imgData[i * 4 + 1] = scaled;
+      imgData[i * 4 + 2] = scaled;
+      imgData[i * 4 + 3] = 255;
+    }
+
+    return _display;
+  }
+
+  double ImportanceMap::getMin()
+  {
+    double min = DBL_MAX;
+
+    for (int i = 0; i < _data.size(); i++) {
+      if (_data[i] < min) {
+        min = _data[i];
+      }
+    }
+
+    return min;
+  }
+
+  double ImportanceMap::getMax()
+  {
+    double max = DBL_MIN;
+
+    for (int i = 0; i < _data.size(); i++) {
+      if (_data[i] > max) {
+        max = _data[i];
+      }
+    }
+
+    return max;
+  }
+
+  void ImportanceMap::dump(string path, string base)
+  {
+    string imgPath = path + base + ".png";
+    string dataPath = path + base + ".json";
+
+    getDisplayableImage()->save(imgPath);
+
+    // data
+    nlohmann::json data;
+    nlohmann::json rawData = nlohmann::json::array();
+
+    for (int i = 0; i < _data.size(); i++) {
+      rawData.push_back(_data[i]);
+    }
+
+    data["data"] = rawData;
+    data["min"] = getMin();
+    data["max"] = getMax();
+
+    ofstream file(dataPath);
+    file << data.dump(4);
   }
 
 }

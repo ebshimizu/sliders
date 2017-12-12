@@ -172,6 +172,7 @@ v8::Local<v8::Value> excGet(v8::Local<v8::Object>& obj, string key)
 
 // object bindings
 Nan::Persistent<v8::Function> ImageWrapper::imageConstructor;
+Nan::Persistent<v8::Function> ImportanceMapWrapper::importanceMapConstructor;
 Nan::Persistent<v8::Function> LayerRef::layerConstructor;
 Nan::Persistent<v8::Function> CompositorWrapper::compositorConstructor;
 Nan::Persistent<v8::Function> ContextWrapper::contextConstructor;
@@ -523,6 +524,102 @@ void ImageWrapper::writeToImageData(const Nan::FunctionCallbackInfo<v8::Value>& 
   memcpy(data, &imData[0], imData.size());
 
   // i don't think this needs to return anything?
+}
+
+void ImportanceMapWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ImportanceMap").ToLocalChecked());
+
+  auto tplInst = tpl->InstanceTemplate();
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetAccessor(tplInst, Nan::New("image").ToLocalChecked(), image);
+  Nan::SetPrototypeMethod(tpl, "dump", dump);
+  Nan::SetPrototypeMethod(tpl, "getVal", getVal);
+
+  importanceMapConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("ImportanceMap").ToLocalChecked(), tpl->GetFunction());
+}
+
+ImportanceMapWrapper::ImportanceMapWrapper(shared_ptr<Comp::ImportanceMap> m, string name, Comp::ImportanceMapMode type) :
+  _m(m), _name(name), _type(type)
+{
+}
+
+ImportanceMapWrapper::~ImportanceMapWrapper()
+{
+}
+
+void ImportanceMapWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // this constructor is a bit unique since it's a) intended to be returned from a compositor function only
+  // and b) needs a shared pointer from the compositor parent object
+  // it will throw an error if the arguments are wrong.
+  if (info[0]->IsExternal() && info[1]->IsString() && info[2]->IsNumber()) {
+    Comp::Compositor* c = static_cast<Comp::Compositor*>(info[0].As<v8::External>()->Value());
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string layerName(*i1);
+    Comp::ImportanceMapMode type = (Comp::ImportanceMapMode)(info[2]->Int32Value());
+
+    ImportanceMapWrapper* m = new ImportanceMapWrapper(c->getImportanceMap(layerName, type), layerName, type);
+    m->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
+  }
+  else {
+    Nan::ThrowError("ImportanceMap constructor error, requires (Compositor, string, number)");
+  }
+}
+
+void ImportanceMapWrapper::image(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value>& info)
+{
+  // idk what the string is for really?
+  ImportanceMapWrapper* m = ObjectWrap::Unwrap<ImportanceMapWrapper>(info.Holder());
+
+  // nullcheck's a bit different here right?
+  if (m->_m == nullptr) {
+    Nan::ThrowError("Importance Map is null!");
+  }
+
+  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+  const int argc = 2;
+  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(m->_m->getDisplayableImage().get()), Nan::New(false) };
+
+  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void ImportanceMapWrapper::dump(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImportanceMapWrapper* m = ObjectWrap::Unwrap<ImportanceMapWrapper>(info.Holder());
+  if (m->_m == nullptr) {
+    Nan::ThrowError("Importance Map is null!");
+  }
+
+  if (info[0]->IsString() && info[1]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    v8::String::Utf8Value i1(info[1]->ToString());
+
+    m->_m->dump(string(*i0), string(*i1));
+  }
+  else {
+    Nan::ThrowError("ImportanceMap::dump(string, string) argument error");
+  }
+}
+
+void ImportanceMapWrapper::getVal(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImportanceMapWrapper* m = ObjectWrap::Unwrap<ImportanceMapWrapper>(info.Holder());
+  if (m->_m == nullptr) {
+    Nan::ThrowError("Importance Map is null!");
+  }
+
+  if (info[0]->IsNumber() && info[1]->IsNumber()) {
+    double val = m->_m->getVal(info[0]->Int32Value(), info[1]->Int32Value());
+    info.GetReturnValue().Set(Nan::New(val));
+  }
 }
 
 void LayerRef::Init(v8::Local<v8::Object> exports)

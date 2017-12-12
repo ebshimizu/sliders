@@ -219,6 +219,14 @@ private:
   static void localImportance(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void importanceInRegion(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void pointImportance(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void computeImportanceMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void computeAllImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getImportanceMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteImportanceMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteLayerImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteImportanceMapType(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteAllImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void dumpImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

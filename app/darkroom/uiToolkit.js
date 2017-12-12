@@ -4,6 +4,12 @@
 // ui state and the global compositor object (c) is totally ok here
 const comp = require('../native/build/Release/compositor');
 
+const rankModes = {
+  "alpha": 0,
+  "visibilityDelta": 1,
+  "specVisibilityDelta" : 2
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -1033,6 +1039,33 @@ class LayerSelector {
 
     $('#selectThreshold input').change(function () {
       self._rankThreshold = parseFloat($(this).val());
+    });
+
+    // importance maps
+    var importanceMap = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui buttons">
+                <div class="ui button" id="generateMaps">Generate</div>
+                <div class="ui button" id="dumpMaps">Dump</div>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Importance Maps</div>
+              <div class="description">Generates Importance Maps for all layers using current settings</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(importanceMap);
+    $('#generateMaps').click(function () {
+      c.computeAllImportanceMaps(rankModes[self._rankMode], c.getContext());
+    });
+    $('#dumpMaps').click(function () {
+      dialog.showOpenDialog({
+        properties: ['openDirectory']
+      }, function (files) {
+        c.dumpImportanceMaps(files[0]);
+      });
     });
   }
 

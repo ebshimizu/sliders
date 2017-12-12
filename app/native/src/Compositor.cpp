@@ -1082,7 +1082,7 @@ namespace Comp {
   double Compositor::pointImportance(ImportanceMapMode mode, string layer, int x, int y, Context & c)
   {
     // store the current pixel color
-    RGBAColor srcPixel = renderPixel<float>(c, x, y);
+    RGBAColor srcPixel = renderPixel<float>(c, x, y, "full");
 
     if (mode == ImportanceMapMode::ALPHA) {
       if (!_primary[layer].isAdjustmentLayer()) {
@@ -1149,14 +1149,68 @@ namespace Comp {
   {
     getLogger()->log("Computing importance map for " + layer + " type " + to_string(mode));
 
-    // basically we'll just run compute point importance for most modes here
+    // point importance is slow so like render the entire image i guess
     int maxW = getWidth();
     int maxH = getHeight();
     shared_ptr<ImportanceMap> newMap = shared_ptr<ImportanceMap>(new ImportanceMap(maxW, maxH));
+    shared_ptr<Image> currentImg = shared_ptr<Image>(render(current));
 
-    for (int y = 0; y < maxH; y++) {
-      for (int x = 0; x < maxW; x++) {
-        newMap->setVal(pointImportance(mode, layer, x, y, current), x, y);
+    if (mode == ImportanceMapMode::ALPHA) {
+      if (!_primary[layer].isAdjustmentLayer()) {
+        shared_ptr<Image> img = getCachedImage(layer, "full");
+
+        for (int y = 0; y < maxH; y++) {
+          for (int x = 0; x < maxW; x++) {
+            newMap->setVal(img->getPixel(x, y)._a, x, y);
+          }
+        }
+      }
+    }
+    else if (mode == ImportanceMapMode::VISIBILITY_DELTA || mode == ImportanceMapMode::SPEC_VISIBILITY_DELTA) {
+      shared_ptr<Image> img;
+
+      if (mode == ImportanceMapMode::VISIBILITY_DELTA) {
+        // the visibility delta is the magnitude of the pixel color difference
+        // with the layer's visibility toggled
+        Context toggle(current);
+        toggle[layer]._visible = !toggle[layer]._visible;
+        img = shared_ptr<Image>(render(toggle));
+      }
+      else if (mode == ImportanceMapMode::SPEC_VISIBILITY_DELTA) {
+        // the speculative visibility delta is basically the same as the visibility
+        // delta, but with some corner case handling
+        // there are two visibility conditions: opacity > 0, visility on
+        // - if layer is visible but opacity is 0, the delta is compared to opacity 1
+        // - if layer is invisible but opacity is 0, the delta is comapred to visible + opacity 1
+        // - if layer is visible, the delta is compared to invisible
+        Context toggle(current);
+
+        if (toggle[layer].getOpacity() == 0) {
+          toggle[layer].setOpacity(1);
+
+          if (!toggle[layer]._visible) {
+            toggle[layer]._visible = true;
+          }
+        }
+        else {
+          toggle[layer]._visible = !toggle[layer]._visible;
+        }
+
+        img = shared_ptr<Image>(render(toggle));
+      }
+
+      for (int y = 0; y < maxH; y++) {
+        for (int x = 0; x < maxW; x++) {
+          RGBAColor srcPixel = currentImg->getPixel(x, y);
+          RGBAColor modPixel = img->getPixel(x, y);
+
+          float rd = (srcPixel._r * srcPixel._a) - (modPixel._r * modPixel._a);
+          float gd = (srcPixel._g * srcPixel._a) - (modPixel._g * modPixel._a);
+          float bd = (srcPixel._b * srcPixel._a) - (modPixel._b * modPixel._a);
+          float diff = sqrt(rd * rd + gd * gd + bd * bd);
+
+          newMap->setVal(diff, x, y);
+        }
       }
     }
 
@@ -1217,8 +1271,10 @@ namespace Comp {
     for (auto& kvp : _importanceMapCache) {
       // for each type
       for (auto& type : kvp.second) {
+        getLogger()->log("Exporting layer " + kvp.first + " map " + to_string(type.first), LogLevel::INFO);
+
         string base = kvp.first + "_" + to_string(type.first);
-        type.second->dump(folder, base);
+        type.second->dump(folder + "/", base);
       }
     }
   }

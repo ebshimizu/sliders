@@ -177,6 +177,7 @@ namespace Comp {
     // min/max on demand instead of keeping a running total
     double getMin();
     double getMax();
+    double nonZeroMin();
 
     // path: location, base: filename (before extension)
     void dump(string path, string base);

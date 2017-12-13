@@ -917,7 +917,7 @@ class SliderSelector {
         drawImage(layer.image(), $('#diffVizCanvas'));
       }
       else {
-        clearCanvas($('#diffVizCanvas'));
+        eraseCanvas($('#diffVizCanvas'));
       }
     }
     if (this._vizMode === "diff") {
@@ -963,6 +963,33 @@ class LayerSelector {
     // create the options
     this._optionUIList = $('<div class="ui relaxed inverted list"></div>');
     this._optUI.append(this._optionUIList);
+
+    // importance map visualization options
+    // placed in the imgStatusBar div
+    this._mapDisplayMenu = $(`
+      <div class="ui floating mini dropdown button" id="mapDisplayMenu">
+        <span class="text">None</span>
+        <div class="menu">
+          <div class="header">Importance Map Display</div>
+          <div class="item" data-value="none">None</div>
+        </div>
+      </div>
+    `);
+    $('#imgStatusBar').append(this._mapDisplayMenu);
+
+    // binding
+    $('#mapDisplayMenu').dropdown({
+      action: 'activate',
+      onChange: function (value, text, $selectedItem) {
+        if (value === "none") {
+          self.hideImportanceMap();
+        }
+        else {
+          self.showImportanceMap(value);
+        }
+      }
+    });
+    $('#mapDisplayMenu').dropdown('set selected', "none");
 
     // create the things
     // ranking modes
@@ -1059,12 +1086,15 @@ class LayerSelector {
     this._optionUIList.append(importanceMap);
     $('#generateMaps').click(function () {
       c.computeAllImportanceMaps(rankModes[self._rankMode], c.getContext());
+      showStatusMsg("Generation Complete", "OK", "Importance Maps")
+      self.updateMapMenu();
     });
     $('#dumpMaps').click(function () {
       dialog.showOpenDialog({
         properties: ['openDirectory']
       }, function (files) {
         c.dumpImportanceMaps(files[0]);
+        showStatusMsg("Export Complete", "OK", "Importance Maps")
       });
     });
   }
@@ -1214,6 +1244,39 @@ class LayerSelector {
       ctx.beginPath();
       ctx.rect(x, y, w, h);
       ctx.stroke();
+    }
+  }
+
+  // other UI callbacks
+  updateMapMenu() {
+    // clear existing elements
+    $('#mapDisplayMenu .item').remove();
+    var layers = c.getLayerNames();
+    $('#mapDisplayMenu .menu').append('<div class="item" data-value="none">None</div>');
+
+    for (var i in layers) {
+      $('#mapDisplayMenu .menu').append('<div class="item" data-value="' + layers[i] + '">' + layers[i] + '</div>');
+    }
+
+    $('#mapDisplayMenu').dropdown('refresh');
+    $('#mapDisplayMenu').dropdown('set selected', 'none');
+  }
+
+  hideImportanceMap() {
+    eraseCanvas($('#previewCanvas'));
+  }
+
+  showImportanceMap(layer) {
+    // get the map
+    var imap = c.getImportanceMap(layer, rankModes[this._rankMode]);
+
+    // this should throw an exception instead of crashing if the importance map doesn't exist
+    // if it does, we'll catch and show an error message
+    try {
+      drawImage(imap.image, $('#previewCanvas'));
+    }
+    catch (err) {
+      showStatusMsg(err.message, "ERROR", "Error drawing importance map");
     }
   }
 

@@ -219,6 +219,10 @@ namespace Comp {
     void deleteImportanceMapType(ImportanceMapMode mode);
     void deleteAllImportanceMaps();
     void dumpImportanceMaps(string folder);
+    bool importanceMapExists(string layer, ImportanceMapMode mode);
+
+    // returns a copy of the current cache
+    map<string, map<ImportanceMapMode, shared_ptr<ImportanceMap>>> getImportanceMapCache();
 
   private:
     void addLayer(string name);

@@ -271,7 +271,7 @@ function drawImage(image, canvas) {
   });
 }
 
-function clearCanvas(canvas) {
+function eraseCanvas(canvas) {
   var ctx = canvas[0].getContext("2d");
   var w = canvas[0].width;
   var h = canvas[0].height;
@@ -3815,6 +3815,9 @@ function initCanvas() {
 
   var renderCanvas = $('#renderCanvas');
   renderCanvas.attr({ width: w, height: h });
+
+  var previewCanvas = $('#previewCanvas');
+  previewCanvas.attr({ width: w, height: h });
 
   var vizCanvas = $('#diffVizCanvas');
   vizCanvas.attr({ width: w, height: h });

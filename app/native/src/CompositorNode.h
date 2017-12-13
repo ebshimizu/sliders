@@ -227,6 +227,7 @@ private:
   static void deleteImportanceMapType(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteAllImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void dumpImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void availableImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

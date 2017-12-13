@@ -1617,12 +1617,13 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "pointImportance", pointImportance);
   Nan::SetPrototypeMethod(tpl, "computeImportanceMap", computeImportanceMap);
   Nan::SetPrototypeMethod(tpl, "computeAllImportanceMaps", computeAllImportanceMaps);
-  Nan::SetPrototypeMethod(tpl, "getImporanceMap", getImportanceMap);
+  Nan::SetPrototypeMethod(tpl, "getImportanceMap", getImportanceMap);
   Nan::SetPrototypeMethod(tpl, "deleteImportanceMap", deleteImportanceMap);
   Nan::SetPrototypeMethod(tpl, "deleteLayerImportanceMaps", deleteLayerImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "deleteImportanceMapType", deleteImportanceMapType);
   Nan::SetPrototypeMethod(tpl, "deleteAllImportanceMaps", deleteAllImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "dumpImportanceMaps", dumpImportanceMaps);
+  Nan::SetPrototypeMethod(tpl, "getImportanceMapCache", availableImportanceMaps);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2791,11 +2792,17 @@ void CompositorWrapper::getImportanceMap(const Nan::FunctionCallbackInfo<v8::Val
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.getImportanceMap");
 
-  const int argc = 3;
-  v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(c->_compositor), info[0], info[1] };
-  v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImportanceMapWrapper::importanceMapConstructor);
+  // existence check
+  if (info[0]->IsString() && info[1]->IsNumber()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    if (c->_compositor->importanceMapExists(string(*i0), (Comp::ImportanceMapMode)(info[1]->IntegerValue()))) {
+      const int argc = 3;
+      v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(c->_compositor), info[0], info[1] };
+      v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImportanceMapWrapper::importanceMapConstructor);
 
-  info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+      info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+    }
+  }
 }
 
 void CompositorWrapper::deleteImportanceMap(const Nan::FunctionCallbackInfo<v8::Value>& info)
@@ -2860,6 +2867,28 @@ void CompositorWrapper::dumpImportanceMaps(const Nan::FunctionCallbackInfo<v8::V
   else {
     Nan::ThrowError("compositor.dumpImportanceMaps(string) arugmnet error");
   }
+}
+
+void CompositorWrapper::availableImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.availableImportanceMaps");
+
+  auto cache = c->_compositor->getImportanceMapCache();
+  v8::Local<v8::Object> maps = Nan::New<v8::Object>();
+  
+  for (auto& kvp : cache) {
+    v8::Local<v8::Array> typeList = Nan::New<v8::Array>();
+    int i = 0;
+    for (auto& types : kvp.second) {
+      typeList->Set(Nan::New(i), Nan::New(types.first));
+      i++;
+    }
+
+    maps->Set(Nan::New(kvp.first).ToLocalChecked(), typeList);
+  }
+
+  info.GetReturnValue().Set(maps);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

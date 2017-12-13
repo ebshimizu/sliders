@@ -658,11 +658,15 @@ namespace Comp {
   shared_ptr<Image> ImportanceMap::getDisplayableImage()
   {
     double max = getMax();
-    double min = getMin();
+    double min = nonZeroMin();
     vector<unsigned char>& imgData = _display->getData();
 
     for (int i = 0; i < _data.size(); i++) {
-      unsigned char scaled = (unsigned char)((_data[i] - min) / (max - min)) * 255;
+      unsigned char scaled = (unsigned char)(((_data[i] - min) / (max - min)) * 255);
+      if (_data[i] == 0) {
+        scaled = 0;
+      }
+
       imgData[i * 4] = scaled;
       imgData[i * 4 + 1] = scaled;
       imgData[i * 4 + 2] = scaled;
@@ -677,6 +681,22 @@ namespace Comp {
     double min = DBL_MAX;
 
     for (int i = 0; i < _data.size(); i++) {
+      if (_data[i] < min) {
+        min = _data[i];
+      }
+    }
+
+    return min;
+  }
+
+  double ImportanceMap::nonZeroMin()
+  {
+    double min = DBL_MAX;
+
+    for (int i = 0; i < _data.size(); i++) {
+      if (_data[i] == 0)
+        continue;
+
       if (_data[i] < min) {
         min = _data[i];
       }

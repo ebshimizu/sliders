@@ -3,6 +3,7 @@
 
 void InitAll(v8::Local<v8::Object> exports) {
   ImageWrapper::Init(exports);
+  ImportanceMapWrapper::Init(exports);
   LayerRef::Init(exports);
   CompositorWrapper::Init(exports);
   ContextWrapper::Init(exports);

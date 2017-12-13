@@ -1279,6 +1279,22 @@ namespace Comp {
     }
   }
 
+  bool Compositor::importanceMapExists(string layer, ImportanceMapMode mode)
+  {
+    if (_importanceMapCache.count(layer) > 0) {
+      if (_importanceMapCache[layer].count(mode) > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  map<string, map<ImportanceMapMode, shared_ptr<ImportanceMap>>> Compositor::getImportanceMapCache()
+  {
+    return _importanceMapCache;
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

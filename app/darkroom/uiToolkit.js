@@ -10,6 +10,12 @@ const rankModes = {
   "specVisibilityDelta" : 2
 }
 
+const mouseMode = {
+  "normal": 0,
+  "updateOnHover": 1,
+  "contextClick" : 2
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -948,6 +954,9 @@ class LayerSelector {
     this._rankMode = opts.rankMode;
     this._rankThreshold = opts.rankThreshold;
 
+    // interaction mode
+    this._mouseMode = mouseMode.normal;
+
     this.initCanvas();
     this.initUI();
   }
@@ -1020,7 +1029,7 @@ class LayerSelector {
     });
     $('#selectRankMenu').dropdown('set selected', this._rankMode);
 
-    // selection Modes
+    // selection Modes, temporarily disabled
     var selectionMode = $(`
     <div class="item">
       <div class="ui right floated content">
@@ -1036,7 +1045,7 @@ class LayerSelector {
         <div class="header">Selection Mode</div>
       </div>
     </div>`);
-    this._optionUIList.append(selectionMode);
+    //this._optionUIList.append(selectionMode);
 
     $('#selectModeMenu').dropdown({
       action: 'activate',
@@ -1046,6 +1055,34 @@ class LayerSelector {
       }
     });
     $('#selectModeMenu').dropdown('set selected', this._selectionMode);
+
+    // mouse modes
+    var mouseModeMenu = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" id="mouseModeMenu">
+          <span class="text">[Mouse Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="0">Normal</div>
+            <div class="item" data-value="1">Update On Hover</div>
+            <div class="item" data-value="2">Context Click</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Mouse Selection Mode</div>
+      </div>
+    </div>`);
+    this._optionUIList.append(mouseModeMenu);
+
+    $('#mouseModeMenu').dropdown({
+      action: 'activate',
+      onChange: function (value, text) {
+        self._mouseMode = parseInt(value);
+        $('#mouseModeMenu .text').html(text);
+      }
+    });
+    $('#mouseModeMenu').dropdown('set selected', this._mouseMode.toString());
 
     // threshold
     var thresholdSetting = $(`
@@ -1100,6 +1137,10 @@ class LayerSelector {
   }
 
   selectLayers() {
+    // check that currentpt is defined
+    if (!this._currentPt)
+      return;
+
     var rank;
 
     if (this._selectionMode === "localBox") {
@@ -1185,46 +1226,69 @@ class LayerSelector {
   // bindings
   canvasMouseDown(event) {
     // mode check
-    if (this._selectionMode === "localBox") {
-      if (!this._drawing) {
-        this._currentRect.pt1 = this.screenToLocal(event.pageX, event.pageY);
-        this._currentRect.pt2 = this._currentRect.pt1;
-        this._drawing = true;
-        this.updateCanvas();
+    if (this._mouseMode === mouseMode.normal) {
+      if (this._selectionMode === "localBox") {
+        if (!this._drawing) {
+          this._currentRect.pt1 = this.screenToLocal(event.pageX, event.pageY);
+          this._currentRect.pt2 = this._currentRect.pt1;
+          this._drawing = true;
+          this.updateCanvas();
+        }
       }
     }
   }
 
   canvasMouseUp(event) {
-    if (this._selectionMode === "localBox") {
-      if (this._drawing) {
-        this._drawing = false;
-        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
-        this.updateCanvas();
+    if (this._mouseMode === mouseMode.normal) {
+      if (this._selectionMode === "localBox") {
+        if (this._drawing) {
+          this._drawing = false;
+          this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+          this.updateCanvas();
+          this.selectLayers();
+        }
+      }
+      else if (this._selectionMode === "localPoint") {
+        this._currentPt = this.screenToLocal(event.pageX, event.pageY);
         this.selectLayers();
       }
     }
-    else if (this._selectionMode === "localPoint") {
-      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+    else if (this._mouseMode === mouseMode.updateOnHover) {
+      // when the mouse is clicked for update on hover we keep track of that
+      // point and show the list of layers at that point on mouse out
+      this._lockedPt = this.screenToLocal(event.pageX, event.pageY);
+      this._currentPt = this._lockedPt;
       this.selectLayers();
     }
   }
 
   canvasMouseMove(event) {
-    if (this._selectionMode === "localBox") {
-      if (this._drawing) {
-        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
-        this.updateCanvas();
+    if (this._mouseMode === mouseMode.normal) {
+      if (this._selectionMode === "localBox") {
+        if (this._drawing) {
+          this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+          this.updateCanvas();
+        }
       }
+    }
+    else if (this._mouseMode === mouseMode.updateOnHover) {
+      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+      this.selectLayers();
     }
   }
 
   canvasMouseOut(event) {
-    if (this._selectionMode === "localBox") {
-      if (this._drawing) {
-        this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
-        this.updateCanvas();
+    if (this._mouseMode === mouseMode.normal) {
+      if (this._selectionMode === "localBox") {
+        if (this._drawing) {
+          this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+          this.updateCanvas();
+        }
       }
+    }
+    else if (this._mouseMode === mouseMode.updateOnHover) {
+      this._currentPt = this._lockedPt;
+      this.selectLayers();
     }
   }
 

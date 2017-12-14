@@ -1136,11 +1136,11 @@ class LayerSelector {
     });
   }
 
-  selectLayers() {
+  rankLayers() {
     // check that currentpt is defined
     if (!this._currentPt) {
       this.deleteAllLayers();
-      return;
+      return [];
     }
 
     var rank;
@@ -1171,6 +1171,12 @@ class LayerSelector {
         displayLayers.push(rank[i]);
       }
     }
+    return displayLayers;
+  }
+
+  selectLayers() {
+    var displayLayers = this.rankLayers();
+
     this.showLayers(displayLayers);
   }
 
@@ -1184,6 +1190,15 @@ class LayerSelector {
       control.scoreLabel = layers[i].score;
       this._layerControls.push(control);
     }
+  }
+
+  showLayerSelectPopup(screenPtX, screenPtY) {
+    if (this._layerSelectPopup) {
+      this._layerSelectPopup.deleteUI();
+    }
+
+    var layers = this.rankLayers();
+    this._layerSelectPopup = new LayerSelectPopup(layers, this, screenPtX, screenPtY);
   }
 
   deleteAllLayers() {
@@ -1261,6 +1276,13 @@ class LayerSelector {
       this._lockedPt = this.screenToLocal(event.pageX, event.pageY);
       this._currentPt = this._lockedPt;
       this.selectLayers();
+    }
+    else if (this._mouseMode === mouseMode.contextClick) {
+      // this mode pops up a window (or like an arrangement of thumbnails)
+      // with layer thumbnails and names. clicking on one of the popups opens those
+      // layer controls on the right (for now, maybe inline?)
+      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+      this.showLayerSelectPopup(event.pageX, event.pageY);
     }
   }
 
@@ -1387,6 +1409,72 @@ class LayerSelector {
   screenToLocal(x, y) {
     var rel = this.screenToRelative(x, y);
     return this.relativeToLocal(rel.x, rel.y);
+  }
+}
+
+// clicking on one of these layers pops up a thing on the right
+class LayerSelectPopup {
+  constructor(layers, parent, x, y) {
+    this._layers = layers;
+    this._screenX = x;
+    this._screenY = y;
+
+    // so we still need to call functions in the calling object because it's nicer
+    // and because javascript don't care about inheritance or definition order
+    // we can just go nuts
+    this._parent = parent;
+
+    this.createUI();
+  }
+
+  createUI() {
+    // first delete any duplicate ids
+    $('#layerSelectPopup').remove();
+
+    // create new element and append to the body (it's an absolute positioned element)
+    this._uiElem = $(`
+      <div class="ui segment" id="layerSelectPopup">
+        <div class="ui top attached label">Layers</div>
+        <div class="ui two column grid">
+
+        </div>
+      </div>
+    `);
+    $('body').append(this._uiElem);
+
+    // populate with layer cards
+    for (var i in this._layers) {
+      var name = this._layers[i].name;
+      var dims = c.imageDims("full");
+
+      var layerElem = '<div class="column">'
+      layerElem += '<div class="ui card" layerName="' + name + '">';
+      layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+      layerElem += '<div class="extra content">' + name + '</div>';
+      layerElem += '</div></div>';
+
+      this._uiElem.find('.grid').append(layerElem);
+
+      // canvas size and drawing
+      var l = c.getLayer(name);
+      var canvas = $('div[layerName="' + name + '"] canvas');
+      if (!l.isAdjustmentLayer()) {
+        drawImage(c.getLayer(name).image(), canvas);
+      }
+    }
+
+    // bindings
+    var self = this;
+    $('#layerSelectPopup .card').click(function () {
+      var name = $(this).attr('layerName');
+      self._parent.showLayers([{ 'name': name, 'score': 0 }]);
+    });
+
+    // positioning
+  }
+
+  deleteUI() {
+    this._uiElem.remove();
   }
 }
 

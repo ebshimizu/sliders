@@ -721,3 +721,13 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     position: absolute;
     top: 30px;
 }
+
+/* Layer select popup window */
+#layerSelectPopup {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 5000;
+    width: 400px;
+    max-height: 400px;
+}

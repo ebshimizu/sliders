@@ -118,7 +118,7 @@ body .ui.basic.modal p {
     top: 55px;
 }
 
-#layerEditControls .thumb.show .gradientDisplay {
+#layerEditControls .thumb.show .gradientDisplay canvas {
     width: 45%;
 }
 

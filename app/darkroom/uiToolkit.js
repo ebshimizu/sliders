@@ -1138,8 +1138,10 @@ class LayerSelector {
 
   selectLayers() {
     // check that currentpt is defined
-    if (!this._currentPt)
+    if (!this._currentPt) {
+      this.deleteAllLayers();
       return;
+    }
 
     var rank;
 

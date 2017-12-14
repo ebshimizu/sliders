@@ -967,7 +967,7 @@ class LayerSelector {
     // importance map visualization options
     // placed in the imgStatusBar div
     this._mapDisplayMenu = $(`
-      <div class="ui floating mini dropdown button" id="mapDisplayMenu">
+      <div class="ui floating mini selection dropdown button" id="mapDisplayMenu">
         <span class="text">None</span>
         <div class="menu">
           <div class="header">Importance Map Display</div>

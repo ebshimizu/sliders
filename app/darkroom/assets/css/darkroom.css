@@ -118,6 +118,10 @@ body .ui.basic.modal p {
     top: 55px;
 }
 
+#layerEditControls .thumb.show .gradientDisplay {
+    width: 45%;
+}
+
 #layerControls .parameter .paramLabel,
 #layerEditControls .parameter .paramLabel,
 #groupsPanel .parameter .paramLabel,

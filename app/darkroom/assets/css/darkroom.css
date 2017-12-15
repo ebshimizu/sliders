@@ -728,6 +728,23 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     left: 0;
     top: 0;
     z-index: 5000;
-    width: 400px;
+    width: 300px;
     max-height: 400px;
+}
+
+#layerSelectPopup canvas {
+    width: 100%;
+    height: auto;
+}
+
+#layerSelectPopup .closeButton {
+    position: absolute;
+    right: 0px;
+    top: -26px;
+}
+
+#layerSelectPopup .grid {
+    margin-top: 16px;
+    height: 350px;
+    overflow-y: scroll;
 }

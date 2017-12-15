@@ -962,6 +962,8 @@ class LayerSelector {
   }
 
   initUI() {
+    this.deleteUI();
+
     var self = this;
     this._sidebar.html();
 
@@ -1134,6 +1136,11 @@ class LayerSelector {
         showStatusMsg("Export Complete", "OK", "Importance Maps")
       });
     });
+  }
+
+  deleteUI() {
+    this._sidebar.html();
+    this._optUI.html();
   }
 
   rankLayers() {
@@ -1403,7 +1410,13 @@ class LayerSelector {
     var yOffset = (this._selectionCanvas.height() - h) / 2;
 
     // remove offset
-    return { x: ((x - xOffset) / w), y: ((y - yOffset) / h) };
+    var lx = ((x - xOffset) / w);
+    lx = Math.min(Math.max(lx, 0), 1);
+
+    var ly = ((y - yOffset) / h);
+    ly = Math.min(Math.max(ly, 0), 1);
+
+    return { x: lx, y: ly };
   }
 
   screenToLocal(x, y) {
@@ -1433,8 +1446,9 @@ class LayerSelectPopup {
 
     // create new element and append to the body (it's an absolute positioned element)
     this._uiElem = $(`
-      <div class="ui segment" id="layerSelectPopup">
-        <div class="ui top attached label">Layers</div>
+      <div class="ui inverted segment" id="layerSelectPopup">
+        <div class="ui top attached inverted label">Layers</div>
+        <div class="ui mini icon button closeButton"><i class="window close outline icon"></i></div>
         <div class="ui two column grid">
 
         </div>
@@ -1457,7 +1471,7 @@ class LayerSelectPopup {
 
       // canvas size and drawing
       var l = c.getLayer(name);
-      var canvas = $('div[layerName="' + name + '"] canvas');
+      var canvas = $('#layerSelectPopup div[layerName="' + name + '"] canvas');
       if (!l.isAdjustmentLayer()) {
         drawImage(c.getLayer(name).image(), canvas);
       }
@@ -1470,7 +1484,17 @@ class LayerSelectPopup {
       self._parent.showLayers([{ 'name': name, 'score': 0 }]);
     });
 
+    $('#layerSelectPopup .closeButton').click(function () {
+      self.deleteUI();
+    });
+
     // positioning
+    // bounds
+    var maxTop = $('body').height() - this._uiElem.height() - 50;
+
+    var top = Math.min(maxTop, this._screenY);
+
+    this._uiElem.css({ left: this._screenX, top: top });
   }
 
   deleteUI() {

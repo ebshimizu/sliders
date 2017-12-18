@@ -18,6 +18,7 @@ author: Evan Shimizu
 #include "util.h"
 #include "ConstraintData.h"
 #include "searchData.h"
+#include "ClickMap.h"
 
 using namespace std;
 
@@ -223,6 +224,9 @@ namespace Comp {
 
     // returns a copy of the current cache
     map<string, map<ImportanceMapMode, shared_ptr<ImportanceMap>>> getImportanceMapCache();
+
+    // clickmaps
+    ClickMap* computeClickmap(ImportanceMapMode mode, float threshold, bool normalizeMaps);
 
   private:
     void addLayer(string name);

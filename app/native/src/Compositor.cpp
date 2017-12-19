@@ -1295,6 +1295,23 @@ namespace Comp {
     return _importanceMapCache;
   }
 
+  ClickMap * Compositor::createClickMap(ImportanceMapMode mode, Context current)
+  {
+    // generate importance maps
+    computeAllImportanceMaps(mode, current);
+
+    // gather maps
+    map<string, shared_ptr<ImportanceMap>> impMaps;
+    for (auto& kvp : _importanceMapCache) {
+      impMaps[kvp.first] = kvp.second[mode];
+    }
+
+    // create the click map and run the computations
+    ClickMap* ret = new ClickMap(getWidth(), getHeight(), _layerOrder, impMaps);
+    
+    return ret;
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

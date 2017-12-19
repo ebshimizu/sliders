@@ -631,6 +631,15 @@ namespace Comp {
     _data.resize(_w * _h);
   }
 
+  ImportanceMap::ImportanceMap(const ImportanceMap & other)
+  {
+    _data = other._data;
+    _w = other._w;
+    _h = other._h;
+
+    // image is left alone
+  }
+
   ImportanceMap::~ImportanceMap()
   {
   }
@@ -739,6 +748,16 @@ namespace Comp {
 
     ofstream file(dataPath);
     file << data.dump(4);
+  }
+
+  void ImportanceMap::normalize()
+  {
+    float max = getMax();
+    float min = getMin();
+
+    for (int i = 0; i < _data.size(); i++) {
+      _data[i] = (_data[i] - min) / (max - min);
+    }
   }
 
 }

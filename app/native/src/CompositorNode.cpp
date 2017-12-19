@@ -180,6 +180,7 @@ Nan::Persistent<v8::Function> ModelWrapper::modelConstructor;
 Nan::Persistent<v8::Function> UISliderWrapper::uiSliderConstructor;
 Nan::Persistent<v8::Function> UIMetaSliderWrapper::uiMetaSliderConstructor;
 Nan::Persistent<v8::Function> UISamplerWrapper::uiSamplerConstructor;
+Nan::Persistent<v8::Function> ClickMapWrapper::clickMapConstructor;
 
 void ImageWrapper::Init(v8::Local<v8::Object> exports)
 {
@@ -1624,6 +1625,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteAllImportanceMaps", deleteAllImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "dumpImportanceMaps", dumpImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "getImportanceMapCache", availableImportanceMaps);
+  Nan::SetPrototypeMethod(tpl, "createClickMap", createClickMap);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2891,6 +2893,33 @@ void CompositorWrapper::availableImportanceMaps(const Nan::FunctionCallbackInfo<
   info.GetReturnValue().Set(maps);
 }
 
+void CompositorWrapper::createClickMap(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.createClickMap");
+
+  if (info[0]->IsNumber() && info[1]->IsObject()) {
+    Comp::ImportanceMapMode mode = (Comp::ImportanceMapMode)(info[0]->IntegerValue());
+
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[1]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    Comp::ClickMap* cm = c->_compositor->createClickMap(mode, ctx->_context);
+
+    const int argc = 1;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(cm) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ClickMapWrapper::clickMapConstructor);
+    v8::Local<v8::Object> cmap = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+    info.GetReturnValue().Set(cmap);
+  }
+  else {
+    Nan::ThrowError("compositor.computeAllImportanceMaps(int, Context) argument error");
+  }
+}
+
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :
   Nan::AsyncWorker(callback), _size(size), _c(c)
 {
@@ -2941,6 +2970,90 @@ void StopSearchWorker::HandleOKCallback()
 
   v8::Local<v8::Value> cb[] = { Nan::Null() };
   callback->Call(1, cb);
+}
+
+void ClickMapWrapper::Init(v8::Local<v8::Object> exports)
+{
+  Nan::HandleScope scope;
+
+  // constructor template
+  v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ClickMap").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "compute", compute);
+  Nan::SetPrototypeMethod(tpl, "visualize", visualize);
+
+  clickMapConstructor.Reset(tpl->GetFunction());
+  exports->Set(Nan::New("ClickMap").ToLocalChecked(), tpl->GetFunction());
+}
+
+ClickMapWrapper::ClickMapWrapper(Comp::ClickMap* clmap) : _map(clmap) {
+
+}
+
+ClickMapWrapper::~ClickMapWrapper() {
+  delete _map;
+  _map = nullptr;
+}
+
+void ClickMapWrapper::New(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (info[0]->IsExternal()) {
+    Comp::ClickMap* c = static_cast<Comp::ClickMap*>(info[0].As<v8::External>()->Value());
+    ClickMapWrapper* cm = new ClickMapWrapper(c);
+    cm->Wrap(info.This());
+    info.GetReturnValue().Set(info.This());
+  }
+  else {
+    Nan::ThrowError("ClickMap constructor failure. No ClickMap object found.");
+  }
+}
+
+void ClickMapWrapper::init(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ClickMapWrapper* c = ObjectWrap::Unwrap<ClickMapWrapper>(info.Holder());
+  nullcheck(c->_map, "ClickMap.init");
+
+  if (info[0]->IsNumber() && info[1]->IsBoolean()) {
+    c->_map->init(info[0]->NumberValue(), info[1]->BooleanValue());
+  }
+  else {
+    Nan::ThrowError("ClickMap.init(float, bool) argument error");
+  }
+}
+
+void ClickMapWrapper::compute(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ClickMapWrapper* c = ObjectWrap::Unwrap<ClickMapWrapper>(info.Holder());
+  nullcheck(c->_map, "ClickMap.compute");
+
+  if (info[0]->IsNumber()) {
+    c->_map->compute(info[0]->IntegerValue());
+  }
+  else {
+    Nan::ThrowError("ClickMap.compute(int) argument error");
+  }
+}
+
+void ClickMapWrapper::visualize(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ClickMapWrapper* c = ObjectWrap::Unwrap<ClickMapWrapper>(info.Holder());
+  nullcheck(c->_map, "ClickMap.visualize");
+
+  if (info[0]->IsNumber()) {
+    Comp::Image* img = c->_map->visualize((Comp::ClickMap::VisualizationType)(info[0]->IntegerValue()));
+
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    v8::Local<v8::Object> image = Nan::NewInstance(cons, argc, argv).ToLocalChecked();
+    info.GetReturnValue().Set(image);
+  }
+  else {
+    Nan::ThrowError("ClickMap.visualize(int) argument error");
+  }
 }
 
 void ModelWrapper::Init(v8::Local<v8::Object> exports)

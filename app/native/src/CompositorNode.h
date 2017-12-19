@@ -228,7 +228,25 @@ private:
   static void deleteAllImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void dumpImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void availableImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void createClickMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
+};
+
+class ClickMapWrapper : public Nan::ObjectWrap {
+public:
+  static void Init(v8::Local<v8::Object> exports);
+  static Nan::Persistent<v8::Function> clickMapConstructor;
+
+private:
+  explicit ClickMapWrapper(Comp::ClickMap* clmap);
+  ~ClickMapWrapper();
+
+  static void New(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void compute(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void visualize(const Nan::FunctionCallbackInfo<v8::Value>& info);
+
+  Comp::ClickMap* _map;
 };
 
 class ModelWrapper : public Nan::ObjectWrap {

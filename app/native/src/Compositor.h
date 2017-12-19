@@ -226,7 +226,10 @@ namespace Comp {
     map<string, map<ImportanceMapMode, shared_ptr<ImportanceMap>>> getImportanceMapCache();
 
     // clickmaps
-    ClickMap* computeClickmap(ImportanceMapMode mode, float threshold, bool normalizeMaps);
+    // this function just straight up returns a clickmap. at some point there might be a function
+    // that does all of this stuff internally, but for now it should be ok to let everything
+    // be scriptable for testing
+    ClickMap* createClickMap(ImportanceMapMode mode, Context current);
 
   private:
     void addLayer(string name);

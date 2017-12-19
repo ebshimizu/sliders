@@ -162,6 +162,7 @@ namespace Comp {
   class ImportanceMap {
   public:
     ImportanceMap(int w, int h);
+    ImportanceMap(const ImportanceMap& other);
     ~ImportanceMap();
 
     void setVal(float val, int x, int y);
@@ -181,6 +182,9 @@ namespace Comp {
 
     // path: location, base: filename (before extension)
     void dump(string path, string base);
+
+    // normalizes the values in data to [0, 1]
+    void normalize();
 
   private:
     shared_ptr<Image> _display;

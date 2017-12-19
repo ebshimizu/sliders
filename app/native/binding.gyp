@@ -38,7 +38,9 @@
 				"src/DimRed.cpp",
 				"src/DimRed.h",
 				"../../expression_tree/expressionContext.h",
-				"../../expression_tree/expressionStep.h"
+				"../../expression_tree/expressionStep.h",
+				"src/ClickMap.h",
+				"src/ClickMap.cpp"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

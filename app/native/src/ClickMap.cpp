@@ -102,8 +102,8 @@ int PixelClickData::length()
   return _activations.size();
 }
 
-ClickMap::ClickMap(int w, int h, vector<string> order, map<string, shared_ptr<ImportanceMap>> maps) :
-  _w(w), _h(h), _layerOrder(order), _srcImportanceMaps(maps)
+ClickMap::ClickMap(int w, int h, vector<string> order, map<string, shared_ptr<ImportanceMap>> maps, vector<bool> adjustments) :
+  _w(w), _h(h), _layerOrder(order), _srcImportanceMaps(maps), _adjustmentLayers(adjustments)
 {
   _clickMap.resize(_w * _h);
 }
@@ -135,6 +135,10 @@ void ClickMap::init(float threshold, bool normalizeMaps, bool includeAdjustmentL
   // for each layer, check if the importance map is above threshold, if so, flip the
   // bit for the pixel
   for (int i = 0; i < _layerOrder.size(); i++) {
+    // if it's an adjustment layer, compeltely skip it
+    if (_adjustmentLayers[i])
+      continue;
+
     string layerName = _layerOrder[i];
     shared_ptr<ImportanceMap> impMap = _workingImportanceMaps[layerName];
 
@@ -211,7 +215,32 @@ Image* ClickMap::visualize(VisualizationType t)
     }
   }
   else if (t == VisualizationType::UNIQUE_CLUSTERS) {
+    // this time we work on the bitvectors
+    map<vector<bool>, float> clusters;
 
+    for (int i = 0; i < _clickMap.size(); i++) {
+      clusters[_clickMap[i]->getActivations()] = 0;
+    }
+
+    // color assignment, hue
+    int i = 0;
+    for (auto& c : clusters) {
+      c.second = (360.0f / (clusters.size()) * i);
+      i++;
+    }
+
+    // pixel assignment
+    for (int i = 0; i < _clickMap.size(); i++) {
+      int pxIndex = i * 4;
+
+      float hue = clusters[_clickMap[i]->getActivations()];
+      auto color = Utils<float>::HSLToRGB(hue, 1, 0.5);
+
+      data[pxIndex] = color._r * 255;
+      data[pxIndex + 1] = color._g * 255;
+      data[pxIndex + 2] = color._b * 255;
+      data[pxIndex + 3] = 255;
+    }
   }
   else if (t == VisualizationType::LAYER_DENSITY) {
     for (int i = 0; i < _clickMap.size(); i++) {

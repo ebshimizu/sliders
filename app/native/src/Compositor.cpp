@@ -1306,8 +1306,14 @@ namespace Comp {
       impMaps[kvp.first] = kvp.second[mode];
     }
 
+    // adjustment layers
+    vector<bool> adjustments;
+    for (int i = 0; i < _layerOrder.size(); i++) {
+      adjustments.push_back(_primary[_layerOrder[i]].isAdjustmentLayer());
+    }
+
     // create the click map and run the computations
-    ClickMap* ret = new ClickMap(getWidth(), getHeight(), _layerOrder, impMaps);
+    ClickMap* ret = new ClickMap(getWidth(), getHeight(), _layerOrder, impMaps, adjustments);
     
     return ret;
   }

@@ -46,7 +46,7 @@ namespace Comp {
       UNIQUE_CLUSTERS
     };
 
-    ClickMap(int w, int h, vector<string> order, map<string, shared_ptr<ImportanceMap>> maps);
+    ClickMap(int w, int h, vector<string> order, map<string, shared_ptr<ImportanceMap>> maps, vector<bool> adjustments);
     ~ClickMap();
 
     // initializes the map
@@ -74,6 +74,9 @@ namespace Comp {
 
     // working set of maps after processing (if needed)
     map<string, shared_ptr<ImportanceMap>> _workingImportanceMaps;
+
+    // if true indicates the layer in question is a pure adjustment layer
+    vector<bool> _adjustmentLayers;
 
     // layer order info
     vector<string> _layerOrder;

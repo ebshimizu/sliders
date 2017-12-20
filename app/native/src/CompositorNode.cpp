@@ -2984,6 +2984,7 @@ void ClickMapWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "compute", compute);
   Nan::SetPrototypeMethod(tpl, "visualize", visualize);
+  Nan::SetPrototypeMethod(tpl, "active", active);
 
   clickMapConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("ClickMap").ToLocalChecked(), tpl->GetFunction());
@@ -3053,6 +3054,27 @@ void ClickMapWrapper::visualize(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
   else {
     Nan::ThrowError("ClickMap.visualize(int) argument error");
+  }
+}
+
+void ClickMapWrapper::active(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ClickMapWrapper* c = ObjectWrap::Unwrap<ClickMapWrapper>(info.Holder());
+  nullcheck(c->_map, "ClickMap.active");
+
+  if (info[0]->IsNumber() && info[1]->IsNumber()) {
+    vector<string> names = c->_map->activeLayers(info[0]->IntegerValue(), info[1]->IntegerValue());
+
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    for (int i = 0; i < names.size(); i++) {
+      ret->Set(i, Nan::New(names[i]).ToLocalChecked());
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    Nan::ThrowError("ClickMap.active(int, int) argument error");
   }
 }
 

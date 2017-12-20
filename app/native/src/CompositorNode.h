@@ -245,6 +245,7 @@ private:
   static void init(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void compute(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void visualize(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void active(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::ClickMap* _map;
 };

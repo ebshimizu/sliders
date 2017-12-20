@@ -7,7 +7,7 @@ const comp = require('../native/build/Release/compositor');
 const rankModes = {
   "alpha": 0,
   "visibilityDelta": 1,
-  "specVisibilityDelta" : 2
+  "specVisibilityDelta": 2
 }
 
 const mouseMode = {
@@ -957,6 +957,13 @@ class LayerSelector {
     // interaction mode
     this._mouseMode = mouseMode.normal;
 
+    // initial clickmap settings
+    // TODO: visible controls for this
+    this._clickMapDepth = 4;
+    this._clickMapThreshold = 0.05;
+    this._clickMapNorm = false;
+    this._useClickMap = false;    // this absolutely needs a visible toggle
+
     this.initCanvas();
     this.initUI();
   }
@@ -1136,6 +1143,93 @@ class LayerSelector {
         showStatusMsg("Export Complete", "OK", "Importance Maps")
       });
     });
+
+    // click maps
+    var clickMapButtons = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui buttons">
+                <div class="ui button" id="createClickMap">Create</div>
+                <div class="ui button" id="computeClickMap">Compute</div>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Click Map</div>
+              <div class="description">Initialization settings for click maps.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(clickMapButtons);
+    $('#createClickMap').click(function () {
+      self.createClickMap();
+    });
+    $('#computeClickMap').click(function () {
+      self.computeClickMap();
+    });
+
+    // use click map
+    var cmuse = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui toggle checkbox" id="cmUse">
+                  <input type="checkbox" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Use Click Map</div>
+              <div class="description">Use the click map instead of importance maps for selection.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(cmuse);
+    $('#cmUse').checkbox({
+      onChecked: function () { self._useClickMap = true; },
+      onUnchecked: function () { self._useClickMap = false; }
+    });
+
+    $('#cmUse').checkbox(((this._useClickMap) ? 'check' : 'uncheck'));
+    
+    // click map depth
+    var cmdepth = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="cmDepth">
+                  <input type="number" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Click Map Depth</div>
+              <div class="description">Target depth for the computed map.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(cmdepth);
+    cmdepth.find('input').val(this._clickMapDepth);
+
+    $('#cmDepth input').change(function () {
+      self._clickMapDepth = parseInt($(this).val());
+    });
+
+    // click map threshold
+    var cmthreshold = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="cmThreshold">
+                  <input type="number" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Click Map JND Threshold</div>
+              <div class="description">When initialized, layers with importance maps above this value will be includede.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(cmthreshold);
+    cmthreshold.find('input').val(this._clickMapThreshold);
+
+    $('#cmThreshold input').change(function () {
+      self._clickMapThreshold = parseFloat($(this).val());
+    });
   }
 
   deleteUI() {
@@ -1152,24 +1246,46 @@ class LayerSelector {
 
     var rank;
 
-    if (this._selectionMode === "localBox") {
-      // find the segments with the most "importance" then display them along with thumbnails
-      // in the sidebar
-      var x = Math.min(this._currentRect.pt1.x, this._currentRect.pt2.x);
-      var y = Math.min(this._currentRect.pt1.y, this._currentRect.pt2.y);
-      var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
-      var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
+    if (this._useClickMap) {
+      if (this._selectionMode === "localPoint") {
+        // just get the thing
+        if (this._clickMap) {
+          var layers = this._clickMap.active(this._currentPt.x, this._currentPt.y);
 
-      // returns the layer names and the importance values
-      rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
-    }
-    else if (this._selectionMode === "localPoint") {
-      rank = c.pointImportance(this._rankMode, { 'x': this._currentPt.x, 'y': this._currentPt.y }, c.getContext());
-    }
+          for (var i = 0; i < layers.length; i++) {
+            // we don't actually compute score right now so set it to 0 and short circuit the
+            // culling based on threshold for now
+            layers[i] = { name: layers[i], score: 0 };
+          }
 
-    rank.sort(function (a, b) {
-      return -(a.score - b.score);
-    });
+          return layers;
+        }
+        else {
+          console.log('ERROR: Click Map not inialized');
+          return [];
+        }
+      }
+    }
+    else {
+      if (this._selectionMode === "localBox") {
+        // find the segments with the most "importance" then display them along with thumbnails
+        // in the sidebar
+        var x = Math.min(this._currentRect.pt1.x, this._currentRect.pt2.x);
+        var y = Math.min(this._currentRect.pt1.y, this._currentRect.pt2.y);
+        var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
+        var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
+
+        // returns the layer names and the importance values
+        rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
+      }
+      else if (this._selectionMode === "localPoint") {
+        rank = c.pointImportance(this._rankMode, { 'x': this._currentPt.x, 'y': this._currentPt.y }, c.getContext());
+      }
+
+      rank.sort(function (a, b) {
+        return -(a.score - b.score);
+      });
+    }
 
     // cull and display
     var displayLayers = [];
@@ -1185,6 +1301,19 @@ class LayerSelector {
     var displayLayers = this.rankLayers();
 
     this.showLayers(displayLayers);
+  }
+
+  createClickMap() {
+    this._clickMap = c.createClickMap(rankModes[this._rankMode], c.getContext());
+
+    showStatusMsg("", "OK", "Click Map Created");
+  }
+
+  computeClickMap() {
+    this._clickMap.init(this._clickMapThreshold, this._clickMapNorm);
+    this._clickMap.compute(this._clickMapDepth);
+
+    showStatusMsg("", "OK", "Click Map Generated");
   }
 
   showLayers(layers) {

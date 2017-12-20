@@ -504,6 +504,7 @@ body .ui.basic.modal p {
 #sampleControls .segment {
 	height: calc(100% - 31px);
     margin-top: 0;
+    overflow: auto;
 }
 
 #sampleControls #searchSettings {

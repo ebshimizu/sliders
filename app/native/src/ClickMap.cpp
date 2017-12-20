@@ -258,6 +258,26 @@ Image* ClickMap::visualize(VisualizationType t)
   return ret;
 }
 
+vector<string> ClickMap::activeLayers(int x, int y)
+{
+  // bounds check
+  if (x < 0 || x >= _w || y < 0 || y >= _h)
+    return vector<string>();
+
+  vector<string> layers;
+  int idx = index(x, y);
+
+  // get layer names from the thing
+  shared_ptr<PixelClickData> data = _clickMap[idx];
+  vector<int> active = data->getActivationIds();
+
+  for (int i = 0; i < active.size(); i++) {
+    layers.push_back(_layerOrder[active[i]]);
+  }
+
+  return layers;
+}
+
 void ClickMap::smooth()
 {
   // from top left to bottom right, check each pixel, see if it's literally identical

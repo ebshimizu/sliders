@@ -58,6 +58,9 @@ namespace Comp {
     // dump a debug image
     Image* visualize(VisualizationType t);
 
+    // layer list
+    vector<string> activeLayers(int x, int y);
+
   private:
     // merges pixels with their neighbors
     void smooth();

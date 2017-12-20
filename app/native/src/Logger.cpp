@@ -53,6 +53,7 @@ namespace Comp {
   string Logger::logLevelToString(LogLevel level)
   {
     switch (level) {
+    case(SILLY): return "SILLY";
     case(DBG):   return "DEBUG";
     case(INFO):  return "INFO";
     case(WARN):  return "WARN";

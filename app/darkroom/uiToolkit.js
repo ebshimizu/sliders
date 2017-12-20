@@ -16,6 +16,12 @@ const mouseMode = {
   "contextClick" : 2
 }
 
+const clickMapVizMode = {
+  "clusters": 0,
+  "density": 1,
+  "uniqueClusters": 2
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -1009,6 +1015,41 @@ class LayerSelector {
     });
     $('#mapDisplayMenu').dropdown('set selected', "none");
 
+    this._clickMapDisplayMenu = $(`
+      <div class="ui floating mini selection dropdown button" id="clickMapDisplayMenu">
+        <span class="text">None</span>
+        <div class="menu">
+          <div class="header">Click Map Display</div>
+          <div class="item" data-value="none">None</div>
+          <div class="item" data-value="uniqueClusters">Unique Clusters</div>
+          <div class="item" data-value="density">Layer Density</div>
+          <div class="item" data-value="clusters">Clusters</div>
+        </div>
+      </div>
+    `);
+    $('#imgStatusBar').append(this._clickMapDisplayMenu);
+    $('#clickMapDisplayMenu').dropdown({
+      action: 'activate',
+      onChange: function (value, text, $selectedItem) {
+        if (value === "none") {
+          // this just erases the canvas so we can reuse it
+          self.hideImportanceMap();
+        }
+        else {
+          self.showClickMapViz(value);
+        }
+      }
+    });
+    $('#clickMapDisplayMenu').dropdown('set selected', "none");
+
+    // hide one of these
+    if (this._useClickMap) {
+      $('#mapDisplayMenu').hide();
+    }
+    else {
+      $('#clickMapDisplayMenu').hide();
+    }
+
     // create the things
     // ranking modes
     var modeMenu = $(`
@@ -1183,8 +1224,16 @@ class LayerSelector {
     `);
     this._optionUIList.append(cmuse);
     $('#cmUse').checkbox({
-      onChecked: function () { self._useClickMap = true; },
-      onUnchecked: function () { self._useClickMap = false; }
+      onChecked: function () {
+        self._useClickMap = true;
+        $('#clickMapDisplayMenu').show();
+        $('#mapDisplayMenu').hide();
+      },
+      onUnchecked: function () {
+        self._useClickMap = false;
+        $('#clickMapDisplayMenu').hide();
+        $('#mapDisplayMenu').show();
+      }
     });
 
     $('#cmUse').checkbox(((this._useClickMap) ? 'check' : 'uncheck'));
@@ -1501,6 +1550,16 @@ class LayerSelector {
     }
     catch (err) {
       showStatusMsg(err.message, "ERROR", "Error drawing importance map");
+    }
+  }
+
+  showClickMapViz(type) {
+    try {
+      var img = this._clickMap.visualize(clickMapVizMode[type]);
+      drawImage(img, $('#previewCanvas'));
+    }
+    catch (err) {
+      showStatusMsg(err.message, "ERROR", "Error drawing click map visualization.")
     }
   }
 

@@ -20,6 +20,7 @@ using namespace std;
 namespace Comp
 {
   enum LogLevel {
+    SILLY = -1,
     DBG = 0,
     INFO = 1,
     WARN = 2,

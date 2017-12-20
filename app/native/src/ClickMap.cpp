@@ -169,15 +169,26 @@ void ClickMap::compute(int targetDepth)
   // the main part of the click map, here we'll iteratively smooth and sparsify the map
   int currentDepth = _maxDepth;
 
+  getLogger()->log("[ClickMap] Computation started. Current Depth: " + to_string(currentDepth) + ". Target Depth: " + to_string(targetDepth));
+
   while (currentDepth > targetDepth) {
     // reduce current depth
     currentDepth--;
 
+    getLogger()->log("[ClickMap] Depth level " + to_string(currentDepth) + " of " + to_string(targetDepth));
+    getLogger()->log("[ClickMap] Smooth computation start for depth level " + to_string(currentDepth));
+
     // merge
     smooth();
 
+    getLogger()->log("[ClickMap] Smooth computation complete for depth level " + to_string(currentDepth));
+    getLogger()->log("[ClickMap] Sparsify computation start for depth level " + to_string(currentDepth));
+
     // sparsify
     sparsify(currentDepth);
+
+    getLogger()->log("[ClickMap] Sparsify computation complete for depth level " + to_string(currentDepth));
+    getLogger()->log("[ClickMap] Depth level " + to_string(currentDepth) + " of " + to_string(targetDepth) + " computation complete.");
   }
 }
 
@@ -243,10 +254,16 @@ Image* ClickMap::visualize(VisualizationType t)
     }
   }
   else if (t == VisualizationType::LAYER_DENSITY) {
+    int vmax = 0;
+    for (int i = 0; i < _clickMap.size(); i++) {
+      if (_clickMap[i]->getCount() > vmax)
+        vmax = _clickMap[i]->getCount();
+    }
+
     for (int i = 0; i < _clickMap.size(); i++) {
       int pxIndex = i * 4;
 
-      float color = (float)(_clickMap[i]->getCount()) / _maxDepth;
+      float color = (float)(_clickMap[i]->getCount()) / vmax;
       
       data[pxIndex] = color * 255;
       data[pxIndex + 1] = color * 255;
@@ -282,26 +299,27 @@ void ClickMap::smooth()
 {
   // from top left to bottom right, check each pixel, see if it's literally identical
   // to the next one, and if so merge it
+  // we should note here that this is hilariously bad and simplistic for merging so
+  // it stands as a first implementation
+  
+  // 8 directional check, maybe redundant but eh
+  vector<int> xdiff = { -1, 0, 1, -1, 1, -1, 0, 1 };
+  vector<int> ydiff = { -1, -1, -1, 0, 0, 1, 1, 1 };
+
   for (int y = 0; y < _h; y++) {
+    getLogger()->log("[ClickMap] smooth row: " + to_string(y) + "/" + to_string(_h), LogLevel::SILLY);
+
     for (int x = 0; x < _w; x++) {
       int current = index(x, y);
 
-      // i guess since we're moving in a set order we don't have to look back at all
-      // validate bounds
-      if (x + 1 < _w) {
-        int next = index(x + 1, y);
+      for (int delta = 0; delta < xdiff.size(); delta++) {
+        int dx = x + xdiff[delta];
+        int dy = y + ydiff[delta];
 
-        // if they're not literally the same pointer
-        if (_clickMap[current] != _clickMap[next]) {
-          // check for equality
-          if (_clickMap[current]->sameActivations(_clickMap[next])) {
-            // this should overwrite the pointer in next and it should be automatically destroyed
-            _clickMap[next] = _clickMap[current];
-          }
-        }
-      }
-      if (y + 1 < _h) {
-        int next = index(x, y + 1);
+        if (dx < 0 || dx >= _w || dy < 0 || dy >= _h)
+          continue;
+
+        int next = index(dx, dy);
 
         // if they're not literally the same pointer
         if (_clickMap[current] != _clickMap[next]) {
@@ -318,6 +336,8 @@ void ClickMap::smooth()
 
 void ClickMap::sparsify(int currentDepth)
 {
+  getLogger()->log("[ClickMap] Sparsify depth " + to_string(currentDepth));
+
   // first, we need a list of the number of active pixels for each layer
   // this can be an array since everything is indexed by array id at this point
   vector<int> activePixelCount;
@@ -330,25 +350,44 @@ void ClickMap::sparsify(int currentDepth)
     }
   }
 
+  // log some data
+  for (int i = 0; i < activePixelCount.size(); i++) {
+    getLogger()->log("[ClickMap] layer " + _layerOrder[i] + " has " + to_string(activePixelCount[i]) + " active pixels");
+  }
+
   // sparsify unique clusters
   set<shared_ptr<PixelClickData>> uniqueClusters = getUniqueClusters();
 
+  int clusterNum = 0;
   for (auto& cluster : uniqueClusters) {
+    getLogger()->log("[ClickMap] Sparsify cluster " + to_string(clusterNum) + "/" + to_string(uniqueClusters.size()), LogLevel::SILLY);
+
     // if we are above the current depth, we need to make sparse
     if (cluster->getCount() > currentDepth) {
       // of the affected layers, remove the one with the largest total count
       int max = 0;
       int id = -1;
 
+      // logging string
+      stringstream ss;
+      ss << "[ClickMap] cluster " << cluster << " above max depth. culling...\n";
+      ss << "gathering options:\n";
+
       vector<int> active = cluster->getActivationIds();
       for (auto& aid : active) {
+        ss << _layerOrder[aid] << ": " << activePixelCount[aid] << "\n";
+
         if (activePixelCount[aid] > max) {
           max = activePixelCount[aid];
           id = aid;
         }
       }
 
+      ss << _layerOrder[id] << " selected for removal with count " << activePixelCount[id] << "\n";
       cluster->setLayerState(id, false);
+
+      getLogger()->log(ss.str(), LogLevel::SILLY);
+      getLogger()->log("[ClickMap] recomputing layer activations...", LogLevel::SILLY);
 
       // recompute active pixel count
       activePixelCount.clear();
@@ -359,6 +398,13 @@ void ClickMap::sparsify(int currentDepth)
             activePixelCount[layerId] += 1;
         }
       }
+
+      // log some data
+      for (int i = 0; i < activePixelCount.size(); i++) {
+        getLogger()->log("[ClickMap] layer " + _layerOrder[i] + " has " + to_string(activePixelCount[i]) + " active pixels", LogLevel::SILLY);
+      }
+
+      clusterNum++;
     }
   }
 }

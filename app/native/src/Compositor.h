@@ -231,6 +231,25 @@ namespace Comp {
     // be scriptable for testing
     ClickMap* createClickMap(ImportanceMapMode mode, Context current);
 
+    // tags
+    // goes through each layer and adds tags to layers based on content and adjustments
+    void analyzeAndTag();
+
+    // returns a set of all the tags used by the layers
+    set<string> uniqueTags();
+
+    // gets tags for each layer
+    set<string> getTags(string layer);
+
+    // gets all tags for each layer
+    map<string, set<string>> allTags();
+
+    // deletes tags from a layer
+    void deleteTags(string layer);
+
+    // deletes tags from all layers
+    void deleteAllTags();
+
   private:
     void addLayer(string name);
 
@@ -415,6 +434,10 @@ namespace Comp {
     // Primary rendering context. This is the persistent state of the compositor.
     // Keyed by IDs in the context.
     Context _primary;
+
+    // layer tags
+    // determined by analysis of content or by user input
+    map<string, set<string>> _layerTags;
 
     // cached of scaled images for rendering at different sizes
     map<string, map<string, shared_ptr<Image> > > _imageData;

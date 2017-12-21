@@ -1318,6 +1318,44 @@ namespace Comp {
     return ret;
   }
 
+  void Compositor::analyzeAndTag()
+  {
+    // TODO
+  }
+
+  set<string> Compositor::uniqueTags()
+  {
+    set<string> ret;
+
+    for (auto& kvp : _layerTags) {
+      for (auto& tag : kvp.second) {
+        ret.insert(tag);
+      }
+    }
+
+    return ret;
+  }
+
+  set<string> Compositor::getTags(string layer)
+  {
+    return _layerTags[layer];
+  }
+
+  map<string, set<string>> Compositor::allTags()
+  {
+    return _layerTags;
+  }
+
+  void Compositor::deleteTags(string layer)
+  {
+    _layerTags.erase(layer);
+  }
+
+  void Compositor::deleteAllTags()
+  {
+    _layerTags.clear();
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

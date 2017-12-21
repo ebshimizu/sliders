@@ -968,8 +968,11 @@ class LayerSelector {
     this._clickMapDepth = 4;
     this._clickMapThreshold = 0.05;
     this._clickMapNorm = false;
-    this._useClickMap = false;    // this absolutely needs a visible toggle
+    this._useClickMap = false;
 
+    // ui
+    // filter menu initialized with dummy vars for now
+    this._filterMenu = new FilterMenu(["color", "brightness", "structure"]);
     this.initCanvas();
     this.initUI();
   }
@@ -1441,33 +1444,39 @@ class LayerSelector {
   }
 
   canvasMouseUp(event) {
-    if (this._mouseMode === mouseMode.normal) {
-      if (this._selectionMode === "localBox") {
-        if (this._drawing) {
-          this._drawing = false;
-          this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
-          this.updateCanvas();
+    // button check
+    if (event.which === 1) {
+      if (this._mouseMode === mouseMode.normal) {
+        if (this._selectionMode === "localBox") {
+          if (this._drawing) {
+            this._drawing = false;
+            this._currentRect.pt2 = this.screenToLocal(event.pageX, event.pageY);
+            this.updateCanvas();
+            this.selectLayers();
+          }
+        }
+        else if (this._selectionMode === "localPoint") {
+          this._currentPt = this.screenToLocal(event.pageX, event.pageY);
           this.selectLayers();
         }
       }
-      else if (this._selectionMode === "localPoint") {
-        this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+      else if (this._mouseMode === mouseMode.updateOnHover) {
+        // when the mouse is clicked for update on hover we keep track of that
+        // point and show the list of layers at that point on mouse out
+        this._lockedPt = this.screenToLocal(event.pageX, event.pageY);
+        this._currentPt = this._lockedPt;
         this.selectLayers();
       }
+      else if (this._mouseMode === mouseMode.contextClick) {
+        // this mode pops up a window (or like an arrangement of thumbnails)
+        // with layer thumbnails and names. clicking on one of the popups opens those
+        // layer controls on the right (for now, maybe inline?)
+        this._currentPt = this.screenToLocal(event.pageX, event.pageY);
+        this.showLayerSelectPopup(event.pageX, event.pageY);
+      }
     }
-    else if (this._mouseMode === mouseMode.updateOnHover) {
-      // when the mouse is clicked for update on hover we keep track of that
-      // point and show the list of layers at that point on mouse out
-      this._lockedPt = this.screenToLocal(event.pageX, event.pageY);
-      this._currentPt = this._lockedPt;
-      this.selectLayers();
-    }
-    else if (this._mouseMode === mouseMode.contextClick) {
-      // this mode pops up a window (or like an arrangement of thumbnails)
-      // with layer thumbnails and names. clicking on one of the popups opens those
-      // layer controls on the right (for now, maybe inline?)
-      this._currentPt = this.screenToLocal(event.pageX, event.pageY);
-      this.showLayerSelectPopup(event.pageX, event.pageY);
+    else if (event.which === 3) {
+      this._filterMenu.showAt(event.pageX, event.pageY);
     }
   }
 
@@ -1687,6 +1696,81 @@ class LayerSelectPopup {
 
   deleteUI() {
     this._uiElem.remove();
+  }
+}
+
+class FilterMenu {
+  constructor(tags) {
+    if (tags) {
+      this._tags = tags;
+    }
+    else {
+      this._tags = [];
+    }
+
+    this.createUI();
+  }
+
+  createUI() {
+    // make a new id element if none exists
+    $('#filterMenu').remove();
+
+    this._uiElem = $(`
+      <div class="ui inverted segment" id="filterMenu">
+        <div class="ui top attached inverted label">Selection Intent</div>
+        <div class="ui mini icon button closeButton"><i class="window close outline icon"></i></div>
+        <div class="ui multiple selection search fluid dropdown">
+          <input name="tags" type="hidden">
+          <i class="dropdown icon"></i>
+          <div class="default text">None</div>
+          <div class="menu">
+
+          </div>  
+        </div>
+      </div>
+    `);
+
+    $('body').append(this._uiElem);
+
+    var self = this;
+    // initialize dropdown
+    $('#filterMenu .ui.dropdown').dropdown({
+      action: 'activate',
+      onChange: function (value, text, $selectedItem) {
+        self._selectedTags = value;
+      }
+    });
+
+    // button
+    $('#filterMenu .closeButton').click(function () {
+      self.hide();
+    });
+
+    // add the tags
+    this.updateTags();
+
+    $('#filterMenu').hide();
+  }
+
+  updateTags() {
+    for (var i = 0; i < this._tags.length; i++) {
+      $('#filterMenu .menu').append('<div class="item">' + this._tags[i] + '</div>');
+    }
+
+    $('#filterMenu .ui.dropdown').dropdown('refresh');
+  }
+
+  showAt(x, y) {
+    // displays the thing at screen position x, y
+    var maxTop = $('body').height() - this._uiElem.height() - 50;
+    var top = Math.min(maxTop, y);
+
+    this._uiElem.css({ left: x, top: top });
+    $('#filterMenu').show();
+  }
+
+  hide() {
+    $('#filterMenu').hide();
   }
 }
 
@@ -2446,3 +2530,4 @@ exports.OrderedSlider = OrderedSlider;
 exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
 exports.LayerSelector = LayerSelector;
+exports.FilterMenu = FilterMenu;

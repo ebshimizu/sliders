@@ -749,3 +749,22 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     height: 350px;
     overflow-y: scroll;
 }
+
+/* tagging popup window */
+#filterMenu {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 5000;
+    width: 300px;
+}
+
+#filterMenu .dropdown {
+    margin-top: 26px;
+}
+
+#filterMenu .closeButton {
+    position: absolute;
+    right: 0px;
+    top: -26px;
+}

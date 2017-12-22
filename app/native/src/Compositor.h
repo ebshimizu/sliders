@@ -250,6 +250,9 @@ namespace Comp {
     // deletes tags from all layers
     void deleteAllTags();
 
+    // determines if a layer has been tagged with the given tag
+    bool hasTag(string layer, string tag);
+
   private:
     void addLayer(string name);
 

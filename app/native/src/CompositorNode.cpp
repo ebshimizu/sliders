@@ -1626,6 +1626,13 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "dumpImportanceMaps", dumpImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "getImportanceMapCache", availableImportanceMaps);
   Nan::SetPrototypeMethod(tpl, "createClickMap", createClickMap);
+  Nan::SetPrototypeMethod(tpl, "analyzeAndTag", analyzeAndTag);
+  Nan::SetPrototypeMethod(tpl, "uniqueTags", uniqueTags);
+  Nan::SetPrototypeMethod(tpl, "getTags", getTags);
+  Nan::SetPrototypeMethod(tpl, "allTags", allTags);
+  Nan::SetPrototypeMethod(tpl, "deleteTags", deleteTags);
+  Nan::SetPrototypeMethod(tpl, "deleteAllTags", deleteAllTags);
+  Nan::SetPrototypeMethod(tpl, "hasTag", hasTag);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -2917,6 +2924,119 @@ void CompositorWrapper::createClickMap(const Nan::FunctionCallbackInfo<v8::Value
   }
   else {
     Nan::ThrowError("compositor.computeAllImportanceMaps(int, Context) argument error");
+  }
+}
+
+void CompositorWrapper::analyzeAndTag(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.analyzeAndTag");
+
+  c->_compositor->analyzeAndTag();
+}
+
+void CompositorWrapper::uniqueTags(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.uniqueTags");
+
+  set<string> tags = c->_compositor->uniqueTags();
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+  int i = 0;
+  for (auto& t : tags) {
+    ret->Set(i, Nan::New(t).ToLocalChecked());
+    i++;
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::getTags(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getTags");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    set<string> tags = c->_compositor->getTags(string(*i0));
+
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    int i = 0;
+    for (auto& t : tags) {
+      ret->Set(i, Nan::New(t).ToLocalChecked());
+      i++;
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    Nan::ThrowError("compositor.getTags(string) arugment error");
+  }
+}
+
+void CompositorWrapper::allTags(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.allTags");
+
+  map<string, set<string>> tags = c->_compositor->allTags();
+
+  v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+
+  for (auto& kvp : tags) {
+    v8::Local<v8::Array> t = Nan::New<v8::Array>();
+    int i = 0;
+
+    for (auto& tag : kvp.second) {
+      t->Set(i, Nan::New(tag).ToLocalChecked());
+      i++;
+    }
+
+    ret->Set(Nan::New(kvp.first).ToLocalChecked(), t);
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::deleteTags(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.deleteTags");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    c->_compositor->deleteTags(string(*i0));
+  }
+  else {
+    Nan::ThrowError("compositor.deleteTags(string) arugment error");
+  }
+}
+
+void CompositorWrapper::deleteAllTags(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.deleteAllTags");
+
+  c->_compositor->deleteAllTags();
+}
+
+void CompositorWrapper::hasTag(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.hasTag");
+
+  if (info[0]->IsString() && info[1]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    v8::String::Utf8Value i1(info[1]->ToString());
+
+    bool ret = c->_compositor->hasTag(string(*i0), string(*i1));
+    info.GetReturnValue().Set(Nan::New(ret));
+  }
+  else {
+    Nan::ThrowError("compositor.hasTag(string, string) arugment error");
   }
 }
 

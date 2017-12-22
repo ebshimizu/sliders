@@ -229,6 +229,13 @@ private:
   static void dumpImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void availableImportanceMaps(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void createClickMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void analyzeAndTag(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void uniqueTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void allTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void deleteAllTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void hasTag(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

@@ -1320,7 +1320,62 @@ namespace Comp {
 
   void Compositor::analyzeAndTag()
   {
-    // TODO
+    for (int i = 0; i < _layerOrder.size(); i++) {
+      string name = _layerOrder[i];
+      Layer l = _primary[name];
+
+      // really really simple tags for now, I expect them to get more complicated later
+      if (l.isAdjustmentLayer()) {
+        _layerTags[name].insert("Global Adjustment");
+      }
+      else {
+        _layerTags[name].insert("Structure");
+      }
+
+      // adjustments check
+      // ther's a number of points to be made here
+      // specifically
+      // - that the gradient effects depends heavily on blend mode and gradient content
+      // - currently you can't edit curves
+      // - where does invert go
+      // - and we are ignoring layer specific blend options and possible color stuff
+      auto adjustments = l.getAdjustments();
+      for (auto& adj : adjustments) {
+        switch (adj) {
+        case HSL:
+        case GRADIENT:
+          _layerTags[name].insert("Color");
+          _layerTags[name].insert("Brightness");
+          break;
+        case LEVELS:
+        case EXPOSURE:
+          _layerTags[name].insert("Brightness");
+          _layerTags[name].insert("Contrast");
+          break;
+        case CURVES:
+          _layerTags[name].insert("Color");
+          _layerTags[name].insert("Brightness");
+          _layerTags[name].insert("Contrast");
+          break;
+        case SELECTIVE_COLOR:
+        case COLOR_BALANCE:
+        case PHOTO_FILTER:
+        case COLORIZE:
+        case LIGHTER_COLORIZE:
+        case OVERWRITE_COLOR:
+          _layerTags[name].insert("Color");
+          break;
+        case BRIGHTNESS:
+          _layerTags[name].insert("Brightness");
+          break;
+        case INVERT:
+          _layerTags[name].insert("Brightness");
+          break;
+        default:
+          break;
+        }
+      }
+    }
   }
 
   set<string> Compositor::uniqueTags()
@@ -1354,6 +1409,11 @@ namespace Comp {
   void Compositor::deleteAllTags()
   {
     _layerTags.clear();
+  }
+
+  bool Compositor::hasTag(string layer, string tag)
+  {
+    return (_layerTags[layer].count(tag) > 0);
   }
 
   void Compositor::addLayer(string name)

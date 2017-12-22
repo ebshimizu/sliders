@@ -945,6 +945,9 @@ class SliderSelector {
 // unique components
 class LayerSelector {
   constructor(opts) {
+    // tag computation
+    c.analyzeAndTag();
+
     // expected to be a jquery selector
     this._selectionCanvas = $(opts.selectionCanvas);
 
@@ -969,10 +972,11 @@ class LayerSelector {
     this._clickMapThreshold = 0.05;
     this._clickMapNorm = false;
     this._useClickMap = false;
+    this._useTags = true;
 
     // ui
     // filter menu initialized with dummy vars for now
-    this._filterMenu = new FilterMenu(["color", "brightness", "structure"]);
+    this._filterMenu = new FilterMenu(c.uniqueTags());
     this.initCanvas();
     this.initUI();
   }
@@ -1282,6 +1286,32 @@ class LayerSelector {
     $('#cmThreshold input').change(function () {
       self._clickMapThreshold = parseFloat($(this).val());
     });
+
+    // use tags
+    var taguse = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui toggle checkbox" id="tagUse">
+                  <input type="checkbox" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Use Tags</div>
+              <div class="description">Use tags to determine intent.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(taguse);
+    $('#tagUse').checkbox({
+      onChecked: function () {
+        self._useTags = true;
+      },
+      onUnchecked: function () {
+        self._useTags = false;
+      }
+    });
+
+    $('#tagUse').checkbox(((this._useTags) ? 'check' : 'uncheck'));
   }
 
   deleteUI() {
@@ -1346,12 +1376,43 @@ class LayerSelector {
         displayLayers.push(rank[i]);
       }
     }
+
     return displayLayers;
+  }
+
+  tagFilter(layers) {
+    var filtered = [];
+    var tags = this._filterMenu.selectedTags;
+
+    // no tags = nop
+    if (!tags || tags.length === 0)
+      return layers;
+
+    for (var i = 0; i < layers.length; i++) {
+      var include = true;
+
+      for (var t = 0; t < tags.length; t++) {
+        if (!c.hasTag(layers[i].name, tags[t])) {
+          include = false;
+          break;
+        }
+      }
+
+      if (include) {
+        filtered.push(layers[i]);
+      }
+    }
+
+    return filtered;
   }
 
   selectLayers() {
     var displayLayers = this.rankLayers();
 
+    if (this._useTags) {
+      displayLayers = this.tagFilter(displayLayers);
+    }
+    
     this.showLayers(displayLayers);
   }
 
@@ -1711,6 +1772,10 @@ class FilterMenu {
     this.createUI();
   }
 
+  get selectedTags() {
+    return this._selectedTags;
+  }
+
   createUI() {
     // make a new id element if none exists
     $('#filterMenu').remove();
@@ -1737,7 +1802,13 @@ class FilterMenu {
     $('#filterMenu .ui.dropdown').dropdown({
       action: 'activate',
       onChange: function (value, text, $selectedItem) {
-        self._selectedTags = value;
+        // ugh need to make this an array even if it's just one selection
+        if (typeof (value) === "string") {
+          self._selectedTags = [value];
+        }
+        else {
+          self._selectedTags = value;
+        }
       }
     });
 
@@ -1754,7 +1825,7 @@ class FilterMenu {
 
   updateTags() {
     for (var i = 0; i < this._tags.length; i++) {
-      $('#filterMenu .menu').append('<div class="item">' + this._tags[i] + '</div>');
+      $('#filterMenu .menu').append('<div class="item" data-value="' + this._tags[i] + '">' + this._tags[i] + '</div>');
     }
 
     $('#filterMenu .ui.dropdown').dropdown('refresh');

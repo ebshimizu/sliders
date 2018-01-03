@@ -5,6 +5,7 @@
 const comp = require('../native/build/Release/compositor');
 
 const rankModes = {
+  "goal" : -1,
   "alpha": 0,
   "visibilityDelta": 1,
   "specVisibilityDelta": 2
@@ -979,6 +980,9 @@ class LayerSelector {
     this._filterMenu = new FilterMenu(c.uniqueTags());
     this.initCanvas();
     this.initUI();
+
+    // goal stuff
+    this._goal = {};
   }
 
   initUI() {
@@ -1068,6 +1072,7 @@ class LayerSelector {
             <div class="item" data-value="alpha">Average Alpha</div>
             <div class="item" data-value="visibilityDelta">Visibility Delta</div>
             <div class="item" data-value="specVisibilityDelta">Speculative Visibility Delta</div>
+            <div class="item" data-value="goal">Goal-based Selection</div>
           </div>
         </div>
       </div>
@@ -1406,14 +1411,24 @@ class LayerSelector {
     return filtered;
   }
 
-  selectLayers() {
-    var displayLayers = this.rankLayers();
+  goalSelect() {
+    return c.goalSelect(this._goal, c.getContext(), this._currentPt.x, this._currentPt.y);
+  }
 
-    if (this._useTags) {
-      displayLayers = this.tagFilter(displayLayers);
+  selectLayers() {
+    if (this._rankMode === "goal") {
+      // goal-based selection is a bit different
+      var layers = this.goalSelect();
     }
-    
-    this.showLayers(displayLayers);
+    else {
+      var displayLayers = this.rankLayers();
+
+      if (this._useTags) {
+        displayLayers = this.tagFilter(displayLayers);
+      }
+
+      this.showLayers(displayLayers);
+    }
   }
 
   createClickMap() {

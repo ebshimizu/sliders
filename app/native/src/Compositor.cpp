@@ -1416,6 +1416,104 @@ namespace Comp {
     return (_layerTags[layer].count(tag) > 0);
   }
 
+  map<string, map<AdjustmentType, set<string>>> Compositor::goalSelect(Goal g, Context & c, int x, int y)
+  {
+    // right now this function will select _individual parameters_ (NOT ENTIRE ADJUSTMENTS)
+    // that satisfy the given goal constraint.
+    // i expect this functionality to get substantially more complicated but we're starting small here.
+    map<string, map<AdjustmentType, set<string>>> ret;
+
+    // ok so this method will only work for single params for reasons that will qucikly become apparent
+    if (g.getType() == GoalType::SELECT_ANY) {
+      // speculative difference with threshold 
+      map<string, double> scores;
+      pointImportance("specVisibilityDelta", scores, x, y, c);
+
+      // adjustment type is opacity, "opacity" for return values
+      for (auto& s : scores) {
+        // TODO: maybe? allow custom threshold if needed
+        if (s.second > 0.05) {
+          ret[s.first][AdjustmentType::OPACITY].insert("opacity");
+        }
+      }
+    }
+    else if (g.getType() == GoalType::SELECT_GROUP) {
+      // tbd
+    }
+    else {
+      // scan each parameter from 0 to 1 (they're all normalized!) to see if goal gets satisfied.
+      for (auto& layer : _layerOrder) {
+        // sanity check
+        if (!_primary[layer].isAdjustmentLayer()) {
+          // if a transparent pixel is at the specified location then this layer can't do anything really
+          // so skip it
+          auto px = _primary[layer].getImage()->getPixel(x, y);
+          if (px._a == 0)
+            continue;
+        }
+
+        // coarse scan of the parameter to see if it can satisfy the goal
+        // opacity
+        // temporary rendering context
+        Context temp(c);
+
+        for (int i = 0; i <= 100; i++) {
+          float val = 0.01f * i;
+          temp[layer].setOpacity(val);
+
+          RGBAColor c = renderPixel<float>(temp, x, y, "full");
+
+          if (g.meetsGoal(c)) {
+            // add param to ret, continue
+            ret[layer][AdjustmentType::OPACITY].insert("opacity");
+
+            getLogger()->log("Layer " + layer + " adjustment " + to_string(AdjustmentType::OPACITY) + " parameter opacity satisfies goal with value " + to_string(val));
+
+            break;
+          }
+        }
+
+        // this should really be an optimization process (if using multiple, may need ceres in on this)
+        auto adjustments = _primary[layer].getAdjustments();
+        
+        // hey also i'm skipping selective color for now because I just don't want to deal with it
+        for (auto& a : adjustments) {
+          auto params = _primary[layer].getAdjustment(a);
+
+          for (auto & p : params) {
+            // temporary rendering context
+            Context temp(c);
+            float min = 1e6;
+
+            for (int i = 0; i <= 100; i++) {
+              float val = 0.01f * i;
+              temp[layer].addAdjustment(a, p.first, val);
+
+              RGBAColor color = renderPixel<float>(temp, x, y, "full");
+
+              // stat tracking
+              float objval = g.goalObjective(color);
+              if (objval < min)
+                min = objval;
+
+              if (g.meetsGoal(color)) {
+                // add param to ret, continue
+                ret[layer][a].insert(p.first);
+                getLogger()->log("[ACCEPT] Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " satisfies goal with value " + to_string(val));
+
+                break;
+              }
+            }
+
+            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " minimum objective " + to_string(min));
+          }
+        }
+      }
+    }
+
+    return ret;
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

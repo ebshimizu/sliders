@@ -40,7 +40,9 @@
 				"../../expression_tree/expressionContext.h",
 				"../../expression_tree/expressionStep.h",
 				"src/ClickMap.h",
-				"src/ClickMap.cpp"
+				"src/ClickMap.cpp",
+                "src/Selection.h",
+                "src/Selection.cpp"
 			],
 			"include_dirs" : [
 			    "<!(node -e \"require('nan')\")"

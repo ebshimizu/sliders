@@ -19,6 +19,7 @@ author: Evan Shimizu
 #include "ConstraintData.h"
 #include "searchData.h"
 #include "ClickMap.h"
+#include "Selection.h"
 
 using namespace std;
 
@@ -252,6 +253,11 @@ namespace Comp {
 
     // determines if a layer has been tagged with the given tag
     bool hasTag(string layer, string tag);
+
+    // selects layers and parameters based on the current goal
+    // goal format is uh, changeable but for now it's limited to brightness / color
+    // also just targeting a single goal right now
+    map<string, map<AdjustmentType, set<string>>> goalSelect(Goal g, Context& c, int x, int y);
 
   private:
     void addLayer(string name);

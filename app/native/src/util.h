@@ -248,6 +248,9 @@ namespace Comp {
       T _b;
     };
 
+    static T RGBL2Diff(RGBColorT& x, RGBColorT& y);
+    static T RGBAL2Diff(RGBAColorT& x, RGBAColorT& y);
+
     static HSLColorT RGBToHSL(T r, T g, T b);
     static HSLColorT RGBToHSL(RGBColorT& c);
 
@@ -288,6 +291,23 @@ namespace Comp {
     template<typename T>
     inline typename Utils<T>::RGBColorT eval(T x);
   };
+
+  template<typename T>
+  inline T Utils<T>::RGBL2Diff(RGBColorT & x, RGBColorT & y)
+  {
+    return sqrt((x._r - y._r) * (x._r - y._r) + (x._g - y._g) * (x._g - y._g) + (x._b - y._b) * (x._b - y._b));
+  }
+
+  template<typename T>
+  inline T Utils<T>::RGBAL2Diff(RGBAColorT & x, RGBAColorT & y)
+  {
+    // premult then normal L2
+    float rd = (x._r * x._a) - (y._r * y._a);
+    float gd = (x._g * x._a) - (y._g * y._a);
+    float bd = (x._b * x._a) - (y._b * y._a);
+
+    return sqrt(rd * rd + gd * gd + bd * bd);
+  }
 
   template<typename T>
   inline typename Utils<T>::HSLColorT Utils<T>::RGBToHSL(T r, T g, T b)

@@ -1633,6 +1633,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteTags", deleteTags);
   Nan::SetPrototypeMethod(tpl, "deleteAllTags", deleteAllTags);
   Nan::SetPrototypeMethod(tpl, "hasTag", hasTag);
+  Nan::SetPrototypeMethod(tpl, "goalSelect", goalSelect);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3037,6 +3038,67 @@ void CompositorWrapper::hasTag(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
   else {
     Nan::ThrowError("compositor.hasTag(string, string) arugment error");
+  }
+}
+
+void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  // expects a goal object, context, and selection point
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.goalSelect");
+
+  if (info[0]->IsObject() && info[1]->IsObject() && info[2]->IsNumber() && info[3]->IsNumber()) {
+    // info[0] should contain a goal object
+    v8::Local<v8::Object> goal = info[0].As<v8::Object>();
+    Comp::GoalType gt = (Comp::GoalType)(goal->Get(Nan::New("type").ToLocalChecked())->IntegerValue());
+    Comp::GoalTarget ga = (Comp::GoalTarget)(goal->Get(Nan::New("target").ToLocalChecked())->IntegerValue());
+    v8::Local<v8::Object> color = goal->Get(Nan::New("color").ToLocalChecked()).As<v8::Object>();
+
+    Comp::RGBAColor targetColor;
+    targetColor._r = color->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+    targetColor._g = color->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+    targetColor._b = color->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+    targetColor._a = 1;
+
+    Comp::Goal g(gt, ga);
+    g.setTargetColor(targetColor);
+
+    // context
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[1]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    // targets
+    int x = info[2]->IntegerValue();
+    int y = info[3]->IntegerValue();
+
+    auto results = c->_compositor->goalSelect(g, ctx->_context, x, y);
+
+    // results to javascript object fun times
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+    for (auto& r : results) {
+      v8::Local<v8::Object> adjustments = Nan::New<v8::Object>();
+
+      for (auto& a : r.second) {
+        v8::Local<v8::Array> params = Nan::New<v8::Array>();
+
+        int i = 0;
+        for (auto& p : a.second) {
+          params->Set(i, Nan::New(p).ToLocalChecked());
+        }
+
+        adjustments->Set(Nan::New(a.first), params);
+      }
+
+      ret->Set(Nan::New(r.first).ToLocalChecked(), adjustments);
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    Nan::ThrowError("compositor.goalSelect(object, context, int, int) argument error");
   }
 }
 

@@ -236,6 +236,7 @@ private:
   static void deleteTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteAllTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void hasTag(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

@@ -817,7 +817,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     padding-top: 32px;
 }
 
-.parameterSelectLayerPanel .card:hover {
+.parameterSelectPanel .card:hover {
     cursor: pointer;
 }
 

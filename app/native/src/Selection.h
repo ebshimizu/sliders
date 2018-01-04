@@ -19,6 +19,13 @@ enum GoalTarget {
   EXACT
 };
 
+// return value for goal based selection
+// subject to a lot of change
+struct GoalResult {
+  string _param;
+  float _val;
+};
+
 class Goal {
 public:
   Goal(GoalType type, GoalTarget target);

@@ -1416,12 +1416,12 @@ namespace Comp {
     return (_layerTags[layer].count(tag) > 0);
   }
 
-  map<string, map<AdjustmentType, set<string>>> Compositor::goalSelect(Goal g, Context & c, int x, int y)
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y)
   {
     // right now this function will select _individual parameters_ (NOT ENTIRE ADJUSTMENTS)
     // that satisfy the given goal constraint.
     // i expect this functionality to get substantially more complicated but we're starting small here.
-    map<string, map<AdjustmentType, set<string>>> ret;
+    map<string, map<AdjustmentType, vector<GoalResult>>> ret;
 
     // ok so this method will only work for single params for reasons that will qucikly become apparent
     if (g.getType() == GoalType::SELECT_ANY) {
@@ -1433,7 +1433,10 @@ namespace Comp {
       for (auto& s : scores) {
         // TODO: maybe? allow custom threshold if needed
         if (s.second > 0.05) {
-          ret[s.first][AdjustmentType::OPACITY].insert("opacity");
+          GoalResult r;
+          r._param = "opacity";
+          r._val = 1;
+          ret[s.first][AdjustmentType::OPACITY].push_back(r);
         }
       }
     }
@@ -1465,7 +1468,10 @@ namespace Comp {
 
           if (g.meetsGoal(c)) {
             // add param to ret, continue
-            ret[layer][AdjustmentType::OPACITY].insert("opacity");
+            GoalResult r;
+            r._param = "opacity";
+            r._val = val;
+            ret[layer][AdjustmentType::OPACITY].push_back(r);
 
             getLogger()->log("Layer " + layer + " adjustment " + to_string(AdjustmentType::OPACITY) + " parameter opacity satisfies goal with value " + to_string(val));
 
@@ -1498,7 +1504,12 @@ namespace Comp {
 
               if (g.meetsGoal(color)) {
                 // add param to ret, continue
-                ret[layer][a].insert(p.first);
+                GoalResult r;
+                r._param = p.first;
+                r._val = val;
+
+                ret[layer][a].push_back(r);
+
                 getLogger()->log("[ACCEPT] Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " satisfies goal with value " + to_string(val));
 
                 break;

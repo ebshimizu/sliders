@@ -257,7 +257,7 @@ namespace Comp {
     // selects layers and parameters based on the current goal
     // goal format is uh, changeable but for now it's limited to brightness / color
     // also just targeting a single goal right now
-    map<string, map<AdjustmentType, set<string>>> goalSelect(Goal g, Context& c, int x, int y);
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y);
 
   private:
     void addLayer(string name);

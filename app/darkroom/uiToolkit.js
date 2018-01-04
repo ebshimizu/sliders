@@ -23,6 +23,13 @@ const clickMapVizMode = {
   "uniqueClusters": 2
 }
 
+const PreviewMode = {
+  "rawLayer": 0,
+  "animatedParams": 1,
+  "isolatedComp": 2,
+  "diffComp": 3
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -1772,6 +1779,136 @@ class LayerSelectPopup {
 
   deleteUI() {
     this._uiElem.remove();
+  }
+}
+
+// this is a bit more detailed than the layer select popup
+// in that it's able to group arbitrary combinations of parameters and
+// layers together, along with a number of different visualization modes.
+// this is also a panel that can be placed in a number of places depending on where it's initialized.
+class ParameterSelectPanel {
+  // layers is expected to be an object with the format layer_name: { adjustment_type: [parameters] }
+  // this is subject to change
+  constructor(name, parent) {
+    this._layers = {};
+
+    this._previewMode = PreviewMode.rawLayer;
+    this._parentContainer = parent;
+    this._name = name;
+    this._renderSize = "small";
+    this._activeControls = [];
+  }
+
+  initUI() {
+    // set up all the things
+    // delete duplicates
+    $('.parameterSelectPanel[name="' + this._name + '"]').remove();
+
+    this._uiElem = $('<div class="parameterSelectPanel" name="' + name + '"><div class="ui two column grid"></div></div>');
+    this._layerControlUIElem = $('<div class="parameterSelectLayerPanel" name="' + name + "'></div>")
+    this._parentContainer.append(this._uiElem);
+    this._parentContainer.append(this._layerControlUIElem);
+
+    // layer control panel will need a close button (sits on top of panels)
+  }
+
+  deleteLayerCards() {
+    this._uiElem.find('.grid').html('');
+  }
+
+  createLayerCards() {
+    // populate with layer + parameter cards
+    var dims = c.imageDims(this._renderSize);
+    for (var i in this._layers) {
+      var name = i;
+
+      // get the adjustments
+      var adjustments = this._layers[i];
+      for (var a in adjustments) {
+        var adj = a;
+
+        // get the parameters
+        // eventually this'll be parameter groups probably
+        var params = adjustments[a];
+        for (var x = 0; x < params.length; x++) {
+          var layerElem = '<div class="column">';
+          var displayText = name + " - " + adjToString[adj] + ":" + params[x].param;
+          var id = name + adj + params[x].param;
+
+          layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" param="' + params[x].param + '" id="' + id + '">';
+          layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+          layerElem += '<div class="extra content">' + displayText + '</div>';
+          layerElem += '</div></div>';
+
+          this._uiElem.find('.grid').append(layerElem);
+
+          // bindings are based on the drawing mode
+          this.bindLayerCard(name, adj, params[x], id);
+        }
+      }
+    }
+  }
+
+  bindLayerCard(name, adj, param, id) {
+    // canvas and layer objects
+    var l = c.getLayer(name);
+    var paramName = param.param;
+    var paramVal = param.val;
+    var canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[id="' + id + '"] canvas');
+    var elem = $('.parameterSelectPanel[name="' + this._name + '"] div[id="' + id + '"]');
+    var self = this;
+
+    if (this._previewMode === PreviewMode.rawLayer) {
+      if (!l.isAdjustmentLayer()) {
+        drawImage(c.getCachedImage(name, this._renderSize), canvas);
+      }
+    }
+    else if (this._previewMode === PreviewMode.animatedParams) {
+      // this preview mode will animate the parameters to the point where the layer
+      // was determined to have satisfied the goal conditions.
+      // this will bind a mouseover event to start the animation loop for the hovered layer
+      // panel. the images will be rendered on demand until the cache is full, at which point it'll
+      // update at full speed 
+    }
+
+    // onclick bindings are the same regardless
+    elem.click(function () {
+      self.showLayerControl(name, adj, param);
+    });
+  }
+
+  // displays the layer control panel and the controls associated with the given layer
+  showLayerControl(name, adj, param) {
+    // assumed to be clear
+    // generate the layer controller
+    // TODO: layer control needs to highlight relevant parameters
+    var layerControl = new LayerControls(name);
+    layerControl.createUI(this._layerControlUIElem);
+    layerControl.displayThumb = true;
+
+    // i am leaving the possibility for multiple layers open but really it's just like 
+    // always the one layer for now
+    this._activeControls.push(layerControl);
+  }
+
+  hideLayerControl() {
+    // clear and hide
+    for (var i = 0; i < this._activeControls.length; i++) {
+      this._activeControls[i].deleteUI();
+    }
+    this._activeControls = [];
+
+    this._layerControlUIElem.hide();
+  }
+
+  set layers(data) {
+    this._layers = data;
+
+    // trigger ui update
+  }
+
+  get layers() {
+    return this._layers;
   }
 }
 

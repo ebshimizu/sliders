@@ -3084,9 +3084,12 @@ void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& i
       for (auto& a : r.second) {
         v8::Local<v8::Array> params = Nan::New<v8::Array>();
 
-        int i = 0;
-        for (auto& p : a.second) {
-          params->Set(i, Nan::New(p).ToLocalChecked());
+        for (int i = 0; i < a.second.size(); i++) {
+          v8::Local<v8::Object> gr = Nan::New<v8::Object>();
+          gr->Set(Nan::New("param").ToLocalChecked(), Nan::New(a.second[i]._param).ToLocalChecked());
+          gr->Set(Nan::New("val").ToLocalChecked(), Nan::New(a.second[i]._val));
+
+          params->Set(i, gr);
         }
 
         adjustments->Set(Nan::New(a.first), params);

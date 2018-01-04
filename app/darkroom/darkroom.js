@@ -115,6 +115,23 @@ const adjType = {
   "OPACITY": 1000
 };
 
+const adjToString {
+  0: "HSL",
+  1: "LEVELS",
+  2: "CURVES",
+  3: "EXPOSURE",
+  4: "GRADIENTMAP",
+  5: "SELECTIVE_COLOR",
+  6: "COLOR_BALANCE",
+  7: "PHOTO_FILTER",
+  8: "COLORIZE",
+  9: "LIGHTER_COLORIZE",
+  10: "OVERWRITE_COLOR",
+  11: "INVERT",
+  12: "BRIGHTNESS",
+  1000: "OPACITY"
+}
+
 const num2Str = {
   1: "one",
   2: "two",

@@ -115,7 +115,7 @@ const adjType = {
   "OPACITY": 1000
 };
 
-const adjToString {
+const adjToString = {
   0: "HSL",
   1: "LEVELS",
   2: "CURVES",

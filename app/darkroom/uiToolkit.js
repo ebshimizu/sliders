@@ -988,6 +988,9 @@ class LayerSelector {
     this.initCanvas();
     this.initUI();
 
+    // more ui!
+    this._paramSelectPanel = new ParameterSelectPanel("paramPanel", $('#layerSelectPanel'));
+
     // goal stuff
     this._goal = {};
   }
@@ -1426,6 +1429,8 @@ class LayerSelector {
     if (this._rankMode === "goal") {
       // goal-based selection is a bit different
       var layers = this.goalSelect();
+
+      this._paramSelectPanel.layers = layers;
     }
     else {
       var displayLayers = this.rankLayers();
@@ -1794,9 +1799,15 @@ class ParameterSelectPanel {
 
     this._previewMode = PreviewMode.rawLayer;
     this._parentContainer = parent;
+
+    // nuke everything in the container
+    this._parentContainer.html('');
+
     this._name = name;
     this._renderSize = "small";
     this._activeControls = [];
+
+    this.initUI();
   }
 
   initUI() {
@@ -1804,12 +1815,28 @@ class ParameterSelectPanel {
     // delete duplicates
     $('.parameterSelectPanel[name="' + this._name + '"]').remove();
 
-    this._uiElem = $('<div class="parameterSelectPanel" name="' + name + '"><div class="ui two column grid"></div></div>');
-    this._layerControlUIElem = $('<div class="parameterSelectLayerPanel" name="' + name + "'></div>")
+    this._uiElem = $('<div class="parameterSelectPanel" name="' + this._name + '"><div class="ui two column grid"></div></div>');
+
+    var layerControlContainer = '<div class="parameterSelectLayerPanel standardLayerFormat" name="' + this._name + '">';
+    layerControlContainer += '<div class="ui top attached inverted label">Layer Controls</div>';
+    layerControlContainer += '<div class="ui mini icon button backButton"><i class="arrow left icon"></i></div>';
+    layerControlContainer += '</div>';
+
+    this._layerControlUIElem = $(layerControlContainer);
     this._parentContainer.append(this._uiElem);
     this._parentContainer.append(this._layerControlUIElem);
+    this._layerControlUIElem.hide();
 
     // layer control panel will need a close button (sits on top of panels)
+    var self = this;
+    $('.parameterSelectLayerPanel[name="' + this._name + '"] .backButton').click(function () {
+      self.hideLayerControl();
+    });
+  }
+
+  deleteUI() {
+    this._uiElem.remove();
+    this._layerControlUIElem.remove();
   }
 
   deleteLayerCards() {
@@ -1835,7 +1862,7 @@ class ParameterSelectPanel {
           var displayText = name + " - " + adjToString[adj] + ":" + params[x].param;
           var id = name + adj + params[x].param;
 
-          layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" param="' + params[x].param + '" id="' + id + '">';
+          layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" param="' + params[x].param + '" cardID="' + id + '">';
           layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
           layerElem += '<div class="extra content">' + displayText + '</div>';
           layerElem += '</div></div>';
@@ -1854,8 +1881,8 @@ class ParameterSelectPanel {
     var l = c.getLayer(name);
     var paramName = param.param;
     var paramVal = param.val;
-    var canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[id="' + id + '"] canvas');
-    var elem = $('.parameterSelectPanel[name="' + this._name + '"] div[id="' + id + '"]');
+    var canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"] canvas');
+    var elem = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"]');
     var self = this;
 
     if (this._previewMode === PreviewMode.rawLayer) {
@@ -1889,6 +1916,7 @@ class ParameterSelectPanel {
     // i am leaving the possibility for multiple layers open but really it's just like 
     // always the one layer for now
     this._activeControls.push(layerControl);
+    this._layerControlUIElem.show();
   }
 
   hideLayerControl() {
@@ -1905,6 +1933,8 @@ class ParameterSelectPanel {
     this._layers = data;
 
     // trigger ui update
+    this.deleteLayerCards();
+    this.createLayerCards();
   }
 
   get layers() {

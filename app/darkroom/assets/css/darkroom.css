@@ -68,6 +68,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer,
+.standardLayerFormat .layer,
 #layerEditControls .layer
 {
 	border-bottom: 1px solid #e8e8e8;
@@ -76,6 +77,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer button.visibleButton,
+.standardLayerFormat .layer button.visibleButton,
 #layerEditControls .layer button.visibleButton {
 	position: absolute;
 	right: 2px;
@@ -83,6 +85,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer .addAdjustment,
+.standardLayerFormat .layer .addAdjustment,
 #layerEditControls .layer .addAdjustment 
 {
     position: absolute;
@@ -91,6 +94,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter,
+.standardLayerFormat .parameter,
 #layerEditControls .parameter,
 #groupsPanel .parameter {
 	height: 30px;
@@ -98,17 +102,20 @@ body .ui.basic.modal p {
 	margin: 0 0 3px 0;
 }
 
-#layerEditControls .thumb.show
+#layerEditControls .thumb.show,
+.standardLayerFormat .thumb.show
 {
     padding-left: 50%;
     min-height: 200px;
 }
 
-#layerEditControls .thumb.show canvas {
+#layerEditControls .thumb.show canvas,
+.standardLayerFormat .thumb.show canvas {
     display: block;
 }
 
-#layerEditControls .thumb canvas {
+#layerEditControls .thumb canvas,
+.standardLayerFormat .thumb canvas {
     position: absolute;
     display: none;
     width: 48%;
@@ -118,15 +125,18 @@ body .ui.basic.modal p {
     top: 55px;
 }
 
-#layerEditControls .thumb.show .gradientDisplay canvas {
+#layerEditControls .thumb.show .gradientDisplay canvas,
+.standardLayerFormat .thumb.show .gradientDisplay canvas {
     width: 45%;
 }
 
 #layerControls .parameter .paramLabel,
 #layerEditControls .parameter .paramLabel,
+.standardLayerFormat .parameter .paramLabel,
 #groupsPanel .parameter .paramLabel,
 #layerControls .tabLabel,
 #layerEditControls .tabLabel
+.standardLayerFormat .tabLabel
 {
 	width: 25%;
 	text-align: center;
@@ -147,6 +157,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .tabMenu,
+.standardLayerFormat .tabMenu,
 #layerEditControls .tabMenu {
 	width: 70%;
 	display: inline-block;
@@ -160,6 +171,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramInput,
+.standardLayerFormat .parameter .paramInput,
 #layerEditControls .parameter .paramInput,
 #groupsPanel .parameter .paramInput { 
 	width: 13%;
@@ -171,6 +183,7 @@ body .ui.basic.modal p {
 
 #layerControls .parameter .paramInput input,
 #layerEditControls .parameter .paramInput input,
+.standardLayerFormat .parameter .paramInput input,
 #groupsPanel .parameter .paramInput input {
 	height: 100%;
 	text-align: center;
@@ -178,12 +191,14 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramInput input:focus,
+.standardLayerFormat .parameter .paramInput input:focus,
 #layerEditControls .parameter .paramInput input:focus,
 #groupsPanel .parameter .paramInput input:focus {
     border: 1px #ffffff solid !important;
 }
 
 #layerControls .parameter .paramSlider,
+.standardLayerFormat .parameter .paramSlider,
 #layerEditControls .parameter .paramSlider,
 #groupsPanel .parameter .paramSlider {
 	width: 55%;
@@ -208,6 +223,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .parameter .paramColor,
+.standardLayerFormat .parameter .paramColor,
 #layerEditControls .parameter .paramColor {
 	width: 70%;
 	left: 30%;
@@ -227,6 +243,7 @@ body .ui.basic.modal p {
 }
 
 #layerEditControls .parameter .checkbox,
+.standardLayerFormat .parameter .checkbox,
 #layerControls .parameter .checkbox {
 	position: absolute;
 	left: 30%;
@@ -244,6 +261,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer .ui.dropdown.blendModeMenu,
+.standardLayerFormat .layer .ui.dropdown.blendModeMenu,
 #layerEditControls .layer .ui.dropdown.blendModeMenu {
     position: absolute;
     right: 40px;
@@ -256,11 +274,13 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer .ui.dropdown i,
+.standardLayerFormat .layer .ui.dropdown i,
 #layerEditControls .layer .ui.dropdown i {
 	top: 0.5em;
 }
 
 #layerEditControls .layer .gradientDisplay canvas,
+.standardLayerFormat .layer .gradientDisplay canvas,
 #layerControls .layer .gradientDisplay canvas {
 	width: 100%;
     height: 45px;
@@ -268,6 +288,7 @@ body .ui.basic.modal p {
 }
 
 #layerControls .layer .curveDisplay canvas,
+.standardLayerFormat .layer .curveDisplay canvas,
 #layerEditControls .layer .curveDisplay canvas {
     width: 15vw;
     height: 15vw;
@@ -276,11 +297,13 @@ body .ui.basic.modal p {
 }
 
 #layerEditControls .layer .header,
+.standardLayerFormat .layer .header,
 #layerControls .layer .header {
     width: calc(100% - 230px);
 }
 
-#layerEditControls .layer .header {
+#layerEditControls .layer .header,
+.standardLayerFormat .layer .header {
     margin-bottom: 35px;
 }
 
@@ -767,4 +790,43 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     position: absolute;
     right: 0px;
     top: -26px;
+}
+
+/* parameter layer select panel */
+.parameterSelectPanel {
+    padding: 10px;
+    height: calc(100% - 25px);
+    overflow-y: auto;
+    overflow-x: hidden;
+} 
+
+.parameterSelectPanel .card canvas {
+    width: 100%;
+    height: auto;
+}
+
+.parameterSelectLayerPanel {
+    position: absolute;
+    width: 100%;
+    height: calc(100% - 30px);
+    top: 30px;
+    left: 0;
+    overflow: auto;
+    z-index: 500;
+    background-color: #1b1c1d;
+    padding-top: 32px;
+}
+
+.parameterSelectLayerPanel .card:hover {
+    cursor: pointer;
+}
+
+.parameterSelectLayerPanel .label {
+    text-align: center;
+}
+
+.parameterSelectLayerPanel .backButton {
+    position: absolute;
+    top: -26px;
+    left: 2px;
 }

@@ -1807,6 +1807,10 @@ class ParameterSelectPanel {
     this._renderSize = "small";
     this._activeControls = [];
 
+    this._animationData = {};
+    this._animationCache = {};
+    this._loopSize = 30;
+
     this.initUI();
   }
 
@@ -1841,6 +1845,10 @@ class ParameterSelectPanel {
 
   deleteLayerCards() {
     this._uiElem.find('.grid').html('');
+
+    // changing the layers deletes the cache.
+    // we can check for object equality to preserve things that are the same if needed.
+    this._animationCache = {};
   }
 
   createLayerCards() {
@@ -1896,6 +1904,8 @@ class ParameterSelectPanel {
       // this will bind a mouseover event to start the animation loop for the hovered layer
       // panel. the images will be rendered on demand until the cache is full, at which point it'll
       // update at full speed 
+      elem.mouseover(function () { self.animateStart(name, adj, param, id); });
+      elem.mouseout(function () { self.animateStop(name, adj, param, id); });
     }
 
     // onclick bindings are the same regardless
@@ -1927,6 +1937,90 @@ class ParameterSelectPanel {
     this._activeControls = [];
 
     this._layerControlUIElem.hide();
+  }
+
+  animateStart(name, adj, param, id) {
+    // start the animation loop and initialize data structs
+    var self = this;
+
+    this._animationData = {};
+    this._animationData.layerName = name;
+    this._animationData.adjustment = adj;
+    this._animationData.param = param.param;
+    this._animationData.targetVal = param.val;
+    this._animationData.cardID = id;
+    this._animationData.canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"]'); 
+    this._animationData.currentFrame = 0;
+    this._animationCache[id] = {};
+
+    this._intervalID = setInterval(function () {
+      // state is tracked internally by the selector object
+      self.drawNextFrame();
+    });
+  }
+
+  animateStop(name, adj, param, id) {
+    clearInterval(this._intervalID);
+
+    // redraw base look?
+    // i dunno what the base look should be
+  }
+
+  drawNextFrame() {
+    // We'll want to do a few things in each loop:
+    // - check to see if the image we want is already in the cache
+    // - if is in cache, draw to thumbnail
+    // - if not in cache:
+    // -- interpolate the parameters to proper value
+    // -- render
+    // -- put in cache
+    // -- draw as normal
+
+    // check for existence in cache
+    if (!(this._animationData._currentFrame in this._animationCache[this._animationData.cardID])) {
+      // if not, render
+      // render context
+      var ctx = c.getContext();
+
+      // parameter adjustment
+      var current;
+
+      if (this._animationData.adjustment === adjType.OPACITY) {
+        current = ctx.getLayer(this._animationData.layerName).opacity();
+      }
+      else {
+        current = ctx.getLayer(this._animationData.layerName).getAdjustment(this._animationData.adjustment)[this._animationData.param];
+      }
+
+      // simple lerp of the values for now, no looping just snaps back for simplicity
+      var t = this._animationData.currentFrame / this._loopSize;
+      var val = current * (1 - t) + this._animationData.targetVal * t;
+
+      // update context
+      if (this._animationData.adjustment === adjType.OPACITY) {
+        ctx.getLayer(this._animationData.layerName).opacity(val);
+      }
+      else {
+        ctx.getLayer(this._animationData.layerName).addAdjustment(this._animationData.adjustment, this._animationData.param, val);
+      }
+
+      // render
+      var img = c.renderContext(ctx, this._renderSize);
+
+      // stash in cache
+      this._animationCache[this._animationData.cardID][this._animationData._currentFrame] = img;
+    }
+
+    // render
+    drawImage(this._animationCache[this._animationData.cardID][this._animationData.currentFrame], this._animationData.canvas);
+
+    // increment current frame
+    this._animationData.currentFrame += 1;
+
+    // reset if current frame > max loop size
+    if (this._animationData.currentFrame >= this._loopSize) {
+      this._animationData.currentFrame = 0;
+    }
   }
 
   set layers(data) {

@@ -30,6 +30,11 @@ const PreviewMode = {
   "diffComp": 3
 }
 
+const AnimationMode = {
+  "bounce": 0,
+  "snap" : 1
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -1797,7 +1802,7 @@ class ParameterSelectPanel {
   constructor(name, parent) {
     this._layers = {};
 
-    this._previewMode = PreviewMode.rawLayer;
+    this._previewMode = PreviewMode.animatedParams;
     this._parentContainer = parent;
 
     // nuke everything in the container
@@ -1810,6 +1815,9 @@ class ParameterSelectPanel {
     this._animationData = {};
     this._animationCache = {};
     this._loopSize = 30;
+    this._fps = 30;
+    this._animationMode = AnimationMode.bounce;
+    this._frameHold = 5;
 
     this.initUI();
   }
@@ -1945,18 +1953,22 @@ class ParameterSelectPanel {
 
     this._animationData = {};
     this._animationData.layerName = name;
-    this._animationData.adjustment = adj;
+    this._animationData.adjustment = parseInt(adj);
     this._animationData.param = param.param;
     this._animationData.targetVal = param.val;
     this._animationData.cardID = id;
-    this._animationData.canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"]'); 
+    this._animationData.forward = true;
+    this._animationData.canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"] canvas'); 
     this._animationData.currentFrame = 0;
-    this._animationCache[id] = {};
+    this._animationData.held = 0;
+
+    if (!(id in this._animationCache))
+      this._animationCache[id] = {};
 
     this._intervalID = setInterval(function () {
       // state is tracked internally by the selector object
       self.drawNextFrame();
-    });
+    }, 1000 / this._fps);
   }
 
   animateStop(name, adj, param, id) {
@@ -1977,7 +1989,7 @@ class ParameterSelectPanel {
     // -- draw as normal
 
     // check for existence in cache
-    if (!(this._animationData._currentFrame in this._animationCache[this._animationData.cardID])) {
+    if (!(this._animationData.currentFrame in this._animationCache[this._animationData.cardID])) {
       // if not, render
       // render context
       var ctx = c.getContext();
@@ -2008,18 +2020,40 @@ class ParameterSelectPanel {
       var img = c.renderContext(ctx, this._renderSize);
 
       // stash in cache
-      this._animationCache[this._animationData.cardID][this._animationData._currentFrame] = img;
+      this._animationCache[this._animationData.cardID][this._animationData.currentFrame] = img;
     }
 
     // render
     drawImage(this._animationCache[this._animationData.cardID][this._animationData.currentFrame], this._animationData.canvas);
 
-    // increment current frame
-    this._animationData.currentFrame += 1;
+    // check frame hold
+    if (this._animationData.currentFrame === this._loopSize - 1 && this._animationData.held < this._frameHold) {
+      this._animationData.held += 1;
+    }
+    else {
+      // increment current frame
+      if (this._animationData.forward)
+        this._animationData.currentFrame += 1;
+      else
+        this._animationData.currentFrame -= 1;
 
-    // reset if current frame > max loop size
-    if (this._animationData.currentFrame >= this._loopSize) {
-      this._animationData.currentFrame = 0;
+      // reset if out of bounds.
+      if (this._animationMode === AnimationMode.bounce) {
+        //bounces between forward and backward.
+        if (this._animationData.currentFrame >= this._loopSize) {
+          this._animationData.forward = false;
+          this._animationData.held = 0;
+        }
+        else if (this._animationData.currentFrame <= 0) {
+          this._animationData.forward = true;
+        }
+      }
+      else if (this._animationMode === AnimationMode.snap) {
+        if (this._animationData.currentFrame >= this._loopSize) {
+          this._animationData.currentFrame = 0;
+          this._animationData.held = 0;
+        }
+      }
     }
   }
 

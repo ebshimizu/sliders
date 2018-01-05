@@ -849,7 +849,7 @@ function initLayerSelector() {
     "selectionCanvas": "#maskCanvas",
     "sidebar": "#layerEditControls",
     "selectionMode": "localPoint",
-    "rankMode": "alpha",
+    "rankMode": "goal",
     "rankThreshold": 0.01,
     "optUI": "#layerSelectOptionsTab"
   });

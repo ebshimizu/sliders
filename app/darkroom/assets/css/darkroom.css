@@ -773,23 +773,47 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     overflow-y: scroll;
 }
 
-/* tagging popup window */
-#filterMenu {
+/* tagging popup window, goal popup window */
+#filterMenu,
+#goalMenu
+{
     position: absolute;
     left: 0;
     top: 0;
-    z-index: 5000;
+    z-index: 1000;
     width: 300px;
 }
 
-#filterMenu .dropdown {
+#filterMenu .dropdown,
+#primaryGoalSelect
+{
     margin-top: 26px;
 }
 
-#filterMenu .closeButton {
+#filterMenu .closeButton,
+#goalMenu .closeButton
+{
     position: absolute;
     right: 0px;
     top: -26px;
+}
+
+#goalStatus {
+    display: block;
+    width: 50%;
+    position: absolute;
+    right: 10px;
+    text-align: right;
+    font-size: 10pt;
+    height: 24px;
+    top: 6px;
+}
+
+#goalStatus .goalColor {
+    width: 40px;
+    height: 1.2em;
+    display: inline-block;
+    border-radius: 5px;
 }
 
 /* parameter layer select panel */

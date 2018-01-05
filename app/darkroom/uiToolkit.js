@@ -35,6 +35,17 @@ const AnimationMode = {
   "snap" : 1
 }
 
+const GoalType = {
+  "none" : 1,
+  "targetColor" : 2
+}
+
+// nicer formatting for display
+const GoalString = {
+  "none" : "No Active Goal",
+  "targetColor" : "Target Color"
+}
+
 class Slider {
   constructor(data) {
     if ('slider' in data) {
@@ -985,11 +996,15 @@ class LayerSelector {
     this._clickMapThreshold = 0.05;
     this._clickMapNorm = false;
     this._useClickMap = false;
-    this._useTags = true;
+    this._useTags = false;
+    this._useGoals = true;
 
     // ui
     // filter menu initialized with dummy vars for now
     this._filterMenu = new FilterMenu(c.uniqueTags());
+
+    // goal menu initialization
+    this._goalMenu = new GoalMenu();
     this.initCanvas();
     this.initUI();
 
@@ -998,6 +1013,10 @@ class LayerSelector {
 
     // goal stuff
     this._goal = {};
+  }
+
+  get goal() {
+    return this._goalMenu.goal;
   }
 
   initUI() {
@@ -1428,7 +1447,7 @@ class LayerSelector {
   }
 
   goalSelect() {
-    return c.goalSelect(this._goal, c.getContext(), this._currentPt.x, this._currentPt.y);
+    return c.goalSelect(this.goal, c.getContext(), this._currentPt.x, this._currentPt.y);
   }
 
   selectLayers() {
@@ -1570,7 +1589,8 @@ class LayerSelector {
       }
     }
     else if (event.which === 3) {
-      this._filterMenu.showAt(event.pageX, event.pageY);
+      //this._filterMenu.showAt(event.pageX, event.pageY);
+      this._goalMenu.showAt(event.pageX, event.pageY);
     }
   }
 
@@ -1818,7 +1838,7 @@ class ParameterSelectPanel {
     this._loopSize = 30;
     this._fps = 30;
     this._animationMode = AnimationMode.bounce;
-    this._frameHold = 5;
+    this._frameHold = 15;
 
     this.initUI();
   }
@@ -2153,6 +2173,182 @@ class FilterMenu {
 
   hide() {
     $('#filterMenu').hide();
+  }
+}
+
+class GoalMenu {
+  constructor() {
+    // idk what goes here yet.
+    // wait there's at least this
+    this.initUI();
+
+    this._goalColor = { r: 1, g: 1, b: 1 };
+  }
+
+  initUI() {
+    // very similar to the tag menu huh
+    $('#goalMenu').remove();
+
+    var uiElem = `
+      <div class="ui inverted segment" id="goalMenu">
+        <div class="ui top attached inverted label">Goal Definition</div>
+        <div class="ui mini icon button closeButton"><i class="window close outline icon"></i></div>
+        <div class="ui selection fluid dropdown" id="primaryGoalSelect">
+          <input name="goals" type="hidden">
+          <i class="dropdown icon"></i>
+          <div class="default text">None</div>
+          <div class="menu">`;
+
+    // add the elements
+    for (var type in GoalType) {
+      uiElem += '<div class="item" data-value="' + GoalType[type] + '">' + GoalString[type] + "</div>";
+    }
+
+    uiElem += '</div></div><div class="ui divider"></div>'
+    uiElem += '<div id="goalOptionsSection"></div>'
+    uiElem += '</div>';
+
+    this._uiElem = $(uiElem);
+
+    $('body').append(this._uiElem);
+
+    // goal status text
+    $('#goalStatus').remove();
+
+    this._goalStatusElem = $('<div id="goalStatus"></div>');
+    $('#imgStatusBar').append(this._goalStatusElem);
+
+    // bindings
+    var self = this;
+    // initialize dropdown
+    $('#primaryGoalSelect').dropdown({
+      action: 'activate',
+      onChange: function (value, text, $selectedItem) {
+        // this is gonna be fun... we either have to append additional elements here or pre-create
+        // and then show them. Going to do appending first, and will change if it becomes a problem.
+        self.updateActiveSections(parseInt(value));
+      }
+    });
+
+    // button
+    $('#goalMenu .closeButton').click(function () {
+      self.hide();
+    });
+
+    // set active
+    $('#primaryGoalSelect').dropdown('set selected', GoalType.none);
+
+    this.hide();
+  }
+
+  updateActiveSections(goalType) {
+    this._activeGoalType = goalType;
+
+    // clear
+    $('#goalOptionsSection').html('');
+
+    if (this._activeGoalType === GoalType.none) {
+      // nothin
+    }
+    else if (this._activeGoalType === GoalType.targetColor) {
+      var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
+
+      var elem = '<div class="ui small inverted header">Target Color Settings</div>';
+      elem += '<div class="goalColorPicker fluid ui button" style="background-color:' + colorStr + ';"> Select Color</div > ';
+
+      $('#goalOptionsSection').append($(elem));
+
+      // bindings
+      var self = this;
+      $('#goalOptionsSection .goalColorPicker').click(function () {
+        self.toggleColorPicker($('#goalOptionsSection .goalColorPicker'), "_goalColor");
+      });
+    }
+
+    this.updateStatus();
+  }
+
+  toggleColorPicker(elem, storeIn) {
+    if ($('#colorPicker').hasClass('hidden')) {
+      // move color picker to spot
+      var offset = elem.offset();
+
+      var cc = this[storeIn];
+      cp.setColor({ "r": cc.r * 255, "g": cc.g * 255, "b": cc.b * 255 }, 'rgb');
+      cp.startRender();
+
+      $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
+      if (offset.top + elem.outerHeight() + $('#colorPicker').height() > $('body').height()) {
+        $('#colorPicker').css({ "left": offset.left, top: offset.top - $('#colorPicker').height() });
+      }
+      else {
+        $('#colorPicker').css({ "left": offset.left, top: offset.top + elem.outerHeight() });
+      }
+
+      // assign callbacks to update proper color
+      var self = this;
+      cp.color.options.actionCallback = function (e, action) {
+        console.log(action);
+        if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+          self[storeIn] = cp.color.colors.rgb;
+          self.updateStatus();
+          $(elem).css({ "background-color": "#" + cp.color.colors.HEX });
+        }
+      };
+
+      $('#colorPicker').addClass('visible');
+      $('#colorPicker').removeClass('hidden');
+    }
+    else {
+      $('#colorPicker').addClass('hidden');
+      $('#colorPicker').removeClass('visible');
+    }
+  }
+
+  // displays the goal menu at the specified position
+  showAt(x, y) {
+    var maxTop = $('body').height() - this._uiElem.height() - 50;
+    var top = Math.min(maxTop, y);
+
+    this._uiElem.css({ left: x, top: top });
+    this._uiElem.show();
+  }
+
+  hide() {
+    this._uiElem.hide();
+
+    // also hide the color picker
+    $('#colorPicker').addClass('hidden');
+    $('#colorPicker').removeClass('visible');
+  }
+
+  get goal() {
+    // this is going to be a mess for a while because the spec for the goal object
+    // will likely keep changing constantly
+    // so you'll need to cross reference this with the Selection.h file to figure out what
+    // these numbers mean
+    if (this._activeGoalType === GoalType.none) {
+      // none is technically a "select any" operation
+      // type 0 is "select any", target 0 is "no target
+      // color doesn't matter
+      return { 'type': 0, 'target': 0, 'color': { r: 0, g: 0, b: 0 } };
+    }
+    else if (this._activeGoalType === GoalType.targetColor) {
+      // type 2 is "Select Target Color", target 3 is "Exact", color is, uh, the target colo", color is, uh, the target colorr
+      return { 'type': 2, 'target': 3, 'color': this._goalColor };
+    }
+  }
+
+  updateStatus() {
+    var elem = "Current Goal: " + $('#primaryGoalSelect').dropdown('get text');
+
+    if (this._activeGoalType === GoalType.targetColor) {
+      var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
+
+      elem += '<div class="goalColor" style="background-color:' + colorStr + ';"></div>';
+    }
+
+    this._goalStatusElem.html(elem);
   }
 }
 

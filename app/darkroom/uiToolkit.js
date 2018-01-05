@@ -1015,7 +1015,8 @@ class LayerSelector {
     this._optUI.append(this._optionUIList);
 
     // importance map visualization options
-    // placed in the imgStatusBar div
+    // remove existing
+    $('#mapDisplayMenu').remove();
     this._mapDisplayMenu = $(`
       <div class="ui floating mini selection dropdown button" id="mapDisplayMenu">
         <span class="text">None</span>

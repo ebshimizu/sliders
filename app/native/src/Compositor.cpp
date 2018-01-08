@@ -84,6 +84,34 @@ namespace Comp {
     return true;
   }
 
+  bool Compositor::addLayerMask(string name, string file)
+  {
+    // check for existence in primary context
+    if (_primary.count(name) == 0) {
+      getLogger()->log("Failed to add layer mask to " + name + ". Layer does not exist.");
+      return false;
+    }
+
+    // load image data
+    _layerMasks[name]["full"] = shared_ptr<Image>(new Image(file));
+    addLayerMask(name);
+    return true;
+  }
+
+  bool Compositor::addLayerMask(string name, Image & img)
+  {
+    // check for existence in primary context
+    if (_primary.count(name) == 0) {
+      getLogger()->log("Failed to add layer mask to " + name + ". Layer does not exist.");
+      return false;
+    }
+
+    // load image data
+    _layerMasks[name]["full"] = shared_ptr<Image>(new Image(img));
+    addLayerMask(name);
+    return true;
+  }
+
   bool Compositor::addAdjustmentLayer(string name)
   {
     if (_primary.count(name) > 0) {
@@ -276,13 +304,21 @@ namespace Comp {
     Image* comp = new Image(width, height);
     vector<unsigned char>& compPx = comp->getData();
 
+    // default mask (all white)
+    Image* defaultMask = new Image(width, height);
+    vector<unsigned char>& defaultMaskPx = defaultMask->getData();
+
     // Photoshop appears to blend using an all white alpha 0 image
     for (int i = 0; i < compPx.size(); i++) {
-      if (i % 4 == 3)
+      if (i % 4 == 3) {
+        defaultMaskPx[i] = 255;
         continue;
+      }
 
       compPx[i] = 255;
+      defaultMaskPx[i] = 255;
     }
+
 
     // blend the layers
     for (int lOrder = 0; lOrder < _layerOrder.size(); lOrder++) {
@@ -294,6 +330,7 @@ namespace Comp {
 
       vector<unsigned char>* layerPx;
       Image* tmpLayer = nullptr;
+      vector<unsigned char>* layerMaskPx;
       bool shouldConditionalBlend = l.shouldConditionalBlend();
       auto cbData = l.getConditionalBlendSettings();
       float sbMin = cbData["srcBlackMin"];
@@ -304,6 +341,7 @@ namespace Comp {
       float dbMax = cbData["destBlackMax"];
       float dwMin = cbData["destWhiteMin"];
       float dwMax = cbData["destWhiteMax"];
+      bool hasMask = l.hasMask();
 
       // handle adjustment layers
       if (l.isAdjustmentLayer()) {
@@ -324,6 +362,14 @@ namespace Comp {
         layerPx = &_imageData[l.getName()][size]->getData();
       }
 
+      // check for layer mask
+      if (hasMask) {
+        layerMaskPx = &_layerMasks[l.getName()][size]->getData();
+      }
+      else {
+        layerMaskPx = &defaultMaskPx;
+      }
+
       // blend the layer
       for (unsigned int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
@@ -331,6 +377,11 @@ namespace Comp {
         // alphas
         float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * l.getOpacity();
         float aa = compPx[i * 4 + 3] / 255.0f;
+
+        // alpha ab is modulated by layer mask
+        // layer mask is assumed greyscale, pull red channel as representative and premult with mask alpha
+        float maskAlpha = ((*layerMaskPx)[i * 4] / 255.0f) * ((*layerMaskPx)[i * 4 + 3] / 255.0f);
+        ab *= maskAlpha;
 
         if (shouldConditionalBlend) {
           // i'm unsure if it works literally just on the layer below it or the composition up to this point
@@ -1536,6 +1587,16 @@ namespace Comp {
     contextToVector(getNewContext(), _vectorKey);
 
     getLogger()->log("Added new layer named " + name);
+  }
+
+  void Compositor::addLayerMask(string name)
+  {
+    _primary[name].setMask(_layerMasks[name]["full"]);
+
+    // rescale
+    _layerMasks[name]["thumb"] = _layerMasks[name]["full"]->resize(0.15f);
+    _layerMasks[name]["small"] = _layerMasks[name]["full"]->resize(0.25f);
+    _layerMasks[name]["medium"] = _layerMasks[name]["full"]->resize(0.5f);
   }
 
   void Compositor::cacheScaled(string name)

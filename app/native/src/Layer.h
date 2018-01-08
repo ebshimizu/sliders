@@ -53,10 +53,15 @@ namespace Comp {
     // replace layer image
     void setImage(shared_ptr<Image> src);
 
+    // layer mask
+    void setMask(shared_ptr<Image> mask);
+    bool hasMask();
+
     unsigned int getWidth();
     unsigned int getHeight();
 
     shared_ptr<Image> getImage();
+    shared_ptr<Image> getMask();
 
     // opacity controls
     float getOpacity();
@@ -194,6 +199,9 @@ namespace Comp {
 
     // pointer to image data, stored in compositor
     shared_ptr<Image> _image;
+
+    // pointer to mask data, also stored in compositor
+    shared_ptr<Image> _mask;
   };
 
   typedef map<string, Layer> Context;

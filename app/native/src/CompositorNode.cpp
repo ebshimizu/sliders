@@ -668,6 +668,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "resetImage", resetImage);
   Nan::SetPrototypeMethod(tpl, "type", type);
   Nan::SetPrototypeMethod(tpl, "conditionalBlend", conditionalBlend);
+  Nan::SetPrototypeMethod(tpl, "getMask", getMask);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -1460,6 +1461,22 @@ void LayerRef::conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
 }
 
+void LayerRef::getMask(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getMask");
+
+  shared_ptr<Comp::Image> mask = layer->_layer->getMask();
+
+  if (mask != nullptr) {
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(mask.get()), Nan::New(false) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+}
+
 void ContextWrapper::Init(v8::Local<v8::Object> exports)
 {
   Nan::HandleScope scope;
@@ -1634,6 +1651,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteAllTags", deleteAllTags);
   Nan::SetPrototypeMethod(tpl, "hasTag", hasTag);
   Nan::SetPrototypeMethod(tpl, "goalSelect", goalSelect);
+  Nan::SetPrototypeMethod(tpl, "addMask", addMask);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3103,6 +3121,27 @@ void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& i
   else {
     Nan::ThrowError("compositor.goalSelect(object, context, int, int) argument error");
   }
+}
+
+void CompositorWrapper::addMask(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  if (!info[0]->IsString() || !info[1]->IsString()) {
+    Nan::ThrowError("addMask expects (string, string)");
+  }
+
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addLayer");
+
+  bool result;
+  v8::String::Utf8Value val0(info[0]->ToString());
+  string name(*val0);
+
+  v8::String::Utf8Value val1(info[1]->ToString());
+  string path(*val1);
+
+  result = c->_compositor->addLayerMask(name, path);
+
+  info.GetReturnValue().Set(Nan::New(result));
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

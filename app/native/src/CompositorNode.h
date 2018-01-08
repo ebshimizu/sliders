@@ -130,6 +130,7 @@ private:
   static void resetImage(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };
@@ -237,6 +238,7 @@ private:
   static void deleteAllTags(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void hasTag(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

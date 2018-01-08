@@ -67,6 +67,10 @@ namespace Comp {
     bool addLayer(string name, string file);
     bool addLayer(string name, Image& img);
 
+    // adds a layer mask to the specified layer
+    bool addLayerMask(string name, string file);
+    bool addLayerMask(string name, Image& img);
+
     // adds an adjustment layer
     bool addAdjustmentLayer(string name);
     
@@ -261,6 +265,7 @@ namespace Comp {
 
   private:
     void addLayer(string name);
+    void addLayerMask(string name);
 
     // stores standard scales of the image in the cache
     // standard sizes are: thumb - 15%, small - 25%, medium - 50%
@@ -449,7 +454,8 @@ namespace Comp {
     map<string, set<string>> _layerTags;
 
     // cached of scaled images for rendering at different sizes
-    map<string, map<string, shared_ptr<Image> > > _imageData;
+    map<string, map<string, shared_ptr<Image>>> _imageData;
+    map<string, map<string, shared_ptr<Image>>> _layerMasks;
 
     bool _searchRunning;
     searchCallback _activeCallback;

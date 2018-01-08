@@ -27,7 +27,8 @@ namespace Comp {
     _grad(other._grad),
     _selectiveColor(other._selectiveColor),
     _cbChannel(other._cbChannel),
-    _cbSettings(other._cbSettings)
+    _cbSettings(other._cbSettings),
+    _mask(other._mask)
   {
   }
 
@@ -45,6 +46,7 @@ namespace Comp {
     _selectiveColor = other._selectiveColor;
     _cbChannel = other._cbChannel;
     _cbSettings = other._cbSettings;
+    _mask = other._mask;
 
     return *this;
   }
@@ -62,6 +64,16 @@ namespace Comp {
 
     // does not change layer settings
     _image = img;
+  }
+
+  void Layer::setMask(shared_ptr<Image> mask)
+  {
+    _mask = mask;
+  }
+
+  bool Layer::hasMask()
+  {
+    return _mask != nullptr;
   }
 
   unsigned int Layer::getWidth()
@@ -86,6 +98,11 @@ namespace Comp {
       return nullptr;
 
     return _image;
+  }
+
+  shared_ptr<Image> Layer::getMask()
+  {
+    return _mask;
   }
 
   float Layer::getOpacity()
@@ -475,5 +492,6 @@ namespace Comp {
     _visible = true;
 
     _image = source;
+    _mask = nullptr;
   }
 }

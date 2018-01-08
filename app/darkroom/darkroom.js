@@ -2143,6 +2143,10 @@ function importLayers(doc, path) {
         c.addLayer(layerName);
       }
 
+      if ("mask" in layer) {
+        c.addMask(layerName, path + "/" + layer.mask);
+      }
+
       c.getLayer(layerName).type(layer.kind);
     }
 
@@ -2457,6 +2461,10 @@ function loadLayers(doc, path, transfer) {
       else {
         c.addLayer(layerName, path + "/" + layer.filename);
       }
+
+      if (layer.mask) {
+        c.addMask(layerName, path + "/" + layer.mask);
+      }
     }
 
     var cl = c.getLayer(layerName);
@@ -2619,6 +2627,11 @@ function save(file) {
     layers[layerName].type = l.type();
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
+
+    var mask = l.getMask();
+    if (mask) {
+      layers[layerName].mask = mask.filename();
+    }
 
     // adjustments
     var adjTypes = l.getAdjustments();

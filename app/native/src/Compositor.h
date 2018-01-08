@@ -527,6 +527,7 @@ namespace Comp {
         continue;
 
       Utils<T>::RGBAColorT layerPx;
+      Utils<T>::RGBAColorT maskPx;
 
       // handle adjustment layers
       if (l.isAdjustmentLayer()) {
@@ -543,11 +544,23 @@ namespace Comp {
         layerPx = _imageData[l.getName()][size]->getPixel(i);
       }
 
+      if (l.hasMask()) {
+        maskPx = _layerMasks[l.getName()][size]->getPixel(i);
+      }
+      else {
+        maskPx._r = (T)1;
+        maskPx._g = (T)1;
+        maskPx._b = (T)1;
+        maskPx._a = (T)1;
+      }
+
       // blend the layer
       // a = background, b = new layer
       // alphas
       T ab = layerPx._a * l.getOpacity();
       T aa = compPx._a;
+
+      ab *= (maskPx._r * maskPx._a);
 
       if (shouldConditionalBlend) {
         // i'm unsure if it works literally just on the layer below it or the composition up to this point

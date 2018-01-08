@@ -1597,6 +1597,8 @@ namespace Comp {
     _layerMasks[name]["thumb"] = _layerMasks[name]["full"]->resize(0.15f);
     _layerMasks[name]["small"] = _layerMasks[name]["full"]->resize(0.25f);
     _layerMasks[name]["medium"] = _layerMasks[name]["full"]->resize(0.5f);
+
+    getLogger()->log("Added mask " + _layerMasks[name]["full"]->getFilename() + " to layer " + name);
   }
 
   void Compositor::cacheScaled(string name)

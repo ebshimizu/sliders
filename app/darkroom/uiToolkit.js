@@ -1935,6 +1935,9 @@ class ParameterSelectPanel {
       // update at full speed 
       elem.mouseover(function () { self.animateStart(name, adj, param, id); });
       elem.mouseout(function () { self.animateStop(name, adj, param, id); });
+
+      // just draw the composition as normal for the first frame
+      drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
     }
 
     // onclick bindings are the same regardless
@@ -1983,6 +1986,21 @@ class ParameterSelectPanel {
     this._animationData.currentFrame = 0;
     this._animationData.held = 0;
 
+    // for now opacity is always a full cycle parameter instead of whatever value the
+    // goal selector spits out (this is basically the case for when a specific objective isn't 
+    // selected but i'm not sure how we want to expose that to the user at this time)
+    // so i guess TODO: something
+    var ctx = c.getContext();
+    if (this._animationData.adjustment === adjType.OPACITY) {
+      this._animationData.fullCycle = true;
+      this._animationData.startVal = 0;
+      this._animationData.targetVal = 1;
+      //this._animationData.startVal = ctx.getLayer(this._animationData.layerName).opacity();
+    }
+    else {
+      this._animationData.startVal = ctx.getLayer(this._animationData.layerName).getAdjustment(this._animationData.adjustment)[this._animationData.param];
+    }
+
     if (!(id in this._animationCache))
       this._animationCache[id] = {};
 
@@ -2015,19 +2033,9 @@ class ParameterSelectPanel {
       // render context
       var ctx = c.getContext();
 
-      // parameter adjustment
-      var current;
-
-      if (this._animationData.adjustment === adjType.OPACITY) {
-        current = ctx.getLayer(this._animationData.layerName).opacity();
-      }
-      else {
-        current = ctx.getLayer(this._animationData.layerName).getAdjustment(this._animationData.adjustment)[this._animationData.param];
-      }
-
       // simple lerp of the values for now, no looping just snaps back for simplicity
       var t = this._animationData.currentFrame / this._loopSize;
-      var val = current * (1 - t) + this._animationData.targetVal * t;
+      var val = this._animationData.startVal * (1 - t) + this._animationData.targetVal * t;
 
       // update context
       if (this._animationData.adjustment === adjType.OPACITY) {
@@ -2036,6 +2044,9 @@ class ParameterSelectPanel {
       else {
         ctx.getLayer(this._animationData.layerName).addAdjustment(this._animationData.adjustment, this._animationData.param, val);
       }
+
+      // ensure visibility
+      ctx.getLayer(this._animationData.layerName).visible(true);
 
       // render
       var img = c.renderContext(ctx, this._renderSize);

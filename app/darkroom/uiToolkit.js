@@ -1839,7 +1839,7 @@ class ParameterSelectPanel {
     this._fps = 30;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
-    this._displayOnMain = false;
+    this._displayOnMain = true;
 
     this.initUI();
   }
@@ -1850,7 +1850,7 @@ class ParameterSelectPanel {
     $('.parameterSelectPanel[name="' + this._name + '"]').remove();
 
     this._uiElem = '<div class="parameterSelectPanel" name="' + this._name + '">';
-    this._uiElem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i><div>';
+    this._uiElem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
     this._uiElem += '<div class="ui two column grid"></div></div>';
     this._uiElem = $(this._uiElem);
 
@@ -1975,8 +1975,8 @@ class ParameterSelectPanel {
     var displayOnMain = $(`
       <div class="item">
           <div class="ui right floated content">
-              <div class="ui toggle checkbox" param="_displayOnMain">
-                  <input type="checkbox" param="_displayOnMain" />
+              <div class="ui toggle checkbox" param="displayOnMain">
+                  <input type="checkbox" param="displayOnMain" />
               </div>
           </div>
           <div class="content">
@@ -2011,6 +2011,8 @@ class ParameterSelectPanel {
     $('.parameterSelectOptions[name="' + this._name + '"] .list .dropdown').dropdown({
       onChange: function (value, text, $selectedItem) {
         // need to debug this a bit
+        var param = $selectedItem.attr("param");
+        self[param] = parseInt(value);
         console.log($selectedItem);
       }
     })
@@ -2019,7 +2021,7 @@ class ParameterSelectPanel {
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_loopSize"]').val(this._loopSize);
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_fps"]').val(this._fps);
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_frameHold"').val(this._frameHold);
-    $('.parameterSelectOptions[name="' + this._name + '"] .checkbox[param="_displayOnMain]').checkbox(this._displayOnMain ? 'set checked' : 'set unchecked');
+    $('.parameterSelectOptions[name="' + this._name + '"] .checkbox[param="displayOnMain]').checkbox(this.displayOnMain ? 'set checked' : 'set unchecked');
     $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
     $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
 
@@ -2028,6 +2030,22 @@ class ParameterSelectPanel {
       $('.parameterSelectOptions[name="' + self._name + '"]').hide();
     });
     $('.parameterSelectOptions[name="' + self._name + '"]').hide();
+  }
+
+  set displayOnMain(val) {
+    this._showOnMain = val;
+
+    // prepare the preview canvas
+    if (val === true) {
+      var dims = c.imageDims(this._renderSize);
+      $('#previewCanvas').attr({ width: dims.w, height: dims.h });
+    }
+
+    $('#previewCanvas').hide();
+  }
+
+  get displayOnMain() {
+    return this._showOnMain;
   }
 
   deleteUI() {
@@ -2167,6 +2185,12 @@ class ParameterSelectPanel {
     if (!(id in this._animationCache))
       this._animationCache[id] = {};
 
+    // show preview canvas if applicable
+    if (this.displayOnMain) {
+      $('#previewCanvas').show();
+      $('#renderCanvas').hide();
+    }
+
     this._intervalID = setInterval(function () {
       // state is tracked internally by the selector object
       self.drawNextFrame();
@@ -2178,6 +2202,8 @@ class ParameterSelectPanel {
 
     // redraw base look?
     // i dunno what the base look should be
+    $('#previewCanvas').hide();
+    $('#renderCanvas').show();
   }
 
   drawNextFrame() {
@@ -2220,6 +2246,11 @@ class ParameterSelectPanel {
 
     // render
     drawImage(this._animationCache[this._animationData.cardID][this._animationData.currentFrame], this._animationData.canvas);
+
+    // render to preview canvas if option is checked
+    if (this.displayOnMain) {
+      drawImage(this._animationCache[this._animationData.cardID][this._animationData.currentFrame], $('#previewCanvas'));
+    }
 
     // check frame hold
     if (this._animationData.currentFrame === this._loopSize - 1 && this._animationData.held < this._frameHold) {

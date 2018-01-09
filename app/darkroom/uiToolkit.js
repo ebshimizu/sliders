@@ -24,15 +24,15 @@ const clickMapVizMode = {
 }
 
 const PreviewMode = {
-  "rawLayer": 0,
-  "animatedParams": 1,
-  "isolatedComp": 2,
-  "diffComp": 3
+  "rawLayer": 1,
+  "animatedParams": 2,
+  "isolatedComp": 3,
+  "diffComp": 4
 }
 
 const AnimationMode = {
-  "bounce": 0,
-  "snap" : 1
+  "bounce": 1,
+  "snap" : 2
 }
 
 const GoalType = {
@@ -1839,6 +1839,7 @@ class ParameterSelectPanel {
     this._fps = 30;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
+    this._displayOnMain = false;
 
     this.initUI();
   }
@@ -1848,7 +1849,10 @@ class ParameterSelectPanel {
     // delete duplicates
     $('.parameterSelectPanel[name="' + this._name + '"]').remove();
 
-    this._uiElem = $('<div class="parameterSelectPanel" name="' + this._name + '"><div class="ui two column grid"></div></div>');
+    this._uiElem = '<div class="parameterSelectPanel" name="' + this._name + '">';
+    this._uiElem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i><div>';
+    this._uiElem += '<div class="ui two column grid"></div></div>';
+    this._uiElem = $(this._uiElem);
 
     var layerControlContainer = '<div class="parameterSelectLayerPanel standardLayerFormat" name="' + this._name + '">';
     layerControlContainer += '<div class="ui top attached inverted label">Layer Controls</div>';
@@ -1865,6 +1869,165 @@ class ParameterSelectPanel {
     $('.parameterSelectLayerPanel[name="' + this._name + '"] .backButton').click(function () {
       self.hideLayerControl();
     });
+
+    $('.parameterSelectPanel[name="' + this._name + '"] .optionsButton').click(function () {
+      $('.parameterSelectOptions[name="' + self._name + '"]').toggle();
+    });
+
+    this.initSettingsUI();
+  }
+
+  // in a separate function cause it's just long and annoying
+  initSettingsUI() {
+    var container = '<div class="parameterSelectOptions" name="' + this._name + '">'
+    container += '<div class="ui top attached inverted label">Layer Selection Panel Settings</div>';
+    container += '<div class="ui mini icon button backButton"><i class="remove icon"></i></div>';
+    container += '<div class="ui relaxed inverted list"></div></div>';
+    this._parentContainer.append(container);
+
+    this._settingsList = $('.parameterSelectOptions[name="' + this._name + '"] .list');
+
+    // append stuff 
+    var previewMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" param="_previewMode">
+          <span class="text">[Preview Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="1" param="_previewMode">Layer Pixels (unfiltered)</div>
+            <div class="item" data-value="2" param="_previewMode">Animated Parameters</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Layer Preview Mode</div>
+      </div>
+    </div>`);
+    this._settingsList.append(previewMode);
+
+    // animation mode
+    var animationMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" param="_animationMode">
+          <span class="text">[Animation Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="1" param="_animationMode">Bounce</div>
+            <div class="item" data-value="2" param="_animationMode">Snap</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Animation Mode</div>
+      </div>
+    </div>`);
+    this._settingsList.append(animationMode);
+
+    // Loop Size
+    var loopSize = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="selectThreshold" param="_loopSize">
+                  <input type="number" param="_loopSize"/>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Loop Size</div>
+              <div class="description">Number of frames in an animation preview loop.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(loopSize);
+
+    // fps
+    var fps = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" param="_fps">
+                  <input type="number" param="_fps"/>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">FPS</div>
+              <div class="description">Animation Frame Rate</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(fps);
+
+    // frame hold
+    var frameHold = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" param="_frameHold">
+                  <input type="number" param="_frameHold" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Frame Hold</div>
+              <div class="description">Number of Frames to hold at the end of an animation cycle.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(frameHold);
+
+    // display on main
+    var displayOnMain = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui toggle checkbox" param="_displayOnMain">
+                  <input type="checkbox" param="_displayOnMain" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Display Layer Preview On Main Canvas</div>
+              <div class="description">Shows the preview animation/hover on the main canvas instead of in the thumbnail.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(displayOnMain);
+
+    // bindings, try to do them all at once. dropdowns are a bit more difficult
+    // input boxes
+    var self = this;
+    $('.parameterSelectOptions[name="' + this._name + '"] .list input').change(function () {
+      var param = $(this).attr("param");
+      self[param] = parseInt($(this).val());
+    });
+
+    // checkbox
+    $('.parameterSelectOptions[name="' + this._name + '"] .list .checkbox').checkbox({
+      onChecked: function () {
+        var param = $(this).attr("param");
+        self[param] = true;
+      },
+      onUnchecked: function () {
+        var param = $(this).attr("param");
+        self[param] = false;
+      }
+    });
+
+    // dropdowns
+    $('.parameterSelectOptions[name="' + this._name + '"] .list .dropdown').dropdown({
+      onChange: function (value, text, $selectedItem) {
+        // need to debug this a bit
+        console.log($selectedItem);
+      }
+    })
+
+    // set initial values
+    $('.parameterSelectOptions[name="' + this._name + '"] input[param="_loopSize"]').val(this._loopSize);
+    $('.parameterSelectOptions[name="' + this._name + '"] input[param="_fps"]').val(this._fps);
+    $('.parameterSelectOptions[name="' + this._name + '"] input[param="_frameHold"').val(this._frameHold);
+    $('.parameterSelectOptions[name="' + this._name + '"] .checkbox[param="_displayOnMain]').checkbox(this._displayOnMain ? 'set checked' : 'set unchecked');
+    $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
+    $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
+
+    // exit button
+    $('.parameterSelectOptions[name="' + this._name + '"] .backButton').click(function () {
+      $('.parameterSelectOptions[name="' + self._name + '"]').hide();
+    });
+    $('.parameterSelectOptions[name="' + self._name + '"]').hide();
   }
 
   deleteUI() {

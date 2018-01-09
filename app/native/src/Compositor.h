@@ -263,6 +263,9 @@ namespace Comp {
     // also just targeting a single goal right now
     map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y);
 
+    // the multi-pixel version of goal select
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, vector<int> x, vector<int> y);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

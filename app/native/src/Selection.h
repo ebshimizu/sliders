@@ -32,9 +32,12 @@ public:
   ~Goal();
 
   void setTargetColor(RGBAColor targetColor);
+  void setTargetColor(vector<RGBAColor> targets);
+  void setOriginalColors(vector<RGBAColor> original);
 
   // single pixel goal target determination
   bool meetsGoal(RGBAColor testColor);
+  bool meetsGoal(vector<RGBAColor> testColors);
 
   // returns a numeric value indicating how far off the test color is
   // from the goal
@@ -43,15 +46,25 @@ public:
   // the return value will be negative if the target is met and the
   // value represents the extent to which the target is exceeded
   float goalObjective(RGBAColor testColor);
+  float goalObjective(vector<RGBAColor> testColors);
 
   GoalType getType() { return _type; }
   GoalTarget getTarget() { return _target; }
 
 private:
+  bool meetsGoal(float val);
+
   GoalType _type;
   GoalTarget _target;
 
   RGBAColor _targetColor;
+  RGBAColor _originalColor;
+  vector<RGBAColor> _targetColors;
+
+  // little redundant right now, this is used to store the current pixels
+  // that are being compared against
+  // target color is specifically for a color target
+  vector<RGBAColor> _originalColors;
 };
 
 }

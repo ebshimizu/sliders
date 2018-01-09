@@ -1469,21 +1469,48 @@ namespace Comp {
 
   map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y)
   {
+    vector<int> xv = { x };
+    vector<int> yv = { y };
+    return goalSelect(g, c, xv, yv);
+  }
+
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, vector<int> x, vector<int> y)
+  {
     // right now this function will select _individual parameters_ (NOT ENTIRE ADJUSTMENTS)
     // that satisfy the given goal constraint.
     // i expect this functionality to get substantially more complicated but we're starting small here.
     map<string, map<AdjustmentType, vector<GoalResult>>> ret;
 
+    // automatic bail if vector sizes are different
+    if (x.size() != y.size())
+      return ret;
+
     // ok so this method will only work for single params for reasons that will qucikly become apparent
     if (g.getType() == GoalType::SELECT_ANY) {
-      // speculative difference with threshold 
-      map<string, double> scores;
-      pointImportance("specVisibilityDelta", scores, x, y, c);
+      // avg speculative difference with threshold
+      map<string, double> avgScores;
+
+      for (int i = 0; i < x.size(); i++) {
+        map<string, double> ptScores;
+        pointImportance("specVisibilityDelta", ptScores, x[i], y[i], c);
+
+        for (auto& s : ptScores) {
+          // first run
+          if (i == 0) {
+            avgScores = ptScores;
+          }
+          else {
+            avgScores[s.first] += s.second;
+          }
+        }
+      }
 
       // adjustment type is opacity, "opacity" for return values
-      for (auto& s : scores) {
+      // also take the average of all the spec deltas
+      for (auto& s : avgScores) {
         // TODO: maybe? allow custom threshold if needed
-        if (s.second > 0.05) {
+        float val = s.second / x.size();
+        if (val > 0.05) {
           GoalResult r;
           r._param = "opacity";
           r._val = 1;
@@ -1495,14 +1522,31 @@ namespace Comp {
       // tbd
     }
     else {
+      // set up goal color vector
+      vector<RGBAColor> current;
+      for (int i = 0; i < x.size(); i++) {
+        current.push_back(renderPixel<float>(c, x[0], y[0], "full"));
+      }
+      g.setOriginalColors(current);
+
       // scan each parameter from 0 to 1 (they're all normalized!) to see if goal gets satisfied.
       for (auto& layer : _layerOrder) {
         // sanity check
         if (!_primary[layer].isAdjustmentLayer()) {
-          // if a transparent pixel is at the specified location then this layer can't do anything really
-          // so skip it
-          auto px = _primary[layer].getImage()->getPixel(x, y);
-          if (px._a == 0)
+          // if a transparent pixel is at all of the specified location
+          // then this layer can't do anything really so skip it
+          bool testLayer = false;
+
+          for (int i = 0; i < x.size(); i++) {
+            auto px = _primary[layer].getImage()->getPixel(x[i], y[i]);
+            if (px._a != 0) {
+              testLayer = true;
+              break;
+            }
+          }
+
+          // if the layer has no non-zero alpha pixels, skip
+          if (!testLayer)
             continue;
         }
 
@@ -1515,9 +1559,13 @@ namespace Comp {
           float val = 0.01f * i;
           temp[layer].setOpacity(val);
 
-          RGBAColor c = renderPixel<float>(temp, x, y, "full");
+          // render all of the pixels
+          vector<RGBAColor> testPixels;
+          for (int i = 0; i < x.size(); i++) {
+            testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
+          }
 
-          if (g.meetsGoal(c)) {
+          if (g.meetsGoal(testPixels)) {
             // add param to ret, continue
             GoalResult r;
             r._param = "opacity";
@@ -1532,7 +1580,7 @@ namespace Comp {
 
         // this should really be an optimization process (if using multiple, may need ceres in on this)
         auto adjustments = _primary[layer].getAdjustments();
-        
+
         // hey also i'm skipping selective color for now because I just don't want to deal with it
         for (auto& a : adjustments) {
           auto params = _primary[layer].getAdjustment(a);
@@ -1546,14 +1594,17 @@ namespace Comp {
               float val = 0.01f * i;
               temp[layer].addAdjustment(a, p.first, val);
 
-              RGBAColor color = renderPixel<float>(temp, x, y, "full");
+              vector<RGBAColor> testPixels;
+              for (int i = 0; i < x.size(); i++) {
+                testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
+              }
 
               // stat tracking
-              float objval = g.goalObjective(color);
+              float objval = g.goalObjective(testPixels);
               if (objval < min)
                 min = objval;
 
-              if (g.meetsGoal(color)) {
+              if (g.meetsGoal(testPixels)) {
                 // add param to ret, continue
                 GoalResult r;
                 r._param = p.first;

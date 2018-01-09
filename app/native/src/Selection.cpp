@@ -15,24 +15,49 @@ void Goal::setTargetColor(RGBAColor targetColor)
   _targetColor = targetColor;
 }
 
+void Goal::setTargetColor(vector<RGBAColor> targets)
+{
+  _targetColors = targets;
+}
+
+void Goal::setOriginalColors(vector<RGBAColor> original)
+{
+  _originalColors = original;
+}
+
 bool Goal::meetsGoal(RGBAColor testColor) {
   if (_target == GoalTarget::NO_TARGET)
     return true;
   
   float diff = goalObjective(testColor);
 
+  return meetsGoal(diff);
+}
+
+bool Goal::meetsGoal(vector<RGBAColor> testColors)
+{
+  if (testColors.size() != _originalColors.size()) {
+    getLogger()->log("target color length mismatch. Aborting...", Comp::ERR);
+    return false;
+  }
+
+  return meetsGoal(goalObjective(testColors));
+}
+
+bool Goal::meetsGoal(float val)
+{
   if (_target == GoalTarget::EXACT) {
     // diff should be within a tolerance, arbitrarily 0.1 for now
     // TODO: threshold should be modifiable
-    return (abs(diff) <= 0.1);
+    return (abs(val) <= 0.1);
   }
   else if (_target == GoalTarget::MORE) {
-    return diff >= 0;
+    return val <= 0;
   }
   else if (_target == GoalTarget::LESS) {
     // lil bit weird here but a positive diff value indicates a
     // poorer match (minimization)
-    return diff < 0;
+    return val > 0;
   }
 
   // if somehow we get here just return false and log it, we shouldn't get to this point
@@ -58,7 +83,7 @@ float Goal::goalObjective(RGBAColor testColor)
     break;
   }
   case SELECT_TARGET_BRIGHTNESS: {
-    auto iHSL = Utils<float>::RGBToHSL(_targetColor._r * _targetColor._a, _targetColor._g * _targetColor._a, _targetColor._b * _targetColor._a);
+    auto iHSL = Utils<float>::RGBToHSL(_originalColor._r * _originalColor._a, _originalColor._g * _originalColor._a, _originalColor._b * _originalColor._a);
     auto tHSL = Utils<float>::RGBToHSL(testColor._r * testColor._a, testColor._g * testColor._a, testColor._b * testColor._a);
 
     // should be negative when test > init
@@ -72,6 +97,20 @@ float Goal::goalObjective(RGBAColor testColor)
   }
 
   return diff;
+}
+
+float Goal::goalObjective(vector<RGBAColor> testColors)
+{
+  float sum = 0;
+
+  for (int i = 0; i < testColors.size(); i++) {
+    _originalColor = _originalColors[i];
+
+    float val = goalObjective(testColors[i]);
+    sum += val;
+  }
+
+  return sum / _originalColors.size();
 }
 
 }

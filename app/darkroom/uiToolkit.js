@@ -37,13 +37,15 @@ const AnimationMode = {
 
 const GoalType = {
   "none" : 1,
-  "targetColor" : 2
+  "targetColor": 2,
+  "relativeBrightness" : 3
 }
 
 // nicer formatting for display
 const GoalString = {
   "none" : "No Active Goal",
-  "targetColor" : "Target Color"
+  "targetColor": "Target Color",
+  "relativeBrightness" : "Relative Brightness"
 }
 
 class Slider {
@@ -2388,6 +2390,7 @@ class GoalMenu {
     this.initUI();
 
     this._goalColor = { r: 1, g: 1, b: 1 };
+    this._goalDirection = 0;
   }
 
   initUI() {
@@ -2469,6 +2472,25 @@ class GoalMenu {
         self.toggleColorPicker($('#goalOptionsSection .goalColorPicker'), "_goalColor");
       });
     }
+    else if (this._activeGoalType === GoalType.relativeBrightness) {
+      var elem = '<div class="ui selection fluid dropdown relativeBrightnessMenu">';
+      elem += '<input name="direction" type="hidden" />';
+      elem += '<i class="dropdown icon"></i>';
+      elem += '<div class="default text">Direction</div>';
+      elem += '<div class="menu">';
+      elem += '<div class="item" data-value="-1">Less</div>';
+      elem += '<div class="item" data-value="1">More</div>';
+      elem += '</div></div>';
+
+      $('#goalOptionsSection').append(elem);
+
+      var self = this;
+      $('#goalOptionsSection .relativeBrightnessMenu').dropdown({
+        onChange: function (value, text, $selectedItem) {
+          self._goalDirection = parseInt(value);
+        }
+      });
+    }
 
     this.updateStatus();
   }
@@ -2542,6 +2564,9 @@ class GoalMenu {
       // type 2 is "Select Target Color", target 3 is "Exact", color is, uh, the target colo", color is, uh, the target colorr
       return { 'type': 2, 'target': 3, 'color': this._goalColor };
     }
+    else if (this._activeGoalType === GoalType.relativeBrightness) {
+      return { 'type': 3, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': { r: 0, g: 0, b: 0 } };
+    }
   }
 
   updateStatus() {
@@ -2551,6 +2576,9 @@ class GoalMenu {
       var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
 
       elem += '<div class="goalColor" style="background-color:' + colorStr + ';"></div>';
+    }
+    else if (this._activeGoalType === GoalType.relativeBrightness) {
+      elem = "Current Goal: " + (this._goalDirection > 0 ? "more" : "less") + " brightness";
     }
 
     this._goalStatusElem.html(elem);

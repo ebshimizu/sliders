@@ -27,12 +27,12 @@ bool Goal::meetsGoal(RGBAColor testColor) {
     return (abs(diff) <= 0.1);
   }
   else if (_target == GoalTarget::MORE) {
-    return diff < 0;
+    return diff >= 0;
   }
   else if (_target == GoalTarget::LESS) {
     // lil bit weird here but a positive diff value indicates a
     // poorer match (minimization)
-    return diff > 0;
+    return diff < 0;
   }
 
   // if somehow we get here just return false and log it, we shouldn't get to this point

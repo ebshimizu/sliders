@@ -6,17 +6,17 @@
 namespace Comp {
 
 enum GoalType {
-  SELECT_ANY,
-  SELECT_GROUP,
-  SELECT_TARGET_COLOR,
-  SELECT_TARGET_BRIGHTNESS
+  SELECT_ANY = 0,
+  SELECT_GROUP = 1,
+  SELECT_TARGET_COLOR = 2,
+  SELECT_TARGET_BRIGHTNESS = 3
 };
 
 enum GoalTarget {
-  NO_TARGET,
-  MORE,
-  LESS,
-  EXACT
+  NO_TARGET = 0,
+  MORE = 1,
+  LESS = 2,
+  EXACT = 3
 };
 
 // return value for goal based selection

@@ -1493,18 +1493,35 @@ namespace Comp {
     if (g.getType() == GoalType::SELECT_ANY) {
       // avg speculative difference with threshold
       map<string, double> avgScores;
+      map<string, int> affectedPixels;
 
       for (int i = 0; i < x.size(); i++) {
         map<string, double> ptScores;
         pointImportance("specVisibilityDelta", ptScores, x[i], y[i], c);
 
         for (auto& s : ptScores) {
+          bool counted = true;
+          if (!_primary[s.first].isAdjustmentLayer()) {
+            auto px = _primary[s.first].getImage()->getPixel(x[i], y[i]);
+            if (px._a == 0)
+              counted = false;
+          }
+          else {
+            if (_primary[s.first].hasMask()) {
+              auto px = _primary[s.first].getMask()->getPixel(x[i], y[i]);
+              if (px._r == 1)
+                counted = false;
+            }
+          }
+
           // first run
           if (i == 0) {
-            avgScores = ptScores;
+            avgScores[s.first] = s.second;
+            affectedPixels[s.first] = (counted ? 1 : 0);
           }
           else {
             avgScores[s.first] += s.second;
+            affectedPixels[s.first] += (counted ? 1 : 0);
           }
         }
       }
@@ -1513,7 +1530,11 @@ namespace Comp {
       // also take the average of all the spec deltas
       for (auto& s : avgScores) {
         // TODO: maybe? allow custom threshold if needed
-        float val = s.second / x.size();
+        float val = s.second / affectedPixels[s.first];
+
+        if (affectedPixels[s.first] == 0)
+          val = 0;
+
         if (val > 0.01) {
           GoalResult r;
           r._param = "opacity";

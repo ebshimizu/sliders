@@ -3092,7 +3092,16 @@ void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& i
     int x = info[2]->IntegerValue();
     int y = info[3]->IntegerValue();
 
-    auto results = c->_compositor->goalSelect(g, ctx->_context, x, y);
+    map<string, map<Comp::AdjustmentType, vector<Comp::GoalResult>>> results;
+    if (info[4]->IsNumber() && info[5]->IsNumber()) {
+      int w = info[4]->IntegerValue();
+      int h = info[5]->IntegerValue();
+
+      results = c->_compositor->goalSelect(g, ctx->_context, x, y, w, h);
+    }
+    else {
+      results = c->_compositor->goalSelect(g, ctx->_context, x, y);
+    }
 
     // results to javascript object fun times
     v8::Local<v8::Object> ret = Nan::New<v8::Object>();
@@ -3119,7 +3128,7 @@ void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& i
     info.GetReturnValue().Set(ret);
   }
   else {
-    Nan::ThrowError("compositor.goalSelect(object, context, int, int) argument error");
+    Nan::ThrowError("compositor.goalSelect(object, context, int, int[, int, int]) argument error");
   }
 }
 

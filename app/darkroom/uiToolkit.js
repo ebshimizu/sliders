@@ -1144,7 +1144,7 @@ class LayerSelector {
         <div class="header">Selection Mode</div>
       </div>
     </div>`);
-    //this._optionUIList.append(selectionMode);
+    this._optionUIList.append(selectionMode);
 
     $('#selectModeMenu').dropdown({
       action: 'activate',
@@ -1449,7 +1449,17 @@ class LayerSelector {
   }
 
   goalSelect() {
-    return c.goalSelect(this.goal, c.getContext(), this._currentPt.x, this._currentPt.y);
+    if (this._selectionMode === "localBox") {
+      var x = Math.min(this._currentRect.pt1.x, this._currentRect.pt2.x);
+      var y = Math.min(this._currentRect.pt1.y, this._currentRect.pt2.y);
+      var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
+      var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y); 
+
+      return c.goalSelect(this.goal, c.getContext(), x, y, w, h);
+    }
+    else {
+      return c.goalSelect(this.goal, c.getContext(), this._currentPt.x, this._currentPt.y);
+    }
   }
 
   selectLayers() {
@@ -1841,7 +1851,7 @@ class ParameterSelectPanel {
     this._fps = 30;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
-    this._displayOnMain = true;
+    this.displayOnMain = true;
 
     this.initUI();
   }
@@ -2023,7 +2033,7 @@ class ParameterSelectPanel {
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_loopSize"]').val(this._loopSize);
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_fps"]').val(this._fps);
     $('.parameterSelectOptions[name="' + this._name + '"] input[param="_frameHold"').val(this._frameHold);
-    $('.parameterSelectOptions[name="' + this._name + '"] .checkbox[param="displayOnMain]').checkbox(this.displayOnMain ? 'set checked' : 'set unchecked');
+    $('.parameterSelectOptions[name="' + this._name + '"] .checkbox[param="displayOnMain"]').checkbox(this.displayOnMain ? 'set checked' : 'set unchecked');
     $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
     $('.parameterSelectOptions[name="' + this._name + '"] .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
 

@@ -383,6 +383,10 @@ namespace Comp {
         float maskAlpha = ((*layerMaskPx)[i * 4] / 255.0f) * ((*layerMaskPx)[i * 4 + 3] / 255.0f);
         ab *= maskAlpha;
 
+        // short circuit here if ab == 0
+        if (ab == 0)
+          continue;
+
         if (shouldConditionalBlend) {
           // i'm unsure if it works literally just on the layer below it or the composition up to this point
           float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
@@ -1079,7 +1083,7 @@ namespace Comp {
         // with the layer's visibility toggled
         Context toggle(c);
         toggle[id]._visible = !toggle[id]._visible;
-        RGBAColor modPixel = renderPixel<float>(toggle, x, y);
+        RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
 
         // calculate difference
         // premultiplied alpha
@@ -1510,10 +1514,13 @@ namespace Comp {
       for (auto& s : avgScores) {
         // TODO: maybe? allow custom threshold if needed
         float val = s.second / x.size();
-        if (val > 0.05) {
+        if (val > 0.01) {
           GoalResult r;
           r._param = "opacity";
           r._val = 1;
+
+          getLogger()->log("layer " + s.first + " accepted with average " + to_string(val));
+
           ret[s.first][AdjustmentType::OPACITY].push_back(r);
         }
       }
@@ -1625,6 +1632,55 @@ namespace Comp {
     }
 
     return ret;
+  }
+
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y, int w, int h)
+  {
+    // choose the pixels to sample
+    // right now here's how it works
+    // - maximum allowed number of pixels is an 8 x 8 patch
+    // - if the selected region is larger than 8 x 8, subsample in a grid pattern
+    vector<int> xs;
+    vector<int> ys;
+
+    if (w > 8) {
+      // subsample
+      for (int i = 0; i < 8; i++) {
+        // w/8 should be > 1 so no repeats should happen
+        xs.push_back(x + (w / 8.0f) * i);
+      }
+    }
+    else {
+      for (int i = 0; i < w; i++) {
+        xs.push_back(x + i);
+      }
+    }
+
+    if (h > 8) {
+      // subsample
+      for (int i = 0; i < 8; i++) {
+        // w/8 should be > 1 so no repeats should happen
+        ys.push_back(y + (h / 8.0f) * i);
+      }
+    }
+    else {
+      for (int i = 0; i < w; i++) {
+        ys.push_back(y + i);
+      }
+    }
+
+    vector<int> xpts;
+    vector<int> ypts;
+
+    // create the vectors, basically repeat x values and cycle through ys
+    for (int i = 0; i < xs.size(); i++) {
+      for (int j = 0; j < ys.size(); j++) {
+        xpts.push_back(xs[i]);
+        ypts.push_back(ys[j]);
+      }
+    }
+
+    return goalSelect(g, c, xpts, ypts);
   }
 
   void Compositor::addLayer(string name)

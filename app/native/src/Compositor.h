@@ -266,6 +266,9 @@ namespace Comp {
     // the multi-pixel version of goal select
     map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, vector<int> x, vector<int> y);
 
+    // multi-pixel rectangular select
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int w, int h);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

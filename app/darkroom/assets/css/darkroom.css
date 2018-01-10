@@ -829,6 +829,10 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     height: auto;
 }
 
+.parameterSelectPanel .card {
+    margin: 0 auto;
+}
+
 .parameterSelectPanel .optionsButton {
     position: absolute;
     top: 2px;

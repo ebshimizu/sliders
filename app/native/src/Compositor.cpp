@@ -1559,6 +1559,8 @@ namespace Comp {
 
       // scan each parameter from 0 to 1 (they're all normalized!) to see if goal gets satisfied.
       for (auto& layer : _layerOrder) {
+        getLogger()->log("Testing layer " + layer);
+
         // sanity check
         if (!_primary[layer].isAdjustmentLayer()) {
           // if a transparent pixel is at all of the specified location

@@ -49,7 +49,7 @@ bool Goal::meetsGoal(float val)
   if (_target == GoalTarget::EXACT) {
     // diff should be within a tolerance, arbitrarily 0.1 for now
     // TODO: threshold should be modifiable
-    return (abs(val) <= 0.1);
+    return (abs(val) <= 0.2);
   }
   else if (_target == GoalTarget::MORE) {
     return val <= 0;

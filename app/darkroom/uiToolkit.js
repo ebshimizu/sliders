@@ -2074,7 +2074,7 @@ class ParameterSelectPanel {
   }
 
   createLayerCards() {
-    // populate with layer + parameter cards
+    // populate with layer + adjustment cards
     var dims = c.imageDims(this._renderSize);
     for (var i in this._layers) {
       var name = i;
@@ -2086,31 +2086,26 @@ class ParameterSelectPanel {
 
         // get the parameters
         // eventually this'll be parameter groups probably
-        var params = adjustments[a];
-        for (var x = 0; x < params.length; x++) {
-          var layerElem = '<div class="column">';
-          var displayText = name + " - " + adjToString[adj] + ":" + params[x].param;
-          var id = name + adj + params[x].param;
+        var layerElem = '<div class="column">';
+        var displayText = name + " - " + adjToString[adj]
+        var id = name + adj;
 
-          layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" param="' + params[x].param + '" cardID="' + id + '">';
-          layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
-          layerElem += '<div class="extra content">' + displayText + '</div>';
-          layerElem += '</div></div>';
+        layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" cardID="' + id + '">';
+        layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+        layerElem += '<div class="extra content">' + displayText + '</div>';
+        layerElem += '</div></div>';
 
-          this._uiElem.find('.grid').append(layerElem);
+        this._uiElem.find('.grid').append(layerElem);
 
-          // bindings are based on the drawing mode
-          this.bindLayerCard(name, adj, params[x], id);
-        }
+        // bindings are based on the drawing mode
+        this.bindLayerCard(name, adj, adjustments[a], id);
       }
     }
   }
 
-  bindLayerCard(name, adj, param, id) {
+  bindLayerCard(name, adj, params, id) {
     // canvas and layer objects
     var l = c.getLayer(name);
-    var paramName = param.param;
-    var paramVal = param.val;
     var canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"] canvas');
     var elem = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"]');
     var self = this;
@@ -2126,8 +2121,8 @@ class ParameterSelectPanel {
       // this will bind a mouseover event to start the animation loop for the hovered layer
       // panel. the images will be rendered on demand until the cache is full, at which point it'll
       // update at full speed 
-      elem.mouseover(function () { self.animateStart(name, adj, param, id); });
-      elem.mouseout(function () { self.animateStop(name, adj, param, id); });
+      elem.mouseover(function () { self.animateStart(name, adj, params, id); });
+      elem.mouseout(function () { self.animateStop(name, adj, params, id); });
 
       // just draw the composition as normal for the first frame
       drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
@@ -2135,12 +2130,12 @@ class ParameterSelectPanel {
 
     // onclick bindings are the same regardless
     elem.click(function () {
-      self.showLayerControl(name, adj, param);
+      self.showLayerControl(name, adj);
     });
   }
 
   // displays the layer control panel and the controls associated with the given layer
-  showLayerControl(name, adj, param) {
+  showLayerControl(name, adj) {
     // assumed to be clear
     // generate the layer controller
     // TODO: layer control needs to highlight relevant parameters
@@ -2164,15 +2159,14 @@ class ParameterSelectPanel {
     this._layerControlUIElem.hide();
   }
 
-  animateStart(name, adj, param, id) {
+  animateStart(name, adj, params, id) {
     // start the animation loop and initialize data structs
     var self = this;
 
     this._animationData = {};
     this._animationData.layerName = name;
     this._animationData.adjustment = parseInt(adj);
-    this._animationData.param = param.param;
-    this._animationData.targetVal = param.val;
+    this._animationData.params = params;  // contains param and val (which is now the target val)
     this._animationData.cardID = id;
     this._animationData.forward = true;
     this._animationData.canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"] canvas'); 
@@ -2186,12 +2180,16 @@ class ParameterSelectPanel {
     var ctx = c.getContext();
     if (this._animationData.adjustment === adjType.OPACITY) {
       this._animationData.fullCycle = true;
-      this._animationData.startVal = 0;
-      this._animationData.targetVal = 1;
+      this._animationData.startVal = { "opacity": 0 };
+      this._animationData.params[0].val = 1;
       //this._animationData.startVal = ctx.getLayer(this._animationData.layerName).opacity();
     }
     else {
-      this._animationData.startVal = ctx.getLayer(this._animationData.layerName).getAdjustment(this._animationData.adjustment)[this._animationData.param];
+      this._animationData.startVal = {};
+      for (var p in this._animationData.params) {
+        var param = this._animationData.params[p];
+        this._animationData.startVal[param.param] = ctx.getLayer(this._animationData.layerName).getAdjustment(this._animationData.adjustment)[param.param];
+      }
     }
 
     if (!(id in this._animationCache))
@@ -2234,16 +2232,21 @@ class ParameterSelectPanel {
       // render context
       var ctx = c.getContext();
 
-      // simple lerp of the values for now, no looping just snaps back for simplicity
+      // simple lerp of the values for now
       var t = this._animationData.currentFrame / this._loopSize;
-      var val = this._animationData.startVal * (1 - t) + this._animationData.targetVal * t;
+      for (var p in this._animationData.params) {
+        var param = this._animationData.params[p].param;
+        var target = this._animationData.params[p].val;
 
-      // update context
-      if (this._animationData.adjustment === adjType.OPACITY) {
-        ctx.getLayer(this._animationData.layerName).opacity(val);
-      }
-      else {
-        ctx.getLayer(this._animationData.layerName).addAdjustment(this._animationData.adjustment, this._animationData.param, val);
+        var val = this._animationData.startVal[param] * (1 - t) + target * t;
+
+        // update context
+        if (this._animationData.adjustment === adjType.OPACITY) {
+          ctx.getLayer(this._animationData.layerName).opacity(val);
+        }
+        else {
+          ctx.getLayer(this._animationData.layerName).addAdjustment(this._animationData.adjustment, param, val);
+        }
       }
 
       // ensure visibility

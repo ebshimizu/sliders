@@ -1619,11 +1619,12 @@ namespace Comp {
 
           // TODO: variables for this eventually
           int maxRestarts = 10;
-          int maxSteps = 5;
-          // yeah it should be a variable step size but right now i just need something real quick
-          float stepSize = 0.5;
+          int maxSteps = 100;
 
           for (int round = 0; round < maxRestarts; round++) {
+            // yeah it should be a variable step size but right now i just need something real quick
+            float stepSize = 0.01;
+
             // rendering context, reset every round
             // it actually should be ok to move to adjustment level resets but just in case for now
             Context r(c);
@@ -1638,20 +1639,46 @@ namespace Comp {
               current[p.first] = dist(gen);
             }
 
+            r[layer].addAdjustment(a, current);
+
             vector<RGBAColor> testPixels;
             for (int i = 0; i < x.size(); i++) {
               testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
             }
 
             float fx = g.goalObjective(testPixels);
+            map<string, float> prevDelta;
+            map<string, float> prev;
 
             for (int step = 0; step < maxSteps; step++) {
               // get the deltas
               map<string, float> delta = getDelta(g, r, fx, current, layer, a, x, y);
 
+              // compute step size
+              // if we can
+              if (step > 0) {
+                // wikipedia calls this one the barzilai-borwein method
+                float num = 0;
+                float denom = 0;
+                for (auto& p : delta) {
+                  float gradDiff = (delta[p.first] - prevDelta[p.first]);
+                  num += (current[p.first] - prev[p.first]) * gradDiff;
+                  denom += (gradDiff * gradDiff);
+                }
+
+                if (denom != 0) {
+                  // ?
+                  stepSize = abs(num / denom);
+                }
+              }
+
+              prev = current;
+              prevDelta = delta;
+
               // apply the deltas
               for (auto& p : delta) {
                 current[p.first] -= (current[p.first] * p.second * stepSize);
+                current[p.first] = clamp<float>(current[p.first], 0, 1);
               }
 
               r[layer].addAdjustment(a, current);
@@ -1666,7 +1693,7 @@ namespace Comp {
               getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " round " + to_string(round) + " step " + to_string(step) + " current objective value: " + to_string(fxp), LogLevel::SILLY);
 
               // repeat or break
-              if (abs(fx - fxp) < 0.01) {
+              if (abs(fx - fxp) < 0.001) {
                 fx = fxp;
                 break;
               }
@@ -1836,7 +1863,7 @@ namespace Comp {
       // compute
       vector<RGBAColor> testPixels;
       for (int i = 0; i < x.size(); i++) {
-        testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
+        testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
       }
 
       float fxp = g.goalObjective(testPixels);

@@ -1578,8 +1578,7 @@ namespace Comp {
             continue;
         }
 
-        // coarse scan of the parameter to see if it can satisfy the goal
-        // opacity
+        // coarse scan of the opacity to see if it can satisfy the goal
         // temporary rendering context
         Context temp(c);
 
@@ -1609,44 +1608,92 @@ namespace Comp {
         // this should really be an optimization process (if using multiple, may need ceres in on this)
         auto adjustments = _primary[layer].getAdjustments();
 
+        // TODO: opacity / visibility might want to be up and on for adjustment checking, will test
         // hey also i'm skipping selective color for now because I just don't want to deal with it
         for (auto& a : adjustments) {
-          auto params = _primary[layer].getAdjustment(a);
+          // ok uhhhhh we're gonna do a random restart gradient descent with numerical derivatives
+          // also there will be a limit on maximuim iterations for each adjustment because this is expensive
+          float min = FLT_MAX;
+          map<string, float> adj = _primary[layer].getAdjustment(a);
+          map<string, float> adjBest = adj;
 
-          for (auto & p : params) {
-            // temporary rendering context
-            Context temp(c);
-            float min = 1e6;
+          // TODO: variables for this eventually
+          int maxRestarts = 10;
+          int maxSteps = 5;
+          // yeah it should be a variable step size but right now i just need something real quick
+          float stepSize = 0.5;
 
-            for (int i = 0; i <= 100; i++) {
-              float val = 0.01f * i;
-              temp[layer].addAdjustment(a, p.first, val);
+          for (int round = 0; round < maxRestarts; round++) {
+            // rendering context, reset every round
+            // it actually should be ok to move to adjustment level resets but just in case for now
+            Context r(c);
 
-              vector<RGBAColor> testPixels;
-              for (int i = 0; i < x.size(); i++) {
-                testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
-              }
+            // randomize
+            map<string, float> current = adj;
+            random_device rd;
+            mt19937 gen(rd());
+            uniform_real_distribution<float> dist(0, 1);
 
-              // stat tracking
-              float objval = g.goalObjective(testPixels);
-              if (objval < min)
-                min = objval;
-
-              if (g.meetsGoal(testPixels)) {
-                // add param to ret, continue
-                GoalResult r;
-                r._param = p.first;
-                r._val = val;
-
-                ret[layer][a].push_back(r);
-
-                getLogger()->log("[ACCEPT] Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " satisfies goal with value " + to_string(val));
-
-                break;
-              }
+            for (auto& p : current) {
+              current[p.first] = dist(gen);
             }
 
-            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " minimum objective " + to_string(min));
+            vector<RGBAColor> testPixels;
+            for (int i = 0; i < x.size(); i++) {
+              testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
+            }
+
+            float fx = g.goalObjective(testPixels);
+
+            for (int step = 0; step < maxSteps; step++) {
+              // get the deltas
+              map<string, float> delta = getDelta(g, r, fx, current, layer, a, x, y);
+
+              // apply the deltas
+              for (auto& p : delta) {
+                current[p.first] -= (current[p.first] * p.second * stepSize);
+              }
+
+              r[layer].addAdjustment(a, current);
+
+              // update value
+              vector<RGBAColor> testPixels;
+              for (int i = 0; i < x.size(); i++) {
+                testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
+              }
+
+              float fxp = g.goalObjective(testPixels);
+              getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " round " + to_string(round) + " step " + to_string(step) + " current objective value: " + to_string(fxp), LogLevel::SILLY);
+
+              // repeat or break
+              if (abs(fx - fxp) < 0.01) {
+                fx = fxp;
+                break;
+              }
+
+              fx = fxp;
+            }
+
+            // compare vs best
+            if (fx < min) {
+              min = fx;
+              adjBest = current;
+            }
+          }
+
+          // check goal success
+          if (g.meetsGoal(min)) {
+            // accept n stuff
+            for (auto& p : adjBest) {
+              GoalResult r;
+              r._param = p.first;
+              r._val = p.second;
+              ret[layer][a].push_back(r);
+
+              getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " satisfies goal with value " + to_string(p.second));
+            }
+
+            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " accepted with value " + to_string(min));
           }
         }
       }
@@ -1761,6 +1808,42 @@ namespace Comp {
     }
 
     return sum;
+  }
+
+  map<string, float> Compositor::getDelta(Goal & g, Context & r, float fx, map<string, float>& currentVals,
+    string layer, AdjustmentType t, vector<int>& x, vector<int>& y)
+  {
+    map<string, float> results;
+
+    // TODO: make variable
+    float delta = 0.01;
+
+    // r is the current render context
+    for (auto& p : currentVals) {
+      Context temp(r);
+
+      float dp;
+      if (p.second >= 1) {
+        // yeah like i mean it's gonna be clamped and set to 1 - 0.01 so?
+        dp = 1 - delta;
+      }
+      else {
+        dp = p.second + delta;
+      }
+
+      temp[layer].addAdjustment(t, p.first, dp);
+
+      // compute
+      vector<RGBAColor> testPixels;
+      for (int i = 0; i < x.size(); i++) {
+        testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
+      }
+
+      float fxp = g.goalObjective(testPixels);
+      results[p.first] = (fxp - fx) / 0.01;
+    }
+
+    return results;
   }
 
   void Compositor::randomSearch(Context start)

@@ -279,6 +279,12 @@ namespace Comp {
 
     float finiteDifference(Image* a, Image* b, float delta);
 
+    // this returns the numerical derivative for each of the parameters in currentVals
+    // based on the objective function in the goal.
+    // the context can be freely modified it's just for rendering
+    map<string, float> getDelta(Goal& g, Context& r, float fx, map<string, float>& currentVals,
+      string layer, AdjustmentType t, vector<int>& x, vector<int>& y);
+
     // search modes
     void randomSearch(Context start);
 

@@ -38,6 +38,7 @@ public:
   // single pixel goal target determination
   bool meetsGoal(RGBAColor testColor);
   bool meetsGoal(vector<RGBAColor> testColors);
+  bool meetsGoal(float val);
 
   // returns a numeric value indicating how far off the test color is
   // from the goal
@@ -52,8 +53,6 @@ public:
   GoalTarget getTarget() { return _target; }
 
 private:
-  bool meetsGoal(float val);
-
   GoalType _type;
   GoalTarget _target;
 

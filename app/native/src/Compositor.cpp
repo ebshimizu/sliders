@@ -1625,7 +1625,7 @@ namespace Comp {
 
           for (int round = 0; round < maxRestarts; round++) {
             // yeah it should be a variable step size but right now i just need something real quick
-            float stepSize = 0.01;
+            float stepSize = 0.0001;
 
             // rendering context, reset every round
             // it actually should be ok to move to adjustment level resets but just in case for now
@@ -1722,7 +1722,10 @@ namespace Comp {
               getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " parameter " + p.first + " satisfies goal with value " + to_string(p.second));
             }
 
-            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " accepted with value " + to_string(min));
+            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " accepted with score " + to_string(min));
+          }
+          else {
+            getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " failed goal with score " + to_string(min));
           }
         }
       }

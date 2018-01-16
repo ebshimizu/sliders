@@ -38,14 +38,16 @@ const AnimationMode = {
 const GoalType = {
   "none" : 1,
   "targetColor": 2,
-  "relativeBrightness" : 3
+  "relativeBrightness": 3,
+  "relativeChroma": 4
 }
 
 // nicer formatting for display
 const GoalString = {
   "none" : "No Active Goal",
   "targetColor": "Target Color",
-  "relativeBrightness" : "Relative Brightness"
+  "relativeBrightness": "Relative Brightness",
+  "relativeChroma": "Relative Chroma"
 }
 
 class Slider {
@@ -2504,6 +2506,34 @@ class GoalMenu {
         }
       });
     }
+    else if (this._activeGoalType === GoalType.relativeChroma) {
+      var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
+
+      var elem = '<div class="ui small inverted header">Relative Chroma Settings</div>';
+      elem += '<div class="goalColorPicker fluid ui button" style="background-color:' + colorStr + ';">Select Color</div > ';
+      elem += '<div class="ui selection fluid dropdown relativeChromaMenu">';
+      elem += '<input name="direction" type="hidden" />';
+      elem += '<i class="dropdown icon"></i>';
+      elem += '<div class="default text">Direction</div>';
+      elem += '<div class="menu">';
+      elem += '<div class="item" data-value="-1">Different</div>';
+      elem += '<div class="item" data-value="1">Similar</div>';
+      elem += '</div></div>';
+
+      $('#goalOptionsSection').append($(elem));
+
+      // bindings
+      var self = this;
+      $('#goalOptionsSection .goalColorPicker').click(function () {
+        self.toggleColorPicker($('#goalOptionsSection .goalColorPicker'), "_goalColor");
+      });
+
+      $('#goalOptionsSection .relativeChromaMenu').dropdown({
+        onChange: function (value, text, $selectedItem) {
+          self._goalDirection = parseInt(value);
+        }
+      });
+    }
 
     this.updateStatus();
   }
@@ -2574,11 +2604,14 @@ class GoalMenu {
       return { 'type': 0, 'target': 0, 'color': { r: 0, g: 0, b: 0 } };
     }
     else if (this._activeGoalType === GoalType.targetColor) {
-      // type 2 is "Select Target Color", target 3 is "Exact", color is, uh, the target colo", color is, uh, the target colorr
+      // type 2 is "Select Target Color", target 3 is "Exact", color is, uh, the target color
       return { 'type': 2, 'target': 3, 'color': this._goalColor };
     }
     else if (this._activeGoalType === GoalType.relativeBrightness) {
       return { 'type': 3, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': { r: 0, g: 0, b: 0 } };
+    }
+    else if (this._activeGoalType === GoalType.relativeChroma) {
+      return { 'type': 4, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': this._goalColor };
     }
   }
 

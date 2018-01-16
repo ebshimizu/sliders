@@ -251,6 +251,9 @@ namespace Comp {
     static T RGBL2Diff(RGBColorT& x, RGBColorT& y);
     static T RGBAL2Diff(RGBAColorT& x, RGBAColorT& y);
 
+    static T LabL2Diff(RGBAColorT& x, RGBAColorT& y);
+    static T LabL2Diff(LabColorT& x, LabColorT& y);
+
     static HSLColorT RGBToHSL(T r, T g, T b);
     static HSLColorT RGBToHSL(RGBColorT& c);
 
@@ -270,6 +273,7 @@ namespace Comp {
 
     static LabColorT RGBToLab(T r, T g, T b);
     static LabColorT RGBToLab(RGBColorT& c);
+    static LabColorT RGBAToLab(RGBAColorT& c);
 
     static T rgbCompand(T x);
     static T inverseRGBCompand(T x);
@@ -307,6 +311,22 @@ namespace Comp {
     float bd = (x._b * x._a) - (y._b * y._a);
 
     return sqrt(rd * rd + gd * gd + bd * bd);
+  }
+
+  template<typename T>
+  inline T Utils<T>::LabL2Diff(RGBAColorT & x, RGBAColorT & y)
+  {
+    return Utils<T>::LabL2Diff(Utils<T>::RGBAToLab(x), Utils<T>::RGBAToLab(y));
+  }
+
+  template<typename T>
+  inline T Utils<T>::LabL2Diff(LabColorT & x, LabColorT & y)
+  {
+    float ld = x._L - y._L;
+    float ad = x._a - y._a;
+    float bd = x._b - y._b;
+
+    return sqrt(ld * ld + ad * ad + bd * bd);
   }
 
   template<typename T>
@@ -687,6 +707,12 @@ namespace Comp {
   inline typename Utils<T>::LabColorT Utils<T>::RGBToLab(RGBColorT& c)
   {
     return RGBToLab(c._r, c._g, c._b);
+  }
+
+  template<typename T>
+  inline typename Utils<T>::LabColorT Utils<T>::RGBAToLab(RGBAColorT & c)
+  {
+    return RGBToLab(c._r * c._a, c._g * c._a, c._b * c._a);
   }
 
   template<typename T>

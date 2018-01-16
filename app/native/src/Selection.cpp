@@ -46,18 +46,28 @@ bool Goal::meetsGoal(vector<RGBAColor> testColors)
 
 bool Goal::meetsGoal(float val)
 {
-  if (_target == GoalTarget::EXACT) {
-    // diff should be within a tolerance, arbitrarily 0.1 for now
-    // TODO: threshold should be modifiable
-    return (abs(val) <= 0.2);
+  if (_type == SELECT_TARGET_CHROMA) {
+    // target chroma is a bit weird, how do we tell if the goal of "more" is achieved compared to "less"
+    // i'd view "more" as "similar" and "less" as "different"
+    if (_target == GoalTarget::EXACT)
+      return (abs(val) <= 2.3);
+    else if (_target == GoalTarget::MORE) {
+      // within a threshold of 5 Lab JND which is 11.5
+      return ((val - 11.5) <= 0);
+    }
+    else if (_target == GoalTarget::LESS) {
+      // outside a threshold of 5 Lab JND which is 11.5
+      return (-val) - 11.5 > 0;
+    }
   }
-  else if (_target == GoalTarget::MORE) {
-    return val <= 0;
-  }
-  else if (_target == GoalTarget::LESS) {
-    // lil bit weird here but a positive diff value indicates a
-    // poorer match (minimization)
-    return val > 0;
+  else {
+    if (_target == GoalTarget::EXACT) {
+      // exact expectes results to be really tight, so 2.3 (the lab JND) should serve well
+      return (abs(val) <= 2.3);
+    }
+    else {
+      return val <= 0;
+    }
   }
 
   // if somehow we get here just return false and log it, we shouldn't get to this point
@@ -77,9 +87,8 @@ float Goal::goalObjective(RGBAColor testColor)
     diff = 0;
     break;
   case SELECT_TARGET_COLOR: {
-    // right now this is just the RGB L2 but there might want to be an option for
-    // hue/sat differences at some point
-    diff = Utils<float>::RGBAL2Diff(_targetColor, testColor);
+    // lab l2 diff
+    diff = Utils<float>::LabL2Diff(_targetColor, testColor);
     break;
   }
   case SELECT_TARGET_BRIGHTNESS: {
@@ -91,10 +100,22 @@ float Goal::goalObjective(RGBAColor testColor)
 
     break;
   }
+  case SELECT_TARGET_CHROMA: {
+    auto oLab = Utils<float>::RGBAToLab(_targetColor);
+    auto tLab = Utils<float>::RGBAToLab(testColor);
+
+    diff = sqrt((oLab._a - tLab._a) * (oLab._a - tLab._a) + (oLab._b - tLab._b) * (oLab._b - tLab._b));
+
+    break;
+  }
   default:
     diff = 0;
     break;
   }
+
+  // if direction is less, diff should be inverted (maximization)
+  if (_target == GoalTarget::LESS)
+    diff = -diff;
 
   return diff;
 }

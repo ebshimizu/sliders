@@ -269,6 +269,9 @@ namespace Comp {
     // multi-pixel rectangular select
     map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int w, int h);
 
+    // uh, poisson disk sampling because i need a test function?
+    void initPoissonDisk(int n, int level, int k = 30);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);
@@ -509,6 +512,9 @@ namespace Comp {
     // when serializing contexts, this key can be used to convert back into
     // a context.
     nlohmann::json _vectorKey;
+
+    // precomputed sampling patterns for various levels of detail (0 is full res)
+    map<int, map<int, shared_ptr<PoissonDisk>>> _pdiskCache;
   };
 
   template<typename T>

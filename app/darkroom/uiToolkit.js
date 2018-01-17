@@ -39,7 +39,7 @@ const GoalType = {
   "none" : 1,
   "targetColor": 2,
   "relativeBrightness": 3,
-  "relativeChroma": 4
+  "colorize" : 5
 }
 
 // nicer formatting for display
@@ -47,7 +47,8 @@ const GoalString = {
   "none" : "No Active Goal",
   "targetColor": "Target Color",
   "relativeBrightness": "Relative Brightness",
-  "relativeChroma": "Relative Chroma"
+  "relativeChroma": "Relative Chroma",
+  "colorize": "Colorize"
 }
 
 class Slider {
@@ -2506,32 +2507,18 @@ class GoalMenu {
         }
       });
     }
-    else if (this._activeGoalType === GoalType.relativeChroma) {
+    else if (this._activeGoalType === GoalType.colorize) {
       var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
 
-      var elem = '<div class="ui small inverted header">Relative Chroma Settings</div>';
-      elem += '<div class="goalColorPicker fluid ui button" style="background-color:' + colorStr + ';">Select Color</div > ';
-      elem += '<div class="ui selection fluid dropdown relativeChromaMenu">';
-      elem += '<input name="direction" type="hidden" />';
-      elem += '<i class="dropdown icon"></i>';
-      elem += '<div class="default text">Direction</div>';
-      elem += '<div class="menu">';
-      elem += '<div class="item" data-value="-1">Different</div>';
-      elem += '<div class="item" data-value="1">Similar</div>';
-      elem += '</div></div>';
-
+      var elem = '<div class="ui small inverted header">Colorize Settings</div>';
+      elem += '<div class="goalColorPicker fluid ui button" style="background-color:' + colorStr + ';">Select Color (Hue)</div > ';
+  
       $('#goalOptionsSection').append($(elem));
 
       // bindings
       var self = this;
       $('#goalOptionsSection .goalColorPicker').click(function () {
         self.toggleColorPicker($('#goalOptionsSection .goalColorPicker'), "_goalColor");
-      });
-
-      $('#goalOptionsSection .relativeChromaMenu').dropdown({
-        onChange: function (value, text, $selectedItem) {
-          self._goalDirection = parseInt(value);
-        }
       });
     }
 
@@ -2610,8 +2597,8 @@ class GoalMenu {
     else if (this._activeGoalType === GoalType.relativeBrightness) {
       return { 'type': 3, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': { r: 0, g: 0, b: 0 } };
     }
-    else if (this._activeGoalType === GoalType.relativeChroma) {
-      return { 'type': 4, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': this._goalColor };
+    else if (this._activeGoalType === GoalType.colorize) {
+      return { 'type': 5, 'target': 1, 'color': this._goalColor };
     }
   }
 

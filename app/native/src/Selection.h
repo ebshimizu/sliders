@@ -2,6 +2,7 @@
 
 #include "util.h"
 #include "Logger.h"
+#include <random>
 
 namespace Comp {
 
@@ -11,9 +12,9 @@ enum GoalType {
   SELECT_TARGET_COLOR = 2,
   SELECT_TARGET_BRIGHTNESS = 3,
   SELECT_TARGET_CHROMA = 4,
-  SELECT_TARGET_HUE = 5,
-  SELECT_TARGET_SAT = 6,
-  SELECT_TARGET_CONTRAST = 7
+  GOAL_COLORIZE = 5,
+  GOAL_SATURATE = 6,
+  GOAL_CONTRAST = 7
 };
 
 enum GoalTarget {
@@ -68,6 +69,53 @@ private:
   // that are being compared against
   // target color is specifically for a color target
   vector<RGBAColor> _originalColors;
+};
+
+// quick implementation based on
+// https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf
+// assumes every axis is limited to [0,1] (which is true in this instance)
+class PoissonDisk {
+public:
+  PoissonDisk(float r, int n, int k = 30);
+  ~PoissonDisk();
+
+  void sample(vector<float> x0 = { });
+
+  const vector<vector<float>>& getPtList();
+
+private:
+  void init();
+
+  // inserts a sample into the background grid (and the accepted pt list)
+  int insert(vector<float>& pt);
+
+  // given integer cell coordinates, returns the flattened index into the bg array;
+  int gridIndex(vector<int>& pt);
+
+  // floating pt coord to grid index
+  int ptToGrid(float x);
+  int ptToIndex(vector<float>& x);
+
+  // if outside [0, 1], point is invalid
+  bool ptInBounds(vector<float>& x);
+
+  float l2Dist(vector<float>& x, vector<float>& y);
+
+  // returns a list of adjacent point ids to the given grid point
+  vector<int> adjacentPts(vector<float>& x);
+  vector<int> adjacentPts(vector<int>& x);
+
+  vector<int> _bgArray;
+  vector<vector<float>> _pts;
+  vector<int> _active;
+
+  float _r;
+  int _n;
+  int _k;
+
+  // the grid is a n-D cube, this is the axis size in cells
+  int _gridSize;
+  float _cellSize;
 };
 
 }

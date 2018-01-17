@@ -1652,6 +1652,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "hasTag", hasTag);
   Nan::SetPrototypeMethod(tpl, "goalSelect", goalSelect);
   Nan::SetPrototypeMethod(tpl, "addMask", addMask);
+  Nan::SetPrototypeMethod(tpl, "addPoissonDisk", addPoissonDiskCache);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3151,6 +3152,24 @@ void CompositorWrapper::addMask(const Nan::FunctionCallbackInfo<v8::Value>& info
   result = c->_compositor->addLayerMask(name, path);
 
   info.GetReturnValue().Set(Nan::New(result));
+}
+
+void CompositorWrapper::addPoissonDiskCache(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addPoissonDiskCache");
+
+  if (info[0]->IsNumber() && info[1]->IsNumber()) {
+    int n = info[0]->IntegerValue();
+    int level = info[1]->IntegerValue();
+    int k = 30;
+
+    if (info[2]->IsNumber()) {
+      k = info[2]->NumberValue();
+    }
+
+    c->_compositor->initPoissonDisk(n, level, k);
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

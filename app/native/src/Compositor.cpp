@@ -1964,6 +1964,15 @@ namespace Comp {
     _activeCallback(r, start, map<string, float>(), map<string, string>());
   }
 
+  void Compositor::initPoissonDisk(int n, int level, int k) {
+    float r = 0.2;
+
+    r = r * pow(2, -level);
+
+    _pdiskCache[n][level] = shared_ptr<PoissonDisk>(new PoissonDisk(r, n, k));
+    _pdiskCache[n][level]->sample();
+  }
+
   void Compositor::exploratorySearch()
   {
     getLogger()->log("Exploratory search started", LogLevel::INFO);

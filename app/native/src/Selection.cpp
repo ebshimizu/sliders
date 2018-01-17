@@ -60,6 +60,16 @@ bool Goal::meetsGoal(float val)
       return (-val) - 11.5 > 0;
     }
   }
+  else if (_type == GOAL_COLORIZE) {
+    if (_target == GoalTarget::EXACT)
+      return (abs(val) <= 3);
+    else if (_target == GoalTarget::MORE) {
+      return ((val - 10) <= 0);
+    }
+    else if (_target == GoalTarget::LESS) {
+      return (-val) - 10 > 0;
+    }
+  }
   else {
     if (_target == GoalTarget::EXACT) {
       // exact expectes results to be really tight, so 2.3 (the lab JND) should serve well
@@ -108,6 +118,21 @@ float Goal::goalObjective(RGBAColor testColor)
 
     break;
   }
+  case GOAL_COLORIZE: {
+    // colorize is HUE only
+    auto iHSL = Utils<float>::RGBToHSL(_targetColor._r * _targetColor._a, _targetColor._g * _targetColor._a, _targetColor._b * _targetColor._a);
+    auto tHSL = Utils<float>::RGBToHSL(testColor._r * testColor._a, testColor._g * testColor._a, testColor._b * testColor._a);
+
+    diff = min(min(abs(iHSL._h - tHSL._h), abs(iHSL._h - (tHSL._h + 360))), abs(iHSL._h - (tHSL._h - 360)));
+    break;
+  }
+  case GOAL_SATURATE: {
+    auto iHSL = Utils<float>::RGBToHSL(_originalColor._r * _originalColor._a, _originalColor._g * _originalColor._a, _originalColor._b * _originalColor._a);
+    auto tHSL = Utils<float>::RGBToHSL(testColor._r * testColor._a, testColor._g * testColor._a, testColor._b * testColor._a);
+
+    diff = iHSL._s - tHSL._s;
+    break;
+  }
   default:
     diff = 0;
     break;
@@ -132,6 +157,218 @@ float Goal::goalObjective(vector<RGBAColor> testColors)
   }
 
   return sum / _originalColors.size();
+}
+
+PoissonDisk::PoissonDisk(float r, int n, int k) : _r(r), _n(n), _k(k)
+{
+  init();
+}
+
+PoissonDisk::~PoissonDisk()
+{
+}
+
+void PoissonDisk::sample(vector<float> x0)
+{
+  // rng objects
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<float> zeroOne(0, 1);
+  uniform_real_distribution<float> sphereRadius(pow(_r, _n), pow(2 * _r, _n));
+  normal_distribution<float> norm;
+
+  if (x0.size() != _n) {
+    // sample if no pt given or invalid
+    x0.resize(_n);
+    for (int i = 0; i < _n; i++)
+      x0[i] = zeroOne(gen);
+  }
+
+  // insert initial pt
+  int x0i = insert(x0);
+  _active.push_back(x0i);
+
+  // while the active list isn't empty
+  while (_active.size() > 0) {
+    // pull a random index from it
+    uniform_int_distribution<int> idxSampler(0, _active.size() - 1);
+    int selected = idxSampler(gen);
+
+    vector<float> pt = _pts[_active[selected]];
+
+    int count = 0;
+    while (count < _k) {
+      // generate a pt between r and 2r of the current pt
+      vector<float> newpt;
+      newpt.resize(pt.size());
+      float dist = 0;
+
+      float r = pow(sphereRadius(gen), 1.0f / _n);
+
+      for (int j = 0; j < _n; j++) {
+        float p = norm(gen);
+        newpt[j] = p;
+        dist += p;
+      }
+
+      dist = sqrt(dist);
+
+      // scale point
+      for (int j = 0; j < _n; j++) {
+        newpt[j] = r * newpt[j] + pt[j];
+      }
+
+      // validate
+      if (ptInBounds(newpt)) {
+        // check distance to neighbors
+        vector<int> adjacent = adjacentPts(newpt);
+
+        bool accept = true;
+        for (auto& adjacentPt : adjacent) {
+          vector<float> y = _pts[adjacentPt];
+
+          // check l2 dist
+          if (l2Dist(newpt, y) < r) {
+            accept = false;
+            break;
+          } 
+        }
+
+        if (accept) {
+          int id = insert(newpt);
+          _active.push_back(id);
+          break;  // count < _k
+        }
+        else {
+          count++;
+        }
+      }
+      // validation failure is not marked as a failure technically, since it's not a valid point
+    }
+
+    // if we failed to find a thing, remove the point from the active set
+    if (count == _k) {
+      _active.erase(_active.begin() + selected);
+    }
+  }
+}
+
+const vector<vector<float>>& PoissonDisk::getPtList()
+{
+  return _pts;
+}
+
+void PoissonDisk::init()
+{
+  _active.clear();
+
+  // determine cell size
+  _cellSize = _r / sqrt(_n);
+
+  // cells per axis rounded up
+  _gridSize = ceil(1.0f / _cellSize);
+
+  // create the bg array
+  _bgArray.resize(pow(_gridSize, _n));
+
+  // set all array values to -1
+  fill(_bgArray.begin(), _bgArray.end(), -1);
+}
+
+int PoissonDisk::insert(vector<float>& pt)
+{
+  // debug 
+  assert(_bgArray[ptToIndex(pt)] == -1);
+
+  int idx = _pts.size();
+  _pts.push_back(pt);
+
+  _bgArray[ptToIndex(pt)] = idx;
+  return idx;
+}
+
+int PoissonDisk::gridIndex(vector<int>& pt)
+{
+  // form is basically x[0] + x[1] * dim[0] + ... + x[n] * dim[n - 1]
+  // but dim here is all the same
+  // so it's kinda easy
+  int idx = pt[0];
+  int d = 1;
+  for (int i = 1; i < pt.size(); i++) {
+    d *= _gridSize;
+    idx += pt[i] * d;
+  }
+
+  return idx;
+}
+
+int PoissonDisk::ptToGrid(float x)
+{
+  return floor(x / _cellSize);
+}
+
+int PoissonDisk::ptToIndex(vector<float>& x)
+{
+  vector<int> pt;
+  pt.resize(x.size());
+
+  for (int i = 0; i < x.size(); i++)
+    pt[i] = ptToGrid(x[i]);
+
+  return gridIndex(pt);
+}
+
+bool PoissonDisk::ptInBounds(vector<float>& x)
+{
+  for (int i = 0; i < x.size(); i++) {
+    if (x[i] < 0 || x[i] > 1)
+      return false;
+  }
+
+  return true;
+}
+
+float PoissonDisk::l2Dist(vector<float>& x, vector<float>& y)
+{
+  float sum = 0;
+  for (int i = 0; i < x.size(); i++) {
+    sum += (x[i] - y[i]) * (x[i] - y[i]);
+  }
+
+  return sqrt(sum);
+}
+
+vector<int> PoissonDisk::adjacentPts(vector<float>& x)
+{
+  vector<int> grid;
+  for (int i = 0; i < x.size(); i++) {
+    grid.push_back(ptToGrid(x[i]));
+  }
+
+  return adjacentPts(grid);
+}
+
+vector<int> PoissonDisk::adjacentPts(vector<int>& x) {
+  // for simplicity, diagonals are not considered
+  // this should hopefully not affect correctness
+  vector<int> pts;
+  for (int i = 0; i < x.size(); i++) {
+    vector<int> testPt = x;
+    testPt[i] -= 1;
+
+    if (testPt[i] >= 0 && _bgArray[gridIndex(testPt)] != -1)
+      pts.push_back(_bgArray[gridIndex(testPt)]);
+
+    testPt[i] = x[i] + 1;
+    if (testPt[i] < _n && _bgArray[gridIndex(testPt)] != -1)
+      pts.push_back(_bgArray[gridIndex(testPt)]);
+  }
+
+  // don't forget the cell the point is, uh, in already
+  if (_bgArray[gridIndex(x)] != -1)
+    pts.push_back(_bgArray[gridIndex(x)]);
+
+  return pts;
 }
 
 }

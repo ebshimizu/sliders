@@ -3,6 +3,7 @@
 #include "util.h"
 #include "Logger.h"
 #include <random>
+#include <set>
 
 namespace Comp {
 
@@ -81,7 +82,12 @@ public:
 
   void sample(vector<float> x0 = { });
 
-  const vector<vector<float>>& getPtList();
+  vector<vector<float>> allPoints();
+
+  vector<vector<float>> selectedPoints(set<int> indices);
+
+  // returns a list of points nearby (within 3 cell radius) of the given list
+  vector<vector<float>> nearby(vector<vector<float>>& pts);
 
 private:
   void init();
@@ -104,6 +110,9 @@ private:
   // returns a list of adjacent point ids to the given grid point
   vector<int> adjacentPts(vector<float>& x);
   vector<int> adjacentPts(vector<int>& x);
+
+  vector<int> adjacentPts(vector<float>& x, int radius);
+  vector<int> adjacentPts(vector<int>& x, int radius);
 
   vector<int> _bgArray;
   vector<vector<float>> _pts;

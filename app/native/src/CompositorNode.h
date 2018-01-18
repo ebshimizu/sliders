@@ -240,6 +240,7 @@ private:
   static void goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addPoissonDiskCache(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void initPoissonDisks(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

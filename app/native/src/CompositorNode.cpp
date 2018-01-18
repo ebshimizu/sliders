@@ -1653,6 +1653,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "goalSelect", goalSelect);
   Nan::SetPrototypeMethod(tpl, "addMask", addMask);
   Nan::SetPrototypeMethod(tpl, "addPoissonDisk", addPoissonDiskCache);
+  Nan::SetPrototypeMethod(tpl, "initPoissonDisks", initPoissonDisks);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3170,6 +3171,15 @@ void CompositorWrapper::addPoissonDiskCache(const Nan::FunctionCallbackInfo<v8::
 
     c->_compositor->initPoissonDisk(n, level, k);
   }
+}
+
+void CompositorWrapper::initPoissonDisks(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addPoissonDiskCache");
+
+  // runs the sample pattern generation function
+  c->_compositor->initPoissonDisks();
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

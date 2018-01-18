@@ -72,8 +72,8 @@ bool Goal::meetsGoal(float val)
   }
   else {
     if (_target == GoalTarget::EXACT) {
-      // exact expectes results to be really tight, so 2.3 (the lab JND) should serve well
-      return (abs(val) <= 2.3);
+      // these values are based on the lab jnd. 
+      return (abs(val) <= 2.3 * 4);
     }
     else {
       return val <= 0;
@@ -236,8 +236,13 @@ void PoissonDisk::sample(vector<float> x0)
 
         if (accept) {
           int id = insert(newpt);
-          _active.push_back(id);
-          break;  // count < _k
+
+          // sometimes id conflicts happen, in which case we just skip
+          // this shouldn't happen really, but instead of crashing we'll continue
+          if (id > 0) {
+            _active.push_back(id);
+            break;  // count < _k
+          }
         }
         else {
           count++;
@@ -253,9 +258,35 @@ void PoissonDisk::sample(vector<float> x0)
   }
 }
 
-const vector<vector<float>>& PoissonDisk::getPtList()
+vector<vector<float>> PoissonDisk::allPoints()
 {
   return _pts;
+}
+
+vector<vector<float>> PoissonDisk::selectedPoints(set<int> indices)
+{
+  vector<vector<float>> pts;
+
+  for (auto& id : indices) {
+    if (id > 0 && id < _pts.size())
+      pts.push_back(_pts[id]);
+  }
+
+  return pts;
+}
+
+vector<vector<float>> PoissonDisk::nearby(vector<vector<float>>& pts)
+{
+  set<int> uniqueIds;
+
+  for (auto& p : pts) {
+    vector<int> nearby = adjacentPts(p, 3);
+
+    for (auto id : nearby)
+      uniqueIds.insert(id);
+  }
+
+  return selectedPoints(uniqueIds);
 }
 
 void PoissonDisk::init()
@@ -278,7 +309,10 @@ void PoissonDisk::init()
 int PoissonDisk::insert(vector<float>& pt)
 {
   // debug 
-  assert(_bgArray[ptToIndex(pt)] == -1);
+  if (_bgArray[ptToIndex(pt)] != -1) {
+    getLogger()->log("Poisson Disk grid cell not empty on attempted insert", LogLevel::ERR);
+    return -1;
+  }
 
   int idx = _pts.size();
   _pts.push_back(pt);
@@ -323,6 +357,11 @@ bool PoissonDisk::ptInBounds(vector<float>& x)
   for (int i = 0; i < x.size(); i++) {
     if (x[i] < 0 || x[i] > 1)
       return false;
+
+    // cell check
+    int cell = ptToGrid(x[i]);
+    if (cell < 0 || cell >= _gridSize)
+      return false;
   }
 
   return true;
@@ -348,6 +387,15 @@ vector<int> PoissonDisk::adjacentPts(vector<float>& x)
   return adjacentPts(grid);
 }
 
+vector<int> PoissonDisk::adjacentPts(vector<float>& x, int radius) {
+  vector<int> grid;
+  for (int i = 0; i < x.size(); i++) {
+    grid.push_back(ptToGrid(x[i]));
+  }
+
+  return adjacentPts(grid, radius);
+}
+
 vector<int> PoissonDisk::adjacentPts(vector<int>& x) {
   // for simplicity, diagonals are not considered
   // this should hopefully not affect correctness
@@ -362,6 +410,31 @@ vector<int> PoissonDisk::adjacentPts(vector<int>& x) {
     testPt[i] = x[i] + 1;
     if (testPt[i] < _n && _bgArray[gridIndex(testPt)] != -1)
       pts.push_back(_bgArray[gridIndex(testPt)]);
+  }
+
+  // don't forget the cell the point is, uh, in already
+  if (_bgArray[gridIndex(x)] != -1)
+    pts.push_back(_bgArray[gridIndex(x)]);
+
+  return pts;
+}
+
+vector<int> PoissonDisk::adjacentPts(vector<int>& x, int radius)
+{
+  vector<int> pts;
+  for (int i = 0; i < x.size(); i++) {
+    vector<int> testPt = x;
+    int base = x[i];
+
+    for (int j = -radius; j <= radius; j++) {
+      if (j == 0)
+        continue;
+
+      testPt[i] = base + j;
+
+      if (testPt[i] >= 0 && testPt[i] < _gridSize && _bgArray[gridIndex(testPt)] != -1)
+        pts.push_back(_bgArray[gridIndex(testPt)]);
+    }
   }
 
   // don't forget the cell the point is, uh, in already

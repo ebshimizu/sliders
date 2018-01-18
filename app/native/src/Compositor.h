@@ -266,11 +266,18 @@ namespace Comp {
     // the multi-pixel version of goal select
     map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, vector<int> x, vector<int> y);
 
+    // tests a given layer's adjustment to see if it meets the goal
+    bool adjustmentMeetsGoal(string layer, AdjustmentType adj, Goal& g, Context c,
+      vector<int> x, vector<int> y, float& minimum, map<string, float>& paramVals);
+
     // multi-pixel rectangular select
     map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int w, int h);
 
     // uh, poisson disk sampling because i need a test function?
     void initPoissonDisk(int n, int level, int k = 30);
+
+    // populates that cache
+    void initPoissonDisks();
 
   private:
     void addLayer(string name);

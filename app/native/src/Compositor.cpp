@@ -1613,107 +1613,14 @@ namespace Comp {
         // TODO: opacity / visibility might want to be up and on for adjustment checking, will test
         // hey also i'm skipping selective color for now because I just don't want to deal with it
         for (auto& a : adjustments) {
-          // ok uhhhhh we're gonna do a random restart gradient descent with numerical derivatives
-          // also there will be a limit on maximuim iterations for each adjustment because this is expensive
-          float min = FLT_MAX;
-          map<string, float> adj = _primary[layer].getAdjustment(a);
-          map<string, float> adjBest = adj;
-
-          // TODO: variables for this eventually
-          int maxRestarts = 10;
-          int maxSteps = 100;
-
-          for (int round = 0; round < maxRestarts; round++) {
-            // yeah it should be a variable step size but right now i just need something real quick
-            float stepSize = 0.0001;
-
-            // rendering context, reset every round
-            // it actually should be ok to move to adjustment level resets but just in case for now
-            Context r(c);
-
-            // randomize
-            map<string, float> current = adj;
-            random_device rd;
-            mt19937 gen(rd());
-            uniform_real_distribution<float> dist(0, 1);
-
-            for (auto& p : current) {
-              current[p.first] = dist(gen);
-            }
-
-            r[layer].addAdjustment(a, current);
-
-            vector<RGBAColor> testPixels;
-            for (int i = 0; i < x.size(); i++) {
-              testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
-            }
-
-            float fx = g.goalObjective(testPixels);
-            map<string, float> prevDelta;
-            map<string, float> prev;
-
-            for (int step = 0; step < maxSteps; step++) {
-              // get the deltas
-              map<string, float> delta = getDelta(g, r, fx, current, layer, a, x, y);
-
-              // compute step size
-              // if we can
-              if (step > 0) {
-                // wikipedia calls this one the barzilai-borwein method
-                float num = 0;
-                float denom = 0;
-                for (auto& p : delta) {
-                  float gradDiff = (delta[p.first] - prevDelta[p.first]);
-                  num += (current[p.first] - prev[p.first]) * gradDiff;
-                  denom += (gradDiff * gradDiff);
-                }
-
-                if (denom != 0) {
-                  // ?
-                  stepSize = abs(num / denom);
-                }
-              }
-
-              prev = current;
-              prevDelta = delta;
-
-              // apply the deltas
-              for (auto& p : delta) {
-                current[p.first] -= (current[p.first] * p.second * stepSize);
-                current[p.first] = clamp<float>(current[p.first], 0, 1);
-              }
-
-              r[layer].addAdjustment(a, current);
-
-              // update value
-              vector<RGBAColor> testPixels;
-              for (int i = 0; i < x.size(); i++) {
-                testPixels.push_back(renderPixel<float>(r, x[i], y[i], "full"));
-              }
-
-              float fxp = g.goalObjective(testPixels);
-              getLogger()->log("Layer " + layer + " adjustment " + to_string(a) + " round " + to_string(round) + " step " + to_string(step) + " current objective value: " + to_string(fxp), LogLevel::SILLY);
-
-              // repeat or break
-              if (abs(fx - fxp) < 0.001) {
-                fx = fxp;
-                break;
-              }
-
-              fx = fxp;
-            }
-
-            // compare vs best
-            if (fx < min) {
-              min = fx;
-              adjBest = current;
-            }
-          }
+          float min;
+          map<string, float> vals;
+          bool meetsGoal = adjustmentMeetsGoal(layer, a, g, c, x, y, min, vals);
 
           // check goal success
-          if (g.meetsGoal(min)) {
+          if (meetsGoal) {
             // accept n stuff
-            for (auto& p : adjBest) {
+            for (auto& p : vals) {
               GoalResult r;
               r._param = p.first;
               r._val = p.second;
@@ -1732,6 +1639,123 @@ namespace Comp {
     }
 
     return ret;
+  }
+
+  bool Compositor::adjustmentMeetsGoal(string layer, AdjustmentType adj, Goal & g, Context c,
+    vector<int> x, vector<int> y, float & minimum, map<string, float>& paramVals)
+  {
+    // this assumes the stuff in the poisson disc cache is initialized, if not it'll probably crash?
+    // set up adjustment settings
+    map<string, float> params = c[layer].getAdjustment(adj);
+
+    // some adjustments have params that should be ignored, or are simply unable to be edited
+    if (adj == AdjustmentType::CURVES || adj == AdjustmentType::GRADIENT || adj == AdjustmentType::INVERT) {
+      minimum = 0;
+      return false;
+    }
+    else if (adj == AdjustmentType::SELECTIVE_COLOR) {
+      getLogger()->log("Selective color is not supported yet", LogLevel::WARN);
+      minimum = 0;
+      return false;
+    }
+    else if (adj == AdjustmentType::COLOR_BALANCE) {
+      getLogger()->log("Color Balance is not supported yet", LogLevel::WARN);
+      minimum = 0;
+      return false;
+    }
+    else if (adj == AdjustmentType::PHOTO_FILTER) {
+      // preserve luma is a binary option here and should not be used during optimization
+      params.erase("preserveLuma");
+    }
+
+    // ok now determine the dimensionality of the thing
+    int n = params.size();
+
+    // check for sample pattern existence
+    if (_pdiskCache.count(n) == 0) {
+      getLogger()->log("No sample patterns initialized for dimensionality " + to_string(n) + ". Aborting...", LogLevel::ERR);
+      minimum = 0;
+      return false;
+    }
+
+    int level = 0;
+    int maxLevel = level;
+    map<int, shared_ptr<PoissonDisk>> disks = _pdiskCache[n];
+
+    // find max level
+    for (auto& levels : disks) {
+      if (levels.first > maxLevel)
+        maxLevel = levels.first;
+    }
+
+    // initialize points with all of level 0
+    vector<vector<float>> pts;
+    minimum = FLT_MAX;
+    paramVals = params;
+    Context renderContext(c);
+
+    // sorts by score
+    multimap<float, vector<float>> sortedPts;
+
+    // ok so until we hit max level, do this repeatedly
+    while (level <= maxLevel) {
+      if (level == 0) {
+        pts = disks[level]->allPoints();
+      }
+      else {
+        // take the top 25%, max 1000 pts, min 
+        int ptsToNextLevel = min((int)(sortedPts.size() * 0.25), 1000);
+        vector<vector<float>> nextPts;
+
+        int i = 0;
+        for (auto& p : sortedPts) {
+          if (i >= ptsToNextLevel)
+            break;
+
+          nextPts.push_back(p.second);
+          i++;
+        }
+        pts = disks[level]->nearby(nextPts);
+      }
+
+      sortedPts.clear();
+
+      // evaluate all points
+      for (auto& p : pts) {
+        // apply points
+        int i = 0;
+        map<string, float> currentParamVals;
+        for (auto& param : params) {
+          renderContext[layer].addAdjustment(adj, param.first, p[i]);
+          currentParamVals[param.first] = p[i];
+          i++;
+        }
+
+        // render the pixels
+        vector<RGBAColor> testPixels;
+        for (int j = 0; j < x.size(); j++) {
+          testPixels.push_back(renderPixel<float>(renderContext, x[j], y[j], "full"));
+        }
+
+        // get the objective
+        float fx = g.goalObjective(testPixels);
+
+        if (fx < minimum) {
+          minimum = fx;
+          paramVals = currentParamVals;
+        }
+
+        // put in the sorted points
+        sortedPts.insert(make_pair(fx, p));
+      }
+
+      getLogger()->log("Layer " + layer + " adjustment " + to_string(adj) + " current minimum is " + to_string(minimum) + " at level " + to_string(level));
+
+      // get the points that are close in the next level
+      level++;
+    }
+
+    return g.meetsGoal(minimum);
   }
 
   map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y, int w, int h)
@@ -1965,12 +1989,31 @@ namespace Comp {
   }
 
   void Compositor::initPoissonDisk(int n, int level, int k) {
-    float r = 0.2;
-
-    r = r * pow(2, -level);
+    float r;
+    if (n < 4) {
+      r = 0.2 * pow(2, -level);
+    }
+    else {
+      r = 0.5 * pow(1.5, -level);
+    }
 
     _pdiskCache[n][level] = shared_ptr<PoissonDisk>(new PoissonDisk(r, n, k));
     _pdiskCache[n][level]->sample();
+  }
+
+  void Compositor::initPoissonDisks()
+  {
+    // maximum depth is 3, dimensions for now are 2, 3, 4, 5
+    for (int i = 0; i < 4; i++) {
+      getLogger()->log("2D Poisson Disks Level " + to_string(i));
+      initPoissonDisk(2, i);
+      getLogger()->log("3D Poisson Disks Level " + to_string(i));
+      initPoissonDisk(3, i);
+      getLogger()->log("4D Poisson Disks Level " + to_string(i));
+      initPoissonDisk(4, i);
+      getLogger()->log("5D Poisson Disks Level " + to_string(i));
+      initPoissonDisk(5, i);
+    }
   }
 
   void Compositor::exploratorySearch()

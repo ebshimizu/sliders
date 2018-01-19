@@ -39,7 +39,8 @@ const GoalType = {
   "none" : 1,
   "targetColor": 2,
   "relativeBrightness": 3,
-  "colorize" : 5
+  "colorize": 5,
+  "saturate": 6
 }
 
 // nicer formatting for display
@@ -48,7 +49,8 @@ const GoalString = {
   "targetColor": "Target Color",
   "relativeBrightness": "Relative Brightness",
   "relativeChroma": "Relative Chroma",
-  "colorize": "Colorize"
+  "colorize": "Colorize",
+  "saturate": "Saturate"
 }
 
 class Slider {
@@ -1003,6 +1005,7 @@ class LayerSelector {
     this._useClickMap = false;
     this._useTags = false;
     this._useGoals = true;
+    this._maxLevel = 3;
 
     // ui
     // filter menu initialized with dummy vars for now
@@ -1332,6 +1335,46 @@ class LayerSelector {
       self._clickMapThreshold = parseFloat($(this).val());
     });
 
+    // max level 
+    var maxlevel = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="maxLevel">
+                  <input type="number" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Max Depth</div>
+              <div class="description">Maximum depth to use for selection with poisson disk maps</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(maxlevel);
+    maxlevel.find('input').val(this._maxLevel);
+
+    $('#maxLevel input').change(function () {
+      self._maxLevel = parseInt($(this).val());
+    });
+
+    // pdisk init
+    var pdisks = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui buttons">
+                <div class="ui button" id="initPdisks">Init Sample Patterns</div>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Poisson Disks</div>
+              <div class="description">Initialization controls for Poisson Disk sample patterns.</div>
+          </div>
+      </div>
+    `);
+    this._optionUIList.append(pdisks);
+    $('#initPdisks').click(function () {
+      c.initPoissonDisks();
+    });
+
     // use tags
     var taguse = $(`
       <div class="item">
@@ -1458,10 +1501,10 @@ class LayerSelector {
       var w = Math.abs(this._currentRect.pt1.x - this._currentRect.pt2.x);
       var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y); 
 
-      return c.goalSelect(this.goal, c.getContext(), x, y, w, h);
+      return c.goalSelect(this.goal, c.getContext(), x, y, w, h, this._maxLevel);
     }
     else {
-      return c.goalSelect(this.goal, c.getContext(), this._currentPt.x, this._currentPt.y);
+      return c.goalSelect(this.goal, c.getContext(), this._currentPt.x, this._currentPt.y, this._maxLevel);
     }
   }
 
@@ -2488,7 +2531,7 @@ class GoalMenu {
         self.toggleColorPicker($('#goalOptionsSection .goalColorPicker'), "_goalColor");
       });
     }
-    else if (this._activeGoalType === GoalType.relativeBrightness) {
+    else if (this._activeGoalType === GoalType.relativeBrightness || this._activeGoalType === GoalType.saturate) {
       var elem = '<div class="ui selection fluid dropdown relativeBrightnessMenu">';
       elem += '<input name="direction" type="hidden" />';
       elem += '<i class="dropdown icon"></i>';
@@ -2504,6 +2547,7 @@ class GoalMenu {
       $('#goalOptionsSection .relativeBrightnessMenu').dropdown({
         onChange: function (value, text, $selectedItem) {
           self._goalDirection = parseInt(value);
+          self.updateStatus();
         }
       });
     }
@@ -2597,6 +2641,9 @@ class GoalMenu {
     else if (this._activeGoalType === GoalType.relativeBrightness) {
       return { 'type': 3, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': { r: 0, g: 0, b: 0 } };
     }
+    else if (this._activeGoalType === GoalType.saturate) {
+      return { 'type': 6, 'target': (this._goalDirection > 0) ? 1 : 2, 'color': { r: 0, g: 0, b: 0 } };
+    }
     else if (this._activeGoalType === GoalType.colorize) {
       return { 'type': 5, 'target': 1, 'color': this._goalColor };
     }
@@ -2605,13 +2652,16 @@ class GoalMenu {
   updateStatus() {
     var elem = "Current Goal: " + $('#primaryGoalSelect').dropdown('get text');
 
-    if (this._activeGoalType === GoalType.targetColor) {
+    if (this._activeGoalType === GoalType.targetColor || this._activeGoalType === GoalType.colorize) {
       var colorStr = 'rgb(' + parseInt(this._goalColor.r * 255) + ',' + parseInt(this._goalColor.g * 255) + ',' + parseInt(this._goalColor.b * 255) + ')';
 
       elem += '<div class="goalColor" style="background-color:' + colorStr + ';"></div>';
     }
     else if (this._activeGoalType === GoalType.relativeBrightness) {
       elem = "Current Goal: " + (this._goalDirection > 0 ? "more" : "less") + " brightness";
+    }
+    else if (this._activeGoalType === GoalType.saturate) {
+      elem = "Current Goal: " + ((this._goalDirection > 0) ? "" : "De-") + "Saturate";
     }
 
     this._goalStatusElem.html(elem);

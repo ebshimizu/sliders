@@ -3099,10 +3099,19 @@ void CompositorWrapper::goalSelect(const Nan::FunctionCallbackInfo<v8::Value>& i
       int w = info[4]->IntegerValue();
       int h = info[5]->IntegerValue();
 
-      results = c->_compositor->goalSelect(g, ctx->_context, x, y, w, h);
+      int maxLevel = 100;
+      if (info[6]->IsNumber()) {
+        maxLevel = info[6]->IntegerValue();
+      }
+
+      results = c->_compositor->goalSelect(g, ctx->_context, x, y, w, h, maxLevel);
     }
     else {
-      results = c->_compositor->goalSelect(g, ctx->_context, x, y);
+      int maxLevel = 100;
+      if (info[4]->IsNumber())
+        maxLevel = info[4]->IntegerValue();
+
+      results = c->_compositor->goalSelect(g, ctx->_context, x, y, maxLevel);
     }
 
     // results to javascript object fun times

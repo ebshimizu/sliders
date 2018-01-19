@@ -76,7 +76,7 @@ bool Goal::meetsGoal(float val)
       return (abs(val) <= 2.3 * 4);
     }
     else {
-      return val <= 0;
+      return val <= -0.1;
     }
   }
 

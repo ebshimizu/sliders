@@ -1471,14 +1471,14 @@ namespace Comp {
     return (_layerTags[layer].count(tag) > 0);
   }
 
-  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y)
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y, int maxLevel)
   {
     vector<int> xv = { x };
     vector<int> yv = { y };
-    return goalSelect(g, c, xv, yv);
+    return goalSelect(g, c, xv, yv, maxLevel);
   }
 
-  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, vector<int> x, vector<int> y)
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, vector<int> x, vector<int> y, int maxLevel)
   {
     // right now this function will select _individual parameters_ (NOT ENTIRE ADJUSTMENTS)
     // that satisfy the given goal constraint.
@@ -1615,7 +1615,7 @@ namespace Comp {
         for (auto& a : adjustments) {
           float min;
           map<string, float> vals;
-          bool meetsGoal = adjustmentMeetsGoal(layer, a, g, c, x, y, min, vals);
+          bool meetsGoal = adjustmentMeetsGoal(layer, a, g, c, x, y, maxLevel, min, vals);
 
           // check goal success
           if (meetsGoal) {
@@ -1642,7 +1642,7 @@ namespace Comp {
   }
 
   bool Compositor::adjustmentMeetsGoal(string layer, AdjustmentType adj, Goal & g, Context c,
-    vector<int> x, vector<int> y, float & minimum, map<string, float>& paramVals)
+    vector<int> x, vector<int> y, int maxLevel, float & minimum, map<string, float>& paramVals)
   {
     // this assumes the stuff in the poisson disc cache is initialized, if not it'll probably crash?
     // set up adjustment settings
@@ -1679,14 +1679,17 @@ namespace Comp {
     }
 
     int level = 0;
-    int maxLevel = level;
     map<int, shared_ptr<PoissonDisk>> disks = _pdiskCache[n];
 
-    // find max level
+    // check that level exists, if not clamp
+    int maxAvailableLevel = 0;
     for (auto& levels : disks) {
-      if (levels.first > maxLevel)
-        maxLevel = levels.first;
+      if (levels.first > maxAvailableLevel)
+        maxAvailableLevel = levels.first;
     }
+
+    if (maxLevel > maxAvailableLevel)
+      maxLevel = maxAvailableLevel;
 
     // initialize points with all of level 0
     vector<vector<float>> pts;
@@ -1758,7 +1761,7 @@ namespace Comp {
     return g.meetsGoal(minimum);
   }
 
-  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y, int w, int h)
+  map<string, map<AdjustmentType, vector<GoalResult>>> Compositor::goalSelect(Goal g, Context & c, int x, int y, int w, int h, int maxLevel)
   {
     // choose the pixels to sample
     // right now here's how it works
@@ -1804,7 +1807,7 @@ namespace Comp {
       }
     }
 
-    return goalSelect(g, c, xpts, ypts);
+    return goalSelect(g, c, xpts, ypts, maxLevel);
   }
 
   void Compositor::addLayer(string name)
@@ -2004,15 +2007,17 @@ namespace Comp {
   void Compositor::initPoissonDisks()
   {
     // maximum depth is 3, dimensions for now are 2, 3, 4, 5
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i <= 4; i++) {
       getLogger()->log("2D Poisson Disks Level " + to_string(i));
       initPoissonDisk(2, i);
       getLogger()->log("3D Poisson Disks Level " + to_string(i));
       initPoissonDisk(3, i);
       getLogger()->log("4D Poisson Disks Level " + to_string(i));
       initPoissonDisk(4, i);
-      getLogger()->log("5D Poisson Disks Level " + to_string(i));
-      initPoissonDisk(5, i);
+      if (i <= 3) {
+        getLogger()->log("5D Poisson Disks Level " + to_string(i));
+        initPoissonDisk(5, i);
+      }
     }
   }
 

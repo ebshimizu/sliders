@@ -261,17 +261,17 @@ namespace Comp {
     // selects layers and parameters based on the current goal
     // goal format is uh, changeable but for now it's limited to brightness / color
     // also just targeting a single goal right now
-    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y);
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int maxLevel = 100);
 
     // the multi-pixel version of goal select
-    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, vector<int> x, vector<int> y);
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, vector<int> x, vector<int> y, int maxLevel = 100);
 
     // tests a given layer's adjustment to see if it meets the goal
     bool adjustmentMeetsGoal(string layer, AdjustmentType adj, Goal& g, Context c,
-      vector<int> x, vector<int> y, float& minimum, map<string, float>& paramVals);
+      vector<int> x, vector<int> y, int maxLevel, float& minimum, map<string, float>& paramVals);
 
     // multi-pixel rectangular select
-    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int w, int h);
+    map<string, map<AdjustmentType, vector<GoalResult>>> goalSelect(Goal g, Context& c, int x, int y, int w, int h, int maxLevel = 100);
 
     // uh, poisson disk sampling because i need a test function?
     void initPoissonDisk(int n, int level, int k = 30);

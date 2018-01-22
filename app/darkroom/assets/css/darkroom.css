@@ -833,10 +833,21 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     margin: 0 auto;
 }
 
+.groupSelectCheckbox {
+    float: right;
+}
+
 .parameterSelectPanel .optionsButton {
     position: absolute;
     top: 2px;
     right: 2px;
+    height: 26px;
+}
+
+.parameterSelectPanel .addGroupButton {
+    position: absolute;
+    top: 2px;
+    right: 36px;
     height: 26px;
 }
 

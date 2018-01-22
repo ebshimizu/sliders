@@ -31,6 +31,7 @@ var g_sideboardReserveStart = 100000;
 var maxThreads = comp.hardware_concurrency();
 var g_searchProcess;
 var g_layerSelector;
+var g_metaGroupList = {};
 var settings = {
   "showSampleId": true,
   "sampleRows": 6,
@@ -853,6 +854,7 @@ function initLayerSelector() {
     "rankThreshold": 0.01,
     "optUI": "#layerSelectOptionsTab"
   });
+  g_metaGroupList = {};
 }
 
 // Loads UI settings from the settings object. Assumes all settings in the object

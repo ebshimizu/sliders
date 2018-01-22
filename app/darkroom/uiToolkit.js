@@ -1909,6 +1909,7 @@ class ParameterSelectPanel {
 
     this._uiElem = '<div class="parameterSelectPanel" name="' + this._name + '">';
     this._uiElem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
+    this._uiElem += '<div class="ui mini icon button addGroupButton" data-content="Create Group"><i class="plus icon"></i></div>';
     this._uiElem += '<div class="ui two column grid"></div></div>';
     this._uiElem = $(this._uiElem);
 
@@ -1930,6 +1931,11 @@ class ParameterSelectPanel {
 
     $('.parameterSelectPanel[name="' + this._name + '"] .optionsButton').click(function () {
       $('.parameterSelectOptions[name="' + self._name + '"]').toggle();
+    });
+
+    $('.parameterSelectPanel[name="' + this._name + '"] .addGroupButton').popup();
+    $('.parameterSelectPanel[name="' + this._name + '"] .addGroupButton').click(function () {
+      self.addNewLayerGroup();
     });
 
     this.initSettingsUI();
@@ -2090,6 +2096,26 @@ class ParameterSelectPanel {
     $('.parameterSelectOptions[name="' + self._name + '"]').hide();
   }
 
+  addNewLayerGroup() {
+    // this will add a new meta-group to the current project
+    $('#newMetaGroupModal').modal({
+      closable: false,
+      onDeny: function () { },
+      onApprove: function () {
+        let name = $('#newMetaGroupModal input').val();
+        // gather the layers
+        let names = {};
+        let selected = $('.groupSelectCheckbox.checked');
+        selected.each(function (i, elem) {
+          names[$(elem).attr('name')] = 1;
+        });
+
+        let newGroup = new MetaGroup(Object.keys(names), name);
+        g_metaGroupList[newGroup._name] = newGroup;
+      }
+    }).modal('show');
+  }
+
   set displayOnMain(val) {
     this._showOnMain = val;
 
@@ -2138,7 +2164,8 @@ class ParameterSelectPanel {
 
         layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" cardID="' + id + '">';
         layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
-        layerElem += '<div class="extra content">' + displayText + '</div>';
+        layerElem += '<div class="extra content">' + displayText;
+        layerElem += '<div class="ui checkbox groupSelectCheckbox" name="' + name + '"><input type="checkbox"></div></div>';
         layerElem += '</div></div>';
 
         this._uiElem.find('.grid').append(layerElem);
@@ -2154,6 +2181,7 @@ class ParameterSelectPanel {
     var l = c.getLayer(name);
     var canvas = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"] canvas');
     var elem = $('.parameterSelectPanel[name="' + this._name + '"] div[cardID="' + id + '"]');
+    var cbox = elem.find('.groupSelectCheckbox');
     var self = this;
 
     if (this._previewMode === PreviewMode.rawLayer) {
@@ -2167,17 +2195,19 @@ class ParameterSelectPanel {
       // this will bind a mouseover event to start the animation loop for the hovered layer
       // panel. the images will be rendered on demand until the cache is full, at which point it'll
       // update at full speed 
-      elem.mouseover(function () { self.animateStart(name, adj, params, id); });
-      elem.mouseout(function () { self.animateStop(name, adj, params, id); });
+      canvas.mouseover(function () { self.animateStart(name, adj, params, id); });
+      canvas.mouseout(function () { self.animateStop(name, adj, params, id); });
 
       // just draw the composition as normal for the first frame
       drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
     }
 
     // onclick bindings are the same regardless
-    elem.click(function () {
+    canvas.click(function () {
       self.showLayerControl(name, adj);
     });
+
+    cbox.checkbox();
   }
 
   // displays the layer control panel and the controls associated with the given layer
@@ -3417,6 +3447,40 @@ class LayerControls {
   }
 }
 
+// a MetaGroup consists of a set of layers that can all be controlled at the same time
+// they can be dynamically created from any set of layers and will present the standard
+// layer controls in some way (maybe just listing in the layer select panel?)
+class MetaGroup {
+  constructor(layerNames, groupName) {
+    this._layerNames = layerNames;
+    this._name = groupName;
+
+    // get the actual layers?
+    this._layers = {};
+    for (let name in this._layerNames) {
+      this._layers[name] = c.getLayer(name);
+    }
+
+    this.initUI();
+  }
+
+  // ui things, just need to append to the meta group location in the main window
+  initUI() {
+    // just add a list entry for now?
+    let elem = '<div class="ui item" metaGroupName="' + this._name + '"><div class="content">';
+    elem += '<div class="right floated content">';
+    elem += '<div class="ui icon button" data-content="Display Layers" data-position="bottom center"><i class="unhide icon"></i></div>';
+    elem += '<div class="ui red icon button" data-content="Delete Group" data-position="bottom center"><i class="remove icon"></i></div>';
+    elem += '</div>';
+    elem += '<div class="header">' + this._name + '</div>';
+    elem += '<div class="description">Contains ' + this._layerNames.length + ' layers.</div>';
+
+    this._uiElem = $(elem);
+    $('#metaGroupList').append(this._uiElem);
+    $('div[metaGroupName="' + this._name + '"] .ui.icon.button').popup();
+  }
+}
+
 exports.Slider = Slider;
 exports.MetaSlider = MetaSlider;
 exports.Sampler = Sampler;
@@ -3425,3 +3489,4 @@ exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
 exports.LayerSelector = LayerSelector;
 exports.FilterMenu = FilterMenu;
+exports.MetaGroup = MetaGroup;

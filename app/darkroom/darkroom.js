@@ -20,7 +20,7 @@ inherits(comp.Compositor, events);
 comp.setLogLevel(1);
 
 // initializes a global compositor object to operate on
-var c, docTree, modifiers, dr;
+var c, docTree, dr;
 var g_flatGroups = {};
 var g_groupsByLayer = {};
 var g_groupMods = {};
@@ -1399,9 +1399,7 @@ function bindStandardEvents(name, layer) {
       visible = visible && g_groupMods[g_groupsByLayer[name][i]].groupVisible;
     }
 
-    //layer.visible(!visible && modifiers[name].groupVisible);
     layer.visible(visible);
-    modifiers[name].visible = !visible;
 
     var button = $('button[layerName="' + name + '"]');
 
@@ -1422,7 +1420,7 @@ function bindStandardEvents(name, layer) {
 
   var button = $('button[layerName="' + name + '"]');
   // set starting visibility
-  if (modifiers[name].visible) {
+  if (c.getLayer(name).visible()) {
     button.html('<i class="unhide icon"></i>');
     button.removeClass("black");
     button.addClass("white");
@@ -2014,13 +2012,6 @@ function createShadowState(tree, order) {
   // just keep the entire loaded tree it's easier
   // it will have html but eh who cares
   docTree = tree;
-  modifiers = {};
-
-  // populate modifiers
-  for (var i = 0; i < order.length; i++) {
-    var layer = c.getLayer(order[i]);
-    modifiers[order[i]] = { 'groupOpacity': 100, 'groupVisible': true, 'visible': layer.visible(), 'opacity': layer.opacity() * 100 };
-  }
 }
 
 /*===========================================================================*/
@@ -2455,7 +2446,6 @@ function loadLayers(doc, path, transfer) {
 
   // when loading an existing darkroom file we have some things already filled in
   // so we just load them from disk
-  modifiers = doc.modifiers;
   docTree = doc.docTree;
 
   // we can skip metadata creation
@@ -2612,8 +2602,15 @@ function loadLayers(doc, path, transfer) {
   }
 
   // flatten
-  if (ver < saveVersion) {
+  if (ver < 0.4) {
     setupFlatGroups();
+  }
+  else {
+    g_flatGroups = doc.flatGroups;
+    g_groupMods = doc.groupMods;
+    g_groupsByLayer = doc.groupsByLayer;
+
+    // TODO: UPDATE THE GUI HERE
   }
 }
 
@@ -2626,7 +2623,6 @@ function save(file) {
   // this will have the html attached to it but that's ok.
   // can be directly loaded
   out.docTree = docTree;
-  out.modifiers = modifiers;
 
   // layer data
   var layers = {};
@@ -2690,6 +2686,11 @@ function save(file) {
 
   //settings
   out.settings = settings;
+
+  // groups
+  out.flatGroups = g_flatGroups;
+  out.groupsByLayer = g_groupsByLayer;
+  out.groupMods = g_groupMods;
 
   fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
     if (err) {
@@ -2933,9 +2934,6 @@ function handleParamChange(layerName, ui) {
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName == "opacity") {
-    // update the modifiers and compute acutual value
-    // modifiers[layerName].opacity = ui.value / 100;
-
     // groups are applied in reverse order
     let val = ui.value / 100;
     for (let i = g_groupsByLayer[layerName].length - 1; i >= 0; i--) {
@@ -2943,7 +2941,6 @@ function handleParamChange(layerName, ui) {
     }
 
     c.getLayer(layerName).opacity(val);
-    //c.getLayer(layerName).opacity((ui.value / 100) * (modifiers[layerName].groupOpacity / 100));
 
     // find associated value box and dump the value there
     $(ui.handle).parent().next().find("input").val(String(ui.value));
@@ -3137,62 +3134,6 @@ function toggleGroupVisibility(group, doc) {
   }
 
   return g_groupMods[group].groupVisible;
-
-  // find the group and then set children
-  //if (typeof (doc) !== "object")
-  //  return;
-
-  //if (group in doc) {
-    // if the visibility key doesn't exist, the group was previous visible, init to that state
-  //  if (!("visible" in doc[group])) {
-  //    doc[group].visible = true;
-  //  }
-
-  //  doc[group].visible = !doc[group].visible;
-  //  updateChildVisibility(doc[group], doc[group].visible);
-
-    // groups are unique, once found we're done
-  //  return doc[group].visible;
-  //}
-
-  //var ret;
-  //for (var key in doc) {
-    // still looking for the group
- //   var val = toggleGroupVisibility(group, doc[key]);
-
-  //  if (typeof (val) === 'boolean') {
-  //    ret = val;
-  //  }
- // }
-  //return ret;
-}
-
-function updateChildVisibility(doc, val) {
-  if (typeof (doc) !== "object")
-    return null;
-
-  for (var key in doc) {
-    if (typeof (doc[key]) !== "object") {
-      continue;
-    }
-
-    if (key in modifiers) {
-      // layer
-      // update group vis setting
-      modifiers[key].groupVisible = val;
-
-      // update the layer state
-      c.getLayer(key).visible(modifiers[key].groupVisible && modifiers[key].visible);
-    }
-    else {
-      // not a layer
-      if (!("visible" in doc[key])) {
-        doc[key].visible = true;
-      }
-
-      updateChildVisibility(doc[key], val && doc[key].visible);
-    }
-  }
 }
 
 function groupOpacityChange(group, val, doc) {
@@ -3212,48 +3153,7 @@ function groupOpacityChange(group, val, doc) {
     c.getLayer(name).opacity(newVal);
   }
 
-  //if (typeof (doc) !== "object")
-  //  return;
-
-  //if (group in doc) {
-  //  doc[group].opacity = val;
-
-  //  updateChildOpacity(doc[group], doc[group].opacity);
-
-    // groups are unique, once found we're done
-    $('.groupInput[setName="' + group + '"] input').val(String(val));
-  //  return;
-  //}
-
-  //for (var key in doc) {
-    // still looking for the group
-  //  groupOpacityChange(group, val, doc[key]);
-  //}
-}
-
-function updateChildOpacity(doc, val) {
-  for (var key in doc) {
-    if (typeof (doc[key]) !== "object") {
-      continue;
-    }
-
-    if (key in modifiers) {
-      // layer
-      // update group opacity setting
-      modifiers[key].groupOpacity = val;
-
-      // update the layer state
-      c.getLayer(key).opacity((modifiers[key].groupOpacity / 100) * (modifiers[key].opacity / 100));
-    }
-    else {
-      // not a layer
-      if (!("opacity" in doc[key])) {
-        doc[key].opacity = 100;
-      }
-
-      updateChildOpacity(doc[key], val * (doc[key].opacity / 100));
-    }
-  }
+  $('.groupInput[setName="' + group + '"] input').val(String(val));
 }
 
 function showStatusMsg(msg, type, title) {
@@ -3502,7 +3402,7 @@ function updateLayerControls() {
 
     // visibility
     var button = $('button[layerName="' + layerName + '"]');
-    if (modifiers[layerName].visible) {
+    if (c.getLayer(layerName).visible()) {
       button.html('<i class="unhide icon"></i>');
       button.removeClass("black");
       button.addClass("white");
@@ -3618,9 +3518,6 @@ function updateColorControl(name, section, adj) {
 }
 
 function resetShadowState() {
-  for (var name in modifiers) {
-    modifiers[name] = { 'groupOpacity': 100, 'groupVisible': true, 'visible': c.getLayer(name).visible(), 'opacity': c.getLayer(name).opacity() * 100 };
-  }
 }
 
 /*===========================================================================*/

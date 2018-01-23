@@ -2410,8 +2410,9 @@ function importLayers(doc, path) {
   var layerData = generateControlHTML(sets, order);
   $('#layerControls').html(layerData);
 
-  // save group visibility info and individual layer transparency modifiers here
   createShadowState(sets, order);
+  // save group visibility info and individual layer transparency modifiers here
+  setupFlatGroups(docTree, []);
 
   // bind events
   for (i = 0; i < order.length; i++) {
@@ -2610,7 +2611,7 @@ function loadLayers(doc, path, transfer) {
     g_groupMods = doc.groupMods;
     g_groupsByLayer = doc.groupsByLayer;
 
-    // TODO: UPDATE THE GUI HERE
+    updateGroupUI();
   }
 }
 
@@ -5147,4 +5148,28 @@ function setupFlatGroups() {
   for (let g in g_flatGroups) {
     g_groupMods[g] = { 'groupOpacity': 100, 'groupVisible': true };
   }
+}
+
+function updateGroupUI() {
+  return;
+  // this actually has unintended side-effects, so for now short circuit
+
+  for (let g in g_groupMods) {
+    let group = g_groupMods[g];
+
+    if (group.groupVisible) {
+      $('.layerSet .groupButton[setName="' + g + '"]').html('<i class="unhide icon"></i>').
+        removeClass('black').
+        addClass('white');
+    }
+    else {
+      $('.layerSet .groupButton[setName="' + g + '"]').html('<i class="hide icon"></i>').
+        removeClass('white').
+        addClass('black');
+    }
+
+    $('.parameter[setName="' + g + '"] .paramSlider').slider('value', group.groupOpacity);
+    $('.parameter[setName="' + g + '"] input').val(group.groupOpacity);
+  }
+
 }

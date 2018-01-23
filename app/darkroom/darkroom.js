@@ -8,7 +8,7 @@ var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
 const uiTools = require('./uiToolkit');
-const saveVersion = 0.38;
+const saveVersion = 0.40;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -21,6 +21,9 @@ comp.setLogLevel(1);
 
 // initializes a global compositor object to operate on
 var c, docTree, modifiers, dr;
+var g_flatGroups = {};
+var g_groupsByLayer = {};
+var g_groupMods = {};
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
@@ -1389,14 +1392,20 @@ function bindStandardEvents(name, layer) {
   // visibility
   $('button[layerName="' + name + '"]').on('click', function () {
     // check status of button
-    var visible = layer.visible();
+    let visible = !$('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
+    let buttonVis = visible;
 
-    layer.visible(!visible && modifiers[name].groupVisible);
+    for (let i = 0; i < g_groupsByLayer[name].length; i++) {
+      visible = visible && g_groupMods[g_groupsByLayer[name][i]].groupVisible;
+    }
+
+    //layer.visible(!visible && modifiers[name].groupVisible);
+    layer.visible(visible);
     modifiers[name].visible = !visible;
 
     var button = $('button[layerName="' + name + '"]');
 
-    if (modifiers[name].visible) {
+    if (buttonVis) {
       button.html('<i class="unhide icon"></i>');
       button.removeClass("black");
       button.addClass("white");
@@ -2601,6 +2610,11 @@ function loadLayers(doc, path, transfer) {
       addDebugConstraint(constraint.x, constraint.y, constraint.color, constraint.weight);
     }
   }
+
+  // flatten
+  if (ver < saveVersion) {
+    setupFlatGroups();
+  }
 }
 
 // saves the document in an easier to load format
@@ -2920,9 +2934,16 @@ function handleParamChange(layerName, ui) {
 
   if (paramName == "opacity") {
     // update the modifiers and compute acutual value
-    modifiers[layerName].opacity = ui.value / 100;
+    // modifiers[layerName].opacity = ui.value / 100;
 
-    c.getLayer(layerName).opacity((ui.value / 100) * (modifiers[layerName].groupOpacity / 100));
+    // groups are applied in reverse order
+    let val = ui.value / 100;
+    for (let i = g_groupsByLayer[layerName].length - 1; i >= 0; i--) {
+      val *= g_groupMods[g_groupsByLayer[layerName][i]].groupOpacity / 100;
+    }
+
+    c.getLayer(layerName).opacity(val);
+    //c.getLayer(layerName).opacity((ui.value / 100) * (modifiers[layerName].groupOpacity / 100));
 
     // find associated value box and dump the value there
     $(ui.handle).parent().next().find("input").val(String(ui.value));
@@ -3101,33 +3122,49 @@ function deleteAllControls() {
 }
 
 function toggleGroupVisibility(group, doc) {
-  // find the group and then set children
-  if (typeof (doc) !== "object")
-    return;
+  let affectedLayers = g_flatGroups[group];
+  g_groupMods[group].groupVisible = !g_groupMods[group].groupVisible;
 
-  if (group in doc) {
-    // if the visibility key doesn't exist, the group was previous visible, init to that state
-    if (!("visible" in doc[group])) {
-      doc[group].visible = true;
+  for (let i in affectedLayers) {
+    let name = affectedLayers[i];
+    let vis = $('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
+
+    for (let i = g_groupsByLayer[name].length - 1; i >= 0; i--) {
+      vis = vis && g_groupMods[g_groupsByLayer[name][i]].groupVisible;
     }
 
-    doc[group].visible = !doc[group].visible;
-    updateChildVisibility(doc[group], doc[group].visible);
+    c.getLayer(name).visible(vis);
+  }
+
+  return g_groupMods[group].groupVisible;
+
+  // find the group and then set children
+  //if (typeof (doc) !== "object")
+  //  return;
+
+  //if (group in doc) {
+    // if the visibility key doesn't exist, the group was previous visible, init to that state
+  //  if (!("visible" in doc[group])) {
+  //    doc[group].visible = true;
+  //  }
+
+  //  doc[group].visible = !doc[group].visible;
+  //  updateChildVisibility(doc[group], doc[group].visible);
 
     // groups are unique, once found we're done
-    return doc[group].visible;
-  }
+  //  return doc[group].visible;
+  //}
 
-  var ret;
-  for (var key in doc) {
+  //var ret;
+  //for (var key in doc) {
     // still looking for the group
-    var val = toggleGroupVisibility(group, doc[key]);
+ //   var val = toggleGroupVisibility(group, doc[key]);
 
-    if (typeof (val) === 'boolean') {
-      ret = val;
-    }
-  }
-  return ret;
+  //  if (typeof (val) === 'boolean') {
+  //    ret = val;
+  //  }
+ // }
+  //return ret;
 }
 
 function updateChildVisibility(doc, val) {
@@ -3160,23 +3197,38 @@ function updateChildVisibility(doc, val) {
 
 function groupOpacityChange(group, val, doc) {
   // find the group and then set children
-  if (typeof (doc) !== "object")
-    return;
+  let affectedLayers = g_flatGroups[group];
+  g_groupMods[group].groupOpacity = val;
 
-  if (group in doc) {
-    doc[group].opacity = val;
+  for (let i in affectedLayers) {
+    let name = affectedLayers[i];
+    let uiVal = $('.parameter[layerName="' + name + '"][paramName="opacity"] .paramSlider').slider('value');
 
-    updateChildOpacity(doc[group], doc[group].opacity);
+    let newVal = uiVal / 100;
+    for (let i = g_groupsByLayer[name].length - 1; i >= 0; i--) {
+      newVal *= g_groupMods[g_groupsByLayer[name][i]].groupOpacity / 100;
+    }
+
+    c.getLayer(name).opacity(newVal);
+  }
+
+  //if (typeof (doc) !== "object")
+  //  return;
+
+  //if (group in doc) {
+  //  doc[group].opacity = val;
+
+  //  updateChildOpacity(doc[group], doc[group].opacity);
 
     // groups are unique, once found we're done
     $('.groupInput[setName="' + group + '"] input').val(String(val));
-    return;
-  }
+  //  return;
+  //}
 
-  for (var key in doc) {
+  //for (var key in doc) {
     // still looking for the group
-    groupOpacityChange(group, val, doc[key]);
-  }
+  //  groupOpacityChange(group, val, doc[key]);
+  //}
 }
 
 function updateChildOpacity(doc, val) {
@@ -5143,4 +5195,59 @@ function addSliderSelector(name, size) {
   slider.createUI($('#sliderItems'));
 
   g_uiComponents[name] = slider;
+}
+
+/* Flat groups */
+
+// takes a document in a tree like the modifiers variable, flattens it, and stores results
+// in g_flatGroups and g_groupsByLayer
+function flattenDoc(doc, path) {
+  for (let key in doc) {
+    // drop opacity value in tree nodes
+    if (key === "opacity")
+      continue;
+
+    let node = doc[key];
+    // leaf nodes have no object values
+    let isLeaf = true;
+    for (let k in node) {
+      if (typeof node[k] === 'object') {
+        isLeaf = false;
+        break;
+      }
+    }
+
+    if (isLeaf) {
+      // add layer to flat groups based on the current path
+      for (let g in path) {
+        let group = path[g]
+        if (!(group in g_flatGroups))
+          g_flatGroups[group] = [];
+
+        g_flatGroups[group].push(key);
+      }
+
+      g_groupsByLayer[key] = path.slice();
+    }
+    else {
+      var newPath = path.slice();
+      newPath.push(key);
+      flattenDoc(node, newPath);
+    }
+  }
+}
+
+// takes the old import doc tree / old files and converts to new
+// flat grouping mode
+function setupFlatGroups() {
+  g_flatGroups = {};
+  g_groupsByLayer = {};
+  g_groupMods = {};
+
+  flattenDoc(docTree, []);
+
+  // setup mods
+  for (let g in g_flatGroups) {
+    g_groupMods[g] = { 'groupOpacity': 100, 'groupVisible': true };
+  }
 }

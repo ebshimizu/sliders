@@ -5195,15 +5195,19 @@ function registerMetaGroup(group) {
 }
 
 function removeMetaGroup(name) {
-  m_metaGroupList[name].deleteUI();
-  delete m_metaGroupList[name];
-  delete m_flatGroups[name];
-
   // uh ok so when a meta group gets deleted we need to trigger an update of
   // all the relevant parameter values in the affected layers and then delete
   // the entry 
-  // UPDATE PARAMS
+  for (let i = 0; i < g_flatGroups[name].length; i++) {
+    let l = g_flatGroups[name][i];
+    let idx = g_groupsByLayer[l].indexOf(name);
 
-  delete m_groupsByLayer[name];
-  
+    if (idx > -1)
+      g_groupsByLayer[l].splice(idx, 1);
+  }
+
+  g_metaGroupList[name].deleteUI();
+  delete g_metaGroupList[name];
+  delete g_flatGroups[name];
+  delete g_groupsByLayer[name];
 }

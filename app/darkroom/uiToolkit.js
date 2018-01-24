@@ -2767,8 +2767,9 @@ class LayerControls {
   rebuildUI() {
     this._uiElem.remove();
     this._uiElem = $(this.buildUI());
-    container.append(this._uiElem);
+    this._container.append(this._uiElem);
     this.bindEvents();
+    this.displayThumb = this.displayThumb;
     this.drawThumb();
   }
 
@@ -3070,19 +3071,19 @@ class LayerControls {
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
         this.bindParam("shadow G", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("shadow B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).shadowB - 0.5) * 2, sectionName, type,
+        this.bindParam("shadow B", (this.layer.getAdjustment(adjType.COLOR_BALANCE).shadowB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("mid R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midR - 0.5) * 2, sectionName, type,
+        this.bindParam("mid R", (this.layer.getAdjustment(adjType.COLOR_BALANCE).midR - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("mid G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midG - 0.5) * 2, sectionName, type,
+        this.bindParam("mid G", (this.layer.getAdjustment(adjType.COLOR_BALANCE).midG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("mid B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).midB - 0.5) * 2, sectionName, type,
+        this.bindParam("mid B", (this.layer.getAdjustment(adjType.COLOR_BALANCE).midB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("highlight R", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highR - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight R", (this.layer.getAdjustment(adjType.COLOR_BALANCE).highR - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("highlight G", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highG - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight G", (this.layer.getAdjustment(adjType.COLOR_BALANCE).highG - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
-        this.bindParam("highlight B", (this.laye.getAdjustment(adjType.COLOR_BALANCE).highB - 0.5) * 2, sectionName, type,
+        this.bindParam("highlight B", (this.layer.getAdjustment(adjType.COLOR_BALANCE).highB - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01 });
 
         this.bindToggle(sectionName, "preserveLuma", type);
@@ -3267,9 +3268,12 @@ class LayerControls {
 
   paramHandler(event, ui, paramName, type) {
     if (type === adjType["OPACITY"]) {
-      // update the modifiers and compute acutual value
-      modifiers[this._name].opacity = ui.value / 100;
-      this._layer.opacity((ui.value / 100) * (modifiers[this._name].groupOpacity / 100));
+      let val = ui.value / 100;
+      for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {
+        val *= g_groupMods[g_groupsByLayer[this.name][i]].groupOpacity / 100;
+      }
+  
+      this._layer.opacity(val);
     }
     else if (type === adjType["HSL"]) {
       if (paramName === "hue") {
@@ -3482,8 +3486,9 @@ class MetaGroup {
     // just add a list entry for now?
     let elem = '<div class="ui item" metaGroupName="' + this._name + '"><div class="content">';
     elem += '<div class="right floated content">';
-    elem += '<div class="ui icon button" data-content="Display Layers" data-position="bottom center"><i class="unhide icon"></i></div>';
-    elem += '<div class="ui red icon button" data-content="Delete Group" data-position="bottom center"><i class="remove icon"></i></div>';
+    elem += '<div class="ui icon button showGroupLayers" data-content="Display Layers" data-position="bottom center"><i class="folder open outline icon"></i></div>';
+    elem += '<div class="ui icon button groupVisibility" data-position="bottom center"><i class="unhide icon"></i></div>';
+    elem += '<div class="ui red icon button deleteGroup" data-content="Delete Group" data-position="bottom center"><i class="remove icon"></i></div>';
     elem += '</div>';
     elem += '<div class="header">' + this._name + '</div>';
     elem += '<div class="description">Contains ' + this._layerNames.length + ' layers.</div>';
@@ -3501,6 +3506,12 @@ class MetaGroup {
     this._slider = '.metaGroupSlider[metaGroupName="' + this._name + '"]';
     $('#metaGroupList').append(this._uiElem);
     $('div[metaGroupName="' + this._name + '"] .ui.icon.button').popup();
+    $('div[metaGroupName="' + this._name + '"] .deleteGroup').click(function() {
+      removeMetaGroup(self.name);
+    });
+    $('div[metaGroupName="' + this._name + '"] .showGroupLayers').click(function() {
+      self.showLayers();
+    });
     $(this._slider).slider({
       orientation: 'horizontal',
       range: 'min',
@@ -3545,6 +3556,16 @@ class MetaGroup {
    if (render) {
     renderImage('Group ' + this._name + ' opacity change');
    }
+  }
+
+  showLayers() {
+    let data = {};
+    for (let l in this._layerNames) {
+      data[this._layerNames[l]] = {};
+      data[this._layerNames[l]][adjType.OPACITY] = [{ param: 'opacity', val: 1}];
+    }
+
+    g_layerSelector._paramSelectPanel.layers = data;
   }
 }
 

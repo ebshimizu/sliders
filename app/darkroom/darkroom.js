@@ -5151,6 +5151,12 @@ function setupFlatGroups() {
 }
 
 function updateGroupUI() {
+  // this is more of a reset right now
+  for (let g in g_groupMods) {
+    g_groupMods[g].groupOpacity = 100;
+    g_groupMods[g].groupVisible = true;
+  }
+
   return;
   // this actually has unintended side-effects, so for now short circuit
 
@@ -5171,5 +5177,33 @@ function updateGroupUI() {
     $('.parameter[setName="' + g + '"] .paramSlider').slider('value', group.groupOpacity);
     $('.parameter[setName="' + g + '"] input').val(group.groupOpacity);
   }
+}
 
+// places a meta group in the proper locations
+function registerMetaGroup(group) {
+  g_metaGroupList[group.name] = group;
+  g_flatGroups[group.name] = group.layerNames.slice();
+
+  // add this group to all the layers affected by the group
+  for (let i = 0; i < g_flatGroups[group.name].length; i++) {
+    let l = g_flatGroups[group.name][i];
+    g_groupsByLayer[l].push(group.name);
+  }
+
+  // modifiers
+  g_groupMods[group.name] = {'groupOpacity': 100, 'groupVisible': true};
+}
+
+function removeMetaGroup(name) {
+  m_metaGroupList[name].deleteUI();
+  delete m_metaGroupList[name];
+  delete m_flatGroups[name];
+
+  // uh ok so when a meta group gets deleted we need to trigger an update of
+  // all the relevant parameter values in the affected layers and then delete
+  // the entry 
+  // UPDATE PARAMS
+
+  delete m_groupsByLayer[name];
+  
 }

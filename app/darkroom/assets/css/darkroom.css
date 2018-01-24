@@ -96,10 +96,17 @@ body .ui.basic.modal p {
 #layerControls .parameter,
 .standardLayerFormat .parameter,
 #layerEditControls .parameter,
-#groupsPanel .parameter {
+#groupsPanel .parameter
+{
 	height: 30px;
 	position: relative;
 	margin: 0 0 3px 0;
+}
+
+.metaGroupControl {
+    margin: 10px 0 3px 0;
+    height: 30px;
+    position: relative;
 }
 
 #layerEditControls .thumb.show,
@@ -136,7 +143,8 @@ body .ui.basic.modal p {
 #groupsPanel .parameter .paramLabel,
 #layerControls .tabLabel,
 #layerEditControls .tabLabel
-.standardLayerFormat .tabLabel
+.standardLayerFormat .tabLabel,
+.metaGroupSliderLabel
 {
 	width: 25%;
 	text-align: center;
@@ -173,7 +181,8 @@ body .ui.basic.modal p {
 #layerControls .parameter .paramInput,
 .standardLayerFormat .parameter .paramInput,
 #layerEditControls .parameter .paramInput,
-#groupsPanel .parameter .paramInput { 
+#groupsPanel .parameter .paramInput,
+.metaGroupControl .metaGroupInput { 
 	width: 13%;
 	display: inline-block;
 	position: absolute;
@@ -184,7 +193,8 @@ body .ui.basic.modal p {
 #layerControls .parameter .paramInput input,
 #layerEditControls .parameter .paramInput input,
 .standardLayerFormat .parameter .paramInput input,
-#groupsPanel .parameter .paramInput input {
+#groupsPanel .parameter .paramInput input,
+.metaGroupInput input {
 	height: 100%;
 	text-align: center;
     border-radius: 2px;
@@ -193,14 +203,16 @@ body .ui.basic.modal p {
 #layerControls .parameter .paramInput input:focus,
 .standardLayerFormat .parameter .paramInput input:focus,
 #layerEditControls .parameter .paramInput input:focus,
-#groupsPanel .parameter .paramInput input:focus {
+#groupsPanel .parameter .paramInput input:focus,
+.metaGroupInput input:focus {
     border: 1px #ffffff solid !important;
 }
 
 #layerControls .parameter .paramSlider,
 .standardLayerFormat .parameter .paramSlider,
 #layerEditControls .parameter .paramSlider,
-#groupsPanel .parameter .paramSlider {
+#groupsPanel .parameter .paramSlider,
+.metaGroupSlider {
 	width: 55%;
 	display: inline-block;
 	position: absolute;
@@ -250,12 +262,14 @@ body .ui.basic.modal p {
 	top: 4px;
 }
 
-.parameter .ui-slider-range {
+.parameter .ui-slider-range,
+.metaGroupSlider .ui-slider-range {
 	background: #FFFFFF;
 }
 
 .parameter .ui-slider,
-#maskOpacitySlider .ui-slider
+#maskOpacitySlider .ui-slider,
+.metaGroupSlider.ui-slider
 {
 	background: #000000;
 }

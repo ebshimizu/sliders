@@ -2111,6 +2111,10 @@ class ParameterSelectPanel {
         });
 
         let newGroup = new MetaGroup(Object.keys(names), name);
+
+        // ok we also need to add this to the actual flat group list
+        // so everything gets handled properly
+        registerMetaGroup(newGroup);
         g_metaGroupList[newGroup._name] = newGroup;
       }
     }).modal('show');
@@ -2906,31 +2910,32 @@ class LayerControls {
 
     visibleButton.on('click', function () {
       // check status of button
-      var visible = self._layer.visible();
+      let visible = !visibleButton.find('i').hasClass('unhide');
+      let buttonVis = visible;
 
-      // i think modifiers is in the global scope so it should still be ok here
-      // it still sucks there should be an actual object managing this
-      self._layer.visible(!visible && modifiers[self.name].groupVisible);
-      modifiers[self._name].visible = !visible;
+      for (let i = 0; i < g_groupsByLayer[self.name].length; i++) {
+        visible = visible && g_groupMods[g_groupsByLayer[self.name][i]].groupVisible;
+      }
 
-      var button = $(this);
-      if (modifiers[self._name].visible) {
-        button.html('<i class="unhide icon"></i>');
-        button.removeClass("black");
-        button.addClass("white");
+      self.layer.visible(visible);
+
+      if (buttonVis) {
+        visibleButton.html('<i class="unhide icon"></i>');
+        visibleButton.removeClass("black");
+        visibleButton.addClass("white");
       }
       else {
-        button.html('<i class="hide icon"></i>');
-        button.removeClass("white");
-        button.addClass("black");
+        visibleButton.html('<i class="hide icon"></i>');
+        visibleButton.removeClass("white");
+        visibleButton.addClass("black");
       }
 
       // trigger render after adjusting settings
-      renderImage('layer ' + self._name + ' visibility change');
+      renderImage('layer ' + self.name + ' visibility change');
     });
 
     // set starting visibility
-    if (modifiers[this._name].visible) {
+    if (this.layer.visible()) {
       visibleButton.html('<i class="unhide icon"></i>');
       visibleButton.removeClass("black");
       visibleButton.addClass("white");
@@ -3464,6 +3469,14 @@ class MetaGroup {
     this.initUI();
   }
 
+  get name() {
+    return this._name;
+  }
+
+  get layerNames() {
+    return this._layerNames;
+  }
+
   // ui things, just need to append to the meta group location in the main window
   initUI() {
     // just add a list entry for now?
@@ -3475,9 +3488,63 @@ class MetaGroup {
     elem += '<div class="header">' + this._name + '</div>';
     elem += '<div class="description">Contains ' + this._layerNames.length + ' layers.</div>';
 
+    elem += '<div class="metaGroupControl">'
+    elem += '<div class="metaGroupSliderLabel">Group Opacity</div>';
+    elem += '<div class="metaGroupSlider" metaGroupName="' + this._name + '" paramName="opacity"></div>';
+    elem += '<div class="ui input metaGroupInput" metaGroupName="' + this._name + '" paramName="opacity"><input type="text"></div>'
+    elem += '</div>';
+
+    elem += '</div>';
+
     this._uiElem = $(elem);
+    var self = this;
+    this._slider = '.metaGroupSlider[metaGroupName="' + this._name + '"]';
     $('#metaGroupList').append(this._uiElem);
     $('div[metaGroupName="' + this._name + '"] .ui.icon.button').popup();
+    $(this._slider).slider({
+      orientation: 'horizontal',
+      range: 'min',
+      max: 100,
+      min: 0,
+      step: 0.1,
+      value: 100,
+      stop: function(event, ui) { self.metaGroupOpacityChange(ui.value, true, true); },
+      slide: function(event, ui) { self.metaGroupOpacityChange(ui.value, false, true); },
+      change: function(event, ui) {self.metaGroupOpacityChange(ui.value, false, true); }
+    });
+
+    this._input = '.metaGroupInput[metaGroupName="' + this._name + '"] input';
+    $(this._input).val("100");
+    $(this._input).blur(function() {
+      let data = parseFloat($(this).val());
+      $(self._slider).slider('value', data);
+      self.metaGroupOpacityChange(data, true, false);
+    });
+    $(this._input).keydown(function(event) {
+      if (event.which !== 13)
+        return;
+
+      let data = parseFloat($(this).val());
+      $(self._slider).slider('value', data);
+      self.metaGroupOpacityChange(data, true, false);
+    });
+  }
+
+  deleteUI() {
+    $('.item[metaGroupName="' + this._name + '"]').remove();
+  }
+
+  metaGroupOpacityChange(val, render, updateInput) {
+   if (updateInput) {
+     $(this._input).val(String(val.toFixed(2)));
+   } 
+
+   // group update
+   groupOpacityChange(this._name, val);
+
+   if (render) {
+    renderImage('Group ' + this._name + ' opacity change');
+   }
   }
 }
 

@@ -3512,6 +3512,9 @@ class MetaGroup {
     $('div[metaGroupName="' + this._name + '"] .showGroupLayers').click(function() {
       self.showLayers();
     });
+    $('div[metaGroupName="' + this._name + '"] .groupVisibility').click(function() {
+      self.toggleGroupVisibility();
+    });
     $(this._slider).slider({
       orientation: 'horizontal',
       range: 'min',
@@ -3558,6 +3561,21 @@ class MetaGroup {
    }
   }
 
+  toggleGroupVisibility() {
+    let button = $('div[metaGroupName="' + this._name + '"] .groupVisibility i');
+    let parent = button.parent();
+    let newVis = toggleGroupVisibility(this._name);
+
+    if (newVis) {
+      button.addClass('unhide').removeClass('hide');
+      parent.addClass('white').removeClass('black'); 
+    }
+    else {
+      button.addClass('hide').removeClass('unhide')
+      parent.addClass('black').removeClass('white');
+    }
+  }
+
   showLayers() {
     let data = {};
     for (let l in this._layerNames) {
@@ -3577,4 +3595,4 @@ exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
 exports.LayerSelector = LayerSelector;
 exports.FilterMenu = FilterMenu;
-exports.MetaGroup = MetaGroup;
+exports.MetaGroup = MetaGroup; 

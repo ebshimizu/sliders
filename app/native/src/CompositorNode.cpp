@@ -1654,6 +1654,12 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addMask", addMask);
   Nan::SetPrototypeMethod(tpl, "addPoissonDisk", addPoissonDiskCache);
   Nan::SetPrototypeMethod(tpl, "initPoissonDisks", initPoissonDisks);
+  Nan::SetPrototypeMethod(tpl, "addGroup", addGroup);
+  Nan::SetPrototypeMethod(tpl, "deleteGroup", deleteGroup);
+  Nan::SetPrototypeMethod(tpl, "addLayerToGroup", addLayerToGroup);
+  Nan::SetPrototypeMethod(tpl, "removeLayerFromGroup", removeLayerFromGroup);
+  Nan::SetPrototypeMethod(tpl, "setGroupOrder", setGroupOrder);
+  Nan::SetPrototypeMethod(tpl, "getGroupOrder", getGroupOrder);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3189,6 +3195,146 @@ void CompositorWrapper::initPoissonDisks(const Nan::FunctionCallbackInfo<v8::Val
 
   // runs the sample pattern generation function
   c->_compositor->initPoissonDisks();
+}
+
+void CompositorWrapper::addGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addGroup");
+
+  if (info[0]->IsString() && info[1]->IsArray() && info[2]->IsNumber()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    set<string> layers;
+    v8::Local<v8::Array> arr = info[1].As<v8::Array>();
+    for (int i = 0; i < arr->Length(); i++) {
+      v8::String::Utf8Value av(arr->Get(i)->ToString());
+      string lname(*av);
+
+      layers.insert(lname);
+    }
+
+    float priority = info[2]->NumberValue();
+
+    bool readOnly = false;
+    if (info[3]->IsBoolean())
+      readOnly = info[3]->BooleanValue();
+
+    bool res = c->_compositor->addGroup(name, layers, priority, readOnly);
+    info.GetReturnValue().Set(Nan::New(res));
+  }
+  else {
+    Nan::ThrowError("addGroup(string, string[], float[, bool) arugment error");
+  }
+}
+
+void CompositorWrapper::deleteGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.deleteGroup");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    c->_compositor->deleteGroup(name);
+  }
+  else {
+    Nan::ThrowError("deleteGroup(string) arugment error");
+  }
+}
+
+void CompositorWrapper::addLayerToGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addLayerToGroup");
+
+  if (info[0]->IsString() && info[1]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    v8::String::Utf8Value i1(info[1]->ToString());
+
+    string layer(*i0);
+    string group(*i1);
+
+    c->_compositor->addLayerToGroup(layer, group);
+  }
+  else {
+    Nan::ThrowError("addLayerToGroup(string, string) argument error");
+  }
+}
+
+void CompositorWrapper::removeLayerFromGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.removeLayerFromGroup");
+
+  if (info[0]->IsString() && info[1]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    v8::String::Utf8Value i1(info[1]->ToString());
+
+    string layer(*i0);
+    string group(*i1);
+
+    c->_compositor->removeLayerFromGroup(layer, group);
+  }
+  else {
+    Nan::ThrowError("removeLayerFromGroup(string, string) argument error");
+  }
+}
+
+void CompositorWrapper::setGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.setGroupOrder");
+
+  if (info[0]->IsArray()) {
+    // assumes array of object pairs
+    v8::Local<v8::Array> vals = info[0].As<v8::Array>();
+    multimap<float, string> order;
+    for (int i = 0; i < vals->Length(); i++) {
+      v8::Local<v8::Object> obj = vals->Get(i).As<v8::Object>();
+
+      float val = obj->Get(Nan::New("val").ToLocalChecked())->NumberValue();
+      v8::String::Utf8Value n(obj->Get(Nan::New("group").ToLocalChecked())->ToString());
+      string group(*n);
+
+      order.insert(make_pair(val, group));
+    }
+
+    c->_compositor->setGroupOrder(order);
+  }
+  else if (info[0]->IsString() && info[1]->IsNumber()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string group(*i0);
+
+    float priority = info[1]->NumberValue();
+
+    c->_compositor->setGroupOrder(group, priority);
+  }
+  else {
+    Nan::ThrowError("setGroupOrder argument error");
+  }
+}
+
+void CompositorWrapper::getGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getGroupOrder");
+
+  multimap<float, string> order = c->_compositor->getGroupOrder();
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  int i = 0;
+  for (auto& o : order) {
+    v8::Local<v8::Object> obj = Nan::New<v8::Object>();
+    obj->Set(Nan::New("val").ToLocalChecked(), Nan::New(o.first));
+    obj->Set(Nan::New("group").ToLocalChecked(), Nan::New(o.second).ToLocalChecked());
+    ret->Set(i, obj);
+    i++;
+  }
+
+  info.GetReturnValue().Set(ret);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

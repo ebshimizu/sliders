@@ -220,6 +220,117 @@ namespace Comp {
     return _primary[name];
   }
 
+  bool Compositor::addGroup(string name, set<string> layers, float priority, bool readOnly)
+  {
+    // check that group doesn't already exist
+    if (_groups.count(name) > 0) {
+      getLogger()->log("Group named " + name + " already exists.", LogLevel::WARN);
+      return false;
+    }
+
+    // and that there are no conflicts with the primary context
+    if (_primary.count(name) > 0) {
+      getLogger()->log("Primary contents already contains a layer named " + name, LogLevel::WARN);
+      return false;
+    }
+
+    Group g;
+    g._name = name;
+    g._affectedLayers = layers;
+    g._readOnly = readOnly;
+
+    _groups[name] = g;
+
+    // ALSO add a new adjustment layer to the main context
+    _primary[name] = Layer(name);
+
+    // and add to group order
+    _groupOrder.insert(make_pair(priority, name));
+
+    return true;
+  }
+
+  void Compositor::deleteGroup(string name)
+  {
+    // first check that it's actually a group
+    if (_groups.count(name) <= 0) {
+      getLogger()->log("Group named " + name + " does not exist. Can't delete.", LogLevel::WARN);
+      return;
+    }
+
+    // delete
+    _groups.erase(name);
+    _primary.erase(name);
+
+    // find in layer order
+    for (auto it = _groupOrder.begin(); it != _groupOrder.end(); it++) {
+      if (it->second == name) {
+        // basically immediately invalidates this iterator but we're done
+        _groupOrder.erase(it);
+        break;
+      }
+    }
+  }
+
+  void Compositor::addLayerToGroup(string layer, string group)
+  {
+    if (layer == group) {
+      getLogger()->log("You can't add a group to itself. Group: " + group, LogLevel::WARN);
+      return;
+    }
+
+    // adds a layer to the affected layers of the group
+    if (_groups.count(group) > 0 && _primary.count(layer) > 0) {
+      _groups[group]._affectedLayers.insert(layer);
+    }
+    else {
+      getLogger()->log("Unable to add " + layer + " to group " + group + ". One of them does not exist.", LogLevel::WARN);
+    }
+  }
+
+  void Compositor::removeLayerFromGroup(string layer, string group)
+  {
+    if (_groups.count(group) > 0 && _primary.count(layer) > 0) {
+      _groups[group]._affectedLayers.erase(layer);
+    }
+    else {
+      getLogger()->log("Unable to remove " + layer + " from group " + group + ". One of them does not exist.", LogLevel::WARN);
+    }
+  }
+
+  void Compositor::setGroupOrder(multimap<float, string> order)
+  {
+    _groupOrder.clear();
+
+    // add to group order if they're real groups
+    for (auto o : order) {
+      if (_groups.count(o.second) > 0)
+        _groupOrder.insert(o);
+      else
+        getLogger()->log("Unable to add " + o.second + " to group order. Group does not exist.", LogLevel::WARN);
+    }
+  }
+
+  void Compositor::setGroupOrder(string group, float priority)
+  {
+    bool okToInsert = false;
+    for (auto it = _groupOrder.begin(); it != _groupOrder.end(); it++) {
+      if (it->second == group) {
+        // basically immediately invalidates this iterator but we're done
+        _groupOrder.erase(it);
+        okToInsert = true;
+        break;
+      }
+    }
+
+    _groupOrder.insert(make_pair(priority, group));
+  }
+
+  multimap<float, string> Compositor::getGroupOrder()
+  {
+    return _groupOrder;
+  }
+
   Context Compositor::getNewContext()
   {
     return Context(_primary);
@@ -325,7 +436,18 @@ namespace Comp {
       string id = _layerOrder[lOrder];
       Layer& l = c[id];
 
-      if (!l._visible)
+      // do a group visibility check here. A layer is visible if every
+      // layer that affects it is also visible
+      bool visible = l._visible;
+      float opacityModifier = 1;
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          visible = visible & c[o.second]._visible;
+          opacityModifier *= c[o.second].getOpacity();
+        }
+      }
+
+      if (!visible)
         continue;
 
       vector<unsigned char>* layerPx;
@@ -351,15 +473,20 @@ namespace Comp {
         adjust(tmpLayer, l);
         layerPx = &tmpLayer->getData();
       }
-      else if (l.getAdjustments().size() > 0) {
-        // so a layer may have other things clipped to it, in which case we apply the
-        // specified adjustment only to the source layer and the composite as normal
+      else {
+        // a layer may be part of a group, so we will have to run adjustments on it
+        // even if not we'll duplicate it anywat to make the process easier
         tmpLayer = new Image(*_imageData[l.getName()][size].get());
         adjust(tmpLayer, l);
         layerPx = &tmpLayer->getData();
       }
-      else {
-        layerPx = &_imageData[l.getName()][size]->getData();
+
+      // ok at this point the base adjustments have been handled.
+      // we now check the group settings and apply those to the layer
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          adjust(tmpLayer, c[o.second]);
+        }
       }
 
       // check for layer mask
@@ -375,7 +502,7 @@ namespace Comp {
         // pixel data is a flat array, rgba interlaced format
         // a = background, b = new layer
         // alphas
-        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * l.getOpacity();
+        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * (l.getOpacity() * opacityModifier);
         float aa = compPx[i * 4 + 3] / 255.0f;
 
         // alpha ab is modulated by layer mask

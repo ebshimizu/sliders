@@ -55,6 +55,12 @@ namespace Comp {
     float _mssim;
   };
 
+  struct Group {
+    string _name;
+    bool _readOnly;   // read only groups are in the inherent photoshop strucutre and cannot be removed right now
+    set<string> _affectedLayers;
+  };
+
   // the compositor for now assumes that every layer it contains have the same dimensions.
   // having unequal layer sizes will likely lead to crashes or other undefined behavior
   class Compositor {
@@ -83,6 +89,16 @@ namespace Comp {
 
     Layer& getLayer(int id);
     Layer& getLayer(string name);
+
+    // group operations
+    bool addGroup(string name, set<string> layers, float priority, bool readOnly = false);
+    void deleteGroup(string name);
+    void addLayerToGroup(string layer, string group);
+    void removeLayerFromGroup(string layer, string group);
+    void setGroupOrder(multimap<float, string> order);
+    void setGroupOrder(string group, float priority);
+
+    multimap<float, string> getGroupOrder();
 
     // Returns a copy of the current context
     Context getNewContext();
@@ -471,6 +487,10 @@ namespace Comp {
     // Keyed by IDs in the context.
     Context _primary;
 
+    // compositing order for groups
+    multimap<float, string> _groupOrder;
+    map<string, Group> _groups;
+
     // layer tags
     // determined by analysis of content or by user input
     map<string, set<string>> _layerTags;
@@ -548,6 +568,15 @@ namespace Comp {
       float dwMin = cbData["destWhiteMin"];
       float dwMax = cbData["destWhiteMax"];
 
+      bool visible = l._visible;
+      float opacityModifier = 1;
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          visible = visible & c[o.second]._visible;
+          opacityModifier *= c[o.second].getOpacity();
+        }
+      }
+
       if (!l._visible)
         continue;
 
@@ -560,13 +589,18 @@ namespace Comp {
         // create duplicate of current composite
         layerPx = adjustPixel<T>(compPx, l);
       }
-      else if (l.getAdjustments().size() > 0) {
+      else {
         // so a layer may have other things clipped to it, in which case we apply the
         // specified adjustment only to the source layer and the composite as normal
         layerPx = adjustPixel<T>(_imageData[l.getName()][size]->getPixel(i), l);
       }
-      else {
-        layerPx = _imageData[l.getName()][size]->getPixel(i);
+
+      // ok at this point the base adjustments have been handled.
+      // we now check the group settings and apply those to the layer
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          layerPx = adjustPixel<T>(layerPx, c[o.second]);
+        }
       }
 
       if (l.hasMask()) {
@@ -582,7 +616,7 @@ namespace Comp {
       // blend the layer
       // a = background, b = new layer
       // alphas
-      T ab = layerPx._a * l.getOpacity();
+      T ab = layerPx._a * (l.getOpacity() * opacityModifier);
       T aa = compPx._a;
 
       ab *= (maskPx._r * maskPx._a);

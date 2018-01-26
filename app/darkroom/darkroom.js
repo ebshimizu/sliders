@@ -1271,43 +1271,61 @@ function bindGlobalEvents() {
     // toggle shadow doc visibility
     var visible = toggleGroupVisibility(group, docTree);
 
+    // also flip the linked group in the photoshop tree
+    let secondary = $('.visibleButton[layerName="' + group + '"]');
     if (visible) {
       $(this).html('<i class="unhide icon"></i>');
       $(this).removeClass("black");
       $(this).addClass("white");
+      secondary.html('<i class="unhide icon"></i>');
+      secondary.removeClass("black");
+      secondary.addClass("white");
     }
     else {
       $(this).html('<i class="hide icon"></i>');
       $(this).removeClass("white");
       $(this).addClass("black");
+      secondary.html('<i class="hide icon"></i>');
+      secondary.removeClass("white");
+      secondary.addClass("black");
     }
 
     renderImage(".layerSet visibility change callback");
   });
 
   // group opacity
-  $('.groupSlider').slider({
-    orientation: "horizontal",
-    range: "min",
-    max: 100,
-    min: 0,
-    step: 0.1,
-    value: 100,
-    stop: function (event, ui) {
-      groupOpacityChange($(this).attr("setName"), ui.value, docTree);
-      renderImage(".layerSet opacity slider change callback");
-    },
-    slide: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
-    change: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
-  });
 
-  $('.groupInput input').val("100");
 
+  let groups = c.getGroupOrder();
+  for (let g in groups) {
+    if (c.getGroup(groups[g].group).readOnly) {
+      $('.groupSlider[setName="' + groups[g].group + '"]').slider({
+        orientation: "horizontal",
+        range: "min",
+        max: 100,
+        min: 0,
+        step: 0.1,
+        value: c.getLayer(groups[g].group).opacity() * 100,
+        stop: function (event, ui) {
+          groupOpacityChange($(this).attr("setName"), ui.value, docTree);
+          renderImage(".layerSet opacity slider change callback");
+          $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', ui.value);
+        },
+        slide: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
+        change: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
+      });
+
+      // read only groups are part of the photoshop heirarchy
+      $('.groupInput[setName="' + groups[g].group + '"] input').val(c.getLayer(groups[g].group).opacity() * 100);
+    }
+  }
+  
   // input box events
   $('.groupInput input').blur(function () {
     var data = parseFloat($(this).val());
-    var group = $(this).attr("setName");
+    var group = $(this).parent().attr("setName");
     $('.groupSlider[setName="' + group + '"]').slider("value", data);
+    $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', data);
     renderImage(".layerSet opacity input change callback");
   });
   $('.groupInput input').keydown(function (event) {
@@ -1315,8 +1333,9 @@ function bindGlobalEvents() {
       return;
 
     var data = parseFloat($(this).val());
-    var group = $(this).attr("setName");
+    var group = $(this).parent().attr("setName");
     $('.groupSlider[setName="' + group + '"]').slider("value", data);
+    $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', data);
     renderImage(".layerSet opacity input change callback");
   });
 }

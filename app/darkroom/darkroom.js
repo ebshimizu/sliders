@@ -1325,7 +1325,7 @@ function bindGlobalEvents() {
     var data = parseFloat($(this).val());
     var group = $(this).parent().attr("setName");
     $('.groupSlider[setName="' + group + '"]').slider("value", data);
-    $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', data);
+    $('.paramSlider[layerName="' + group + '"][paramName="opacity"]').slider('value', data);
     renderImage(".layerSet opacity input change callback");
   });
   $('.groupInput input').keydown(function (event) {
@@ -1335,7 +1335,7 @@ function bindGlobalEvents() {
     var data = parseFloat($(this).val());
     var group = $(this).parent().attr("setName");
     $('.groupSlider[setName="' + group + '"]').slider("value", data);
-    $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', data);
+    $('.paramSlider[layerName="' + group + '"][paramName="opacity"]').slider('value', data);
     renderImage(".layerSet opacity input change callback");
   });
 }

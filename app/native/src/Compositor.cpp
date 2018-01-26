@@ -230,7 +230,7 @@ namespace Comp {
 
     // and that there are no conflicts with the primary context
     if (_primary.count(name) > 0) {
-      getLogger()->log("Primary contents already contains a layer named " + name, LogLevel::WARN);
+      getLogger()->log("Primary context already contains a layer named " + name, LogLevel::WARN);
       return false;
     }
 
@@ -243,6 +243,35 @@ namespace Comp {
 
     // ALSO add a new adjustment layer to the main context
     _primary[name] = Layer(name);
+
+    // and add to group order
+    _groupOrder.insert(make_pair(priority, name));
+
+    return true;
+  }
+
+  bool Compositor::addGroupFromExistingLayer(string name, set<string> layers, float priority, bool readOnly)
+  {
+    // check that group doesn't already exist
+    if (_groups.count(name) > 0) {
+      getLogger()->log("Group named " + name + " already exists.", LogLevel::WARN);
+      return false;
+    }
+
+    // and make sure the layer exists
+    if (_primary.count(name) == 0) {
+      getLogger()->log("Primary contents does not contain a layer named " + name, LogLevel::WARN);
+      return false;
+    }
+
+    Group g;
+    g._name = name;
+    g._affectedLayers = layers;
+    g._readOnly = readOnly;
+
+    _groups[name] = g;
+
+    // primary already has a layer with same name
 
     // and add to group order
     _groupOrder.insert(make_pair(priority, name));
@@ -324,6 +353,14 @@ namespace Comp {
     }
 
     _groupOrder.insert(make_pair(priority, group));
+  }
+
+  Group Compositor::getGroup(string name)
+  {
+    if (_groups.count(name) > 0)
+      return _groups[name];
+
+    return Group();
   }
 
   multimap<float, string> Compositor::getGroupOrder()

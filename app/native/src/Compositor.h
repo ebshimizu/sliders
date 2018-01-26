@@ -92,11 +92,16 @@ namespace Comp {
 
     // group operations
     bool addGroup(string name, set<string> layers, float priority, bool readOnly = false);
+
+    // this is basically like add group but I'd like to make it very clear what you're doing with this function
+    bool addGroupFromExistingLayer(string name, set<string> layers, float priority, bool readOnly = false);
+    
     void deleteGroup(string name);
     void addLayerToGroup(string layer, string group);
     void removeLayerFromGroup(string layer, string group);
     void setGroupOrder(multimap<float, string> order);
     void setGroupOrder(string group, float priority);
+    Group getGroup(string name);
 
     multimap<float, string> getGroupOrder();
 

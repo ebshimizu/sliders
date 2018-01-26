@@ -8,7 +8,7 @@ var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
 const uiTools = require('./uiToolkit');
-const saveVersion = 0.40;
+const saveVersion = 0.41;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -23,7 +23,6 @@ comp.setLogLevel(1);
 var c, docTree, dr;
 var g_flatGroups = {};
 var g_groupsByLayer = {};
-var g_groupMods = {};
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
@@ -1393,17 +1392,11 @@ function bindStandardEvents(name, layer) {
   $('button[layerName="' + name + '"]').on('click', function () {
     // check status of button
     let visible = !$('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
-    let buttonVis = visible;
-
-    for (let i = 0; i < g_groupsByLayer[name].length; i++) {
-      visible = visible && g_groupMods[g_groupsByLayer[name][i]].groupVisible;
-    }
-
     layer.visible(visible);
 
     var button = $('button[layerName="' + name + '"]');
 
-    if (buttonVis) {
+    if (visible) {
       button.html('<i class="unhide icon"></i>');
       button.removeClass("black");
       button.addClass("white");
@@ -2548,6 +2541,22 @@ function loadLayers(doc, path, transfer) {
     }
   }
 
+  // flatten
+  if (ver < 0.4) {
+    setupFlatGroups();
+  }
+  else {
+    g_flatGroups = doc.flatGroups;
+
+    // load the groups, the layers should already exist
+    for (let g in doc.groups) {
+      let group = doc.groups[g];
+      c.addGroupFromExistingLayer(group.name, group.affectedLayers, group.order, group.readOnly);
+    }
+
+    updateGroupUI();
+  }
+
   // global controls
   bindGlobalEvents();
 
@@ -2601,18 +2610,6 @@ function loadLayers(doc, path, transfer) {
       addDebugConstraint(constraint.x, constraint.y, constraint.color, constraint.weight);
     }
   }
-
-  // flatten
-  if (ver < 0.4) {
-    setupFlatGroups();
-  }
-  else {
-    g_flatGroups = doc.flatGroups;
-    g_groupMods = doc.groupMods;
-    g_groupsByLayer = doc.groupsByLayer;
-
-    updateGroupUI();
-  }
 }
 
 // saves the document in an easier to load format
@@ -2629,7 +2626,7 @@ function save(file) {
   var layers = {};
   var cl = c.getAllLayers();
   for (var layerName in cl) {
-    var l = cl[layerName];
+    var l = c.getLayer(layerName);
     layers[layerName] = {};
 
     layers[layerName].opacity = l.opacity();
@@ -2671,6 +2668,20 @@ function save(file) {
     }
   }
 
+  // group save
+  let groupOrder = c.getGroupOrder();
+  let groups = {};
+  for (let g in groupOrder) {
+    let group = c.getGroup(groupOrder[g].group);
+    let groupData = {};
+    groupData.name = groupOrder[g].group;
+    groupData.order = groupOrder[g].val;
+    groupData.affectedLayers = group.affectedLayers;
+    groupData.readOnly = group.readOnly;
+    groups[groupData.name] = groupData;
+  }
+
+  out.groups = groups;
   out.layers = layers;
   out.layerOrder = c.getLayerNames();
 
@@ -2690,8 +2701,6 @@ function save(file) {
 
   // groups
   out.flatGroups = g_flatGroups;
-  out.groupsByLayer = g_groupsByLayer;
-  out.groupMods = g_groupMods;
 
   fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
     if (err) {
@@ -2937,10 +2946,6 @@ function handleParamChange(layerName, ui) {
   if (paramName == "opacity") {
     // groups are applied in reverse order
     let val = ui.value / 100;
-    for (let i = g_groupsByLayer[layerName].length - 1; i >= 0; i--) {
-      val *= g_groupMods[g_groupsByLayer[layerName][i]].groupOpacity / 100;
-    }
-
     c.getLayer(layerName).opacity(val);
 
     // find associated value box and dump the value there
@@ -3120,39 +3125,13 @@ function deleteAllControls() {
 }
 
 function toggleGroupVisibility(group, doc) {
-  let affectedLayers = g_flatGroups[group];
-  g_groupMods[group].groupVisible = !g_groupMods[group].groupVisible;
+  c.getLayer(group).visible(!c.getLayer(group).visible());
 
-  for (let i in affectedLayers) {
-    let name = affectedLayers[i];
-    let vis = $('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
-
-    for (let i = g_groupsByLayer[name].length - 1; i >= 0; i--) {
-      vis = vis && g_groupMods[g_groupsByLayer[name][i]].groupVisible;
-    }
-
-    c.getLayer(name).visible(vis);
-  }
-
-  return g_groupMods[group].groupVisible;
+  return c.getLayer(group).visible();
 }
 
 function groupOpacityChange(group, val, doc) {
-  // find the group and then set children
-  let affectedLayers = g_flatGroups[group];
-  g_groupMods[group].groupOpacity = val;
-
-  for (let i in affectedLayers) {
-    let name = affectedLayers[i];
-    let uiVal = $('.parameter[layerName="' + name + '"][paramName="opacity"] .paramSlider').slider('value');
-
-    let newVal = uiVal / 100;
-    for (let i = g_groupsByLayer[name].length - 1; i >= 0; i--) {
-      newVal *= g_groupMods[g_groupsByLayer[name][i]].groupOpacity / 100;
-    }
-
-    c.getLayer(name).opacity(newVal);
-  }
+  c.getLayer(group).opacity(val / 100);
 
   $('.groupInput[setName="' + group + '"] input').val(String(val));
 }
@@ -5120,9 +5099,10 @@ function flattenDoc(doc, path) {
       for (let g in path) {
         let group = path[g]
         if (!(group in g_flatGroups))
-          g_flatGroups[group] = [];
+          g_flatGroups[group] = { maxDepth: -(path.length), layers: [] };
 
-        g_flatGroups[group].push(key);
+        g_flatGroups[group].layers.push(key);
+        g_flatGroups[group].maxDepth = Math.max(g_flatGroups[group].maxDepth, -(path.length));
       }
 
       g_groupsByLayer[key] = path.slice();
@@ -5140,42 +5120,26 @@ function flattenDoc(doc, path) {
 function setupFlatGroups() {
   g_flatGroups = {};
   g_groupsByLayer = {};
-  g_groupMods = {};
 
   flattenDoc(docTree, []);
 
-  // setup mods
+  // setup UI and back end structures
   for (let g in g_flatGroups) {
-    g_groupMods[g] = { 'groupOpacity': 100, 'groupVisible': true };
+    c.addGroup(g, g_flatGroups[g].layers, g_flatGroups[g].maxDepth, true);
+    addGroupUI(g);
   }
 }
 
+function addGroupUI(name) {
+  g_metaGroupList[name] = new uiTools.GroupControls(name);
+  g_metaGroupList[name].createUI($('#metaGroupList'));
+}
+
 function updateGroupUI() {
-  // this is more of a reset right now
-  for (let g in g_groupMods) {
-    g_groupMods[g].groupOpacity = 100;
-    g_groupMods[g].groupVisible = true;
-  }
-
-  return;
-  // this actually has unintended side-effects, so for now short circuit
-
-  for (let g in g_groupMods) {
-    let group = g_groupMods[g];
-
-    if (group.groupVisible) {
-      $('.layerSet .groupButton[setName="' + g + '"]').html('<i class="unhide icon"></i>').
-        removeClass('black').
-        addClass('white');
-    }
-    else {
-      $('.layerSet .groupButton[setName="' + g + '"]').html('<i class="hide icon"></i>').
-        removeClass('white').
-        addClass('black');
-    }
-
-    $('.parameter[setName="' + g + '"] .paramSlider').slider('value', group.groupOpacity);
-    $('.parameter[setName="' + g + '"] input').val(group.groupOpacity);
+  // kind of a load, adds the groups to the ui
+  let order = c.getGroupOrder();
+  for (let o in order) {
+    addGroupUI(order[o].group);
   }
 }
 
@@ -5189,9 +5153,6 @@ function registerMetaGroup(group) {
     let l = g_flatGroups[group.name][i];
     g_groupsByLayer[l].push(group.name);
   }
-
-  // modifiers
-  g_groupMods[group.name] = {'groupOpacity': 100, 'groupVisible': true};
 }
 
 function removeMetaGroup(name) {

@@ -242,11 +242,13 @@ private:
   static void addPoissonDiskCache(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void initPoissonDisks(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void addGroupFromExistingLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void addLayerToGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void removeLayerFromGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void setGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

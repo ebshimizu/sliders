@@ -2110,12 +2110,13 @@ class ParameterSelectPanel {
           names[$(elem).attr('name')] = 1;
         });
 
-        let newGroup = new MetaGroup(Object.keys(names), name);
+        // TODO: UPDATE GROUP CREATION PROCESS
+        //let newGroup = new MetaGroup(Object.keys(names), name);
 
         // ok we also need to add this to the actual flat group list
         // so everything gets handled properly
-        registerMetaGroup(newGroup);
-        g_metaGroupList[newGroup._name] = newGroup;
+        //registerMetaGroup(newGroup);
+        //g_metaGroupList[newGroup._name] = newGroup;
       }
     }).modal('show');
   }
@@ -2912,15 +2913,9 @@ class LayerControls {
     visibleButton.on('click', function () {
       // check status of button
       let visible = !visibleButton.find('i').hasClass('unhide');
-      let buttonVis = visible;
-
-      for (let i = 0; i < g_groupsByLayer[self.name].length; i++) {
-        visible = visible && g_groupMods[g_groupsByLayer[self.name][i]].groupVisible;
-      }
-
       self.layer.visible(visible);
 
-      if (buttonVis) {
+      if (visible) {
         visibleButton.html('<i class="unhide icon"></i>');
         visibleButton.removeClass("black");
         visibleButton.addClass("white");
@@ -3269,9 +3264,9 @@ class LayerControls {
   paramHandler(event, ui, paramName, type) {
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;
-      for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {
-        val *= g_groupMods[g_groupsByLayer[this.name][i]].groupOpacity / 100;
-      }
+      //for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {
+      //  val *= g_groupMods[g_groupsByLayer[this.name][i]].groupOpacity / 100;
+      //}
   
       this._layer.opacity(val);
     }
@@ -3456,134 +3451,10 @@ class LayerControls {
   }
 }
 
-// a MetaGroup consists of a set of layers that can all be controlled at the same time
-// they can be dynamically created from any set of layers and will present the standard
-// layer controls in some way (maybe just listing in the layer select panel?)
-class MetaGroup {
-  constructor(layerNames, groupName) {
-    this._layerNames = layerNames;
-    this._name = groupName;
-
-    // get the actual layers?
-    this._layers = {};
-    for (let name in this._layerNames) {
-      this._layers[name] = c.getLayer(name);
-    }
-
-    this.initUI();
-  }
-
-  get name() {
-    return this._name;
-  }
-
-  get layerNames() {
-    return this._layerNames;
-  }
-
-  // ui things, just need to append to the meta group location in the main window
-  initUI() {
-    // just add a list entry for now?
-    let elem = '<div class="ui item" metaGroupName="' + this._name + '"><div class="content">';
-    elem += '<div class="right floated content">';
-    elem += '<div class="ui icon button showGroupLayers" data-content="Display Layers" data-position="bottom center"><i class="folder open outline icon"></i></div>';
-    elem += '<div class="ui icon button groupVisibility" data-position="bottom center"><i class="unhide icon"></i></div>';
-    elem += '<div class="ui red icon button deleteGroup" data-content="Delete Group" data-position="bottom center"><i class="remove icon"></i></div>';
-    elem += '</div>';
-    elem += '<div class="header">' + this._name + '</div>';
-    elem += '<div class="description">Contains ' + this._layerNames.length + ' layers.</div>';
-
-    elem += '<div class="metaGroupControl">'
-    elem += '<div class="metaGroupSliderLabel">Group Opacity</div>';
-    elem += '<div class="metaGroupSlider" metaGroupName="' + this._name + '" paramName="opacity"></div>';
-    elem += '<div class="ui input metaGroupInput" metaGroupName="' + this._name + '" paramName="opacity"><input type="text"></div>'
-    elem += '</div>';
-
-    elem += '</div>';
-
-    this._uiElem = $(elem);
-    var self = this;
-    this._slider = '.metaGroupSlider[metaGroupName="' + this._name + '"]';
-    $('#metaGroupList').append(this._uiElem);
-    $('div[metaGroupName="' + this._name + '"] .ui.icon.button').popup();
-    $('div[metaGroupName="' + this._name + '"] .deleteGroup').click(function() {
-      removeMetaGroup(self.name);
-    });
-    $('div[metaGroupName="' + this._name + '"] .showGroupLayers').click(function() {
-      self.showLayers();
-    });
-    $('div[metaGroupName="' + this._name + '"] .groupVisibility').click(function() {
-      self.toggleGroupVisibility();
-    });
-    $(this._slider).slider({
-      orientation: 'horizontal',
-      range: 'min',
-      max: 100,
-      min: 0,
-      step: 0.1,
-      value: 100,
-      stop: function(event, ui) { self.metaGroupOpacityChange(ui.value, true, true); },
-      slide: function(event, ui) { self.metaGroupOpacityChange(ui.value, false, true); },
-      change: function(event, ui) {self.metaGroupOpacityChange(ui.value, false, true); }
-    });
-
-    this._input = '.metaGroupInput[metaGroupName="' + this._name + '"] input';
-    $(this._input).val("100");
-    $(this._input).blur(function() {
-      let data = parseFloat($(this).val());
-      $(self._slider).slider('value', data);
-      self.metaGroupOpacityChange(data, true, false);
-    });
-    $(this._input).keydown(function(event) {
-      if (event.which !== 13)
-        return;
-
-      let data = parseFloat($(this).val());
-      $(self._slider).slider('value', data);
-      self.metaGroupOpacityChange(data, true, false);
-    });
-  }
-
-  deleteUI() {
-    $('.item[metaGroupName="' + this._name + '"]').remove();
-  }
-
-  metaGroupOpacityChange(val, render, updateInput) {
-   if (updateInput) {
-     $(this._input).val(String(val.toFixed(2)));
-   } 
-
-   // group update
-   groupOpacityChange(this._name, val);
-
-   if (render) {
-    renderImage('Group ' + this._name + ' opacity change');
-   }
-  }
-
-  toggleGroupVisibility() {
-    let button = $('div[metaGroupName="' + this._name + '"] .groupVisibility i');
-    let parent = button.parent();
-    let newVis = toggleGroupVisibility(this._name);
-
-    if (newVis) {
-      button.addClass('unhide').removeClass('hide');
-      parent.addClass('white').removeClass('black'); 
-    }
-    else {
-      button.addClass('hide').removeClass('unhide')
-      parent.addClass('black').removeClass('white');
-    }
-  }
-
-  showLayers() {
-    let data = {};
-    for (let l in this._layerNames) {
-      data[this._layerNames[l]] = {};
-      data[this._layerNames[l]][adjType.OPACITY] = [{ param: 'opacity', val: 1}];
-    }
-
-    g_layerSelector._paramSelectPanel.layers = data;
+class GroupControls extends LayerControls {
+  constructor(groupName) {
+    super(groupName);
+    this._groupName = groupName;
   }
 }
 
@@ -3595,4 +3466,4 @@ exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
 exports.LayerSelector = LayerSelector;
 exports.FilterMenu = FilterMenu;
-exports.MetaGroup = MetaGroup; 
+exports.GroupControls = GroupControls; 

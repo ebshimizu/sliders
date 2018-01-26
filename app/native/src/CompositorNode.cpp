@@ -1660,6 +1660,8 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "removeLayerFromGroup", removeLayerFromGroup);
   Nan::SetPrototypeMethod(tpl, "setGroupOrder", setGroupOrder);
   Nan::SetPrototypeMethod(tpl, "getGroupOrder", getGroupOrder);
+  Nan::SetPrototypeMethod(tpl, "getGroup", getGroup);
+  Nan::SetPrototypeMethod(tpl, "addGroupFromExistingLayer", addGroupFromExistingLayer);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1812,8 +1814,10 @@ void CompositorWrapper::getAllLayers(const Nan::FunctionCallbackInfo<v8::Value>&
 
   // extract all layers into an object (map) and return that
   v8::Local<v8::Object> layers = Nan::New<v8::Object>();
-  for (int i = 0; i < c->_compositor->size(); i++) {
-    Comp::Layer& l = c->_compositor->getLayer(i);
+  Comp::Context ctx = c->_compositor->getNewContext();
+
+  for (auto& kvp : ctx) {
+    Comp::Layer& l = kvp.second;
 
     // create v8 object
     v8::Local<v8::Object> layer = Nan::New<v8::Object>();
@@ -3229,6 +3233,38 @@ void CompositorWrapper::addGroup(const Nan::FunctionCallbackInfo<v8::Value>& inf
   }
 }
 
+void CompositorWrapper::addGroupFromExistingLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addGroupFromExistingLayer");
+
+  if (info[0]->IsString() && info[1]->IsArray() && info[2]->IsNumber()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+
+    set<string> layers;
+    v8::Local<v8::Array> arr = info[1].As<v8::Array>();
+    for (int i = 0; i < arr->Length(); i++) {
+      v8::String::Utf8Value av(arr->Get(i)->ToString());
+      string lname(*av);
+
+      layers.insert(lname);
+    }
+
+    float priority = info[2]->NumberValue();
+
+    bool readOnly = false;
+    if (info[3]->IsBoolean())
+      readOnly = info[3]->BooleanValue();
+
+    bool res = c->_compositor->addGroupFromExistingLayer(name, layers, priority, readOnly);
+    info.GetReturnValue().Set(Nan::New(res));
+  }
+  else {
+    Nan::ThrowError("addGroupFrom Existing Layer(string, string[], float[, bool) arugment error");
+  }
+}
+
 void CompositorWrapper::deleteGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
@@ -3335,6 +3371,34 @@ void CompositorWrapper::getGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>
   }
 
   info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::getGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getGroup");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string name(*i0);
+    Comp::Group g = c->_compositor->getGroup(name);
+
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
+    ret->Set(Nan::New("name").ToLocalChecked(), Nan::New(g._name).ToLocalChecked());
+    ret->Set(Nan::New("readOnly").ToLocalChecked(), Nan::New(g._readOnly));
+
+    v8::Local<v8::Array> layers = Nan::New<v8::Array>();
+    int i = 0;
+    for (auto& l : g._affectedLayers) {
+      layers->Set(Nan::New(i), Nan::New(l).ToLocalChecked());
+      i++;
+    }
+    ret->Set(Nan::New("affectedLayers").ToLocalChecked(), layers);
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    Nan::ThrowError("getGroup(string) argument error");
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

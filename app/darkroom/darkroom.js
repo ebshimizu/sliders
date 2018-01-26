@@ -2546,8 +2546,6 @@ function loadLayers(doc, path, transfer) {
     setupFlatGroups();
   }
   else {
-    g_flatGroups = doc.flatGroups;
-
     // load the groups, the layers should already exist
     for (let g in doc.groups) {
       let group = doc.groups[g];
@@ -2698,9 +2696,6 @@ function save(file) {
 
   //settings
   out.settings = settings;
-
-  // groups
-  out.flatGroups = g_flatGroups;
 
   fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
     if (err) {

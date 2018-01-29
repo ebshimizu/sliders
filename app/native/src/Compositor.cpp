@@ -1250,7 +1250,9 @@ namespace Comp {
     // store the current pixel color
     RGBAColor srcPixel = renderPixel<float>(c, x, y);
 
-    for (auto& id : _layerOrder) {
+    for (auto& kvp : _primary) {
+      string id = kvp.first;
+
       if (mode == "alpha") {
         if (!_primary[id].isAdjustmentLayer()) {
           auto img = getCachedImage(id, "full");

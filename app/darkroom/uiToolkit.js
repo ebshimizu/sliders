@@ -2104,19 +2104,15 @@ class ParameterSelectPanel {
       onApprove: function () {
         let name = $('#newMetaGroupModal input').val();
         // gather the layers
-        let names = {};
+        let names = [];
         let selected = $('.groupSelectCheckbox.checked');
         selected.each(function (i, elem) {
-          names[$(elem).attr('name')] = 1;
+          names.push($(elem).attr('name'));
         });
 
         // TODO: UPDATE GROUP CREATION PROCESS
-        //let newGroup = new MetaGroup(Object.keys(names), name);
-
-        // ok we also need to add this to the actual flat group list
-        // so everything gets handled properly
-        //registerMetaGroup(newGroup);
-        //g_metaGroupList[newGroup._name] = newGroup;
+        c.addGroup(name, names, 0, false);
+        addGroupUI(name);
       }
     }).modal('show');
   }
@@ -3455,6 +3451,62 @@ class GroupControls extends LayerControls {
   constructor(groupName) {
     super(groupName);
     this._groupName = groupName;
+    this._group = c.getGroup(this._groupName);
+  }
+
+  deleteUI() {
+    $('div.layer[layerName="' + this._groupName + '"]').remove();
+  }
+
+  createUI(container) {
+    super.createUI(container);
+
+    // add some extra buttons
+    let viewButton = '<button class="ui mini icon button showGroupButton" groupName="' + this._groupName + '" data-content="Show Group Layers">';
+    viewButton += '<i class="folder outline icon"></i></button>';
+    viewButton = $(viewButton);
+    $('div.layer[layerName="' + this._groupName + '"]').append(viewButton);
+
+    // bindings
+    var self = this;
+    viewButton.click(function() {
+      // tell the layer select panel to update its stuff
+      let layers = {};
+      for (let l in self._group.affectedLayers) {
+        layers[self._group.affectedLayers[l]] = {};
+        layers[self._group.affectedLayers[l]][adjType.OPACITY] = [{ 'param' : 'opacity', 'val': 1 }];
+      }
+
+      g_layerSelector._paramSelectPanel.layers = layers;
+    });
+    viewButton.popup();
+
+    if (!this.readOnly) {
+      let deleteButton = '<button class="ui mini red icon button deleteGroupButton" groupName="' + this._groupName + '" data-content="Delete Group">';
+      deleteButton += '<i class="remove icon"></i></button>';
+      deleteButton = $(deleteButton);
+      $('div.layer[layerName="' + this._groupName + '"]').append(deleteButton);
+
+      deleteButton.click(function() {
+        removeMetaGroup(self._groupName);
+      });
+      deleteButton.popup();
+    }
+  }
+
+  get readOnly() {
+    return this._group.readOnly;
+  }
+
+  get affectedLayers() {
+    return this._group.affectedLayers;
+  }
+
+  set affectedLayers(layers) {
+    if (!this.readOnly) {
+      c.setGroupLayers(this._groupName, layers);
+      this._group = c.getGroup(this._groupName);
+    }
   }
 }
 

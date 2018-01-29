@@ -236,8 +236,14 @@ namespace Comp {
 
     Group g;
     g._name = name;
-    g._affectedLayers = layers;
     g._readOnly = readOnly;
+
+    // check that all layers being added exist in the primary
+    for (auto& l : layers) {
+      if (_primary.count(l) > 0) {
+        g._affectedLayers.insert(l);
+      }
+    }
 
     _groups[name] = g;
 
@@ -324,6 +330,19 @@ namespace Comp {
     }
     else {
       getLogger()->log("Unable to remove " + layer + " from group " + group + ". One of them does not exist.", LogLevel::WARN);
+    }
+  }
+
+  void Compositor::setGroupLayers(string group, set<string> layers)
+  {
+    if (_groups.count(group) > 0) {
+      _groups[group]._affectedLayers.clear();
+
+      for (auto& l : layers) {
+        if (_primary.count(l) > 0) {
+          _groups[group]._affectedLayers.insert(l);
+        }
+      }
     }
   }
 

@@ -5115,6 +5115,7 @@ function flattenDoc(doc, path) {
         if (!(group in g_flatGroups))
           g_flatGroups[group] = { maxDepth: -(path.length), layers: [] };
 
+        // if the doc tree has layers that were converted into adjustments, skip
         g_flatGroups[group].layers.push(key);
         g_flatGroups[group].maxDepth = Math.max(g_flatGroups[group].maxDepth, -(path.length));
       }
@@ -5157,32 +5158,10 @@ function updateGroupUI() {
   }
 }
 
-// places a meta group in the proper locations
-function registerMetaGroup(group) {
-  g_metaGroupList[group.name] = group;
-  g_flatGroups[group.name] = group.layerNames.slice();
-
-  // add this group to all the layers affected by the group
-  for (let i = 0; i < g_flatGroups[group.name].length; i++) {
-    let l = g_flatGroups[group.name][i];
-    g_groupsByLayer[l].push(group.name);
-  }
-}
-
 function removeMetaGroup(name) {
-  // uh ok so when a meta group gets deleted we need to trigger an update of
-  // all the relevant parameter values in the affected layers and then delete
-  // the entry 
-  for (let i = 0; i < g_flatGroups[name].length; i++) {
-    let l = g_flatGroups[name][i];
-    let idx = g_groupsByLayer[l].indexOf(name);
-
-    if (idx > -1)
-      g_groupsByLayer[l].splice(idx, 1);
-  }
+  // tell the compositor to remove the group, update the ui
+  c.deleteGroup(name);
 
   g_metaGroupList[name].deleteUI();
   delete g_metaGroupList[name];
-  delete g_flatGroups[name];
-  delete g_groupsByLayer[name];
 }

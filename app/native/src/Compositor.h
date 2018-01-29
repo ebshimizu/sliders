@@ -99,6 +99,7 @@ namespace Comp {
     void deleteGroup(string name);
     void addLayerToGroup(string layer, string group);
     void removeLayerFromGroup(string layer, string group);
+    void setGroupLayers(string group, set<string> layers);
     void setGroupOrder(multimap<float, string> order);
     void setGroupOrder(string group, float priority);
     Group getGroup(string name);

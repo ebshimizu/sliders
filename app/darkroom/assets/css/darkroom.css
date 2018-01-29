@@ -906,3 +906,15 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     top: -26px;
     right: 2px;
 }
+
+.layer button.showGroupButton {
+    position: absolute;
+    top: 6px;
+    right: 225px;
+}
+
+.layer button.deleteGroupButton {
+    position: absolute;
+    top: 6px;
+    right: 260px;
+}

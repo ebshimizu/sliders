@@ -1522,7 +1522,14 @@ class LayerSelector {
         displayLayers = this.tagFilter(displayLayers);
       }
 
-      this.showLayers(displayLayers);
+      let layers = {}
+      for (let l in displayLayers) {
+        layers[displayLayers[l].name] = {};
+        layers[displayLayers[l].name][adjType.OPACITY] = [{ param: 'opacity', val: 1}];
+      }
+
+      this._paramSelectPanel.layers = layers;
+      //this.showLayers(displayLayers);
     }
   }
 
@@ -1910,6 +1917,7 @@ class ParameterSelectPanel {
     this._uiElem = '<div class="parameterSelectPanel" name="' + this._name + '">';
     this._uiElem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
     this._uiElem += '<div class="ui mini icon button addGroupButton" data-content="Create Group"><i class="plus icon"></i></div>';
+    this._uiElem += this.createGroupModMenus();
     this._uiElem += '<div class="ui two column grid"></div></div>';
     this._uiElem = $(this._uiElem);
 
@@ -1938,7 +1946,71 @@ class ParameterSelectPanel {
       self.addNewLayerGroup();
     });
 
+    // buttons n stuff
+    $('.parameterSelectPanel[name="' + this._name + '"] .addToGroupButton').dropdown({
+      onChange: self.addSelectedLayersToGroup
+    });
+
+    $('.parameterSelectPanel[name="' + this._name + '"] .removeFromGroupButton').dropdown({
+      onChange: self.removeSelectedLayersFromGroup
+    });
+
     this.initSettingsUI();
+    this.updateGroupModMenus();
+  }
+
+  // little helper to create those dropdown menu buttons
+  // returns the html needed
+  createGroupModMenus() {
+    let addMenu = '<div class="ui mini icon top right pointing dropdown button addToGroupButton" data-content="Add To Group">';
+    addMenu += '<i class="add circle icon"></i>';
+    addMenu += '<div class="menu"><div class="header">Add Layers to Group</div></div></div>';
+
+    let removeMenu = '<div class="ui mini icon top right pointing dropdown button removeFromGroupButton" data-content="Remove From Group">';
+    removeMenu += '<i class="minus circle icon"></i>';
+    removeMenu += '<div class="menu"><div class="header">Remove Layers from Group</div></div></div>';
+
+    return addMenu + removeMenu;
+  }
+
+  updateGroupModMenus() {
+    // clear items
+    $('.parameterSelectPanel[name="' + this._name + '"] .addToGroupButton .menu .item').remove();
+    $('.parameterSelectPanel[name="' + this._name + '"] .removeFromGroupButton .menu .item').remove();
+
+    // get groups
+    let order = c.getGroupOrder();
+    for (let o in order) {
+      let g = order[o];
+      if (!c.getGroup(g.group).readOnly) {
+        $('.parameterSelectPanel[name="' + this._name + '"] .addToGroupButton .menu').append('<div class="item">' + g.group + "</div>");
+        $('.parameterSelectPanel[name="' + this._name + '"] .removeFromGroupButton .menu').append('<div class="item">' + g.group + "</div>");
+      }
+    }
+
+    $('.parameterSelectPanel[name="' + this._name + '"] .addToGroupButton .menu').dropdown('refresh');
+    $('.parameterSelectPanel[name="' + this._name + '"] .removeFromGroupButton .menu').dropdown('refresh');
+  }
+
+  addSelectedLayersToGroup(value, text, elem) {
+    // gather the layers
+    let names = [];
+    let selected = $('.groupSelectCheckbox.checked');
+    selected.each(function (i, elem) {
+      names.push($(elem).attr('name'));
+    });
+
+    g_metaGroupList[value].addLayers(names);
+  }
+
+  removeSelectedLayersFromGroup(value, text, elem) {
+    let names = [];
+    let selected = $('.groupSelectCheckbox.checked');
+    selected.each(function (i, elem) {
+      names.push($(elem).attr('name'));
+    });
+
+    g_metaGroupList[value].removeLayers(names);
   }
 
   // in a separate function cause it's just long and annoying
@@ -2098,6 +2170,7 @@ class ParameterSelectPanel {
 
   addNewLayerGroup() {
     // this will add a new meta-group to the current project
+    var self = this;
     $('#newMetaGroupModal').modal({
       closable: false,
       onDeny: function () { },
@@ -2113,6 +2186,7 @@ class ParameterSelectPanel {
         // TODO: UPDATE GROUP CREATION PROCESS
         c.addGroup(name, names, 0, false);
         addGroupUI(name);
+        self.updateGroupModMenus();
       }
     }).modal('show');
   }
@@ -3489,6 +3563,7 @@ class GroupControls extends LayerControls {
 
       deleteButton.click(function() {
         removeMetaGroup(self._groupName);
+        g_layerSelector._paramSelectPanel.updateGroupModMenus();
       });
       deleteButton.popup();
     }
@@ -3505,6 +3580,24 @@ class GroupControls extends LayerControls {
   set affectedLayers(layers) {
     if (!this.readOnly) {
       c.setGroupLayers(this._groupName, layers);
+      this._group = c.getGroup(this._groupName);
+    }
+  }
+
+  addLayers(layers) {
+    if (!this.readOnly) {
+      for (let l in layers) {
+        c.addLayerToGroup(layers[l], this._groupName);
+      }
+      this._group = c.getGroup(this._groupName);
+    }
+  }
+
+  removeLayers(layers) {
+    if (!this.readOnly) {
+      for (let l in layers) {
+        c.removeLayerFromGroup(layers[l], this._groupName);
+      }
       this._group = c.getGroup(this._groupName);
     }
   }

@@ -856,7 +856,6 @@ function initLayerSelector() {
     "rankThreshold": 0.01,
     "optUI": "#layerSelectOptionsTab"
   });
-  g_metaGroupList = {};
 }
 
 // Loads UI settings from the settings object. Assumes all settings in the object

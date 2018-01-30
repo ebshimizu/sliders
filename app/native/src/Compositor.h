@@ -583,7 +583,7 @@ namespace Comp {
         }
       }
 
-      if (!l._visible)
+      if (!visible)
         continue;
 
       Utils<T>::RGBAColorT layerPx;

@@ -865,6 +865,20 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     height: 26px;
 }
 
+.parameterSelectPanel .removeFromGroupButton {
+    position: absolute;
+    top: 2px;
+    right: 70px;
+    height: 26px;    
+}
+
+.parameterSelectPanel .addToGroupButton {
+    position: absolute;
+    top: 2px;
+    right: 104px;
+    height: 26px;
+}
+
 .parameterSelectLayerPanel,
 .parameterSelectOptions {
     position: absolute;
@@ -918,3 +932,4 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     top: 6px;
     right: 260px;
 }
+

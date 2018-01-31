@@ -2001,6 +2001,7 @@ class ParameterSelectPanel {
     });
 
     g_metaGroupList[value].addLayers(names);
+    renderImage('Group Contents Change');
   }
 
   removeSelectedLayersFromGroup(value, text, elem) {
@@ -2011,6 +2012,7 @@ class ParameterSelectPanel {
     });
 
     g_metaGroupList[value].removeLayers(names);
+    renderImage('Group Contents Change');
   }
 
   // in a separate function cause it's just long and annoying

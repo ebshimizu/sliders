@@ -2787,6 +2787,7 @@ class GroupPanel {
   updateLayerCards() {
     let group = c.getGroup(this._currentGroup);
     $(this.primarySelector + ' .groupContents').html('');
+    this._animationCache = {};
 
     let dims = c.imageDims(this._renderSize);
     for (let l in group.affectedLayers) {

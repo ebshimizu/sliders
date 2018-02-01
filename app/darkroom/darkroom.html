@@ -274,17 +274,21 @@
         <div id="layerContainer">
             <div class="layerWrapper">
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
+                    <a class="item active" data-tab="groupPanel">Groups</a>
                     <a class="item" data-tab="layerSelect">Layer Selection</a>
                     <!-- <a class="item" data-tab="customui">Custom UI</a> -->
                     <!-- <a class="item" data-tab="embedding">2D Map</a> -->
-                    <a class="item active" data-tab="layers">Photoshop Layers</a>
+                    <a class="item" data-tab="layers">Photoshop Layers</a>
                     <!-- <a class="item" data-tab="edits">Edits</a> -->
                     <a class="item" data-tab="history">History</a>
+                </div>
+                <div class="ui active tab" data-tab="groupPanel" id="groupControlPanel">
+                    
                 </div>
                 <div class="ui tab" data-tab="layerSelect" id="layerSelectPanel">
 
                 </div>
-                <div class="ui active tab" id="layerControls" data-tab="layers">
+                <div class="ui tab" id="layerControls" data-tab="layers">
                     <!-- <div class="layer" layername="Rectangle 1">
                     <h3 class="ui grey inverted header">Rectangle 1</h3>
                     <button class="ui icon button mini visibleButton white" layername="Rectangle 1"><i class="unhide icon"></i></button>
@@ -352,7 +356,8 @@
         <!-- SAMPLE CONTROLS -->
         <div id="sampleControls">
             <div class="ui top attached inverted grey mini menu">
-                <a class="item active" data-tab="myGroups">My Groups</a>
+                <a class="item active" data-tab="selectedLayers">Selected Layers</a>
+                <a class="item" data-tab="myGroups">My Groups</a>
                 <a class="item" data-tab="layerSelectOptions">Layer Select Options</a>
                 <a class="item" data-tab="renderQueue">Render Queue</a>
             </div>
@@ -810,6 +815,9 @@
                         </div>
                     </div>
                 </div>
+                <div class="ui active tab" data-tab="selectedLayers" id="secondaryGroupControlPanel">
+                    
+                </div>
                 <div class="ui tab" data-tab="renderQueue" id="renderQueueTab">
                     <h3 class="ui inverted header">Render Queue</h3>
                     <div class="ui relaxed inverted list" id="renderQueue">
@@ -819,7 +827,7 @@
                 <div class="ui tab" data-tab="layerSelectOptions" id="layerSelectOptionsTab">
 
                 </div>
-                <div class="ui active tab" data-tab="myGroups" id="userGroups">
+                <div class="ui tab" data-tab="myGroups" id="userGroups">
                     <div class="ui relaxed inverted list standardLayerFormat" id="metaGroupList">
 
                     </div>

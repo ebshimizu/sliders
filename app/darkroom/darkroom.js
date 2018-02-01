@@ -33,6 +33,7 @@ var g_sideboardReserveStart = 100000;
 var maxThreads = comp.hardware_concurrency();
 var g_searchProcess;
 var g_layerSelector;
+var g_groupPanel;
 var g_metaGroupList = {};
 var settings = {
   "showSampleId": true,
@@ -835,12 +836,7 @@ function initUI() {
     $('#colorPicker').removeClass('visible');
   });
 
-  // for now we assume the compositor is already initialized for testing purposes
-  var layers = c.getLayerNames();
-
-  for (var layer in layers) {
-    createLayerControl(layers[layer]);
-  }
+  g_groupPanel = new uiTools.GroupPanel('groups', $('#groupControlPanel'), $('#secondaryGroupControlPanel'));
 
   // place version numbers
   $('#appVersionLabel').html(versionString);
@@ -2582,6 +2578,7 @@ function loadLayers(doc, path, transfer) {
   renderImage("loadLayers()");
   initCanvas();
   initLayerSelector();
+  g_groupPanel.updateGroupDropdown();
 
   if (ver > 0.23) {
     settings = doc.settings;

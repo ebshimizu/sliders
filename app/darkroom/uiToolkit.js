@@ -2241,8 +2241,8 @@ class ParameterSelectPanel {
 
         layerElem += '<div class="ui card" layerName="' + name + '" adj="' + adj + '" cardID="' + id + '">';
         layerElem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
-        layerElem += '<div class="extra content">' + displayText;
-        layerElem += '<div class="ui checkbox groupSelectCheckbox" name="' + name + '"><input type="checkbox"></div></div>';
+        layerElem += '<div class="extra content">' + displayText + '</div>';
+        //layerElem += '<div class="ui checkbox groupSelectCheckbox" name="' + name + '"><input type="checkbox"></div></div>';
         layerElem += '</div></div>';
 
         this._uiElem.find('.grid').append(layerElem);
@@ -2461,6 +2461,496 @@ class ParameterSelectPanel {
 
   get layers() {
     return this._layers;
+  }
+}
+
+// the group panel is a rewrite of the param select panel
+// the group panel is a global object that can be accessed by other parts of the interface
+// (the selection system for instance) 
+// two containing elements are required for this object to work: a main component where the
+// group contents are listed, and another component where the current selected layers
+// are shown
+class GroupPanel {
+  // primary and secondary are jquery objects for the primary container
+  // and secondary container used by the object
+  constructor(name, primary, secondary) {
+    this._name = name;
+    this._primary = primary;
+    this._secondary = secondary;
+    this._activeControls = [];
+    this._groupControl = null;
+    this._currentGroup = "";
+
+    this._previewMode = PreviewMode.animatedParams;
+    this._renderSize = "small";
+    this._animationData = {};
+    this._animationCache = {};
+    this._loopSize = 30;
+    this._fps = 30;
+    this._animationMode = AnimationMode.bounce;
+    this._frameHold = 15;
+    this._displayOnMain = true;
+
+    // initialize preview canvas
+    var dims = c.imageDims(this._renderSize);
+    $('#previewCanvas').attr({ width: dims.w, height: dims.h });
+
+    this.initUI();
+  }
+
+  get primarySelector() {
+    return '.groupPanel[name="' + this._name + '"]';
+  }
+
+  get secondarySelector() {
+    return '.secondaryGroupPanel[name="' + this._name + '"]';
+  }
+
+  deleteUI() {
+    this._primary.find(this.primarySelector).remove();
+    this._secondary.find(this.secondarySelector).remove();
+  }
+
+  initUI() {
+    // delete stuff
+    this.deleteUI();
+
+    // basically the same form as parameter select panel but with a few more options n stuff
+    // primary first
+    let pelem = '<div class="groupPanel" name="' + this._name + '">';
+    pelem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
+    pelem += '<div class="groupSelectDropdown">';
+    pelem += '<div class="ui fluid selection dropdown"><i class="dropdown icon"></i>';
+    pelem += '<div class="default text">No Group Selected</div>';
+    pelem += '<div class="menu"></div></div></div>';
+    pelem += '<div class="groupControls standardLayerFormat"></div>';
+    pelem += '<div class="ui two column grid groupContents"></div></div>';
+
+    // layer control overlay
+    let layerControlContainer = '<div class="groupPanelLayerControls standardLayerFormat" name="' + this._name + '">';
+    layerControlContainer += '<div class="ui top attached inverted label">Layer Controls</div>';
+    layerControlContainer += '<div class="ui mini icon button backButton"><i class="arrow left icon"></i></div>';
+    layerControlContainer += '</div>';
+
+    this._primary.append(pelem);
+    this._primary.find(this.primarySelector).append(layerControlContainer);
+
+    this.initSettingsUI();
+
+    // secondary
+    let selem = '<div class="secondaryGroupPanel">';
+    selem += '<div class="ui inverted header">Selected Layers</div>';
+    selem += '</div>';
+
+    this._secondary.append(selem);
+
+    // bindings
+    let self = this;
+    $(this.primarySelector + ' .backButton').click(function() {
+      self.hideLayerControl();
+    });
+
+    $(this.primarySelector + ' .optionsButton').click(function() {
+      $(self.primarySelector + ' .groupSelectOptions').toggle();
+    });
+
+    $(this.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown({
+      onChange: function(value, text, $selectedItem) { self.updateGroup(value); }
+    });
+
+    this.hideLayerControl();
+  }
+
+  initSettingsUI() {
+    var container = '<div class="groupSelectOptions" name="' + this._name + '">'
+    container += '<div class="ui top attached inverted label">Groups Panel Settings</div>';
+    container += '<div class="ui mini icon button backButton"><i class="remove icon"></i></div>';
+    container += '<div class="ui relaxed inverted list"></div></div>';
+    this._primary.find(this.primarySelector).append(container);
+
+    this._settingsList = $(this.primarySelector + ' .groupSelectOptions .list');
+
+    // append stuff 
+    var previewMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" param="_previewMode">
+          <span class="text">[Preview Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="1" param="_previewMode">Layer Pixels (unfiltered)</div>
+            <div class="item" data-value="2" param="_previewMode">Animated Parameters</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Layer Preview Mode</div>
+      </div>
+    </div>`);
+    this._settingsList.append(previewMode);
+
+    // animation mode
+    var animationMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" param="_animationMode">
+          <span class="text">[Animation Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="1" param="_animationMode">Bounce</div>
+            <div class="item" data-value="2" param="_animationMode">Snap</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Animation Mode</div>
+      </div>
+    </div>`);
+    this._settingsList.append(animationMode);
+
+    // Loop Size
+    var loopSize = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" id="selectThreshold" param="_loopSize">
+                  <input type="number" param="_loopSize"/>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Loop Size</div>
+              <div class="description">Number of frames in an animation preview loop.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(loopSize);
+
+    // fps
+    var fps = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" param="_fps">
+                  <input type="number" param="_fps"/>
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">FPS</div>
+              <div class="description">Animation Frame Rate</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(fps);
+
+    // frame hold
+    var frameHold = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui input" param="_frameHold">
+                  <input type="number" param="_frameHold" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Frame Hold</div>
+              <div class="description">Number of Frames to hold at the end of an animation cycle.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(frameHold);
+
+    // display on main
+    var displayOnMain = $(`
+      <div class="item">
+          <div class="ui right floated content">
+              <div class="ui toggle checkbox" param="_displayOnMain">
+                  <input type="checkbox" param="_displayOnMain" />
+              </div>
+          </div>
+          <div class="content">
+              <div class="header">Display Layer Preview On Main Canvas</div>
+              <div class="description">Shows the preview animation/hover on the main canvas instead of in the thumbnail.</div>
+          </div>
+      </div>
+    `);
+    this._settingsList.append(displayOnMain);
+
+    // bindings, try to do them all at once. dropdowns are a bit more difficult
+    // input boxes
+    var self = this;
+    $(this.primarySelector + ' .groupSelectOptions .list input').change(function () {
+      var param = $(this).attr("param");
+      self[param] = parseInt($(this).val());
+    });
+
+    // checkbox
+    $(this.primarySelector + ' .groupSelectOptions .list .checkbox').checkbox({
+      onChecked: function () {
+        var param = $(this).attr("param");
+        self[param] = true;
+      },
+      onUnchecked: function () {
+        var param = $(this).attr("param");
+        self[param] = false;
+      }
+    });
+
+    // dropdowns
+    $(this.primarySelector + ' .groupSelectOptions .list .dropdown').dropdown({
+      onChange: function (value, text, $selectedItem) {
+        // need to debug this a bit
+        var param = $selectedItem.attr("param");
+        self[param] = parseInt(value);
+        console.log($selectedItem);
+      }
+    })
+
+    // set initial values
+    $(this.primarySelector + ' input[param="_loopSize"]').val(this._loopSize);
+    $(this.primarySelector + ' input[param="_fps"]').val(this._fps);
+    $(this.primarySelector + ' input[param="_frameHold"').val(this._frameHold);
+    let cb = this._displayOnMain;
+    $(this.primarySelector + ' .checkbox[param="_displayOnMain"]').checkbox((cb ? 'set checked' : 'set unchecked'));
+    this._displayOnMain = cb;
+    $(this.primarySelector + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
+    $(this.primarySelector + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
+
+    // exit button
+    var self = this;
+    $(this.primarySelector + ' .groupSelectOptions .backButton').click(function () {
+      $(self.primarySelector + ' .groupSelectOptions').hide();
+    });
+    $(self.primarySelector + ' .groupSelectOptions').hide();
+  }
+
+  updateGroupDropdown() {
+    let elem = $(this.primarySelector + ' .groupSelectDropdown div.dropdown');
+
+    // store current selection
+    let selected = elem.dropdown('get value');
+    elem.find('.menu').html('');
+
+    // get group list
+    let order = c.getGroupOrder();
+    for (let o in order) {
+      let name = order[o].group;
+      
+      elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
+    }
+
+    elem.dropdown('refresh');
+    elem.dropdown('set value', selected);
+    elem.dropdown('set text', selected);
+  }
+
+  updateGroup(value) {
+    // uh, delete the thing
+    if (this._groupControl) {
+      this._groupControl.deleteUI();
+      delete this._groupControl;
+    }
+
+    // nothing selected
+    if (value === "")
+      return;
+
+    // add the group control thing
+    this._groupControl = new GroupControls(value);
+    this._groupControl.createUI($(this.primarySelector + ' .groupControls'));
+    this._currentGroup = value;
+
+    this.updateLayerCards();
+  }
+
+  hideLayerControl() {
+    // clear and hide
+    for (var i = 0; i < this._activeControls.length; i++) {
+      this._activeControls[i].deleteUI();
+    }
+    this._activeControls = [];
+
+    this._primary.find(this.primarySelector + ' .groupPanelLayerControls').hide();
+  }
+
+  // displays the layer control panel and the controls associated with the given layer
+  showLayerControl(name) {
+    // assumed to be clear
+    // generate the layer controller
+    // TODO: layer control needs to highlight relevant parameters
+    var layerControl = new LayerControls(name);
+    layerControl.createUI($(this.primarySelector + ' .groupPanelLayerControls'));
+    layerControl.displayThumb = true;
+
+    // i am leaving the possibility for multiple layers open but really it's just like 
+    // always the one layer for now
+    this._activeControls.push(layerControl);
+    $(this.primarySelector + ' .groupPanelLayerControls').show();
+  }
+
+  // simplified version of the general parameter selection window
+  // can go back later if needed, not really needed now
+  updateLayerCards() {
+    let group = c.getGroup(this._currentGroup);
+    $(this.primarySelector + ' .groupContents').html('');
+
+    let dims = c.imageDims(this._renderSize);
+    for (let l in group.affectedLayers) {
+      let layerName = group.affectedLayers[l];
+
+      let elem = '<div class="column">';
+      elem += '<div class="ui card" layerName="' + layerName + '">';
+      elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+      elem += '<div class="extra content">' + layerName + '</div>';
+      elem += '</div></div>';
+
+      $(this.primarySelector + ' .groupContents').append(elem);
+      this.bindLayerCard(layerName);
+    }
+  }
+
+  bindLayerCard(name) {
+    let l = c.getLayer(name);
+    let canvas = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas');
+    let elem = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"]');
+    var self = this;
+
+    if (this._previewMode === PreviewMode.rawLayer) {
+      if (!l.isAdjustmentLayer()) {
+        drawImage(c.getCachedImage(name, this._renderSize), canvas);
+      }
+    }
+    else if (this._previewMode === PreviewMode.animatedParams) {
+      // this is the animated stuff, starts on mouseover, stops on mouse out
+      // mostly lifted straight from the old param select panel
+      canvas.mouseover(function () { self.animateStart(name); });
+      canvas.mouseout(function () { self.animateStop(name); });
+
+      // just draw the composition as normal for the first frame
+      drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
+    }
+
+    canvas.click(function () {
+      self.showLayerControl(name);
+    });
+  }
+
+  // also a simplified version of the param select animation method
+  animateStart(name) {
+    // start the animation loop and initialize data structs
+    var self = this;
+
+    this._animationData = {};
+    this._animationData.layerName = name;
+    this._animationData.adjustment = adjType.OPACITY;
+
+    // basically two keyframes, can change later when/if needed
+    this._animationData.start = [{adj: adjType.OPACITY, param: "opacity", val: 0}];
+    this._animationData.end = [{adj: adjType.OPACITY, param: "opacity", val: 1}];
+    
+    this._animationData.forward = true;
+    this._animationData.canvas = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas'); 
+    this._animationData.currentFrame = 0;
+    this._animationData.held = 0;
+
+    var ctx = c.getContext();
+
+    if (!(name in this._animationCache))
+      this._animationCache[name] = {};
+
+    // show preview canvas if applicable
+    if (this._displayOnMain) {
+      $('#previewCanvas').show();
+      $('#renderCanvas').hide();
+    }
+
+    this._intervalID = setInterval(function () {
+      // state is tracked internally by the selector object
+      self.drawNextFrame();
+    }, 1000 / this._fps);
+  }
+  
+  animateStop(name) {
+    clearInterval(this._intervalID);
+
+    $('#previewCanvas').hide();
+    $('#renderCanvas').show();
+  }
+
+  drawNextFrame() {
+    // We'll want to do a few things in each loop:
+    // - check to see if the image we want is already in the cache
+    // - if is in cache, draw to thumbnail
+    // - if not in cache:
+    // -- interpolate the parameters to proper value
+    // -- render
+    // -- put in cache
+    // -- draw as normal
+
+    // check for existence in cache
+    if (!(this._animationData.currentFrame in this._animationCache[this._animationData.layerName])) {
+      // if not, render
+      // render context
+      var ctx = c.getContext();
+
+      // simple lerp of the values for now
+      var t = this._animationData.currentFrame / this._loopSize;
+
+      for (let p = 0; p < this._animationData.start.length; p++) {
+        let startFrame = this._animationData.start[p];
+        let endFrame = this._animationData.end[p];
+
+        let val = startFrame.val * (1 - t) + endFrame.val * t;
+
+        if (startFrame.adj === adjType.OPACITY) {
+          ctx.getLayer(this._animationData.layerName).opacity(val);
+        }
+        else {
+          ctx.getLayer(this._animationData.layerName).addAdjustment(startFrame.adj, startFrame.param, val);
+        }
+      }
+
+      // ensure visibility
+      ctx.getLayer(this._animationData.layerName).visible(true);
+
+      // render
+      var img = c.renderContext(ctx, this._renderSize);
+
+      // stash in cache
+      this._animationCache[this._animationData.layerName][this._animationData.currentFrame] = img;
+    }
+
+    // render
+    drawImage(this._animationCache[this._animationData.layerName][this._animationData.currentFrame], this._animationData.canvas);
+
+    // render to preview canvas if option is checked
+    if (this._displayOnMain) {
+      drawImage(this._animationCache[this._animationData.layerName][this._animationData.currentFrame], $('#previewCanvas'));
+    }
+
+    // check frame hold
+    if (this._animationData.currentFrame === this._loopSize - 1 && this._animationData.held < this._frameHold) {
+      this._animationData.held += 1;
+    }
+    else {
+      // increment current frame
+      if (this._animationData.forward)
+        this._animationData.currentFrame += 1;
+      else
+        this._animationData.currentFrame -= 1;
+
+      // reset if out of bounds.
+      if (this._animationMode === AnimationMode.bounce) {
+        //bounces between forward and backward.
+        if (this._animationData.currentFrame >= this._loopSize) {
+          this._animationData.forward = false;
+          this._animationData.held = 0;
+        }
+        else if (this._animationData.currentFrame <= 0) {
+          this._animationData.forward = true;
+        }
+      }
+      else if (this._animationMode === AnimationMode.snap) {
+        if (this._animationData.currentFrame >= this._loopSize) {
+          this._animationData.currentFrame = 0;
+          this._animationData.held = 0;
+        }
+      }
+    }
   }
 }
 
@@ -3538,24 +4028,24 @@ class GroupControls extends LayerControls {
     super.createUI(container);
 
     // add some extra buttons
-    let viewButton = '<button class="ui mini icon button showGroupButton" groupName="' + this._groupName + '" data-content="Show Group Layers">';
-    viewButton += '<i class="folder outline icon"></i></button>';
-    viewButton = $(viewButton);
-    $('div.layer[layerName="' + this._groupName + '"]').append(viewButton);
+    //let viewButton = '<button class="ui mini icon button showGroupButton" groupName="' + this._groupName + '" data-content="Show Group Layers">';
+    //viewButton += '<i class="folder outline icon"></i></button>';
+    //viewButton = $(viewButton);
+    //$('div.layer[layerName="' + this._groupName + '"]').append(viewButton);
 
     // bindings
     var self = this;
-    viewButton.click(function() {
+    //viewButton.click(function() {
       // tell the layer select panel to update its stuff
-      let layers = {};
-      for (let l in self._group.affectedLayers) {
-        layers[self._group.affectedLayers[l]] = {};
-        layers[self._group.affectedLayers[l]][adjType.OPACITY] = [{ 'param' : 'opacity', 'val': 1 }];
-      }
+    //  let layers = {};
+    //  for (let l in self._group.affectedLayers) {
+    //    layers[self._group.affectedLayers[l]] = {};
+    //    layers[self._group.affectedLayers[l]][adjType.OPACITY] = [{ 'param' : 'opacity', 'val': 1 }];
+    //  }
 
-      g_layerSelector._paramSelectPanel.layers = layers;
-    });
-    viewButton.popup();
+    //  g_layerSelector._paramSelectPanel.layers = layers;
+    //});
+    //viewButton.popup();
 
     if (!this.readOnly) {
       let deleteButton = '<button class="ui mini red icon button deleteGroupButton" groupName="' + this._groupName + '" data-content="Delete Group">';
@@ -3613,4 +4103,5 @@ exports.ColorPicker = ColorPicker;
 exports.SliderSelector = SliderSelector;
 exports.LayerSelector = LayerSelector;
 exports.FilterMenu = FilterMenu;
-exports.GroupControls = GroupControls; 
+exports.GroupControls = GroupControls;
+exports.GroupPanel = GroupPanel;

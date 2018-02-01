@@ -831,19 +831,22 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 }
 
 /* parameter layer select panel */
-.parameterSelectPanel {
+.parameterSelectPanel,
+.groupPanel {
     padding: 10px;
     height: calc(100% - 25px);
     overflow-y: auto;
     overflow-x: hidden;
 } 
 
-.parameterSelectPanel .card canvas {
+.parameterSelectPanel .card canvas,
+.groupPanel .card canvas {
     width: 100%;
     height: auto;
 }
 
-.parameterSelectPanel .card {
+.parameterSelectPanel .card,
+.groupPanel .card {
     margin: 0 auto;
 }
 
@@ -851,7 +854,8 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     float: right;
 }
 
-.parameterSelectPanel .optionsButton {
+.parameterSelectPanel .optionsButton,
+.groupPanel .optionsButton {
     position: absolute;
     top: 2px;
     right: 2px;
@@ -880,7 +884,9 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 }
 
 .parameterSelectLayerPanel,
-.parameterSelectOptions {
+.parameterSelectOptions,
+.groupPanelLayerControls,
+.groupSelectOptions {
     position: absolute;
     width: 100%;
     height: calc(100% - 30px);
@@ -891,11 +897,13 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     padding-top: 32px;
 }
 
-.parameterSelectLayerPanel {
+.parameterSelectLayerPanel,
+.groupPanelLayerControls {
     z-index: 500;
 }
 
-.parameterSelectOptions {
+.parameterSelectOptions,
+.groupSelectOptions {
     padding-left: 5px;
     padding-right: 5px;
     z-index: 600;
@@ -905,20 +913,27 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     cursor: pointer;
 }
 
-.parameterSelectLayerPanel .label {
+.parameterSelectLayerPanel .label,
+.groupPanelLayerControls .label {
     text-align: center;
 }
 
-.parameterSelectLayerPanel .backButton {
+.parameterSelectLayerPanel .backButton,
+.groupPanelLayerControls .backButton {
     position: absolute;
     top: -26px;
     left: 2px;
 }
 
-.parameterSelectOptions .backButton {
+.parameterSelectOptions .backButton,
+.groupSelectOptions .backButton {
     position: absolute;
     top: -26px;
     right: 2px;
+}
+
+.groupControls {
+    margin-bottom: 10px;
 }
 
 .layer button.showGroupButton {

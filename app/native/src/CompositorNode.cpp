@@ -1664,6 +1664,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "addGroupFromExistingLayer", addGroupFromExistingLayer);
   Nan::SetPrototypeMethod(tpl, "setGroupLayers", setGroupLayers);
   Nan::SetPrototypeMethod(tpl, "layerInGroup", layerInGroup);
+  Nan::SetPrototypeMethod(tpl, "isGroup", isGroup);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3443,6 +3444,19 @@ void CompositorWrapper::layerInGroup(const Nan::FunctionCallbackInfo<v8::Value>&
   }
   else {
     Nan::ThrowError("layerInGroup(string, string) argument error");
+  }
+}
+
+void CompositorWrapper::isGroup(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.isGroup");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string group(*i0);
+
+    info.GetReturnValue().Set(Nan::New(c->_compositor->isGroup(group)));
   }
 }
 

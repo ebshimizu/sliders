@@ -383,6 +383,11 @@ namespace Comp {
     return false;
   }
 
+  bool Compositor::isGroup(string group)
+  {
+    return _groups.count(group) > 0;
+  }
+
   Group Compositor::getGroup(string name)
   {
     if (_groups.count(name) > 0)

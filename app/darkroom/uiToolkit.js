@@ -1513,7 +1513,12 @@ class LayerSelector {
       // goal-based selection is a bit different
       var layers = this.goalSelect();
 
-      this._paramSelectPanel.layers = layers;
+      let layerNames = [];
+      for (let l in layers) {
+        layerNames.push(l);
+      }
+      g_groupPanel.displaySelectedLayers(layerNames);
+      //this._paramSelectPanel.layers = layers;
     }
     else {
       var displayLayers = this.rankLayers();
@@ -1522,13 +1527,16 @@ class LayerSelector {
         displayLayers = this.tagFilter(displayLayers);
       }
 
-      let layers = {}
+      let layers = {};
+      let layerNames = [];
       for (let l in displayLayers) {
-        layers[displayLayers[l].name] = {};
-        layers[displayLayers[l].name][adjType.OPACITY] = [{ param: 'opacity', val: 1}];
+        //layers[displayLayers[l].name] = {};
+        //layers[displayLayers[l].name][adjType.OPACITY] = [{ param: 'opacity', val: 1}];
+        layerNames.push(displayLayers[l].name);
       }
 
-      this._paramSelectPanel.layers = layers;
+      g_groupPanel.displaySelectedLayers(layerNames);
+      //this._paramSelectPanel.layers = layers;
       //this.showLayers(displayLayers);
     }
   }
@@ -2869,6 +2877,9 @@ class GroupPanel {
 
     // sticks a table of the selected layers in the secondary view of this object
     for (let l in layers) {
+      if (c.isGroup(layers[l]))
+        continue;
+
       // create the element
       let elem = '<tr layer-name="' + layers[l] + '">';
       elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
@@ -2889,6 +2900,12 @@ class GroupPanel {
         onUnchecked: function() {
           c.removeLayerFromGroup(layerName, self._currentGroup);
           renderImage('Group Membership Change');
+        },
+        beforeChecked: function() {
+          return !c.getGroup(self._currentGroup).readOnly;
+        },
+        beforeUnchecked: function() {
+          return !c.getGroup(self._currentGroup).readOnly;
         },
         onChange: function() { self.updateLayerCards(); }
       });

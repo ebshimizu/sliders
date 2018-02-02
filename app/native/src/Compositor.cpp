@@ -374,6 +374,15 @@ namespace Comp {
     _groupOrder.insert(make_pair(priority, group));
   }
 
+  bool Compositor::layerInGroup(string layer, string group)
+  {
+    if (_groups.count(group) > 0) {
+      return _groups[group]._affectedLayers.count(layer) > 0;
+    }
+
+    return false;
+  }
+
   Group Compositor::getGroup(string name)
   {
     if (_groups.count(name) > 0)

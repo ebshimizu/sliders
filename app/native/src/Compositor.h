@@ -102,6 +102,7 @@ namespace Comp {
     void setGroupLayers(string group, set<string> layers);
     void setGroupOrder(multimap<float, string> order);
     void setGroupOrder(string group, float priority);
+    bool layerInGroup(string layer, string group);
     Group getGroup(string name);
 
     multimap<float, string> getGroupOrder();

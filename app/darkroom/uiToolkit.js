@@ -2490,6 +2490,7 @@ class GroupPanel {
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
     this._displayOnMain = true;
+    this._selectedLayers = [];
 
     // initialize preview canvas
     var dims = c.imageDims(this._renderSize);
@@ -2520,9 +2521,10 @@ class GroupPanel {
     let pelem = '<div class="groupPanel" name="' + this._name + '">';
     pelem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
     pelem += '<div class="groupSelectDropdown">';
-    pelem += '<div class="ui fluid selection dropdown"><i class="dropdown icon"></i>';
+    pelem += '<div class="ui selection dropdown"><i class="dropdown icon"></i>';
     pelem += '<div class="default text">No Group Selected</div>';
-    pelem += '<div class="menu"></div></div></div>';
+    pelem += '<div class="menu"></div></div>';
+    pelem += '<div class="ui right floated labeled icon button newGroupButton"><i class="plus icon"></i>New Group</div></div>';
     pelem += '<div class="groupControls standardLayerFormat"></div>';
     pelem += '<div class="ui two column grid groupContents"></div></div>';
 
@@ -2538,8 +2540,9 @@ class GroupPanel {
     this.initSettingsUI();
 
     // secondary
-    let selem = '<div class="secondaryGroupPanel">';
+    let selem = '<div class="secondaryGroupPanel" name="' + this._name + '">';
     selem += '<div class="ui inverted header">Selected Layers</div>';
+    selem += '<table class="ui inverted selectable table"><tbody></tbody</table>';
     selem += '</div>';
 
     this._secondary.append(selem);
@@ -2556,6 +2559,10 @@ class GroupPanel {
 
     $(this.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown({
       onChange: function(value, text, $selectedItem) { self.updateGroup(value); }
+    });
+
+    $(this.primarySelector + ' .groupSelectDropdown .newGroupButton').click(function() {
+      self.addNewGroup();
     });
 
     this.hideLayerControl();
@@ -2727,16 +2734,27 @@ class GroupPanel {
 
     // get group list
     let order = c.getGroupOrder();
+    let useSelected = false;
     for (let o in order) {
       let name = order[o].group;
+      if (name === selected)
+        useSelected = true;
       
       elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
     }
 
     elem.dropdown('refresh');
-    elem.dropdown('set value', selected);
-    elem.dropdown('set text', selected);
+    if (useSelected) {
+      elem.dropdown('set value', selected);
+      elem.dropdown('set text', selected);
+    }
+    else {
+      elem.dropdown('set value', "");
+      elem.dropdown('set text', "No Group Selected");
+      $(this.primarySelector + ' .groupContents').html('');
+    }
   }
+
 
   updateGroup(value) {
     // uh, delete the thing
@@ -2754,7 +2772,21 @@ class GroupPanel {
     this._groupControl.createUI($(this.primarySelector + ' .groupControls'));
     this._currentGroup = value;
 
+    this.displaySelectedLayers(this._selectedLayers);
     this.updateLayerCards();
+  }
+
+  addNewGroup() {
+    var self = this;
+    $('#newMetaGroupModal').modal({
+      closable: false,
+      onDeny: function () { },
+      onApprove: function () {
+        let name = $('#newMetaGroupModal input').val();
+        c.addGroup(name, [], 0, false);
+        self.updateGroupDropdown();
+      }
+    }).modal('show');
   }
 
   hideLayerControl() {
@@ -2830,6 +2862,44 @@ class GroupPanel {
     });
   }
 
+  displaySelectedLayers(layers) {
+    // delete existing
+    $(this.secondarySelector).find('tbody').html('');
+    this._selectedLayers = layers;
+
+    // sticks a table of the selected layers in the secondary view of this object
+    for (let l in layers) {
+      // create the element
+      let elem = '<tr layer-name="' + layers[l] + '">';
+      elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
+      elem += '<td>' + layers[l] + '</td>';
+      elem += '</tr>';
+
+      // append
+      $(this.secondarySelector).find('tbody').append(elem);
+
+      // bindings
+      let layerName = layers[l];
+      let self = this;
+      $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
+        onChecked: function() {
+          c.addLayerToGroup(layerName, self._currentGroup);
+          renderImage('Group Membership Change');
+        },
+        onUnchecked: function() {
+          c.removeLayerFromGroup(layerName, self._currentGroup);
+          renderImage('Group Membership Change');
+        },
+        onChange: function() { self.updateLayerCards(); }
+      });
+
+      if (c.layerInGroup(layers[l], this._currentGroup)) {
+        $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
+      }
+    }
+
+  }
+
   // also a simplified version of the param select animation method
   animateStart(name) {
     // start the animation loop and initialize data structs
@@ -2840,6 +2910,7 @@ class GroupPanel {
     this._animationData.adjustment = adjType.OPACITY;
 
     // basically two keyframes, can change later when/if needed
+    // format: array of objects with { adj, param, val }
     this._animationData.start = [{adj: adjType.OPACITY, param: "opacity", val: 0}];
     this._animationData.end = [{adj: adjType.OPACITY, param: "opacity", val: 1}];
     
@@ -4052,7 +4123,7 @@ class GroupControls extends LayerControls {
       let deleteButton = '<button class="ui mini red icon button deleteGroupButton" groupName="' + this._groupName + '" data-content="Delete Group">';
       deleteButton += '<i class="remove icon"></i></button>';
       deleteButton = $(deleteButton);
-      $('div.layer[layerName="' + this._groupName + '"]').append(deleteButton);
+      container.find('div.layer[layerName="' + this._groupName + '"]').append(deleteButton);
 
       deleteButton.click(function() {
         removeMetaGroup(self._groupName);

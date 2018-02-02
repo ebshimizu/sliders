@@ -250,6 +250,7 @@ private:
   static void getGroupOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void setGroupLayers(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void layerInGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

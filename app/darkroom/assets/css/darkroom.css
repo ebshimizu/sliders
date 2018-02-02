@@ -936,6 +936,10 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     margin-bottom: 10px;
 }
 
+.groupPanel .groupSelectDropdown .selection.dropdown {
+    width: calc(100% - 170px);
+}
+
 .layer button.showGroupButton {
     position: absolute;
     top: 6px;
@@ -945,6 +949,6 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 .layer button.deleteGroupButton {
     position: absolute;
     top: 6px;
-    right: 260px;
+    right: 225px;
 }
 

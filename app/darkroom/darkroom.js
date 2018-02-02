@@ -5143,7 +5143,7 @@ function setupFlatGroups() {
 
 function addGroupUI(name) {
   g_metaGroupList[name] = new uiTools.GroupControls(name);
-  g_metaGroupList[name].createUI($('#metaGroupList'));
+  //g_metaGroupList[name].createUI($('#metaGroupList'));
 }
 
 function updateGroupUI() {
@@ -5157,7 +5157,8 @@ function updateGroupUI() {
 function removeMetaGroup(name) {
   // tell the compositor to remove the group, update the ui
   c.deleteGroup(name);
+  g_groupPanel.updateGroupDropdown();
 
-  g_metaGroupList[name].deleteUI();
+  //g_metaGroupList[name].deleteUI();
   delete g_metaGroupList[name];
 }

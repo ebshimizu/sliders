@@ -393,13 +393,13 @@ namespace Comp {
     inline void hslAdjust(Image* adjLayer, map<string, float> adj);
 
     template <typename T>
-    inline void hslAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+    inline void hslAdjust(typename Utils<T>::RGBAColorT& adjPx, T h, T s, T l);
 
     // Levels
     inline void levelsAdjust(Image* adjLayer, map<string, float> adj);
 
     template <typename T>
-    inline void levelsAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+    inline void levelsAdjust(typename Utils<T>::RGBAColorT& adjPx, T inMin, T inMax, T gamma, T outMin, T outMax);
 
     template <typename T>
     inline T levels(T px, T inMin, T inMax, T gamma, T outMin, T outMax);
@@ -445,13 +445,13 @@ namespace Comp {
     inline void photoFilterAdjust(Image* adjLayer, map<string, float> adj);
     
     template<typename T>
-    inline void photoFilterAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+    inline void photoFilterAdjust(typename Utils<T>::RGBAColorT& adjPx, T d, T r, T g, T b, T pl);
 
     // Colorize
     inline void colorizeAdjust(Image* adjLayer, map<string, float> adj);
 
     template <typename T>
-    inline void colorizeAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+    inline void colorizeAdjust(typename Utils<T>::RGBAColorT& adjPx, T sr, T sg, T sb, T a);
 
     // Lighter Colorize
     inline void lighterColorizeAdjust(Image* adjLayer, map<string, float> adj);
@@ -463,7 +463,7 @@ namespace Comp {
     inline void overwriteColorAdjust(Image* adjLayer, map<string, float> adj);
 
     template <typename T>
-    inline void overwriteColorAdjust(typename Utils<T>::RGBAColorT& adjPx, map<string, T>& adj);
+    inline void overwriteColorAdjust(typename Utils<T>::RGBAColorT& adjPx, T sr, T sg, T sb, T a);
 
     // invert
     inline void invertAdjust(Image* adjLayer);
@@ -1101,10 +1101,21 @@ namespace Comp {
   {
     for (auto type : l.getAdjustments()) {
       if (type == AdjustmentType::HSL) {
-        hslAdjust(comp, l.getAdjustment(type));
+        auto adj = l.getAdjustment(type);
+        T h = adj["hue"];
+        T s = adj["sat"];
+        T l = adj["light"];
+        hslAdjust(comp, h, s, l);
       }
       else if (type == AdjustmentType::LEVELS) {
-        levelsAdjust(comp, l.getAdjustment(type));
+        auto adj = l.getAdjustment(type);
+        T inMin = adj["inMin"];
+        T inMax = adj["inMax"];
+        T gamma = (adj["gamma"] * 10);
+        T outMin = adj["outMin"];
+        T outMax = adj["outMax"];
+
+        levelsAdjust(comp, inMin, inMax, gamma, outMin, outMax);
       }
       else if (type == AdjustmentType::CURVES) {
         curvesAdjust(comp, l.getAdjustment(type), l);
@@ -1122,16 +1133,34 @@ namespace Comp {
         colorBalanceAdjust(comp, l.getAdjustment(type));
       }
       else if (type == AdjustmentType::PHOTO_FILTER) {
-        photoFilterAdjust(comp, l.getAdjustment(type));
+        auto adj = l.getAdjustment(type);
+        T d = adj["density"];
+        T r = adj["r"];
+        T g = adj["g"];
+        T b = adj["b"];
+        T pl = adj["preserveLuma"];
+        photoFilterAdjust(comp, d, r, g, b, pl);
       }
       else if (type == AdjustmentType::COLORIZE) {
-        colorizeAdjust(comp, l.getAdjustment(type));
+        auto adj = l.getAdjustment(type);
+        T sr = adj["r"];
+        T sg = adj["g"];
+        T sb = adj["b"];
+        T a = adj["a"];
+
+        colorizeAdjust(comp, sr, sg, sb, a);
       }
       else if (type == AdjustmentType::LIGHTER_COLORIZE) {
         lighterColorizeAdjust(comp, l.getAdjustment(type));
       }
       else if (type == AdjustmentType::OVERWRITE_COLOR) {
-        overwriteColorAdjust(comp, l.getAdjustment(type));
+        auto adj = l.getAdjustment(type);
+        T sr = adj["r"];
+        T sg = adj["g"];
+        T sb = adj["b"];
+        T a = adj["a"];
+
+        overwriteColorAdjust(comp, sr, sg, sb, a);
       }
       else if (type == AdjustmentType::INVERT) {
         invertAdjustT<T>(comp);
@@ -1145,13 +1174,9 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::hslAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  inline void Compositor::hslAdjust(typename Utils<T>::RGBAColorT & adjPx, T h, T s, T l)
   {
     // all params are between 0 and 1
-    T h = adj["hue"];
-    T s = adj["sat"];
-    T l = adj["light"];
-
     Utils<T>::HSLColorT c = Utils<T>::RGBToHSL(adjPx._r, adjPx._g, adjPx._b);
 
     // modify hsl
@@ -1167,15 +1192,8 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::levelsAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  inline void Compositor::levelsAdjust(typename Utils<T>::RGBAColorT & adjPx, T inMin, T inMax, T gamma, T outMin, T outMax)
   {
-    // all of these keys should exist. if they don't there could be problems...
-    T inMin = adj["inMin"];
-    T inMax = adj["inMax"];
-    T gamma = (adj["gamma"] * 10);
-    T outMin = adj["outMin"];
-    T outMax = adj["outMax"];
-
     adjPx._r = clamp<T>(levels(adjPx._r, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
     adjPx._g = clamp<T>(levels(adjPx._g, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
     adjPx._b = clamp<T>(levels(adjPx._b, inMin, inMax, gamma, outMin, outMax), 0.0, 1.0);
@@ -1421,14 +1439,13 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::photoFilterAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  inline void Compositor::photoFilterAdjust(typename Utils<T>::RGBAColorT & adjPx, T d, T r, T g, T b, T pl)
   {
-    T d = adj["density"];
-    T fr = adjPx._r * adj["r"];
-    T fg = adjPx._g * adj["g"];
-    T fb = adjPx._b * adj["b"];
+    T fr = adjPx._r * r;
+    T fg = adjPx._g * g;
+    T fb = adjPx._b * b;
 
-    if (adj["preserveLuma"] > 0) {
+    if (pl > 0) {
       Utils<T>::HSLColorT l = Utils<T>::RGBToHSL(fr, fg, fb);
       T originalLuma = 0.5 * (max(adjPx._r, max(adjPx._g, adjPx._b)) + min(adjPx._r, min(adjPx._g, adjPx._b)));
       Utils<T>::RGBColorT rgb = Utils<T>::HSLToRGB(l._h, l._s, originalLuma);
@@ -1444,16 +1461,16 @@ namespace Comp {
   }
 
   template <>
-  inline void Compositor::photoFilterAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, map<string, ExpStep>& adj) {
+  inline void Compositor::photoFilterAdjust<ExpStep>(typename Utils<ExpStep>::RGBAColorT& adjPx, ExpStep d, ExpStep r, ExpStep g, ExpStep b, ExpStep pl) {
     vector<ExpStep> params;
     params.push_back(adjPx._r);
     params.push_back(adjPx._g);
     params.push_back(adjPx._b);
 
-    params.push_back(adj["density"]);
-    params.push_back(adj["r"]);
-    params.push_back(adj["g"]);
-    params.push_back(adj["b"]);
+    params.push_back(d);
+    params.push_back(r);
+    params.push_back(g);
+    params.push_back(b);
 
     vector<ExpStep> res = adjPx._r.context->callFunc("photoFilter", params);
     adjPx._r = res[0];
@@ -1462,12 +1479,8 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::colorizeAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  inline void Compositor::colorizeAdjust(typename Utils<T>::RGBAColorT & adjPx, T sr, T sg, T sb, T a)
   {
-    T sr = adj["r"];
-    T sg = adj["g"];
-    T sb = adj["b"];
-    T a = adj["a"];
     Utils<T>::HSYColorT sc = Utils<T>::RGBToHSY(sr, sg, sb);
 
     // color keeps dest luma and keeps top hue and chroma
@@ -1523,13 +1536,8 @@ namespace Comp {
   }
 
   template<typename T>
-  inline void Compositor::overwriteColorAdjust(typename Utils<T>::RGBAColorT & adjPx, map<string, T>& adj)
+  inline void Compositor::overwriteColorAdjust(typename Utils<T>::RGBAColorT & adjPx, T sr, T sg, T sb, T a)
   {
-    T& sr = adj["r"];
-    T& sg = adj["g"];
-    T& sb = adj["b"];
-    T& a = adj["a"];
-
     // blend the resulting colors according to alpha
     adjPx._r = clamp<T>(sr * a + adjPx._r * (1 - a), 0, 1);
     adjPx._g = clamp<T>(sg * a + adjPx._g * (1 - a), 0, 1);
@@ -1634,15 +1642,15 @@ namespace Comp {
 
     // gamma is between 0 and 10 usually
     // so sometimes these values are missing and we should use defaults.
-    float inMin = (adj.count("inMin") > 0) ? adj["inMin"] : 0;
-    float inMax = (adj.count("inMax") > 0) ? adj["inMax"] : 1;
-    float gamma = (adj.count("gamma") > 0) ? adj["gamma"] : 0.1;
-    float outMin = (adj.count("outMin") > 0) ? adj["outMin"] : 0;
-    float outMax = (adj.count("outMax") > 0) ? adj["outMax"] : 1;
+    float inMin = adj["inMin"];
+    float inMax = adj["inMax"];
+    float gamma = (adj["gamma"] * 10);
+    float outMin = adj["outMin"];
+    float outMax = adj["outMax"];
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor layerPx = adjLayer->getPixel(i);
-      levelsAdjust(layerPx, adj);
+      levelsAdjust(layerPx, inMin, inMax, gamma, outMin, outMax);
 
       // convert to char
       img[i * 4] = (unsigned char)(layerPx._r * 255);
@@ -1656,10 +1664,18 @@ namespace Comp {
   {
     for (auto type : l.getAdjustments()) {
       if (type == AdjustmentType::HSL) {
-        hslAdjust(comp, l._expAdjustments[type]);
+        ExpStep h = l._expAdjustments[type]["hue"];
+        ExpStep s = l._expAdjustments[type]["sat"];
+        ExpStep lt = l._expAdjustments[type]["light"];
+        hslAdjust(comp, h, s, lt);
       }
       else if (type == AdjustmentType::LEVELS) {
-        levelsAdjust(comp, l._expAdjustments[type]);
+        ExpStep inMin = l._expAdjustments[type]["inMin"];
+        ExpStep inMax = l._expAdjustments[type]["inMax"];
+        ExpStep gamma = (l._expAdjustments[type]["gamma"] * 10);
+        ExpStep outMin = l._expAdjustments[type]["outMin"];
+        ExpStep outMax = l._expAdjustments[type]["outMax"];
+        levelsAdjust(comp, inMin, inMax, gamma, outMin, outMax);
       }
       else if (type == AdjustmentType::CURVES) {
         curvesAdjust(comp, l._expAdjustments[type], l);
@@ -1677,16 +1693,29 @@ namespace Comp {
         colorBalanceAdjust(comp, l._expAdjustments[type]);
       }
       else if (type == AdjustmentType::PHOTO_FILTER) {
-        photoFilterAdjust(comp, l._expAdjustments[type]);
+        ExpStep d = l._expAdjustments[type]["density"];
+        ExpStep r = l._expAdjustments[type]["r"];
+        ExpStep g = l._expAdjustments[type]["g"];
+        ExpStep b = l._expAdjustments[type]["b"];
+        ExpStep pl = l._expAdjustments[type]["preserveLuma"];
+        photoFilterAdjust(comp, d, r, g, b, pl);
       }
       else if (type == AdjustmentType::COLORIZE) {
-        colorizeAdjust(comp, l._expAdjustments[type]);
+        ExpStep sr = l._expAdjustments[type]["r"];
+        ExpStep sg = l._expAdjustments[type]["g"];
+        ExpStep sb = l._expAdjustments[type]["b"];
+        ExpStep a = l._expAdjustments[type]["a"];
+        colorizeAdjust(comp, sr, sg, sb, a);
       }
       else if (type == AdjustmentType::LIGHTER_COLORIZE) {
         lighterColorizeAdjust(comp, l._expAdjustments[type]);
       }
       else if (type == AdjustmentType::OVERWRITE_COLOR) {
-        overwriteColorAdjust(comp, l._expAdjustments[type]);
+        ExpStep sr = l._expAdjustments[type]["r"];
+        ExpStep sg = l._expAdjustments[type]["g"];
+        ExpStep sb = l._expAdjustments[type]["b"];
+        ExpStep a = l._expAdjustments[type]["a"];
+        overwriteColorAdjust(comp, sr, sg, sb, a);
       }
       else if (type == AdjustmentType::INVERT) {
         invertAdjustT<ExpStep>(comp);

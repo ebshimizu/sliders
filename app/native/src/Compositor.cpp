@@ -488,14 +488,15 @@ namespace Comp {
     }
 
     Image* comp = new Image(width, height);
-    vector<unsigned char>& compPx = comp->getData();
+    vector<unsigned char>& compPxV = comp->getData();
+    unsigned char* compPx = compPxV.data();
 
     // default mask (all white)
     Image* defaultMask = new Image(width, height);
     vector<unsigned char>& defaultMaskPx = defaultMask->getData();
 
     // Photoshop appears to blend using an all white alpha 0 image
-    for (int i = 0; i < compPx.size(); i++) {
+    for (int i = 0; i < compPxV.size(); i++) {
       if (i % 4 == 3) {
         defaultMaskPx[i] = 255;
         continue;
@@ -504,7 +505,6 @@ namespace Comp {
       compPx[i] = 255;
       defaultMaskPx[i] = 255;
     }
-
 
     // blend the layers
     for (int lOrder = 0; lOrder < _layerOrder.size(); lOrder++) {
@@ -525,7 +525,7 @@ namespace Comp {
       if (!visible)
         continue;
 
-      vector<unsigned char>* layerPx;
+      vector<unsigned char>* layerPxV;
       Image* tmpLayer = nullptr;
       vector<unsigned char>* layerMaskPx;
       bool shouldConditionalBlend = l.shouldConditionalBlend();
@@ -546,14 +546,14 @@ namespace Comp {
         // create duplicate of current composite
         tmpLayer = new Image(*comp);
         adjust(tmpLayer, l);
-        layerPx = &tmpLayer->getData();
+        layerPxV = &tmpLayer->getData();
       }
       else {
         // a layer may be part of a group, so we will have to run adjustments on it
         // even if not we'll duplicate it anywat to make the process easier
         tmpLayer = new Image(*_imageData[l.getName()][size].get());
         adjust(tmpLayer, l);
-        layerPx = &tmpLayer->getData();
+        layerPxV = &tmpLayer->getData();
       }
 
       // ok at this point the base adjustments have been handled.
@@ -572,12 +572,14 @@ namespace Comp {
         layerMaskPx = &defaultMaskPx;
       }
 
+      unsigned char* layerPx = layerPxV->data();
+
       // blend the layer
       for (unsigned int i = 0; i < comp->numPx(); i++) {
         // pixel data is a flat array, rgba interlaced format
         // a = background, b = new layer
         // alphas
-        float ab = ((*layerPx)[i * 4 + 3] / 255.0f) * (l.getOpacity() * opacityModifier);
+        float ab = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() * opacityModifier);
         float aa = compPx[i * 4 + 3] / 255.0f;
 
         // alpha ab is modulated by layer mask
@@ -593,7 +595,7 @@ namespace Comp {
           // i'm unsure if it works literally just on the layer below it or the composition up to this point
           float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
             sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
-            (*layerPx)[i * 4] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f,
+            layerPx[i * 4] / 255.0f, layerPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 2] / 255.0f,
             compPx[i * 4] / 255.0f, compPx[i * 4 + 1] / 255.0f, compPx[i * 4 + 2] / 255.0f);
 
           ab = ab * abScale;
@@ -604,9 +606,9 @@ namespace Comp {
         compPx[i * 4 + 3] = (unsigned char)(ad * 255);
 
         // premult colors
-        float rb = premult((*layerPx)[i * 4], ab);
-        float gb = premult((*layerPx)[i * 4 + 1], ab);
-        float bb = premult((*layerPx)[i * 4 + 2], ab);
+        float rb = premult(layerPx[i * 4], ab);
+        float gb = premult(layerPx[i * 4 + 1], ab);
+        float bb = premult(layerPx[i * 4 + 2], ab);
 
         float ra = premult(compPx[i * 4], aa);
         float ga = premult(compPx[i * 4 + 1], aa);
@@ -660,14 +662,14 @@ namespace Comp {
         }
         else if (l._mode == BlendMode::LINEAR_BURN) {
           // need unmultiplied colors for this one
-          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
         else if (l._mode == BlendMode::LINEAR_LIGHT) {
-          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
         else if (l._mode == BlendMode::COLOR) {
           // also no premult colors
@@ -677,9 +679,9 @@ namespace Comp {
           dest._b = compPx[i * 4 + 2] / 255.0f;
 
           RGBColor src;
-          src._r = (*layerPx)[i * 4] / 255.0f;
-          src._g = (*layerPx)[i * 4 + 1] / 255.0f;
-          src._b = (*layerPx)[i * 4 + 2] / 255.0f;
+          src._r = layerPx[i * 4] / 255.0f;
+          src._g = layerPx[i * 4 + 1] / 255.0f;
+          src._b = layerPx[i * 4 + 2] / 255.0f;
 
           RGBColor res = color(dest, src, aa, ab);
           compPx[i * 4] = cvt(res._r, ad);
@@ -703,14 +705,14 @@ namespace Comp {
         }
         else if (l._mode == BlendMode::COLOR_BURN) {
           // also unmultiplied colors here
-          compPx[i * 4] = cvt(colorBurn(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(colorBurn(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(colorBurn(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(colorBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(colorBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(colorBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
         else if (l._mode == BlendMode::VIVID_LIGHT) {
-          compPx[i * 4] = cvt(vividLight(compPx[i * 4] / 255.0f, (*layerPx)[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(vividLight(compPx[i * 4 + 1] / 255.0f, (*layerPx)[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(vividLight(compPx[i * 4 + 2] / 255.0f, (*layerPx)[i * 4 + 2] / 255.0f, aa, ab), ad);
+          compPx[i * 4] = cvt(vividLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 1] = cvt(vividLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+          compPx[i * 4 + 2] = cvt(vividLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
         }
       }
 
@@ -2533,10 +2535,13 @@ namespace Comp {
     // crafting remappings, but we don't do that for now.
     // basically we convert to hsl, add the proper adjustment, convert back to rgb8
     vector<unsigned char>& img = adjLayer->getData();
+    float h = adj["hue"];
+    float s = adj["sat"];
+    float l = adj["light"];
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor layerPx = adjLayer->getPixel(i);
-      hslAdjust(layerPx, adj);
+      hslAdjust(layerPx, h, s, l);
 
       // convert to char
       img[i * 4] = (unsigned char) (layerPx._r * 255);
@@ -2647,9 +2652,15 @@ namespace Comp {
     // we'll do the simple version
     vector<unsigned char>& img = adjLayer->getData();
 
+    float d = adj["density"];
+    float r = adj["r"];
+    float g = adj["g"];
+    float b = adj["b"];
+    float pl = adj["preserveLuma"];
+
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      photoFilterAdjust(adjPx, adj);
+      photoFilterAdjust(adjPx, d, r, g, b, pl);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
@@ -2661,10 +2672,14 @@ namespace Comp {
   {
     // identical to color layer blend mode, assuming a solid color input layer
     vector<unsigned char>& img = adjLayer->getData();
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      colorizeAdjust(adjPx, adj);
+      colorizeAdjust(adjPx, sr, sg, sb, a);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
@@ -2693,10 +2708,14 @@ namespace Comp {
   inline void Compositor::overwriteColorAdjust(Image * adjLayer, map<string, float> adj)
   {
     vector<unsigned char>& img = adjLayer->getData();
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      overwriteColorAdjust(adjPx, adj);
+      overwriteColorAdjust(adjPx, sr, sg, sb, a);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);

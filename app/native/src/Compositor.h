@@ -133,7 +133,7 @@ namespace Comp {
     Image* render(string size = "");
 
     // render with a given context
-    Image* render(Context c, string size = "");
+    Image* render(Context& c, string size = "");
 
     // computes the local importance centered at the given context
     // returns a list of importance values that are _not_ sorted (since there are

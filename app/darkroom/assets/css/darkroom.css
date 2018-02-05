@@ -952,3 +952,6 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     right: 225px;
 }
 
+.secondaryGroupPanel .groupButtons {
+    float: right;
+}

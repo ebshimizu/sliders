@@ -314,6 +314,11 @@ namespace Comp {
       return;
     }
 
+    if (isGroup(layer)) {
+      getLogger()->log("You can't add a group to another group. " + group + " is already a group.", LogLevel::WARN);
+      return;
+    }
+
     // adds a layer to the affected layers of the group
     if (_groups.count(group) > 0 && _primary.count(layer) > 0) {
       _groups[group]._affectedLayers.insert(layer);
@@ -457,7 +462,7 @@ namespace Comp {
     return render(getNewContext(), size);
   }
 
-  Image* Compositor::render(Context c, string size)
+  Image* Compositor::render(Context& c, string size)
   {
     if (c.size() == 0) {
       return new Image();

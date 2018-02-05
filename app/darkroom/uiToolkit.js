@@ -2186,6 +2186,10 @@ class ParameterSelectPanel {
       onDeny: function () { },
       onApprove: function () {
         let name = $('#newMetaGroupModal input').val();
+
+        if (c.isGroup(name))
+          return false;
+
         // gather the layers
         let names = [];
         let selected = $('.groupSelectCheckbox.checked');
@@ -2549,6 +2553,10 @@ class GroupPanel {
 
     // secondary
     let selem = '<div class="secondaryGroupPanel" name="' + this._name + '">';
+    selem += '<div class="ui compact groupButtons buttons">';
+    selem += '<button class="ui button" name="addAllToGroup">Add All</button>';
+    selem += '<button class="ui button" name="removeAllFromGroup">Remove All</button>';
+    selem += '</div>';
     selem += '<div class="ui inverted header">Selected Layers</div>';
     selem += '<table class="ui inverted selectable table"><tbody></tbody</table>';
     selem += '</div>';
@@ -2571,6 +2579,34 @@ class GroupPanel {
 
     $(this.primarySelector + ' .groupSelectDropdown .newGroupButton').click(function() {
       self.addNewGroup();
+    });
+
+    $(this.secondarySelector).find('.button[name="addAllToGroup"]').click(function() {
+      if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
+        return;
+
+      for (let l in self._selectedLayers) {
+        if (!c.isGroup(self._selectedLayers[l])) {
+          c.addLayerToGroup(self._selectedLayers[l], self._currentGroup);
+        }
+      }
+      $(self.secondarySelector).find('tr .checkbox').checkbox('set checked');
+      self.updateLayerCards();
+      renderImage('Group Membership Change');
+    });
+
+    $(this.secondarySelector).find('.button[name="removeAllFromGroup"]').click(function() {
+      if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
+        return;
+
+      for (let l in self._selectedLayers) {
+        if (!c.isGroup(self._selectedLayers[l])) {
+          c.removeLayerFromGroup(self._selectedLayers[l], self._currentGroup);
+        }
+      }
+      $(self.secondarySelector).find('tr .checkbox').checkbox('set unchecked');
+      self.updateLayerCards();
+      renderImage('Group Membership Change');
     });
 
     this.hideLayerControl();
@@ -2791,6 +2827,10 @@ class GroupPanel {
       onDeny: function () { },
       onApprove: function () {
         let name = $('#newMetaGroupModal input').val();
+        
+        if (c.isGroup(name))
+          return false;
+        
         c.addGroup(name, [], 0, false);
         self.updateGroupDropdown();
       }
@@ -2910,10 +2950,18 @@ class GroupPanel {
         onChange: function() { self.updateLayerCards(); }
       });
 
+      $(this.secondarySelector).find('tr').mouseenter(function() {
+
+      })
+
       if (c.layerInGroup(layers[l], this._currentGroup)) {
         $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
       }
     }
+
+  }
+
+  startViz(name, isCard) {
 
   }
 

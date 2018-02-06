@@ -2572,9 +2572,13 @@ namespace Comp {
   {
     vector<unsigned char>& img = adjLayer->getData();
 
+    float exposure = adj["exposure"];
+    float offset = adj["offset"];
+    float gamma = adj["gamma"];
+
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      exposureAdjust(adjPx, adj);
+      exposureAdjust(adjPx, exposure, offset, gamma);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
@@ -2634,9 +2638,20 @@ namespace Comp {
     // source: https://github.com/liovch/GPUImage/commit/fcc85db4fdafae1d4e41313c96bb1cac54dc93b4#diff-5acce76055236dedac2284353170c24aR117
     vector<unsigned char>& img = adjLayer->getData();
 
+    float shadowR = adj["shadowR"];
+    float shadowG = adj["shadowG"];
+    float shadowB = adj["shadowB"];
+    float midR = adj["midR"];
+    float midG = adj["midG"];
+    float midB = adj["midB"];
+    float highR = adj["highR"];
+    float highG = adj["highG"];
+    float highB = adj["highB"];
+    float pl = adj["preserveLuma"];
+
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      colorBalanceAdjust(adjPx, adj);
+      colorBalanceAdjust(adjPx, shadowR, shadowG, shadowB, midR, midG, midB, highR, highG, highB, pl);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);
@@ -2693,11 +2708,14 @@ namespace Comp {
     // I'm fairly sure this is literally just max(dest.L, src.L)
     vector<unsigned char>& img = adjLayer->getData();
 
-    
+    float sr = adj["r"];
+    float sg = adj["g"];
+    float sb = adj["b"];
+    float a = adj["a"];
 
     for (int i = 0; i < img.size() / 4; i++) {
       RGBAColor adjPx = adjLayer->getPixel(i);
-      lighterColorizeAdjust(adjPx, adj);
+      lighterColorizeAdjust(adjPx, sr, sg, sb, a);
 
       img[i * 4] = (unsigned char)(adjPx._r * 255);
       img[i * 4 + 1] = (unsigned char)(adjPx._g * 255);

@@ -128,6 +128,10 @@ namespace Comp {
 
     Image* diff(Image* other);
 
+    // return a new image filled with the specified solid color
+    // alpha is unaffected
+    Image* fill(float r, float g, float b);
+
     float totalAlpha() { return _totalAlpha; }
     float avgAlpha() { return _avgAlpha; }
     float totalLuma() { return _totalLuma; }

@@ -602,6 +602,23 @@ namespace Comp {
     return ret;
   }
 
+  Image* Image::fill(float r, float g, float b)
+  {
+    Image* ret = new Image(_w, _h);
+    vector<unsigned char>& retData = ret->getData();
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      int idx = i * 4;
+
+      retData[idx] = (unsigned char)(r * 255);
+      retData[idx + 1] = (unsigned char)(g * 255);
+      retData[idx + 2] = (unsigned char)(b * 255);
+      retData[idx + 3] = _data[idx + 3];
+    }
+
+    return ret;
+  }
+
   void Image::loadFromFile(string filename)
   {
     unsigned int error = lodepng::decode(_data, _w, _h, filename.c_str());

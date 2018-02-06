@@ -207,6 +207,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "stats", stats);
   Nan::SetPrototypeMethod(tpl, "diff", diff);
   Nan::SetPrototypeMethod(tpl, "writeToImageData", writeToImageData);
+  Nan::SetPrototypeMethod(tpl, "fill", fill);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -525,6 +526,24 @@ void ImageWrapper::writeToImageData(const Nan::FunctionCallbackInfo<v8::Value>& 
   memcpy(data, &imData[0], imData.size());
 
   // i don't think this needs to return anything?
+}
+
+void ImageWrapper::fill(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  if (info[0]->IsNumber() && info[1]->IsNumber() && info[2]->IsNumber()) {
+    Comp::Image* filled = image->_image->fill(info[0]->NumberValue(), info[1]->NumberValue(), info[2]->NumberValue());
+
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(filled), Nan::New(true) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("fill(float, float, float) argument error");
+  }
 }
 
 void ImportanceMapWrapper::Init(v8::Local<v8::Object> exports)

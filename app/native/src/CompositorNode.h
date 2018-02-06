@@ -54,6 +54,7 @@ private:
   static void stats(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void diff(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void writeToImageData(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void fill(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Image* _image;
   bool _deleteOnDestruct;

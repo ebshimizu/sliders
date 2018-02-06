@@ -27,7 +27,11 @@ const PreviewMode = {
   "rawLayer": 1,
   "animatedParams": 2,
   "isolatedComp": 3,
-  "diffComp": 4
+  "diffComp": 4,
+  "staticSolidColor" : 5,
+  "animatedSolidColor" : 6,
+  "invertedColor" : 7,
+  "animatedRawLayer" : 8
 }
 
 const AnimationMode = {
@@ -2494,6 +2498,7 @@ class GroupPanel {
     this._currentGroup = "";
 
     this._previewMode = PreviewMode.animatedParams;
+    this._layerSelectPreviewMode = PreviewMode.animatedParams;
     this._renderSize = "small";
     this._animationData = {};
     this._animationCache = {};
@@ -2503,6 +2508,7 @@ class GroupPanel {
     this._frameHold = 15;
     this._displayOnMain = true;
     this._selectedLayers = [];
+    this._intervalID = null;
 
     // initialize preview canvas
     var dims = c.imageDims(this._renderSize);
@@ -2630,6 +2636,8 @@ class GroupPanel {
           <div class="menu">
             <div class="item" data-value="1" param="_previewMode">Layer Pixels (unfiltered)</div>
             <div class="item" data-value="2" param="_previewMode">Animated Parameters</div>
+            <div class="item" data-value="5" param="_previewMode">Solid Color</div>
+            <div class="item" data-value="8" param="_previewMode">Animated Layer Pixels</div>
           </div>
         </div>
       </div>
@@ -2638,6 +2646,25 @@ class GroupPanel {
       </div>
     </div>`);
     this._settingsList.append(previewMode);
+
+    var lsPreviewMode = $(`
+    <div class="item">
+      <div class="ui right floated content">
+        <div class="ui right pointing dropdown inverted button" param="_layerSelectPreviewMode">
+          <span class="text">[Preview Mode]</span>
+          <div class="menu">
+            <div class="item" data-value="1" param="_layerSelectPreviewMode">Layer Pixels (unfiltered)</div>
+            <div class="item" data-value="2" param="_layerSelectPreviewMode">Animated Parameters</div>
+            <div class="item" data-value="5" param="_layerSelectPreviewMode">Solid Color</div>
+            <div class="item" data-value="8" param="_layerSelectPreviewMode">Animated Layer Pixels</div>
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">Layer Selection Preview Mode</div>
+      </div>
+    </div>`);
+    this._settingsList.append(lsPreviewMode);
 
     // animation mode
     var animationMode = $(`
@@ -2760,6 +2787,7 @@ class GroupPanel {
     this._displayOnMain = cb;
     $(this.primarySelector + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
     $(this.primarySelector + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
+    $(this.primarySelector + ' .dropdown[param="_layerSelectPreviewMode"]').dropdown('set selected', this._layerSelectPreviewMode);
 
     // exit button
     var self = this;
@@ -2890,20 +2918,15 @@ class GroupPanel {
     let elem = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"]');
     var self = this;
 
-    if (this._previewMode === PreviewMode.rawLayer) {
-      if (!l.isAdjustmentLayer()) {
-        drawImage(c.getCachedImage(name, this._renderSize), canvas);
-      }
-    }
-    else if (this._previewMode === PreviewMode.animatedParams) {
-      // this is the animated stuff, starts on mouseover, stops on mouse out
-      // mostly lifted straight from the old param select panel
-      canvas.mouseover(function () { self.animateStart(name); });
-      canvas.mouseout(function () { self.animateStop(name); });
+    canvas.mouseover(function () {
+      self.startVis(name, { mode: self._previewMode, canvas: $(self.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas') });
+    });
+    canvas.mouseout(function () {
+      self.stopVis(name);
+    });
 
-      // just draw the composition as normal for the first frame
-      drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
-    }
+    // just draw the composition as normal for the first frame
+    drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
 
     canvas.click(function () {
       self.showLayerControl(name);
@@ -2950,9 +2973,13 @@ class GroupPanel {
         onChange: function() { self.updateLayerCards(); }
       });
 
-      $(this.secondarySelector).find('tr').mouseenter(function() {
+      $(this.secondarySelector).find('tr').mouseover(function() {
+        self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
+      });
+      $(this.secondarySelector).find('tr').mouseout(function() {
+        self.stopVis($(this).attr('layer-name'));
+      });
 
-      })
 
       if (c.layerInGroup(layers[l], this._currentGroup)) {
         $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
@@ -2961,12 +2988,53 @@ class GroupPanel {
 
   }
 
-  startViz(name, isCard) {
+  startVis(name, opts = {}) {
+    // opts should have the desired mode, and an optional extra target canvas to draw on
+    // more options may be added later of course
+    if (this._displayOnMain) {
+      $('#previewCanvas').show();
+      $('#renderCanvas').hide();
+    }
 
+    if (opts.mode === PreviewMode.rawLayer) {
+      if (!c.getLayer(name).isAdjustmentLayer()) {
+        if (this._displayOnMain) {
+          drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
+        }
+        if (opts.canvas) {
+          drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
+        }
+      }      
+    }
+    else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {
+      if (this._intervalID !== null) {
+        this.animateStop(name);
+      }
+
+      this.animateStart(name, opts);
+    }
+    else if (opts.mode === PreviewMode.staticSolidColor) {
+      if (!c.getLayer(name).isAdjustmentLayer() && !c.isGroup(name)) {
+        if (this._displayOnMain) {
+          drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
+          $('#renderCanvas').show();
+        }
+        if (opts.canvas) {
+          drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), opts.canvas);
+        }
+      }
+    }
+  }
+
+  stopVis(name, opts = {}) {
+    $('#previewCanvas').hide();
+    $('#renderCanvas').show();
+
+    this.animateStop(name);
   }
 
   // also a simplified version of the param select animation method
-  animateStart(name) {
+  animateStart(name, opts) {
     // start the animation loop and initialize data structs
     var self = this;
 
@@ -2980,9 +3048,10 @@ class GroupPanel {
     this._animationData.end = [{adj: adjType.OPACITY, param: "opacity", val: 1}];
     
     this._animationData.forward = true;
-    this._animationData.canvas = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas'); 
+    this._animationData.canvas = opts.canvas; // $(this.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas'); 
     this._animationData.currentFrame = 0;
     this._animationData.held = 0;
+    this._animationData.mode = opts.mode;
 
     var ctx = c.getContext();
 
@@ -3003,6 +3072,7 @@ class GroupPanel {
   
   animateStop(name) {
     clearInterval(this._intervalID);
+    this._intervalID = null;
 
     $('#previewCanvas').hide();
     $('#renderCanvas').show();
@@ -3043,6 +3113,22 @@ class GroupPanel {
 
       // ensure visibility
       ctx.getLayer(this._animationData.layerName).visible(true);
+      
+      // other layer blending settings
+      if (this._animationData.mode === PreviewMode.animatedRawLayer) {
+        // for animated raw layer we interp between current blend settings (t = 0) and opacity 0 (t = 1) for
+        // all other layers 
+        let order = c.getLayerNames();
+        for (let l in order) {
+          if (order[l] === this._animationData.layerName) {
+            ctx.getLayer(order[l]).opacity(1);
+          }
+          else {
+            let lval = ctx.getLayer(order[l]).opacity() * (1 - t);
+            ctx.getLayer(order[l]).opacity(lval);
+          }
+        }
+      }
 
       // render
       var img = c.renderContext(ctx, this._renderSize);
@@ -3052,7 +3138,9 @@ class GroupPanel {
     }
 
     // render
-    drawImage(this._animationCache[this._animationData.layerName][this._animationData.currentFrame], this._animationData.canvas);
+    if (this._animationData.canvas) {
+      drawImage(this._animationCache[this._animationData.layerName][this._animationData.currentFrame], this._animationData.canvas);
+    }
 
     // render to preview canvas if option is checked
     if (this._displayOnMain) {
@@ -3073,16 +3161,16 @@ class GroupPanel {
       // reset if out of bounds.
       if (this._animationMode === AnimationMode.bounce) {
         //bounces between forward and backward.
-        if (this._animationData.currentFrame >= this._loopSize) {
+        if (this._animationData.currentFrame > this._loopSize) {
           this._animationData.forward = false;
           this._animationData.held = 0;
         }
-        else if (this._animationData.currentFrame <= 0) {
+        else if (this._animationData.currentFrame < 0) {
           this._animationData.forward = true;
         }
       }
       else if (this._animationMode === AnimationMode.snap) {
-        if (this._animationData.currentFrame >= this._loopSize) {
+        if (this._animationData.currentFrame > this._loopSize) {
           this._animationData.currentFrame = 0;
           this._animationData.held = 0;
         }

@@ -955,3 +955,13 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 .secondaryGroupPanel .groupButtons {
     float: right;
 }
+
+.activeArea {
+    cursor: pointer;
+}
+
+.groupControls .layer h3.header:hover {
+    cursor: pointer;
+    text-decoration: underline;
+    color: #ffbb00!important;
+}

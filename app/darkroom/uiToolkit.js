@@ -2498,7 +2498,7 @@ class GroupPanel {
     this._currentGroup = "";
 
     this._previewMode = PreviewMode.animatedParams;
-    this._layerSelectPreviewMode = PreviewMode.animatedParams;
+    this._layerSelectPreviewMode = PreviewMode.staticSolidColor;
     this._renderSize = "small";
     this._animationData = {};
     this._animationCache = {};
@@ -2509,6 +2509,7 @@ class GroupPanel {
     this._displayOnMain = true;
     this._selectedLayers = [];
     this._intervalID = null;
+    this._hoveredLayer = null;
 
     // initialize preview canvas
     var dims = c.imageDims(this._renderSize);
@@ -2616,6 +2617,30 @@ class GroupPanel {
     });
 
     this.hideLayerControl();
+
+    $(document).keydown(function(event) {
+      let oldMode = self._layerSelectPreviewMode;
+      // shift
+      if (event.keyCode === 16) {
+        self._layerSelectPreviewMode = PreviewMode.rawLayer;
+      }
+      else if (event.keyCode === 17) {
+        self._layerSelectPreviewMode = PreviewMode.animatedParams;
+      }
+
+      // if the mode was changed reboot
+      if (oldMode !== self._layerSelectPreviewMode) {
+        self.stopVis()
+        self.startVis(self._hoveredLayer, { mode: self._layerSelectPreviewMode });
+      }
+    });
+    $(document).keyup(function(event) {
+      if (event.keyCode === 16 || event.keyCode === 17) {
+        self._layerSelectPreviewMode = PreviewMode.staticSolidColor;
+        self.stopVis();
+        self.startVis(self._hoveredLayer, { mode: self._layerSelectPreviewMode });
+      }
+    });
   }
 
   initSettingsUI() {
@@ -2894,22 +2919,31 @@ class GroupPanel {
   // can go back later if needed, not really needed now
   updateLayerCards() {
     let group = c.getGroup(this._currentGroup);
-    $(this.primarySelector + ' .groupContents').html('');
+    //$(this.primarySelector + ' .groupContents').html('');
     this._animationCache = {};
 
     let dims = c.imageDims(this._renderSize);
     for (let l in group.affectedLayers) {
       let layerName = group.affectedLayers[l];
 
-      let elem = '<div class="column">';
-      elem += '<div class="ui card" layerName="' + layerName + '">';
-      elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
-      elem += '<div class="extra content">' + layerName + '</div>';
-      elem += '</div></div>';
+      if ($(this.primarySelector).find('.card[layerName="' + layerName + '"]').length === 0) {
+        let elem = '<div class="column">';
+        elem += '<div class="ui card" layerName="' + layerName + '">';
+        elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+        elem += '<div class="extra content">' + layerName + '</div>';
+        elem += '</div></div>';
 
-      $(this.primarySelector + ' .groupContents').append(elem);
-      this.bindLayerCard(layerName);
+        $(this.primarySelector + ' .groupContents').append(elem);
+        this.bindLayerCard(layerName);
+      }
     }
+
+    // if was removed, delete
+    $(this.primarySelector).find('.card').each(function(i, elem) {
+      if(group.affectedLayers.indexOf($(this).attr('layerName')) < 0) {
+        $(this).parent().remove();
+      }
+    });
   }
 
   bindLayerCard(name) {
@@ -2926,7 +2960,9 @@ class GroupPanel {
     });
 
     // just draw the composition as normal for the first frame
-    drawImage(c.renderContext(c.getContext(), this._renderSize), canvas);
+    c.asyncRenderContext(c.getContext(), this._renderSize, function(err, img) {
+      drawImage(img, canvas);
+    });
 
     canvas.click(function () {
       self.showLayerControl(name);
@@ -2946,7 +2982,7 @@ class GroupPanel {
       // create the element
       let elem = '<tr layer-name="' + layers[l] + '">';
       elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
-      elem += '<td>' + layers[l] + '</td>';
+      elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
       elem += '</tr>';
 
       // append
@@ -2973,24 +3009,32 @@ class GroupPanel {
         onChange: function() { self.updateLayerCards(); }
       });
 
-      $(this.secondarySelector).find('tr').mouseover(function() {
-        self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
-      });
-      $(this.secondarySelector).find('tr').mouseout(function() {
-        self.stopVis($(this).attr('layer-name'));
-      });
-
-
       if (c.layerInGroup(layers[l], this._currentGroup)) {
         $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
       }
     }
 
+    let self = this;
+    $(this.secondarySelector).find('tr').mouseover(function() {
+      self._hoveredLayer = $(this).attr('layer-name');
+      self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
+    });
+    $(this.secondarySelector).find('tr').mouseout(function() {
+      self._hoveredLayer = null;
+      self.stopVis($(this).attr('layer-name'));
+    });
+    $(this.secondarySelector).find('td.activeArea').click(function() {
+      self.hideLayerControl();
+      self.showLayerControl($(this).attr('layer-name'));
+    });
   }
 
   startVis(name, opts = {}) {
     // opts should have the desired mode, and an optional extra target canvas to draw on
     // more options may be added later of course
+    if (name === null)
+      return;
+
     if (this._displayOnMain) {
       $('#previewCanvas').show();
       $('#renderCanvas').hide();
@@ -4284,6 +4328,10 @@ class GroupControls extends LayerControls {
       });
       deleteButton.popup();
     }
+
+    container.find('h3.header').click(function() {
+      g_groupPanel.displaySelectedLayers(c.getGroup(self._groupName).affectedLayers);
+    });
   }
 
   get readOnly() {

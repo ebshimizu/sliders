@@ -849,7 +849,7 @@ function initLayerSelector() {
     "sidebar": "#layerEditControls",
     "selectionMode": "localPoint",
     "rankMode": "goal",
-    "rankThreshold": 0.01,
+    "rankThreshold": 0,
     "optUI": "#layerSelectOptionsTab"
   });
 }

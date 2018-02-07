@@ -2886,6 +2886,7 @@ class GroupPanel {
         
         c.addGroup(name, [], 0, false);
         self.updateGroupDropdown();
+        $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set exactly', name);
       }
     }).modal('show');
   }

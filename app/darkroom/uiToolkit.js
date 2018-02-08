@@ -2560,12 +2560,18 @@ class GroupPanel {
 
     // secondary
     let selem = '<div class="secondaryGroupPanel" name="' + this._name + '">';
+    selem += '<div class="layerSelectGroup">';
     selem += '<div class="ui compact groupButtons buttons">';
     selem += '<button class="ui button" name="addAllToGroup">Add All</button>';
     selem += '<button class="ui button" name="removeAllFromGroup">Remove All</button>';
     selem += '</div>';
     selem += '<div class="ui inverted header">Selected Layers</div>';
-    selem += '<table class="ui inverted selectable table"><tbody></tbody</table>';
+    selem += '<table class="ui inverted selectable table"><tbody></tbody></table>';
+    selem += '</div>';
+    selem += '<div class="groupSelectGroup">';
+    selem += '<div class="ui inverted header">Selected Groups</div>';
+    selem += '<table class="ui inverted selectable table"><tbody></tbody></table>';
+    selem += '</div>';
     selem += '</div>';
 
     this._secondary.append(selem);
@@ -2972,61 +2978,86 @@ class GroupPanel {
 
   displaySelectedLayers(layers) {
     // delete existing
-    $(this.secondarySelector).find('tbody').html('');
+    $(this.secondarySelector).find('.layerSelectGroup tbody').html('');
+    $(this.secondarySelector).find('.groupSelectGroup tbody').html('');
     this._selectedLayers = layers;
 
     // sticks a table of the selected layers in the secondary view of this object
     for (let l in layers) {
-      if (c.isGroup(layers[l]))
-        continue;
+      if (c.isGroup(layers[l])) {
+        // ok so groups also get selected here but function differently
+        let elem = '<tr group-name="' + layers[l] + '">';
+        elem += '<td class="activeArea" group-name="' + layers[l] + '">' + layers[l] + '</td>';
+        elem += '</tr>';
 
-      // create the element
-      let elem = '<tr layer-name="' + layers[l] + '">';
-      elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
-      elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
-      elem += '</tr>';
+        // append
+        $(this.secondarySelector).find('.groupSelectGroup tbody').append(elem);
 
-      // append
-      $(this.secondarySelector).find('tbody').append(elem);
+        // bindings done later
+      }
+      else {
+        // create the element
+        let elem = '<tr layer-name="' + layers[l] + '">';
+        elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
+        elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
+        elem += '</tr>';
 
-      // bindings
-      let layerName = layers[l];
-      let self = this;
-      $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
-        onChecked: function() {
-          c.addLayerToGroup(layerName, self._currentGroup);
-          renderImage('Group Membership Change');
-        },
-        onUnchecked: function() {
-          c.removeLayerFromGroup(layerName, self._currentGroup);
-          renderImage('Group Membership Change');
-        },
-        beforeChecked: function() {
-          return !c.getGroup(self._currentGroup).readOnly;
-        },
-        beforeUnchecked: function() {
-          return !c.getGroup(self._currentGroup).readOnly;
-        },
-        onChange: function() { self.updateLayerCards(); }
-      });
+        // append
+        $(this.secondarySelector).find('.layerSelectGroup tbody').append(elem);
 
-      if (c.layerInGroup(layers[l], this._currentGroup)) {
-        $(this.secondarySelector).find('tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
+        // bindings
+        let layerName = layers[l];
+        let self = this;
+        $(this.secondarySelector).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
+          onChecked: function() {
+            c.addLayerToGroup(layerName, self._currentGroup);
+            renderImage('Group Membership Change');
+          },
+          onUnchecked: function() {
+            c.removeLayerFromGroup(layerName, self._currentGroup);
+            renderImage('Group Membership Change');
+          },
+          beforeChecked: function() {
+            return !c.getGroup(self._currentGroup).readOnly;
+          },
+          beforeUnchecked: function() {
+            return !c.getGroup(self._currentGroup).readOnly;
+          },
+          onChange: function() { self.updateLayerCards(); }
+        });
+
+        if (c.layerInGroup(layers[l], this._currentGroup)) {
+          $(this.secondarySelector).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
+        }
       }
     }
 
     let self = this;
-    $(this.secondarySelector).find('tr').mouseover(function() {
+    $(this.secondarySelector).find('.layerSelectGroup tr').mouseover(function() {
       self._hoveredLayer = $(this).attr('layer-name');
       self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
     });
-    $(this.secondarySelector).find('tr').mouseout(function() {
+    $(this.secondarySelector).find('.layerSelectGroup tr').mouseout(function() {
       self._hoveredLayer = null;
       self.stopVis($(this).attr('layer-name'));
     });
-    $(this.secondarySelector).find('td.activeArea').click(function() {
+    $(this.secondarySelector).find('.layerSelectGroup td.activeArea').click(function() {
       self.hideLayerControl();
       self.showLayerControl($(this).attr('layer-name'));
+    });
+
+    $(this.secondarySelector).find('.groupSelectGroup tr').mouseover(function() {
+      self._hoveredLayer = $(this).attr('group-name');
+      // i hope this works, groups always use animated params for now since there's not a nice
+      // way to get the flat image, and it'd mostly just be uh, all a solid color
+      self.startVis($(this).attr('group-name'), { mode: PreviewMode.animatedParams });
+    });
+    $(this.secondarySelector).find('.groupSelectGroup tr').mouseout(function() {
+      self._hoveredLayer = null;
+      self.stopVis($(this).attr('group-name'));
+    });
+    $(this.secondarySelector).find('.groupSelectGroup tr').click(function() {
+      $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set selected', $(this).attr('group-name'));
     });
   }
 

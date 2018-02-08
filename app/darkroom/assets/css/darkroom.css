@@ -965,3 +965,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     text-decoration: underline;
     color: #ffbb00!important;
 }
+
+.groupSelectGroup {
+    margin-top: 15px;
+}

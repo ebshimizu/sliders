@@ -135,6 +135,11 @@ namespace Comp {
     // render with a given context
     Image* render(Context& c, string size = "");
 
+    // renders the composition up to and including the specified layer.
+    // additionally, the pixels unaffected by the given layer are dimmed by a maximum specified amount
+    // (floor of 20% opacity)
+    Image* renderUpToLayer(Context& c, string layer, float dim, string size = "");
+
     // computes the local importance centered at the given context
     // returns a list of importance values that are _not_ sorted (since there are
     // multiple ways to sort the data)

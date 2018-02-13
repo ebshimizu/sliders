@@ -2499,11 +2499,11 @@ class GroupPanel {
 
     this._previewMode = PreviewMode.animatedParams;
     this._layerSelectPreviewMode = PreviewMode.staticSolidColor;
-    this._renderSize = "small";
+    this._renderSize = "medium";
     this._animationData = {};
     this._animationCache = {};
-    this._loopSize = 30;
-    this._fps = 30;
+    this._loopSize = 15;
+    this._fps = 60;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
     this._displayOnMain = true;
@@ -2512,10 +2512,14 @@ class GroupPanel {
     this._hoveredLayer = null;
 
     // initialize preview canvas
-    var dims = c.imageDims(this._renderSize);
-    $('#previewCanvas').attr({ width: dims.w, height: dims.h });
+    this.updatePreviewCanvas();
 
     this.initUI();
+  }
+
+  updatePreviewCanvas() {
+    var dims = c.imageDims(this._renderSize);
+    $('#previewCanvas').attr({ width: dims.w, height: dims.h });
   }
 
   get primarySelector() {
@@ -2960,16 +2964,17 @@ class GroupPanel {
     var self = this;
 
     canvas.mouseover(function () {
-      self.startVis(name, { mode: self._previewMode, canvas: $(self.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas') });
+      self.startVis(name, { mode: self._previewMode }); //, canvas: $(self.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas') });
     });
     canvas.mouseout(function () {
       self.stopVis(name);
     });
 
     // just draw the composition as normal for the first frame
-    c.asyncRenderContext(c.getContext(), this._renderSize, function(err, img) {
+    c.asyncRenderUpToLayer(c.getContext(), name, 0.1, this._renderSize, function(err, img) {
       drawImage(img, canvas);
     });
+    //drawImage(c.renderUpToLayer(c.getContext(), name, 0.2, this._renderSize), canvas);
 
     canvas.click(function () {
       self.showLayerControl(name);

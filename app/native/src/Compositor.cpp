@@ -726,6 +726,67 @@ namespace Comp {
 
   }
 
+  Image * Compositor::renderUpToLayer(Context & c, string layer, float dim, string size)
+  {
+    // set up the context
+    Context mod(c);
+
+    bool postLayer = false;
+    for (int i = 0; i < _layerOrder.size(); i++) {
+      if (_layerOrder[i] == layer) {
+        postLayer = true;
+        continue;
+      }
+      if (postLayer) {
+        mod[_layerOrder[i]]._visible = false;
+      }
+    }
+
+    if (size == "")
+      size = "full";
+
+    Image* i = render(mod, size);
+
+    // masking
+    if (mod[layer].isAdjustmentLayer()) {
+      // for adjustment layers, use the mask if it exists
+      if (_layerMasks.count(layer) > 0) {
+        shared_ptr<Image> mask = _layerMasks[layer][size];
+        vector<unsigned char>& maskPx = mask->getData();
+        vector<unsigned char>& imgPx = i->getData();
+
+        for (int i = 0; i < maskPx.size() / 4; i++) {
+          int idx = i * 4;
+          float maskAlpha = max((maskPx[idx] / 255.0f) * (maskPx[idx + 3] / 255.0f), dim);
+
+          imgPx[idx] = (unsigned char)(imgPx[idx] * maskAlpha);
+          imgPx[idx + 1] = (unsigned char)(imgPx[idx + 1] * maskAlpha);
+          imgPx[idx + 2] = (unsigned char)(imgPx[idx + 2] * maskAlpha);
+        }
+      }
+    }
+    else if (!isGroup(layer)) {
+      // for regular layers, if any of the pixels in the layer is non-zero alpha don't mask
+      shared_ptr<Image> layerImg = _imageData[layer][size];
+      vector<unsigned char>& layerPx = layerImg->getData();
+      vector<unsigned char>& imgPx = i->getData();
+
+      for (int i = 0; i < layerPx.size() / 4; i++) {
+        int idx = i * 4;
+        float maskAlpha = max(dim, layerPx[idx + 3] / 255.0f);
+
+        //if (layerPx[idx + 3] > 0)
+        //  maskAlpha = 1;
+
+        imgPx[idx] = (unsigned char)(imgPx[idx] * maskAlpha);
+        imgPx[idx + 1] = (unsigned char)(imgPx[idx + 1] * maskAlpha);
+        imgPx[idx + 2] = (unsigned char)(imgPx[idx + 2] * maskAlpha);
+      }
+    }
+
+    return i;
+  }
+
   vector<Importance> Compositor::localImportance(Context c, string size)
   {
     if (size == "") {

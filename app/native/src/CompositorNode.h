@@ -253,6 +253,8 @@ private:
   static void setGroupLayers(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void layerInGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void isGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 
@@ -372,6 +374,9 @@ public:
 
   // render a specific context async
   RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx);
+ 
+  // render with the renderUpToLayer function instead
+  RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx, string layer, float dim);
 
   ~RenderWorker() {}
 
@@ -387,6 +392,8 @@ private:
 
   bool _customContext;
   Comp::Context _ctx;
+  float _dim;
+  string _layer;
 };
 
 class StopSearchWorker : public Nan::AsyncWorker {

@@ -1684,6 +1684,8 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "setGroupLayers", setGroupLayers);
   Nan::SetPrototypeMethod(tpl, "layerInGroup", layerInGroup);
   Nan::SetPrototypeMethod(tpl, "isGroup", isGroup);
+  Nan::SetPrototypeMethod(tpl, "renderUpToLayer", renderUpToLayer);
+  Nan::SetPrototypeMethod(tpl, "asyncRenderUpToLayer", asyncRenderUpToLayer);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3479,22 +3481,100 @@ void CompositorWrapper::isGroup(const Nan::FunctionCallbackInfo<v8::Value>& info
   }
 }
 
+void CompositorWrapper::renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.renderUpToLayer");
+  
+  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsNumber()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string layer(*i1);
+
+    float dim = info[2]->NumberValue();
+    
+    string size = "full";
+    if (info[3]->IsString()) {
+      v8::String::Utf8Value i3(info[3]->ToString());
+      size = string(*i3);
+    }
+
+    Comp::Image* img = c->_compositor->renderUpToLayer(ctx->_context, layer, dim, size);
+
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("renderUpToLayer(context, string, float[, string]) argument error");
+  }
+}
+
+void CompositorWrapper::asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.asyncRenderUpToLayer");
+
+  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsNumber() && info[3]->IsString() && info[4]->IsFunction()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string layer(*i1);
+
+    float dim = info[2]->NumberValue();
+
+    v8::String::Utf8Value i3(info[3]->ToString());
+    string size(*i3);
+
+    Nan::Callback* callback = new Nan::Callback(info[4].As<v8::Function>());
+    Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor, ctx->_context, layer, dim));
+  }
+  else {
+    Nan::ThrowError("asyncRenderUpToLayer(context, string, float, string, function(image)) argument error");
+  }
+}
+
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :
   Nan::AsyncWorker(callback), _size(size), _c(c)
 {
   _customContext = false;
+  _dim = -1;
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c, Comp::Context ctx):
   Nan::AsyncWorker(callback), _size(size), _c(c), _ctx(ctx)
 {
   _customContext = true;
+  _dim = -1;
+}
+
+RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c, Comp::Context ctx, string layer, float dim) :
+  Nan::AsyncWorker(callback), _size(size), _c(c), _ctx(ctx), _dim(dim), _layer(layer)
+{
+  _customContext = true;
 }
 
 void RenderWorker::Execute()
 {
-  if (_customContext)
-    _img = _c->render(_ctx, _size);
+  if (_customContext) {
+    if (_dim < 0) {
+      _img = _c->render(_ctx, _size);
+    }
+    else {
+      _img = _c->renderUpToLayer(_ctx, _layer, _dim, _size);
+    }
+  }
   else
     _img = _c->render(_size);
 }

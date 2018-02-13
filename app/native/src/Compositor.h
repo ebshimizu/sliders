@@ -312,6 +312,9 @@ namespace Comp {
     void addLayer(string name);
     void addLayerMask(string name);
 
+    int indexedOffset(float x, float y, string size);
+    int applyIndexedOffset(int i, float dx, float dy, string size);
+
     // stores standard scales of the image in the cache
     // standard sizes are: thumb - 15%, small - 25%, medium - 50%
     void cacheScaled(string name);
@@ -568,6 +571,8 @@ namespace Comp {
       size = "full";
     }
 
+    int totalPx = getWidth(size) * getHeight(size);
+
     // blend the layers
     for (auto id : _layerOrder) {
       Layer& l = c[id];
@@ -592,6 +597,13 @@ namespace Comp {
       }
 
       if (!visible)
+        continue;
+
+      auto translation = l.getOffset();
+      int offset = indexedOffset(translation.first, translation.second, size);
+      i = i + offset;
+
+      if (i < 0 || i >= totalPx)
         continue;
 
       Utils<T>::RGBAColorT layerPx;

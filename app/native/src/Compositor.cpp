@@ -574,148 +574,170 @@ namespace Comp {
 
       unsigned char* layerPx = layerPxV->data();
 
+      auto translation = l.getOffset();
+
       // blend the layer
-      for (unsigned int i = 0; i < comp->numPx(); i++) {
-        // pixel data is a flat array, rgba interlaced format
-        // a = background, b = new layer
-        // alphas
-        float ab = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() * opacityModifier);
-        float aa = compPx[i * 4 + 3] / 255.0f;
+      // TODO: change iteration to y x order to handle offsets easily
+      for (int y = 0; y < height; y++) {
+        // offset
+        int yt = y + translation.second * height;
 
-        // alpha ab is modulated by layer mask
-        // layer mask is assumed greyscale, pull red channel as representative and premult with mask alpha
-        float maskAlpha = ((*layerMaskPx)[i * 4] / 255.0f) * ((*layerMaskPx)[i * 4 + 3] / 255.0f);
-        ab *= maskAlpha;
-
-        // short circuit here if ab == 0
-        if (ab == 0)
+        if (yt < 0 || yt >= height)
           continue;
 
-        if (shouldConditionalBlend) {
-          // i'm unsure if it works literally just on the layer below it or the composition up to this point
-          float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
-            sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
-            layerPx[i * 4] / 255.0f, layerPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 2] / 255.0f,
-            compPx[i * 4] / 255.0f, compPx[i * 4 + 1] / 255.0f, compPx[i * 4 + 2] / 255.0f);
+        for (int x = 0; x < width; x++) {
+          // offset
+          int xt = x + translation.first * width;
 
-          ab = ab * abScale;
-        }
+          if (xt < 0 || xt >= width)
+            continue;
 
-        float ad = aa + ab - aa * ab;
+          int i = xt + yt * width;
+          int o = x + y * width;
 
-        compPx[i * 4 + 3] = (unsigned char)(ad * 255);
+          if (i < 0 || i >= comp->numPx())
+            continue;
 
-        // premult colors
-        float rb = premult(layerPx[i * 4], ab);
-        float gb = premult(layerPx[i * 4 + 1], ab);
-        float bb = premult(layerPx[i * 4 + 2], ab);
+          // pixel data is a flat array, rgba interlaced format
+          // a = background, b = new layer
+          // alphas
+          float ab = (layerPx[i * 4 + 3] / 255.0f) * (l.getOpacity() * opacityModifier);
+          float aa = compPx[o * 4 + 3] / 255.0f;
 
-        float ra = premult(compPx[i * 4], aa);
-        float ga = premult(compPx[i * 4 + 1], aa);
-        float ba = premult(compPx[i * 4 + 2], aa);
+          // alpha ab is modulated by layer mask
+          // layer mask is assumed greyscale, pull red channel as representative and premult with mask alpha
+          float maskAlpha = ((*layerMaskPx)[i * 4] / 255.0f) * ((*layerMaskPx)[i * 4 + 3] / 255.0f);
+          ab *= maskAlpha;
 
-        // blend modes
-        if (l._mode == BlendMode::NORMAL) {
-          // b over a, standard alpha blend
-          compPx[i * 4] = cvt(normal(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(normal(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(normal(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::MULTIPLY) {
-          compPx[i * 4] = cvt(multiply(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(multiply(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(multiply(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::SCREEN) {
-          compPx[i * 4] = cvt(screen(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(screen(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(screen(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::OVERLAY) {
-          compPx[i * 4] = cvt(overlay(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(overlay(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(overlay(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::HARD_LIGHT) {
-          compPx[i * 4] = cvt(hardLight(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(hardLight(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(hardLight(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::SOFT_LIGHT) {
-          compPx[i * 4] = cvt(softLight(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(softLight(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(softLight(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::LINEAR_DODGE) {
-          // special override for alpha here
-          ad = (aa + ab > 1) ? 1 : (aa + ab);
-          compPx[i * 4 + 3] = (unsigned char)(ad * 255);
+          // short circuit here if ab == 0
+          if (ab == 0)
+            continue;
 
-          compPx[i * 4] = cvt(linearDodge(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearDodge(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearDodge(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::COLOR_DODGE) {
-          compPx[i * 4] = cvt(colorDodge(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(colorDodge(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(colorDodge(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::LINEAR_BURN) {
-          // need unmultiplied colors for this one
-          compPx[i * 4] = cvt(linearBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::LINEAR_LIGHT) {
-          compPx[i * 4] = cvt(linearLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(linearLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(linearLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::COLOR) {
-          // also no premult colors
-          RGBColor dest;
-          dest._r = compPx[i * 4] / 255.0f;
-          dest._g = compPx[i * 4 + 1] / 255.0f;
-          dest._b = compPx[i * 4 + 2] / 255.0f;
+          if (shouldConditionalBlend) {
+            // i'm unsure if it works literally just on the layer below it or the composition up to this point
+            float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
+              sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
+              layerPx[i * 4] / 255.0f, layerPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 2] / 255.0f,
+              compPx[o * 4] / 255.0f, compPx[o * 4 + 1] / 255.0f, compPx[o * 4 + 2] / 255.0f);
 
-          RGBColor src;
-          src._r = layerPx[i * 4] / 255.0f;
-          src._g = layerPx[i * 4 + 1] / 255.0f;
-          src._b = layerPx[i * 4 + 2] / 255.0f;
+            ab = ab * abScale;
+          }
 
-          RGBColor res = color(dest, src, aa, ab);
-          compPx[i * 4] = cvt(res._r, ad);
-          compPx[i * 4 + 1] = cvt(res._g, ad);
-          compPx[i * 4 + 2] = cvt(res._b, ad);
-        }
-        else if (l._mode == BlendMode::LIGHTEN) {
-          compPx[i * 4] = cvt(lighten(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(lighten(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(lighten(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::DARKEN) {
-          compPx[i * 4] = cvt(darken(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(darken(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(darken(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::PIN_LIGHT) {
-          compPx[i * 4] = cvt(pinLight(ra, rb, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(pinLight(ga, gb, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(pinLight(ba, bb, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::COLOR_BURN) {
-          // also unmultiplied colors here
-          compPx[i * 4] = cvt(colorBurn(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(colorBurn(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(colorBurn(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
-        }
-        else if (l._mode == BlendMode::VIVID_LIGHT) {
-          compPx[i * 4] = cvt(vividLight(compPx[i * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 1] = cvt(vividLight(compPx[i * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
-          compPx[i * 4 + 2] = cvt(vividLight(compPx[i * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          float ad = aa + ab - aa * ab;
+
+          compPx[o * 4 + 3] = (unsigned char)(ad * 255);
+
+          // premult colors
+          float rb = premult(layerPx[i * 4], ab);
+          float gb = premult(layerPx[i * 4 + 1], ab);
+          float bb = premult(layerPx[i * 4 + 2], ab);
+
+          float ra = premult(compPx[o * 4], aa);
+          float ga = premult(compPx[o * 4 + 1], aa);
+          float ba = premult(compPx[o * 4 + 2], aa);
+
+          // blend modes
+          if (l._mode == BlendMode::NORMAL) {
+            // b over a, standard alpha blend
+            compPx[o * 4] = cvt(normal(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(normal(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(normal(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::MULTIPLY) {
+            compPx[o * 4] = cvt(multiply(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(multiply(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(multiply(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::SCREEN) {
+            compPx[o * 4] = cvt(screen(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(screen(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(screen(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::OVERLAY) {
+            compPx[o * 4] = cvt(overlay(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(overlay(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(overlay(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::HARD_LIGHT) {
+            compPx[o * 4] = cvt(hardLight(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(hardLight(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(hardLight(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::SOFT_LIGHT) {
+            compPx[o * 4] = cvt(softLight(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(softLight(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(softLight(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::LINEAR_DODGE) {
+            // special override for alpha here
+            ad = (aa + ab > 1) ? 1 : (aa + ab);
+            compPx[o * 4 + 3] = (unsigned char)(ad * 255);
+
+            compPx[o * 4] = cvt(linearDodge(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(linearDodge(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(linearDodge(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::COLOR_DODGE) {
+            compPx[o * 4] = cvt(colorDodge(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(colorDodge(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(colorDodge(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::LINEAR_BURN) {
+            // need unmultiplied colors for this one
+            compPx[o * 4] = cvt(linearBurn(compPx[o * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(linearBurn(compPx[o * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(linearBurn(compPx[o * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::LINEAR_LIGHT) {
+            compPx[o * 4] = cvt(linearLight(compPx[o * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(linearLight(compPx[o * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(linearLight(compPx[o * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::COLOR) {
+            // also no premult colors
+            RGBColor dest;
+            dest._r = compPx[o * 4] / 255.0f;
+            dest._g = compPx[o * 4 + 1] / 255.0f;
+            dest._b = compPx[o * 4 + 2] / 255.0f;
+
+            RGBColor src;
+            src._r = layerPx[i * 4] / 255.0f;
+            src._g = layerPx[i * 4 + 1] / 255.0f;
+            src._b = layerPx[i * 4 + 2] / 255.0f;
+
+            RGBColor res = color(dest, src, aa, ab);
+            compPx[o * 4] = cvt(res._r, ad);
+            compPx[o * 4 + 1] = cvt(res._g, ad);
+            compPx[o * 4 + 2] = cvt(res._b, ad);
+          }
+          else if (l._mode == BlendMode::LIGHTEN) {
+            compPx[o * 4] = cvt(lighten(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(lighten(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(lighten(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::DARKEN) {
+            compPx[o * 4] = cvt(darken(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(darken(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(darken(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::PIN_LIGHT) {
+            compPx[o * 4] = cvt(pinLight(ra, rb, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(pinLight(ga, gb, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(pinLight(ba, bb, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::COLOR_BURN) {
+            // also unmultiplied colors here
+            compPx[o * 4] = cvt(colorBurn(compPx[o * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(colorBurn(compPx[o * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(colorBurn(compPx[o * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          }
+          else if (l._mode == BlendMode::VIVID_LIGHT) {
+            compPx[o * 4] = cvt(vividLight(compPx[o * 4] / 255.0f, layerPx[i * 4] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 1] = cvt(vividLight(compPx[o * 4 + 1] / 255.0f, layerPx[i * 4 + 1] / 255.0f, aa, ab), ad);
+            compPx[o * 4 + 2] = cvt(vividLight(compPx[o * 4 + 2] / 255.0f, layerPx[i * 4 + 2] / 255.0f, aa, ab), ad);
+          }
         }
       }
-
       // adjustment layer clean up, if applicable
       if (tmpLayer != nullptr) {
         delete tmpLayer;
@@ -2100,6 +2122,19 @@ namespace Comp {
     _layerMasks[name]["medium"] = _layerMasks[name]["full"]->resize(0.5f);
 
     getLogger()->log("Added mask " + _layerMasks[name]["full"]->getFilename() + " to layer " + name);
+  }
+
+  int Compositor::indexedOffset(float x, float y, string size)
+  {
+    // current problem with translation is that there's no way to know if x or y goes out of bounds
+    int w = getWidth(size);
+    int h = getHeight(size);
+
+    return (int)(x * w) + (int)((y * h) * w);
+  }
+
+  int Compositor::applyIndexedOffset(int i, float dx, float dy, string size)
+  {
   }
 
   void Compositor::cacheScaled(string name)

@@ -688,6 +688,7 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "type", type);
   Nan::SetPrototypeMethod(tpl, "conditionalBlend", conditionalBlend);
   Nan::SetPrototypeMethod(tpl, "getMask", getMask);
+  Nan::SetPrototypeMethod(tpl, "offset", offset);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -1493,6 +1494,24 @@ void LayerRef::getMask(const Nan::FunctionCallbackInfo<v8::Value>& info)
     v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(mask.get()), Nan::New(false) };
 
     info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+}
+
+void LayerRef::offset(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.offset");
+
+  if (info[0]->IsNumber() && info[1]->IsNumber()) {
+    layer->_layer->setOffset(info[0]->NumberValue(), info[1]->NumberValue());
+  }
+  else {
+    auto offset = layer->_layer->getOffset();
+    v8::Local<v8::Object> ret;
+    ret->Set(Nan::New("x").ToLocalChecked(), Nan::New(offset.first));
+    ret->Set(Nan::New("y").ToLocalChecked(), Nan::New(offset.second));
+
+    info.GetReturnValue().Set(ret);
   }
 }
 

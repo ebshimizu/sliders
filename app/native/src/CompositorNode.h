@@ -132,6 +132,7 @@ private:
   static void type(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void offset(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

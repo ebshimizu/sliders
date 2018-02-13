@@ -28,7 +28,9 @@ namespace Comp {
     _selectiveColor(other._selectiveColor),
     _cbChannel(other._cbChannel),
     _cbSettings(other._cbSettings),
-    _mask(other._mask)
+    _mask(other._mask),
+    _offsetX(other._offsetX),
+    _offsetY(other._offsetY)
   {
   }
 
@@ -47,6 +49,8 @@ namespace Comp {
     _cbChannel = other._cbChannel;
     _cbSettings = other._cbSettings;
     _mask = other._mask;
+    _offsetX = other._offsetX;
+    _offsetY = other._offsetY;
 
     return *this;
   }
@@ -485,6 +489,17 @@ namespace Comp {
     }
   }
 
+  void Layer::setOffset(float x, float y)
+  {
+    _offsetX = x;
+    _offsetY = y;
+  }
+
+  pair<float, float> Layer::getOffset()
+  {
+    return pair<float, float>(_offsetX, _offsetY);
+  }
+
   void Layer::init(shared_ptr<Image> source)
   {
     _mode = BlendMode::NORMAL;
@@ -493,5 +508,7 @@ namespace Comp {
 
     _image = source;
     _mask = nullptr;
+    _offsetX = 0;
+    _offsetY = 0;
   }
 }

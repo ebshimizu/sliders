@@ -164,6 +164,9 @@ namespace Comp {
     map<string, map<string, ExpStep> > _expSelectiveColor;
     ExpStep _expOpacity;
 
+    void setOffset(float x, float y);
+    pair<float, float> getOffset();
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
@@ -202,6 +205,9 @@ namespace Comp {
 
     // pointer to mask data, also stored in compositor
     shared_ptr<Image> _mask;
+
+    float _offsetX;
+    float _offsetY;
   };
 
   typedef map<string, Layer> Context;

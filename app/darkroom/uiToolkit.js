@@ -2850,6 +2850,7 @@ class GroupPanel {
       elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
     }
 
+    elem.find('.menu').prepend('<div class="item" data-value="all">All</div>');
     elem.dropdown('refresh');
     if (useSelected) {
       elem.dropdown('set value', selected);
@@ -2874,13 +2875,19 @@ class GroupPanel {
     if (value === "")
       return;
 
-    // add the group control thing
-    this._groupControl = new GroupControls(value);
-    this._groupControl.createUI($(this.primarySelector + ' .groupControls'));
-    this._currentGroup = value;
 
-    this.displaySelectedLayers(this._selectedLayers);
-    this.updateLayerCards();
+    if (value === 'all') {
+
+    }
+    else {
+      // add the group control thing
+      this._groupControl = new GroupControls(value);
+      this._groupControl.createUI($(this.primarySelector + ' .groupControls'));
+      this._currentGroup = value;
+
+      this.displaySelectedLayers(this._selectedLayers);
+      this.updateLayerCards();
+    }
   }
 
   addNewGroup() {
@@ -2891,6 +2898,10 @@ class GroupPanel {
       onApprove: function () {
         let name = $('#newMetaGroupModal input').val();
         
+        // all is a reserved keyword
+        if (name === "all")
+          return false;
+
         if (c.isGroup(name))
           return false;
         
@@ -3671,6 +3682,7 @@ class LayerControls {
     // i love javascript, where the definition order doesn't matter, and the scope is made up
     html += genBlendModeMenu(this._name);
     html += genAddAdjustmentButton(this._name);
+    html += '<div class="ui mini icon button layerMoveButton"><i class="move icon"></i></div>';
     html += createLayerParam(this._name, "opacity");
 
     // separate handlers for each adjustment type
@@ -4330,6 +4342,16 @@ class GroupControls extends LayerControls {
     $('div.layer[layerName="' + this._groupName + '"]').remove();
   }
 
+  rebuildUI() {
+    this._uiElem.remove();
+    this._uiElem = $(this.buildUI());
+    this._container.append(this._uiElem);
+    this.bindEvents();
+    this.groupUIMods();
+    this.displayThumb = this.displayThumb;
+    this.drawThumb();
+  }
+
   createUI(container) {
     super.createUI(container);
 
@@ -4339,6 +4361,10 @@ class GroupControls extends LayerControls {
     //viewButton = $(viewButton);
     //$('div.layer[layerName="' + this._groupName + '"]').append(viewButton);
 
+    this.groupUIMods();
+  }
+
+  groupUIMods() {
     // bindings
     var self = this;
     //viewButton.click(function() {
@@ -4357,7 +4383,7 @@ class GroupControls extends LayerControls {
       let deleteButton = '<button class="ui mini red icon button deleteGroupButton" groupName="' + this._groupName + '" data-content="Delete Group">';
       deleteButton += '<i class="remove icon"></i></button>';
       deleteButton = $(deleteButton);
-      container.find('div.layer[layerName="' + this._groupName + '"]').append(deleteButton);
+      this._container.find('div.layer[layerName="' + this._groupName + '"]').append(deleteButton);
 
       deleteButton.click(function() {
         removeMetaGroup(self._groupName);
@@ -4366,7 +4392,7 @@ class GroupControls extends LayerControls {
       deleteButton.popup();
     }
 
-    container.find('h3.header').click(function() {
+    this._container.find('h3.header').click(function() {
       g_groupPanel.displaySelectedLayers(c.getGroup(self._groupName).affectedLayers);
     });
   }

@@ -949,7 +949,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 .layer button.deleteGroupButton {
     position: absolute;
     top: 6px;
-    right: 225px;
+    right: 260px;
 }
 
 .secondaryGroupPanel .groupButtons {
@@ -968,4 +968,10 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 
 .groupSelectGroup {
     margin-top: 15px;
+}
+
+.layerMoveButton {
+    position: absolute;
+    top: 6px;
+    right: 224px;
 }

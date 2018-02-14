@@ -2867,8 +2867,11 @@ class GroupPanel {
   updateGroup(value) {
     // uh, delete the thing
     if (this._groupControl) {
-      this._groupControl.deleteUI();
-      delete this._groupControl;
+      for (let i = 0; i < this._groupControl.length; i++) {
+        this._groupControl[i].deleteUI();
+        delete this._groupControl[i];
+      }
+      this._groupControl = [];
     }
 
     // nothing selected
@@ -2877,12 +2880,19 @@ class GroupPanel {
 
 
     if (value === 'all') {
-
+      this._groupControl = [];
+      let order = c.getGroupOrder();
+      for (let o in order) {
+        let name = order[o].group;
+        let gc = new GroupControls(name);
+        gc.createUI($(this.primarySelector + ' .groupControls'));
+        this._groupControl.push(gc);
+      }
     }
     else {
       // add the group control thing
-      this._groupControl = new GroupControls(value);
-      this._groupControl.createUI($(this.primarySelector + ' .groupControls'));
+      this._groupControl = [ new GroupControls(value) ];
+      this._groupControl[0].createUI($(this.primarySelector + ' .groupControls'));
       this._currentGroup = value;
 
       this.displaySelectedLayers(this._selectedLayers);
@@ -4392,7 +4402,7 @@ class GroupControls extends LayerControls {
       deleteButton.popup();
     }
 
-    this._container.find('h3.header').click(function() {
+    this._container.find('div[layerName="' + this._groupName + '"] h3.header').click(function() {
       g_groupPanel.displaySelectedLayers(c.getGroup(self._groupName).affectedLayers);
     });
   }

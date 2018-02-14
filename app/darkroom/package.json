@@ -15,10 +15,9 @@
     "electron": "^1.4.1"
   },
   "dependencies": {
-    "chokidar": "^1.7.0",
-    "compositor": "file:../native/build/Release/compositor",
+    "chokidar": "1.7.0",
     "fs-extra": "^5.0.0",
     "ml-pca": "^2.1.0",
-    "semantic-ui": "^2.2.7"
+    "semantic-ui": "^2.2.14"
   }
 }

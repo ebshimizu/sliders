@@ -1,0 +1,49 @@
+{
+  "mode": "evo",
+  "loadFrom": "../app/darkroom/codegen/ceres.json",
+  "saveTo": "../app/darkroom/ceresOut/",
+  "randomReinit": {
+    "minEps": 1e-3,
+    "maxIters": 500,
+    "pctParams": 1,
+    "sigma": 0.25
+  },
+  "random": {
+    "trials": 1000,
+    "tolerance": 5,
+    "outputAllResults": false,
+    "histInterval": 10,
+    "histMax": 1000
+  },
+  "evo": {
+    "mutationRate": 0.2,
+    "crossoverRate": 0.3,
+    "crossoverChance": 0.25,
+    "ceresRate": 0.3,
+    "popSize": 90,
+    "includeStartConfig": true,
+    "maxIters": 10,
+    "objectives": [
+      0,
+      1,
+      2
+    ],
+    "comparisonMethod": 0,
+    "fitnessMethod": 1,
+    "optimizeBeforeFitness": false,
+    "equalityTolerance": 0.25,
+    "archiveSize": 10,
+    "selectK": 12,
+    "poolSize": 25,
+    "logLevel": 0,
+    "exportPopulations": false,
+    "exportArchives": false,
+    "elitistReproduction": false,
+    "optimizeFinal": false,
+    "optimizeArc": false,
+    "returnSize": 10,
+    "knockoutRate": 0.4,
+    "returnOrder": 0,
+    "groupsOnly": true
+  }
+}

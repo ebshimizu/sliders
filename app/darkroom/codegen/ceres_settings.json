@@ -1,0 +1,47 @@
+{
+  "mode": "evo",
+  "loadFrom": "./codegen/ceres.json",
+  "saveTo": "./ceresOut/",
+  "randomReinit": {
+    "minEps": 0.001,
+    "maxIters": 500,
+    "pctParams": 1,
+    "sigma": 0.25
+  },
+  "random": {
+    "trials": 1000,
+    "tolerance": 5,
+    "outputAllResults": false,
+    "histInterval": 10,
+    "histMax": 1000
+  },
+  "evo": {
+    "mutationRate": 0.2,
+    "crossoverRate": 0.3,
+    "crossoverChance": 0.25,
+    "ceresRate": 0.1,
+    "popSize": 90,
+    "includeStartConfig": true,
+    "maxIters": 5,
+    "objectives": [
+      0,
+      1,
+      2
+    ],
+    "comparisonMethod": 0,
+    "fitnessMethod": 1,
+    "optimizeBeforeFitness": false,
+    "equalityTolerance": 0.25,
+    "archiveSize": 10,
+    "selectK": 12,
+    "poolSize": 30,
+    "logLevel": 0,
+    "exportPopulations": false,
+    "exportArchives": false,
+    "elitistReproduction": false,
+    "optimizeFinal": true,
+    "optimizeArc": false,
+    "returnSize": 10,
+    "returnOrder": 0
+  }
+}

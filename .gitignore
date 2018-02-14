@@ -79,7 +79,8 @@ ceres_harness/.vs/*
 expression_tree/.vs/*
 app/darkroom/ceresOut/*
 app/darkroom/pxConstraint*
-app/darkroom/codegen/*.json
+app/darkroom/codegen/ceres.json
+app/darkroom/codegen/ceres_result.json
 app/native/debug/colors.png
 app/native/debug/fixed.png
 app/native/debug/test.png

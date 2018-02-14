@@ -17,6 +17,7 @@
   "dependencies": {
     "chokidar": "^1.7.0",
     "compositor": "file:../native/build/Release/compositor",
+    "fs-extra": "^5.0.0",
     "ml-pca": "^2.1.0",
     "semantic-ui": "^2.2.7"
   }

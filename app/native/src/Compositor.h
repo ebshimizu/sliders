@@ -132,8 +132,11 @@ namespace Comp {
     // The render functions should be used for GUI render calls.
     Image* render(string size = "");
 
-    // render with a given context
+    // wrapper for old render calls
     Image* render(Context& c, string size = "");
+
+    // render with a given context
+    Image* render(Context& c, Image* comp, vector<string> order, string size = "");
 
     // renders the composition up to and including the specified layer.
     // additionally, the pixels unaffected by the given layer are dimmed by a maximum specified amount

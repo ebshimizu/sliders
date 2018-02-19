@@ -459,13 +459,24 @@ namespace Comp {
 
   Image* Compositor::render(string size)
   {
-    return render(getNewContext(), size);
+    return render(getNewContext(), nullptr, vector<string>(), size);
   }
 
-  Image* Compositor::render(Context& c, string size)
+  Image * Compositor::render(Context & c, string size)
+  {
+    return render(c, nullptr, vector<string>(), size);
+  }
+
+  Image* Compositor::render(Context& c, Image* comp, vector<string> order, string size)
   {
     if (c.size() == 0) {
       return new Image();
+    }
+
+    // if we have no layer order, this should be the first call and will be
+    // set to the base layer order
+    if (order.size() == 0) {
+      order = _layerOrder;
     }
 
     // pick a size to use in the cache
@@ -487,7 +498,13 @@ namespace Comp {
       height = _imageData.begin()->second["full"]->getHeight();
     }
 
-    Image* comp = new Image(width, height);
+    // if a layer group is pass through, the recursive render call will pass
+    // the current composition. If not, a blank image will be passed and
+    // the result will be composited in later
+    if (comp == nullptr) {
+      comp = new Image(width, height);
+    }
+
     vector<unsigned char>& compPxV = comp->getData();
     unsigned char* compPx = compPxV.data();
 
@@ -540,8 +557,25 @@ namespace Comp {
       float dwMax = cbData["destWhiteMax"];
       bool hasMask = l.hasMask();
 
-      // handle adjustment layers
-      if (l.isAdjustmentLayer()) {
+      // ok so check if the layer is a precomp
+      if (l.isPrecomp()) {
+        // if it is, then we'll need a recursive call to render
+        // pass through
+        if (l._mode == PASS_THROUGH) {
+          // this writes directly to comp
+          render(c, comp, l.getPrecompOrder(), size);
+          continue;
+        }
+        else {
+          // pretend like we have a blank render context
+          tmpLayer = render(c, nullptr, l.getPrecompOrder(), size);
+          // apply adjustments, continue as normal
+          adjust(tmpLayer, l);
+          layerPxV = &tmpLayer->getData();
+        }
+      }
+      else if (l.isAdjustmentLayer()) {
+        // handle adjustment layers
         // ok so here we adjust the current composition, then blend it as normal below
         // create duplicate of current composite
         tmpLayer = new Image(*comp);
@@ -577,7 +611,6 @@ namespace Comp {
       auto translation = l.getOffset();
 
       // blend the layer
-      // TODO: change iteration to y x order to handle offsets easily
       for (int y = 0; y < height; y++) {
         // offset
         int yt = y + translation.second * height;
@@ -2330,7 +2363,7 @@ namespace Comp {
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
     ExpSearchSet activeSet(_searchSettings);
-    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, _searchRenderSize));
+    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, nullptr, vector<string>(), _searchRenderSize));
 
     Context c = _initSearchContext;
     nlohmann::json key;
@@ -2540,7 +2573,7 @@ namespace Comp {
 
       // attempt to add the thing
       Context newCtx = vectorToContext(cv, key);
-      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, _searchRenderSize));
+      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, nullptr, vector<string>(), _searchRenderSize));
       shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
 
       // check that the result is "reasonable"

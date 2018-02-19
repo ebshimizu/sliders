@@ -30,7 +30,8 @@ namespace Comp {
     _cbSettings(other._cbSettings),
     _mask(other._mask),
     _offsetX(other._offsetX),
-    _offsetY(other._offsetY)
+    _offsetY(other._offsetY),
+    _precompOrder(other._precompOrder)
   {
   }
 
@@ -51,6 +52,7 @@ namespace Comp {
     _mask = other._mask;
     _offsetX = other._offsetX;
     _offsetY = other._offsetY;
+    _precompOrder = other._precompOrder;
 
     return *this;
   }
@@ -498,6 +500,21 @@ namespace Comp {
   pair<float, float> Layer::getOffset()
   {
     return pair<float, float>(_offsetX, _offsetY);
+  }
+
+  void Layer::setPrecompOrder(vector<string> order)
+  {
+    _precompOrder = order;
+  }
+
+  vector<string> Layer::getPrecompOrder()
+  {
+    return _precompOrder;
+  }
+
+  bool Layer::isPrecomp()
+  {
+    return _precompOrder.size() > 0;
   }
 
   void Layer::init(shared_ptr<Image> source)

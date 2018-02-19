@@ -689,6 +689,9 @@ void LayerRef::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "conditionalBlend", conditionalBlend);
   Nan::SetPrototypeMethod(tpl, "getMask", getMask);
   Nan::SetPrototypeMethod(tpl, "offset", offset);
+  Nan::SetPrototypeMethod(tpl, "setPrecompOrder", setPrecompOrder);
+  Nan::SetPrototypeMethod(tpl, "getPrecompOrder", getPrecompOrder);
+  Nan::SetPrototypeMethod(tpl, "isPrecomp", isPrecomp);
 
   layerConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Layer").ToLocalChecked(), tpl->GetFunction());
@@ -1513,6 +1516,49 @@ void LayerRef::offset(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
     info.GetReturnValue().Set(ret);
   }
+}
+
+void LayerRef::setPrecompOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.setPrecompOrder");
+
+  if (info[0]->IsArray()) {
+    v8::Local<v8::Array> arr = info[0].As<v8::Array>();
+    vector<string> order;
+    for (int i = 0; i < arr->Length(); i++) {
+      v8::String::Utf8Value str(arr->Get(i)->ToString());
+      order.push_back(string(*str));
+    }
+
+    layer->_layer->setPrecompOrder(order);
+  }
+  else {
+    Nan::ThrowError("setPrecompOrder(string[]) argument error");
+  }
+}
+
+void LayerRef::getPrecompOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.getPrecompOrder");
+
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+  vector<string> order = layer->_layer->getPrecompOrder();
+
+  for (int i = 0; i < order.size(); i++) {
+    ret->Set(i, Nan::New(order[i]).ToLocalChecked());
+  }
+
+  info.GetReturnValue().Set(ret);
+}
+
+void LayerRef::isPrecomp(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  LayerRef* layer = ObjectWrap::Unwrap<LayerRef>(info.Holder());
+  nullcheck(layer->_layer, "layer.isPrecomp");
+ 
+  info.GetReturnValue().Set(Nan::New(layer->_layer->isPrecomp()));
 }
 
 void ContextWrapper::Init(v8::Local<v8::Object> exports)

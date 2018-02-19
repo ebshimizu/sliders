@@ -31,7 +31,8 @@ namespace Comp {
     DARKEN = 12,
     PIN_LIGHT = 13,
     COLOR_BURN = 14,
-    VIVID_LIGHT = 15
+    VIVID_LIGHT = 15,
+    PASS_THROUGH = 16
   };
 
   class Layer {
@@ -167,6 +168,10 @@ namespace Comp {
     void setOffset(float x, float y);
     pair<float, float> getOffset();
 
+    void setPrecompOrder(vector<string> order);
+    vector<string> getPrecompOrder();
+    bool isPrecomp();
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
@@ -208,6 +213,11 @@ namespace Comp {
 
     float _offsetX;
     float _offsetY;
+
+    // if the layer is a precomposed group, we'll need to render that.
+    // this is just a recursive render call using the precomposition order
+    // stored in this layer (same context)
+    vector<string> _precompOrder;
   };
 
   typedef map<string, Layer> Context;

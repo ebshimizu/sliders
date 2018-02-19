@@ -133,6 +133,9 @@ private:
   static void conditionalBlend(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getMask(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void offset(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void setPrecompOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getPrecompOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void isPrecomp(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Layer* _layer;
 };

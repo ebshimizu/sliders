@@ -208,7 +208,7 @@ private:
   static void stopSearch(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void setContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void resetImages(const Nan::FunctionCallbackInfo<v8::Value>& info);
-  static void computeExpContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  //static void computeExpContext(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void setMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void deleteMaskLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);

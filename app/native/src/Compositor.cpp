@@ -498,34 +498,35 @@ namespace Comp {
       height = _imageData.begin()->second["full"]->getHeight();
     }
 
+    // default mask (all white)
+    Image* defaultMask = new Image(width, height);
+    vector<unsigned char>& defaultMaskPx = defaultMask->getData();
+    fill(defaultMaskPx.begin(), defaultMaskPx.end(), 255);
+
     // if a layer group is pass through, the recursive render call will pass
     // the current composition. If not, a blank image will be passed and
     // the result will be composited in later
     if (comp == nullptr) {
       comp = new Image(width, height);
+
+      // Photoshop appears to blend using an all white alpha 0 image
+      vector<unsigned char>& compPxV_N = comp->getData();
+      unsigned char* compPx_N = compPxV_N.data();
+      for (int i = 0; i < compPxV_N.size(); i++) {
+        if (i % 4 == 3) {
+          continue;
+        }
+
+        compPx_N[i] = 255;
+      }
     }
 
     vector<unsigned char>& compPxV = comp->getData();
     unsigned char* compPx = compPxV.data();
 
-    // default mask (all white)
-    Image* defaultMask = new Image(width, height);
-    vector<unsigned char>& defaultMaskPx = defaultMask->getData();
-
-    // Photoshop appears to blend using an all white alpha 0 image
-    for (int i = 0; i < compPxV.size(); i++) {
-      if (i % 4 == 3) {
-        defaultMaskPx[i] = 255;
-        continue;
-      }
-
-      compPx[i] = 255;
-      defaultMaskPx[i] = 255;
-    }
-
     // blend the layers
-    for (int lOrder = 0; lOrder < _layerOrder.size(); lOrder++) {
-      string id = _layerOrder[lOrder];
+    for (int lOrder = 0; lOrder < order.size(); lOrder++) {
+      string id = order[lOrder];
       Layer& l = c[id];
 
       // do a group visibility check here. A layer is visible if every
@@ -781,12 +782,291 @@ namespace Comp {
 
   }
 
+
+  Utils<float>::RGBAColorT Compositor::renderPixel(Context& c, typename Utils<float>::RGBAColorT* compPx, vector<string> order, int i, string size) {
+    // photoshop appears to start with all white alpha 0 image
+    if (compPx == nullptr) {
+      compPx = new Utils<float>::RGBAColorT();
+      compPx->_r = 1;
+      compPx->_g = 1;
+      compPx->_b = 1;
+      compPx->_a = 0;
+    }
+
+    if (size == "") {
+      size = "full";
+    }
+
+    int totalPx = getWidth(size) * getHeight(size);
+
+    if (order.size() == 0) {
+      order = _layerOrder;
+    }
+
+    // blend the layers
+    for (int lOrder = 0; lOrder < order.size(); lOrder++) {
+      string id = order[lOrder];
+      Layer& l = c[id];
+      bool shouldConditionalBlend = l.shouldConditionalBlend();
+      auto cbData = l.getConditionalBlendSettings();
+      float sbMin = cbData["srcBlackMin"];
+      float sbMax = cbData["srcBlackMax"];
+      float swMin = cbData["srcWhiteMin"];
+      float swMax = cbData["srcWhiteMax"];
+      float dbMin = cbData["destBlackMin"];
+      float dbMax = cbData["destBlackMax"];
+      float dwMin = cbData["destWhiteMin"];
+      float dwMax = cbData["destWhiteMax"];
+
+      bool visible = l._visible;
+      float opacityModifier = 1;
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          visible = visible & c[o.second]._visible;
+          opacityModifier *= c[o.second].getOpacity();
+        }
+      }
+
+      if (!visible)
+        continue;
+
+      Utils<float>::RGBAColorT layerPx;
+      Utils<float>::RGBAColorT maskPx;
+
+      if (l.isPrecomp()) {
+        if (l._mode == PASS_THROUGH) {
+          renderPixel(c, compPx, l.getPrecompOrder(), i, size);
+          continue;
+        }
+        else {
+          layerPx = renderPixel(c, nullptr, l.getPrecompOrder(), i, size);
+          layerPx = adjustPixel<float>(layerPx, l);
+        }
+      }
+      else if (l.isAdjustmentLayer()) {
+        // ok so here we adjust the current composition, then blend it as normal below
+        // create duplicate of current composite
+        layerPx = adjustPixel<float>(*compPx, l);
+      }
+      else {
+        // so a layer may have other things clipped to it, in which case we apply the
+        // specified adjustment only to the source layer and the composite as normal
+        layerPx = adjustPixel<float>(_imageData[l.getName()][size]->getPixel(i), l);
+      }
+
+      auto translation = l.getOffset();
+      int offset = indexedOffset(translation.first, translation.second, size);
+      i = i + offset;
+
+      if (i < 0 || i >= totalPx)
+        continue;
+
+      // ok at this point the base adjustments have been handled.
+      // we now check the group settings and apply those to the layer
+      for (auto& o : _groupOrder) {
+        if (_groups[o.second]._affectedLayers.count(id) > 0) {
+          layerPx = adjustPixel<float>(layerPx, c[o.second]);
+        }
+      }
+
+      if (l.hasMask()) {
+        maskPx = _layerMasks[l.getName()][size]->getPixel(i);
+      }
+      else {
+        maskPx._r = 1;
+        maskPx._g = 1;
+        maskPx._b = 1;
+        maskPx._a = 1;
+      }
+
+      // blend the layer
+      // a = background, b = new layer
+      // alphas
+      float ab = layerPx._a * (l.getOpacity() * opacityModifier);
+      float aa = compPx->_a;
+
+      ab *= (maskPx._r * maskPx._a);
+
+      if (shouldConditionalBlend) {
+        // i'm unsure if it works literally just on the layer below it or the composition up to this point
+        float abScale = conditionalBlend(l.getConditionalBlendChannel(), sbMin,
+          sbMax, swMin, swMax, dbMin, dbMax, dwMin, dwMax,
+          layerPx._r, layerPx._g, layerPx._b,
+          compPx->_r, compPx->_g, compPx->_b);
+
+        ab = ab * abScale;
+      }
+
+      float ad = aa + ab - aa * ab;
+
+      compPx->_a = ad;
+
+      // premult colors
+      float rb = layerPx._r * ab;
+      float gb = layerPx._g * ab;
+      float bb = layerPx._b * ab;
+
+      float ra = compPx->_r * aa;
+      float ga = compPx->_g * aa;
+      float ba = compPx->_b * aa;
+
+      // blend modes
+      if (l._mode == BlendMode::NORMAL) {
+        // b over a, standard alpha blend
+        compPx->_r = cvtT(normal(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(normal(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(normal(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::MULTIPLY) {
+        compPx->_r = cvtT(multiply(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(multiply(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(multiply(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SCREEN) {
+        compPx->_r = cvtT(screen(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(screen(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(screen(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::OVERLAY) {
+        compPx->_r = cvtT(overlay(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(overlay(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(overlay(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::HARD_LIGHT) {
+        compPx->_r = cvtT(hardLight(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(hardLight(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(hardLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::SOFT_LIGHT) {
+        compPx->_r = cvtT(softLight(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(softLight(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(softLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_DODGE) {
+        // special override for alpha here
+        ad = (aa + ab > 1) ? 1 : (aa + ab);
+        compPx->_a = ad;
+
+        compPx->_r = cvtT(linearDodge(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(linearDodge(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(linearDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR_DODGE) {
+        compPx->_r = cvtT(colorDodge(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(colorDodge(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(colorDodge(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_BURN) {
+        // need unmultiplied colors for this one
+        compPx->_r = cvtT(linearBurn(compPx->_r, layerPx._r, aa, ab), ad);
+        compPx->_g = cvtT(linearBurn(compPx->_g, layerPx._g, aa, ab), ad);
+        compPx->_b = cvtT(linearBurn(compPx->_b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::LINEAR_LIGHT) {
+        compPx->_r = cvtT(linearLight(compPx->_r, layerPx._r, aa, ab), ad);
+        compPx->_g = cvtT(linearLight(compPx->_g, layerPx._g, aa, ab), ad);
+        compPx->_b = cvtT(linearLight(compPx->_b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR) {
+        // also no premult colors
+        RGBColor dest;
+        dest._r = compPx->_r;
+        dest._g = compPx->_g;
+        dest._b = compPx->_b;
+
+        RGBColor src;
+        src._r = layerPx._r;
+        src._g = layerPx._g;
+        src._b = layerPx._b;
+
+        RGBColor res = color(dest, src, aa, ab);
+        compPx->_r = cvtT(res._r, ad);
+        compPx->_g = cvtT(res._g, ad);
+        compPx->_b = cvtT(res._b, ad);
+      }
+      else if (l._mode == BlendMode::LIGHTEN) {
+        compPx->_r = cvtT(lighten(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(lighten(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(lighten(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::DARKEN) {
+        compPx->_r = cvtT(darken(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(darken(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(darken(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::PIN_LIGHT) {
+        compPx->_r = cvtT(pinLight(ra, rb, aa, ab), ad);
+        compPx->_g = cvtT(pinLight(ga, gb, aa, ab), ad);
+        compPx->_b = cvtT(pinLight(ba, bb, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::COLOR_BURN) {
+        // also unmultiplied colors here
+        compPx->_r = cvtT(colorBurn(compPx->_r, layerPx._r, aa, ab), ad);
+        compPx->_g = cvtT(colorBurn(compPx->_g, layerPx._g, aa, ab), ad);
+        compPx->_b = cvtT(colorBurn(compPx->_b, layerPx._b, aa, ab), ad);
+      }
+      else if (l._mode == BlendMode::VIVID_LIGHT) {
+        compPx->_r = cvtT(vividLight(compPx->_r, layerPx._r, aa, ab), ad);
+        compPx->_g = cvtT(vividLight(compPx->_g, layerPx._g, aa, ab), ad);
+        compPx->_b = cvtT(vividLight(compPx->_b, layerPx._b, aa, ab), ad);
+      }
+    }
+
+    Utils<float>::RGBAColorT retVal;
+    retVal._r = compPx->_r;
+    retVal._g = compPx->_g;
+    retVal._b = compPx->_b;
+    retVal._a = compPx->_a;
+    return retVal;
+  }
+
+  Utils<float>::RGBAColorT Compositor::renderPixel(Context& c, int i, string size) {
+    return renderPixel(c, nullptr, vector<string>(), i, size);
+  }
+
+  Utils<float>::RGBAColorT Compositor::renderPixel(Context & c, int x, int y, string size) {
+    int width, height;
+
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
+    }
+    else {
+      getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
+    }
+
+    int index = x + y * width;
+
+    return renderPixel(c, index, size);
+  }
+  
+  Utils<float>::RGBAColorT Compositor::renderPixel(Context & c, float x, float y, string size) {
+    int width, height;
+
+    if (_imageData.begin()->second.count(size) > 0) {
+      width = _imageData.begin()->second[size]->getWidth();
+      height = _imageData.begin()->second[size]->getHeight();
+    }
+    else {
+      getLogger()->log("No render size named " + size + " found. Rendering at full size.", LogLevel::WARN);
+      width = _imageData.begin()->second["full"]->getWidth();
+      height = _imageData.begin()->second["full"]->getHeight();
+    }
+
+    int index = (int)(x * width) + (int)(y * height) * width;
+
+    return renderPixel(c, index, size);
+  }
+
   Image * Compositor::renderUpToLayer(Context & c, string layer, float dim, string size)
   {
     // set up the context
     Context mod(c);
 
     bool postLayer = false;
+    // TODO: need to get the flat layer order here
     for (int i = 0; i < _layerOrder.size(); i++) {
       if (_layerOrder[i] == layer) {
         postLayer = true;
@@ -1107,109 +1387,6 @@ namespace Comp {
       img.second->reset(1, 1, 1);
   }
 
-  void Compositor::computeExpContext(Context & c, int px, string functionName, string size)
-  {
-    getLogger()->log("Starting code generation...");
-
-    if (size == "") {
-      size = "full";
-    }
-
-    // ok so here we want to build the expression context that represents the entire render pipeline
-    ExpContext ctx;
-
-    // register functions
-    ctx.registerFunc("linearDodgeAlpha", 2, 1);
-    ctx.registerFunc("overlay", 4, 1);
-    ctx.registerFunc("hardLight", 4, 1);
-    ctx.registerFunc("softLight", 4, 1);
-    ctx.registerFunc("linearBurn", 4, 1);
-    ctx.registerFunc("linearLight", 4, 1);
-    ctx.registerFunc("colorDodge", 4, 1);
-    ctx.registerFunc("color", 8, 3);
-    ctx.registerFunc("lighten", 4, 1);
-    ctx.registerFunc("darken", 4, 1);
-    ctx.registerFunc("pinLight", 4, 1);
-    ctx.registerFunc("cvtT", 2, 1);
-    ctx.registerFunc("clamp", 3, 1);
-    ctx.registerFunc("RGBToHSL", 3, 3);
-    ctx.registerFunc("HSLToRGB", 3, 3);
-    ctx.registerFunc("HSYToRGB", 3, 3);
-    ctx.registerFunc("LabToRGB", 3, 3);
-    ctx.registerFunc("RGBToCMYK", 3, 4);
-    ctx.registerFunc("RGBToHSY", 3, 3);
-    ctx.registerFunc("levels", 6, 1);
-    ctx.registerFunc("rgbCompand", 1, 1);
-    ctx.registerFunc("selectiveColor", 9 * 4 + 3, 3);
-    ctx.registerFunc("colorBalanceAdjust", 12, 3);
-    ctx.registerFunc("photoFilter", 7, 3);
-    ctx.registerFunc("lighterColorizeAdjust", 7, 3);
-
-    // create variables (they get stored in the layer and image structures)
-    int index = 0;
-    
-    for (auto& name : _layerOrder) {
-      Layer& l = c[name];
-
-      // skip invisible layers
-      if (!l._visible)
-        continue;
-
-      if (_imageData.count(name) > 0 && !l.isAdjustmentLayer()) {
-        getLogger()->log("Initializing pixel data for " + name);
-
-        // create layer pixel vars
-        index = _imageData[name][size]->initExp(ctx, name, index, px);
-      }
-
-      getLogger()->log("Initializing layer data for " + name);
-
-      // create layer adjustment vars
-      index = l.prepExp(ctx, index);
-    }
-
-    getLogger()->log("Context initialized");
-
-    // get the result
-    Utils<ExpStep>::RGBAColorT res = renderPixel<ExpStep>(c, px, size);
-
-    getLogger()->log("Trace complete");
-
-    ctx.registerResult(res._r, 0, "R");
-    ctx.registerResult(res._g, 1, "G");
-    ctx.registerResult(res._b, 2, "B");
-    ctx.registerResult(res._a, 3, "A");
-
-    getLogger()->log("Saving file");
-
-    vector<string> sc = ctx.toSourceCode(functionName);
-    ofstream file(functionName + ".h");
-    for (auto &s : sc) {
-      file << s << endl;
-    }
-
-    getLogger()->log("Code Generation Complete");
-  }
-
-  void Compositor::computeExpContext(Context & c, int x, int y, string functionName, string size)
-  {
-    int width, height;
-
-    if (_imageData.begin()->second.count(size) > 0) {
-      width = _imageData.begin()->second[size]->getWidth();
-      height = _imageData.begin()->second[size]->getHeight();
-    }
-    else {
-      getLogger()->log("No render size named " + size + " found. Using full size.", LogLevel::WARN);
-      width = _imageData.begin()->second["full"]->getWidth();
-      height = _imageData.begin()->second["full"]->getHeight();
-    }
-
-    int index = clamp(x, 0, width) + clamp(y, 0, height) * width;
-
-    computeExpContext(c, index, functionName, size);
-  }
-
   ConstraintData& Compositor::getConstraintData()
   {
     return _constraints;
@@ -1385,7 +1562,7 @@ namespace Comp {
     scores.clear();
 
     // store the current pixel color
-    RGBAColor srcPixel = renderPixel<float>(c, x, y);
+    RGBAColor srcPixel = renderPixel(c, x, y);
 
     for (auto& kvp : _primary) {
       string id = kvp.first;
@@ -1405,7 +1582,7 @@ namespace Comp {
         // with the layer's visibility toggled
         Context toggle(c);
         toggle[id]._visible = !toggle[id]._visible;
-        RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
+        RGBAColor modPixel = renderPixel(toggle, x, y, "full");
 
         // calculate difference
         // premultiplied alpha
@@ -1439,7 +1616,7 @@ namespace Comp {
           toggle[id]._visible = !toggle[id]._visible;
         }
 
-        RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
+        RGBAColor modPixel = renderPixel(toggle, x, y, "full");
 
         // calculate difference
         // premultiplied alpha
@@ -1459,7 +1636,7 @@ namespace Comp {
   double Compositor::pointImportance(ImportanceMapMode mode, string layer, int x, int y, Context & c)
   {
     // store the current pixel color
-    RGBAColor srcPixel = renderPixel<float>(c, x, y, "full");
+    RGBAColor srcPixel = renderPixel(c, x, y, "full");
 
     if (mode == ImportanceMapMode::ALPHA) {
       if (!_primary[layer].isAdjustmentLayer()) {
@@ -1476,7 +1653,7 @@ namespace Comp {
       // with the layer's visibility toggled
       Context toggle(c);
       toggle[layer]._visible = !toggle[layer]._visible;
-      RGBAColor modPixel = renderPixel<float>(toggle, x, y);
+      RGBAColor modPixel = renderPixel(toggle, x, y);
 
       // calculate difference
       // premultiplied alpha
@@ -1509,7 +1686,7 @@ namespace Comp {
         toggle[layer]._visible = !toggle[layer]._visible;
       }
 
-      RGBAColor modPixel = renderPixel<float>(toggle, x, y, "full");
+      RGBAColor modPixel = renderPixel(toggle, x, y, "full");
 
       // calculate difference
       // premultiplied alpha
@@ -1875,7 +2052,7 @@ namespace Comp {
       // set up goal color vector
       vector<RGBAColor> current;
       for (int i = 0; i < x.size(); i++) {
-        current.push_back(renderPixel<float>(c, x[0], y[0], "full"));
+        current.push_back(renderPixel(c, x[0], y[0], "full"));
       }
       g.setOriginalColors(current);
 
@@ -1913,7 +2090,7 @@ namespace Comp {
           // render all of the pixels
           vector<RGBAColor> testPixels;
           for (int i = 0; i < x.size(); i++) {
-            testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
+            testPixels.push_back(renderPixel(temp, x[i], y[i], "full"));
           }
 
           if (g.meetsGoal(testPixels)) {
@@ -2059,7 +2236,7 @@ namespace Comp {
         // render the pixels
         vector<RGBAColor> testPixels;
         for (int j = 0; j < x.size(); j++) {
-          testPixels.push_back(renderPixel<float>(renderContext, x[j], y[j], "full"));
+          testPixels.push_back(renderPixel(renderContext, x[j], y[j], "full"));
         }
 
         // get the objective
@@ -2230,7 +2407,7 @@ namespace Comp {
       // compute
       vector<RGBAColor> testPixels;
       for (int i = 0; i < x.size(); i++) {
-        testPixels.push_back(renderPixel<float>(temp, x[i], y[i], "full"));
+        testPixels.push_back(renderPixel(temp, x[i], y[i], "full"));
       }
 
       float fxp = g.goalObjective(testPixels);

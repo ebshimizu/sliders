@@ -8,7 +8,7 @@ var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
 const uiTools = require('./uiToolkit');
-const saveVersion = 0.41;
+const saveVersion = 1.00; // big jump, renderer changed a lot
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -99,7 +99,8 @@ const blendModes = {
   "BlendMode.DARKEN": 12,
   "BlendMode.PINLIGHT": 13,
   "BlendMode.COLORBURN": 14,
-  "BlendMode.VIVIDLIGHT": 15
+  "BlendMode.VIVIDLIGHT": 15,
+  "BlendMode.PASSTHROUGH": 16
 };
 
 const adjType = {
@@ -2107,6 +2108,25 @@ function openFile(transfer) {
   });
 }
 
+// uh yeah this is here because this file is 4000 lines long and nothing about organization makes sense anymore
+function constructLayerHierarchy(sets, currentNode, data) {
+  // rendering order is now based only on the top level of the tree,
+  // and each group maintains its own render order
+  // ordering is important here and i hope the object doesn't sort keys...
+  let currentSet = [];
+  for (let k in sets) {
+    currentSet.unshift(k);
+    constructLayerHierarchy(sets[k], k, data);
+  }
+
+  if (currentNode === '') {
+    data.topLevel = currentSet;
+  }
+  else {
+    data.layers[currentNode] = currentSet;
+  }
+}
+
 function importLayers(doc, path) {
   // create new compositor object
   deleteAllControls();
@@ -2117,82 +2137,181 @@ function importLayers(doc, path) {
   var sets = doc.sets;
   var layer, type, adjustment, i, colors;
 
-  // gather data about adjustments and groups and add layers as needed
-  var metadata = {};
-  for (var layerName in data) {
-    layer = data[layerName];
-    var group = layerName;
+  // under new rendering rules, we'll need to construct the hierarchy here and then
+  // fill in the blanks later.
+  // this should clean up the import code in the end.
+  let compOrder = { topLevel: [], layers: {}};
+  constructLayerHierarchy(sets, "", compOrder);
 
-    // check groups
-    if ("group" in layer) {
-      // do not create a layer for this, layer is clipping mask
-      // clipping masks typically come before their target layer, so create metadata fields
-      // if they don't exist
-      group = layer.group;
+  // now we simply allocate layers
+  for (let layerName in compOrder.layers) {
+    // couple cases here
+    if (layerName in data) {
+      // an actual layer
+      // we'll need to check to see if there's a group field since that indicates
+      // a clipping mask and we should adjust accordingly
+      let layer = data[layerName];
 
-      if (!(group in metadata)) {
-        metadata[group] = {};
-        metadata[group].adjustments = [];
-      }
-    }
-    else {
-      if (!(group in metadata)) {
-        metadata[layerName] = {};
-        metadata[layerName].adjustments = [];
+      // we'll come back and add adjustments later
+      if ('group' in layer) {
+        continue;
       }
 
-      metadata[layerName].type = layer.kind;
-
-      if ("filename" in layer) {
-        // standard layer, create layer
-        c.addLayer(layerName, path + "/" + layer.filename);
+      if ("filename" in data[layerName]) {
+        c.addLayer(layerName, path + '/' + layer.filename)
       }
       else {
-        // adjustment layer, create layer
         c.addLayer(layerName);
       }
 
       if ("mask" in layer) {
         c.addMask(layerName, path + "/" + layer.mask);
       }
-
+      
       c.getLayer(layerName).type(layer.kind);
     }
+    else {
+      c.addLayer(layerName);
+    }
+    c.getLayer(layerName).setPrecompOrder(compOrder.layers[layerName]);
+  }
+  // and set the top level order
+  c.setLayerOrder(compOrder.topLevel);
 
-    // adjustment layer information
-    // layer kind
-    type = layer.kind;
+  // ok layers exist, time to figure out adjustment layers
+  for (let layerName in compOrder.layers) {
+    if (c.getLayer(layerName).isPrecomp()) {
+      // set pass through and continue
+      c.getLayer(layerName).blendMode(blendModes['BlendMode.PASSTHROUGH']);
+      // right now i don't think clipping masks on groups are imported
+      console.log('Set group ' + layerName + ' to Pass Through mode');
+      continue;
+    }
+
+    let layer = data[layerName];
+    let targetLayer = layerName;
+    let targetFound = false;
+
+    // find the actual target layer by walking up the group tree
+    while (!targetFound) {
+      if ('group' in data[targetLayer]) {
+        targetLayer = data.group;
+      }
+      else {
+        targetFound = true;
+      }
+    }
+
+    let type = layer.kind;
+    let adjustment = layer.adjustment
     if (type === "LayerKind.HUESATURATION") {
-      metadata[group].adjustments.push("HSL");
-      metadata[group].HSL = layer.adjustment;
+      var hslData = { "hue": 0, "saturation": 0, "lightness": 0 };
+
+      if ("adjustment" in adjustment) {
+        hslData = adjustment.adjustment[0];
+      }
+
+      // need to extract adjustment params here
+      c.getLayer(targetLayer).addHSLAdjustment((hslData.hue / 360) + 0.5, (hslData.saturation / 200) + 0.5, (hslData.lightness / 200) + 0.5);
     }
     else if (type === "LayerKind.LEVELS") {
-      metadata[group].adjustments.push("LEVELS");
-      metadata[group].LEVELS = layer.adjustment;
+      var levelsData = {};
+
+      if ("adjustment" in adjustment) {
+        levelsData = adjustment.adjustment[0];
+      }
+
+      var inMin = ("input" in levelsData) ? levelsData.input[0] / 255 : 0;
+      var inMax = ("input" in levelsData) ? levelsData.input[1] / 255 : 1;
+      var gamma = ("gamma" in levelsData) ? levelsData.gamma / 10 : 0.1;
+      var outMin = ("output" in levelsData) ? levelsData.output[0] / 255 : 0;
+      var outMax = ("output" in levelsData) ? levelsData.output[1] / 255 : 1;
+
+      c.getLayer(targetLayer).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
     }
     else if (type === "LayerKind.CURVES") {
-      metadata[group].adjustments.push("CURVES");
-      metadata[group].CURVES = layer.adjustment;
+      for (var channel in adjustment) {
+        if (channel === "class") {
+          continue;
+        }
+
+        // normalize values, my system uses floats
+        var curve = adjustment[channel];
+        for (i = 0; i < curve.length; i++) {
+          curve[i].x = curve[i].x / 255;
+          curve[i].y = curve[i].y / 255;
+        }
+
+        c.getLayer(targetLayer).addCurve(channel, curve);
+      }
     }
     else if (type === "LayerKind.EXPOSURE") {
-      metadata[group].adjustments.push("EXPOSURE");
-      metadata[group].EXPOSURE = layer.adjustment;
+      // import format should have exposure [-20, 20]
+      c.getLayer(targetLayer).addExposureAdjustment((adjustment.exposure / 40), adjustment.offset + 0.5, adjustment.gammaCorrection / 10);
     }
     else if (type === "LayerKind.GRADIENTMAP") {
-      metadata[group].adjustments.push("GRADIENTMAP");
-      metadata[group].GRADIENTMAP = layer.adjustment;
+      colors = adjustment.gradient.colors;
+      var pts = [];
+      var gc = [];
+      var stops = adjustment.gradient.interfaceIconFrameDimmed;
+
+      for (i = 0; i < colors.length; i++) {
+        pts.push(colors[i].location / stops);
+        gc.push({ "r": colors[i].color.red / 255, "g": colors[i].color.green / 255, "b": colors[i].color.blue / 255 });
+      }
+      c.getLayer(targetLayer).addGradient(pts, gc);
     }
     else if (type === "LayerKind.SELECTIVECOLOR") {
-      metadata[group].adjustments.push("SELECTIVECOLOR");
-      metadata[group].SELECTIVECOLOR = layer.adjustment;
+      var relative = (adjustment.method === "absolute") ? false : true;
+      colors = adjustment.colorCorrection;
+      var sc = {};
+
+      if (colors !== undefined) {
+        for (i = 0; i < colors.length; i++) {
+          var name;
+          var adjust = {};
+
+          for (var id in colors[i]) {
+            if (id === "colors") {
+              name = colors[i][id];
+            }
+            else if (id === "yellowColor") {
+              adjust.yellow = (colors[i][id].value / 200) + 0.5;
+            }
+            else {
+              adjust[id] = (colors[i][id].value / 200) + 0.5;
+            }
+          }
+
+          sc[name] = adjust;
+        }
+      }
+
+      c.getLayer(targetLayer).selectiveColor(relative, sc);
     }
     else if (type === "LayerKind.COLORBALANCE") {
-      metadata[group].adjustments.push("COLORBALANCE");
-      metadata[group].COLORBALANCE = layer.adjustment;
+      c.getLayer(targetLayer).colorBalance(adjustment.preserveLuminosity, (adjustment.shadowLevels[0] / 200) + 0.5,
+        (adjustment.shadowLevels[1] / 200) + 0.5, (adjustment.shadowLevels[2] / 200) + 0.5,
+        (adjustment.midtoneLevels[0] / 200) + 0.5, (adjustment.midtoneLevels[1] / 200) + 0.5, (adjustment.midtoneLevels[2] / 200) + 0.5,
+        (adjustment.highlightLevels[0] / 200) + 0.5, (adjustment.highlightLevels[1] / 200) + 0.5, (adjustment.highlightLevels[2] / 200) + 0.5);
     }
     else if (type === "LayerKind.PHOTOFILTER") {
-      metadata[group].adjustments.push("PHOTOFILTER");
-      metadata[group].PHOTOFILTER = layer.adjustment;
+      var color = adjustment.color;
+
+      var dat = { "preserveLuma": adjustment.preserveLuminosity, "density": adjustment.density / 100 };
+
+      if ("luminance" in color) {
+        dat.luminance = color.luminance;
+        dat.a = color.a;
+        dat.b = color.b;
+      }
+      else if ("hue" in color) {
+        dat.hue = color.hue.value;
+        dat.saturation = color.saturation;
+        dat.brightness = color.brightness;
+      }
+
+      c.getLayer(targetLayer).photoFilter(dat);
     }
     else if (type === "LayerKind.SOLIDFILL") {
       if ("filename" in layer) {
@@ -2203,214 +2322,53 @@ function importLayers(doc, path) {
       // solid fill uses special controls based on the blend mode
       if (layer.blendMode === "BlendMode.COLORBLEND") {
         // unknown default color, will check if that data can be extracted
-        metadata[group].adjustments.push("COLORIZE");
+        c.getLayer(targetLayer).colorize(1, 1, 1, 0);
       }
       else if (layer.blendMode === "BlendMode.LIGHTERCOLOR") {
-        metadata[group].adjustments.push("LIGHTER_COLORIZE");
+        c.getLayer(targetLayer).lighterColorize(1, 1, 1, 0);
       }
       else {
-        metadata[group].adjustments.push("OVERWRITE_COLOR");
+        c.getLayer(targetLayer).overwriteColor(1, 1, 1, 0);
       }
     }
     else if (type === "LayerKind.INVERSION") {
-      metadata[group].adjustments.push("INVERT");
+      c.getLayer(targetLayer).addInvertAdjustment();
     }
     else if (type === "LayerKind.BRIGHTNESSCONTRAST") {
-      metadata[group].adjustments.push("BRIGHTNESS");
-      metadata[group].BRIGHTNESS = layer.adjustment;
-    }
-
-    console.log("Pre-processed layer " + layerName + " of type " + layer.kind);
-  }
-
-  // create controls and set initial values
-  for (layerName in data) {
-    // if no metadata exists skip
-    if (!(layerName in metadata)) {
-      continue;
-    }
-
-    layer = data[layerName];
-
-    // at this point the proper layers have been added, we need to order
-    // and add adjustments to them
-
-    var adjustmentList = metadata[layerName].adjustments;
-
-    for (i = 0; i < adjustmentList.length; i++) {
-      type = adjustmentList[i];
-
-      if (type === "HSL") {
-        adjustment = metadata[layerName].HSL;
-        var hslData = { "hue": 0, "saturation": 0, "lightness": 0 };
-
-        if ("adjustment" in adjustment) {
-          hslData = adjustment.adjustment[0];
-        }
-
-        // need to extract adjustment params here
-        c.getLayer(layerName).addHSLAdjustment((hslData.hue / 360) + 0.5, (hslData.saturation / 200) + 0.5, (hslData.lightness / 200) + 0.5);
-      }
-      if (type === "LEVELS") {
-        adjustment = metadata[layerName].LEVELS;
-
-        var levelsData = {};
-
-        if ("adjustment" in adjustment) {
-          levelsData = adjustment.adjustment[0];
-        }
-
-        var inMin = ("input" in levelsData) ? levelsData.input[0] / 255 : 0;
-        var inMax = ("input" in levelsData) ? levelsData.input[1] / 255 : 1;
-        var gamma = ("gamma" in levelsData) ? levelsData.gamma / 10 : 0.1;
-        var outMin = ("output" in levelsData) ? levelsData.output[0] / 255 : 0;
-        var outMax = ("output" in levelsData) ? levelsData.output[1] / 255 : 1;
-
-        c.getLayer(layerName).addLevelsAdjustment(inMin, inMax, gamma, outMin, outMax);
-      }
-      else if (type === "CURVES") {
-        adjustment = metadata[layerName].CURVES;
-
-        for (var channel in adjustment) {
-          if (channel === "class") {
-            continue;
-          }
-
-          // normalize values, my system uses floats
-          var curve = adjustment[channel];
-          for (i = 0; i < curve.length; i++) {
-            curve[i].x = curve[i].x / 255;
-            curve[i].y = curve[i].y / 255;
-          }
-
-          c.getLayer(layerName).addCurve(channel, curve);
-        }
-      }
-      else if (type === "EXPOSURE") {
-        adjustment = metadata[layerName].EXPOSURE;
-
-        // import format should have exposure [-20, 20]
-        c.getLayer(layerName).addExposureAdjustment((adjustment.exposure / 40), adjustment.offset + 0.5, adjustment.gammaCorrection / 10);
-      }
-      else if (type === "GRADIENTMAP") {
-        adjustment = metadata[layerName].GRADIENTMAP;
-
-        colors = adjustment.gradient.colors;
-        var pts = [];
-        var gc = [];
-        var stops = adjustment.gradient.interfaceIconFrameDimmed;
-
-        for (i = 0; i < colors.length; i++) {
-          pts.push(colors[i].location / stops);
-          gc.push({ "r": colors[i].color.red / 255, "g": colors[i].color.green / 255, "b": colors[i].color.blue / 255 });
-        }
-        c.getLayer(layerName).addGradient(pts, gc);
-      }
-      else if (type === "SELECTIVECOLOR") {
-        adjustment = metadata[layerName].SELECTIVECOLOR;
-
-        var relative = (adjustment.method === "absolute") ? false : true;
-        colors = adjustment.colorCorrection;
-        var sc = {};
-
-        if (colors !== undefined) {
-          for (i = 0; i < colors.length; i++) {
-            var name;
-            var adjust = {};
-
-            for (var id in colors[i]) {
-              if (id === "colors") {
-                name = colors[i][id];
-              }
-              else if (id === "yellowColor") {
-                adjust.yellow = (colors[i][id].value / 200) + 0.5;
-              }
-              else {
-                adjust[id] = (colors[i][id].value / 200) + 0.5;
-              }
-            }
-
-            sc[name] = adjust;
-          }
-        }
-
-        c.getLayer(layerName).selectiveColor(relative, sc);
-      }
-      else if (type === "COLORBALANCE") {
-        adjustment = metadata[layerName].COLORBALANCE;
-
-        c.getLayer(layerName).colorBalance(adjustment.preserveLuminosity, (adjustment.shadowLevels[0] / 200) + 0.5,
-          (adjustment.shadowLevels[1] / 200) + 0.5, (adjustment.shadowLevels[2] / 200) + 0.5,
-          (adjustment.midtoneLevels[0] / 200) + 0.5, (adjustment.midtoneLevels[1] / 200) + 0.5, (adjustment.midtoneLevels[2] / 200) + 0.5,
-          (adjustment.highlightLevels[0] / 200) + 0.5, (adjustment.highlightLevels[1] / 200) + 0.5, (adjustment.highlightLevels[2] / 200) + 0.5);
-      }
-      else if (type === "PHOTOFILTER") {
-        adjustment = metadata[layerName].PHOTOFILTER;
-        var color = adjustment.color;
-
-        var dat = { "preserveLuma": adjustment.preserveLuminosity, "density": adjustment.density / 100 };
-
-        if ("luminance" in color) {
-          dat.luminance = color.luminance;
-          dat.a = color.a;
-          dat.b = color.b;
-        }
-        else if ("hue" in color) {
-          dat.hue = color.hue.value;
-          dat.saturation = color.saturation;
-          dat.brightness = color.brightness;
-        }
-
-        c.getLayer(layerName).photoFilter(dat);
-      }
-      else if (type === "COLORIZE") {
-        // currently no way to get info about this
-        c.getLayer(layerName).colorize(1, 1, 1, 0);
-      }
-      else if (type === "LIGHTER_COLORIZE") {
-        c.getLayer(layerName).lighterColorize(1, 1, 1, 0);
-      }
-      else if (type === "OVERWRITE_COLOR") {
-        c.getLayer(layerName).overwriteColor(1, 1, 1, 0);
-      }
-      else if (type === "INVERT") {
-        // no settings are used for invert
-        c.getLayer(layerName).addInvertAdjustment();
-      }
-      else if (type === "BRIGHTNESS") {
-        adjustment = metadata[layerName].BRIGHTNESS;
-
-        // range: [-100, 100] -> [0, 1]
-        c.getLayer(layerName).brightnessContrast((adjustment.brightness + 100) / 200, (adjustment.center + 100) / 200);
-      }
+      // range: [-100, 100] -> [0, 1]
+      c.getLayer(targetLayer).brightnessContrast((adjustment.brightness + 100) / 200, (adjustment.center + 100) / 200);
     }
 
     // update properties
-    var cLayer = c.getLayer(layerName);
-    cLayer.blendMode(blendModes[layer.blendMode]);
-    cLayer.opacity(layer.opacity / 100);
-    cLayer.visible(layer.visible);
+    // if this wasn't a clipping layer we should do this now
+    // we know it's not clipping if the target and current names are the same
+    if (targetLayer === layerName) {
+      var cLayer = c.getLayer(layerName);
+      cLayer.blendMode(blendModes[layer.blendMode]);
+      cLayer.opacity(layer.opacity / 100);
+      cLayer.visible(layer.visible);
 
-    // check for conditional blending
-    if ("blendRange" in layer) {
-      var cb = layer.blendRange[0];
-      var channel = cb.channel;
-      cb.destWhiteMax = cb.desaturate;
+      // check for conditional blending
+      if ("blendRange" in layer) {
+        var cb = layer.blendRange[0];
+        var channel = cb.channel;
+        cb.destWhiteMax = cb.desaturate;
 
-      delete cb.desaturate;
-      delete cb.channel;
+        delete cb.desaturate;
+        delete cb.channel;
 
-      for (var i in cb) {
-        cb[i] = cb[i] / 255;
+        for (var i in cb) {
+          cb[i] = cb[i] / 255;
+        }
+
+        cLayer.conditionalBlend(channel, cb);
       }
 
-      cLayer.conditionalBlend(channel, cb);
+      insertLayerElem(layerName, sets);
+      //createLayerControl(layerName, false, layer["kind"]);
+
+      console.log("Added layer " + layerName);
     }
-
-    insertLayerElem(layerName, sets);
-    //createLayerControl(layerName, false, layer["kind"]);
-
-    console.log("Added layer " + layerName);
   }
 
   // render to page
@@ -2428,7 +2386,7 @@ function importLayers(doc, path) {
   bindGlobalEvents();
 
   // update internal structure
-  c.setLayerOrder(order);
+  //c.setLayerOrder(order);
   initSearch();
   renderImage('importLayers()');
   initCanvas();

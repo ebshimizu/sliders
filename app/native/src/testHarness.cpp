@@ -45,7 +45,7 @@ double compare(Compositor* c, int x, int y) {
   }
 
   // the rendered pixel
-  RGBAColor pix = c->renderPixel<float>(ctx, index);
+  RGBAColor pix = c->renderPixel(ctx, index);
 
   // the test harness result
   vector<double> res = ceresFunc(paramsA.data(), paramsB);

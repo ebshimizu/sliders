@@ -19,7 +19,7 @@ void DimensionalityReduction::setSamples(vector<Context> contexts)
     s._ctx = ctx;
 
     // render at full size (can scale down if needed later)
-    s._img = shared_ptr<Image>(_c->render(s._ctx, nullptr, vector<string>()));
+    s._img = shared_ptr<Image>(_c->render(s._ctx));
     s._x = stdToEigen(_c->contextToVector(s._ctx));
 
     _samples.push_back(s);

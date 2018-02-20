@@ -136,7 +136,7 @@ namespace Comp {
     Image* render(Context& c, string size = "");
 
     // render with a given context
-    Image* render(Context& c, Image* comp, vector<string> order, string size = "");
+    Image* render(Context& c, Image* comp, vector<string> order, float co, string size = "");
 
     // renders the composition up to and including the specified layer.
     // additionally, the pixels unaffected by the given layer are dimmed by a maximum specified amount
@@ -160,7 +160,7 @@ namespace Comp {
     // floating point coords version
     inline Utils<float>::RGBAColorT renderPixel(Context& c, float x, float y, string size = "");
 
-    inline Utils<float>::RGBAColorT renderPixel(Context& c, typename Utils<float>::RGBAColorT* compPx, vector<string> order, int i, string size = "");
+    inline Utils<float>::RGBAColorT renderPixel(Context& c, typename Utils<float>::RGBAColorT* compPx, vector<string> order, int i, float co, string size = "");
 
     // render directly to a string with the primary context
     string renderToBase64();

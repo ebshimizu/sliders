@@ -459,15 +459,15 @@ namespace Comp {
 
   Image* Compositor::render(string size)
   {
-    return render(getNewContext(), nullptr, vector<string>(), size);
+    return render(getNewContext(), nullptr, vector<string>(), 1, size);
   }
 
   Image * Compositor::render(Context & c, string size)
   {
-    return render(c, nullptr, vector<string>(), size);
+    return render(c, nullptr, vector<string>(), 1, size);
   }
 
-  Image* Compositor::render(Context& c, Image* comp, vector<string> order, string size)
+  Image* Compositor::render(Context& c, Image* comp, vector<string> order, float co, string size)
   {
     if (c.size() == 0) {
       return new Image();
@@ -539,6 +539,7 @@ namespace Comp {
           opacityModifier *= c[o.second].getOpacity();
         }
       }
+      opacityModifier *= co;
 
       if (!visible)
         continue;
@@ -564,12 +565,13 @@ namespace Comp {
         // pass through
         if (l._mode == PASS_THROUGH) {
           // this writes directly to comp
-          render(c, comp, l.getPrecompOrder(), size);
+          render(c, comp, l.getPrecompOrder(), l.getOpacity() * co, size);
           continue;
         }
         else {
           // pretend like we have a blank render context
-          tmpLayer = render(c, nullptr, l.getPrecompOrder(), size);
+          // the blending takes the precomp layer opacity into account later
+          tmpLayer = render(c, nullptr, l.getPrecompOrder(), co, size);
           // apply adjustments, continue as normal
           adjust(tmpLayer, l);
           layerPxV = &tmpLayer->getData();
@@ -783,7 +785,8 @@ namespace Comp {
   }
 
 
-  Utils<float>::RGBAColorT Compositor::renderPixel(Context& c, typename Utils<float>::RGBAColorT* compPx, vector<string> order, int i, string size) {
+  Utils<float>::RGBAColorT Compositor::renderPixel(Context& c, typename Utils<float>::RGBAColorT* compPx, vector<string> order,
+    int i, float co, string size) {
     // photoshop appears to start with all white alpha 0 image
     if (compPx == nullptr) {
       compPx = new Utils<float>::RGBAColorT();
@@ -835,11 +838,11 @@ namespace Comp {
 
       if (l.isPrecomp()) {
         if (l._mode == PASS_THROUGH) {
-          renderPixel(c, compPx, l.getPrecompOrder(), i, size);
+          renderPixel(c, compPx, l.getPrecompOrder(), i, l.getOpacity() * co, size);
           continue;
         }
         else {
-          layerPx = renderPixel(c, nullptr, l.getPrecompOrder(), i, size);
+          layerPx = renderPixel(c, nullptr, l.getPrecompOrder(), i, co, size);
           layerPx = adjustPixel<float>(layerPx, l);
         }
       }
@@ -1021,7 +1024,7 @@ namespace Comp {
   }
 
   Utils<float>::RGBAColorT Compositor::renderPixel(Context& c, int i, string size) {
-    return renderPixel(c, nullptr, vector<string>(), i, size);
+    return renderPixel(c, nullptr, vector<string>(), i, 1, size);
   }
 
   Utils<float>::RGBAColorT Compositor::renderPixel(Context & c, int x, int y, string size) {
@@ -2540,7 +2543,7 @@ namespace Comp {
     // this runs in a threaded context. It should check if _searchRunning at times
     // to ensure the entire thing doesn't freeze
     ExpSearchSet activeSet(_searchSettings);
-    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, nullptr, vector<string>(), _searchRenderSize));
+    shared_ptr<Image> currentRender = shared_ptr<Image>(render(_initSearchContext, _searchRenderSize));
 
     Context c = _initSearchContext;
     nlohmann::json key;
@@ -2750,7 +2753,7 @@ namespace Comp {
 
       // attempt to add the thing
       Context newCtx = vectorToContext(cv, key);
-      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, nullptr, vector<string>(), _searchRenderSize));
+      shared_ptr<Image> img = shared_ptr<Image>(render(newCtx, _searchRenderSize));
       shared_ptr<ExpSearchSample> newSample = shared_ptr<ExpSearchSample>(new ExpSearchSample(img, newCtx, cv));
 
       // check that the result is "reasonable"

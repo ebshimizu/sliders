@@ -1907,7 +1907,7 @@ class ParameterSelectPanel {
     this._parentContainer.html('');
 
     this._name = name;
-    this._renderSize = "small";
+    this._renderSize = "medium";
     this._activeControls = [];
 
     this._animationData = {};

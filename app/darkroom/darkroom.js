@@ -2109,14 +2109,18 @@ function openFile(transfer) {
 }
 
 // uh yeah this is here because this file is 4000 lines long and nothing about organization makes sense anymore
-function constructLayerHierarchy(sets, currentNode, data) {
+function constructLayerHierarchy(sets, currentNode, data, layerData) {
   // rendering order is now based only on the top level of the tree,
   // and each group maintains its own render order
   // ordering is important here and i hope the object doesn't sort keys...
   let currentSet = [];
   for (let k in sets) {
+    // this is a clipping mask and should not be in the layer order
+    if (k in layerData && 'group' in layerData[k])
+      continue;
+
     currentSet.unshift(k);
-    constructLayerHierarchy(sets[k], k, data);
+    constructLayerHierarchy(sets[k], k, data, layerData);
   }
 
   if (currentNode === '') {
@@ -2141,19 +2145,19 @@ function importLayers(doc, path) {
   // fill in the blanks later.
   // this should clean up the import code in the end.
   let compOrder = { topLevel: [], layers: {}};
-  constructLayerHierarchy(sets, "", compOrder);
+  constructLayerHierarchy(sets, "", compOrder, data);
 
   // now we simply allocate layers
   for (let layerName in compOrder.layers) {
     // couple cases here
+    // we'll need to check to see if there's a group field since that indicates
+    // a clipping mask and we should adjust accordingly
     if (layerName in data) {
-      // an actual layer
-      // we'll need to check to see if there's a group field since that indicates
-      // a clipping mask and we should adjust accordingly
       let layer = data[layerName];
 
       // we'll come back and add adjustments later
       if ('group' in layer) {
+        console.log('Adjustment Layer ' + layerName + ' delyaying load...')
         continue;
       }
 
@@ -2169,25 +2173,19 @@ function importLayers(doc, path) {
       }
       
       c.getLayer(layerName).type(layer.kind);
+      console.log('Loaded image data for layer ' + layerName);
     }
     else {
+      // render group
       c.addLayer(layerName);
+      c.getLayer(layerName).blendMode(blendModes['BlendMode.PASSTHROUGH']);
+      c.getLayer(layerName).setPrecompOrder(compOrder.layers[layerName]);
+      console.log('Added render group ' + layerName);
     }
-    c.getLayer(layerName).setPrecompOrder(compOrder.layers[layerName]);
   }
-  // and set the top level order
-  c.setLayerOrder(compOrder.topLevel);
 
   // ok layers exist, time to figure out adjustment layers
-  for (let layerName in compOrder.layers) {
-    if (c.getLayer(layerName).isPrecomp()) {
-      // set pass through and continue
-      c.getLayer(layerName).blendMode(blendModes['BlendMode.PASSTHROUGH']);
-      // right now i don't think clipping masks on groups are imported
-      console.log('Set group ' + layerName + ' to Pass Through mode');
-      continue;
-    }
-
+  for (let layerName in data) {
     let layer = data[layerName];
     let targetLayer = layerName;
     let targetFound = false;
@@ -2195,7 +2193,7 @@ function importLayers(doc, path) {
     // find the actual target layer by walking up the group tree
     while (!targetFound) {
       if ('group' in data[targetLayer]) {
-        targetLayer = data.group;
+        targetLayer = data[targetLayer].group;
       }
       else {
         targetFound = true;
@@ -2369,6 +2367,9 @@ function importLayers(doc, path) {
 
       console.log("Added layer " + layerName);
     }
+    else {
+      console.log("Added adjustment layer " + layerName + ' to ' + targetLayer + ' of type ' + type);
+    }
   }
 
   // render to page
@@ -2384,6 +2385,9 @@ function importLayers(doc, path) {
     bindLayerEvents(order[i]);
   }
   bindGlobalEvents();
+
+  // and set the top level order
+  c.setLayerOrder(compOrder.topLevel);
 
   // update internal structure
   //c.setLayerOrder(order);
@@ -2406,6 +2410,12 @@ function loadLayers(doc, path, transfer) {
   var movebg = false;
   var data = doc.layers;
   var ver = doc.version;
+
+  if (ver < 1) {
+    // force re-import for version 1
+    showStatusMsg("Files older than version 1.00 must be re-imported.", "ERROR", "Save Version " + ver);
+    return;
+  }
 
   if (ver === undefined) {
     ver = 0;
@@ -2433,6 +2443,7 @@ function loadLayers(doc, path, transfer) {
       if (layer.mask) {
         c.addMask(layerName, path + "/" + layer.mask);
       }
+      c.getLayer(layerName).setPrecompOrder(layer.precompOrder);
     }
 
     var cl = c.getLayer(layerName);
@@ -2532,7 +2543,7 @@ function loadLayers(doc, path, transfer) {
   bindGlobalEvents();
 
   // update internal structure
-  c.setLayerOrder(order);
+  c.setLayerOrder(doc.layerOrder);
   initSearch();
   renderImage("loadLayers()");
   initCanvas();
@@ -2610,6 +2621,7 @@ function save(file) {
     layers[layerName].type = l.type();
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
+    layers[layerName].precompOrder = l.getPrecompOrder();
 
     var mask = l.getMask();
     if (mask) {
@@ -2656,7 +2668,7 @@ function save(file) {
 
   out.groups = groups;
   out.layers = layers;
-  out.layerOrder = c.getLayerNames();
+  out.layerOrder = c.getTopLayerOrder();
 
   // mask data
   out.mask = {};

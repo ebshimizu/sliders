@@ -1683,7 +1683,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "deleteLayer", deleteLayer);
   Nan::SetPrototypeMethod(tpl, "getAllLayers", getAllLayers);
   Nan::SetPrototypeMethod(tpl, "setLayerOrder", setLayerOrder);
-  Nan::SetPrototypeMethod(tpl, "getLayerNames", getLayerNames);
+  Nan::SetPrototypeMethod(tpl, "getTopLayerOrder", getLayerNames);
   Nan::SetPrototypeMethod(tpl, "size", size);
   Nan::SetPrototypeMethod(tpl, "render", render);
   Nan::SetPrototypeMethod(tpl, "asyncRender", asyncRender);

@@ -259,6 +259,7 @@ private:
   static void isGroup(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getFlatLayerOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

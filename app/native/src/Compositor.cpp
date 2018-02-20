@@ -1070,13 +1070,14 @@ namespace Comp {
 
     bool postLayer = false;
     // TODO: need to get the flat layer order here
-    for (int i = 0; i < _layerOrder.size(); i++) {
-      if (_layerOrder[i] == layer) {
+    vector<string> flatOrder = getFlatLayerOrder();
+    for (int i = 0; i < flatOrder.size(); i++) {
+      if (flatOrder[i] == layer) {
         postLayer = true;
         continue;
       }
       if (postLayer) {
-        mod[_layerOrder[i]]._visible = false;
+        mod[flatOrder[i]]._visible = false;
       }
     }
 
@@ -2532,6 +2533,25 @@ namespace Comp {
       if (i <= 3) {
         getLogger()->log("5D Poisson Disks Level " + to_string(i));
         initPoissonDisk(5, i);
+      }
+    }
+  }
+
+  vector<string> Compositor::getFlatLayerOrder()
+  {
+    vector<string> order;
+    getFlatLayerOrder(_layerOrder, order);
+    return order;
+  }
+
+  void Compositor::getFlatLayerOrder(vector<string> currentOrder, vector<string>& order)
+  {
+    for (int i = 0; i < currentOrder.size(); i++) {
+      if (_primary[currentOrder[i]].isPrecomp()) {
+        getFlatLayerOrder(_primary[currentOrder[i]].getPrecompOrder(), order);
+      }
+      else {
+        order.push_back(currentOrder[i]);
       }
     }
   }

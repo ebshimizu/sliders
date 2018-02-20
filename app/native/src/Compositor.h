@@ -310,6 +310,9 @@ namespace Comp {
     // populates that cache
     void initPoissonDisks();
 
+    vector<string> getFlatLayerOrder();
+    void getFlatLayerOrder(vector<string> currentOrder, vector<string>& order);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

@@ -1750,6 +1750,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "isGroup", isGroup);
   Nan::SetPrototypeMethod(tpl, "renderUpToLayer", renderUpToLayer);
   Nan::SetPrototypeMethod(tpl, "asyncRenderUpToLayer", asyncRenderUpToLayer);
+  Nan::SetPrototypeMethod(tpl, "getFlatLayerOrder", getFlatLayerOrder);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3549,6 +3550,21 @@ void CompositorWrapper::asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8:
   else {
     Nan::ThrowError("asyncRenderUpToLayer(context, string, float, string, function(image)) argument error");
   }
+}
+
+void CompositorWrapper::getFlatLayerOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getFlatLayerOrder");
+
+  vector<string> order = c->_compositor->getFlatLayerOrder();
+  v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+  for (int i = 0; i < order.size(); i++) {
+    ret->Set(i, Nan::New(order[i]).ToLocalChecked());
+  }
+
+  info.GetReturnValue().Set(ret);
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

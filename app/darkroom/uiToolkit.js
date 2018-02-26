@@ -2523,82 +2523,48 @@ class GroupPanel {
   }
 
   get primarySelector() {
-    return '.groupPanel[name="' + this._name + '"]';
+    return '.groupPanel';
   }
 
   get secondarySelector() {
-    return '.secondaryGroupPanel[name="' + this._name + '"]';
+    return '.secondaryGroupPanel';
   }
 
-  deleteUI() {
-    this._primary.find(this.primarySelector).remove();
-    this._secondary.find(this.secondarySelector).remove();
+  get groupSelectMode() {
+    // determined by which element has the active tab item
+    if ($(this._primary).find('.freeSelect.tab').hasClass('active')) {
+      return 'freeSelect';
+    }
+    else if ($(this._primary).find('.savedSelections.tab').hasClass('active')) {
+      return 'savedSelections';
+    }
   }
 
   initUI() {
-    // delete stuff
-    this.deleteUI();
-
-    // basically the same form as parameter select panel but with a few more options n stuff
-    // primary first
-    let pelem = '<div class="groupPanel" name="' + this._name + '">';
-    pelem += '<div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>';
-    pelem += '<div class="groupSelectDropdown">';
-    pelem += '<div class="ui selection dropdown"><i class="dropdown icon"></i>';
-    pelem += '<div class="default text">No Group Selected</div>';
-    pelem += '<div class="menu"></div></div>';
-    pelem += '<div class="ui right floated labeled icon button newGroupButton"><i class="plus icon"></i>New Group</div></div>';
-    pelem += '<div class="groupControls standardLayerFormat"></div>';
-    pelem += '<div class="ui two column grid groupContents"></div></div>';
-
-    // layer control overlay
-    let layerControlContainer = '<div class="groupPanelLayerControls standardLayerFormat" name="' + this._name + '">';
-    layerControlContainer += '<div class="ui top attached inverted label">Layer Controls</div>';
-    layerControlContainer += '<div class="ui mini icon button backButton"><i class="arrow left icon"></i></div>';
-    layerControlContainer += '</div>';
-
-    this._primary.append(pelem);
-    this._primary.find(this.primarySelector).append(layerControlContainer);
-
     this.initSettingsUI();
 
+    $(this._primary).find('.groupPanel .groupMode.menu .item').tab();
+
     // secondary
-    let selem = '<div class="secondaryGroupPanel" name="' + this._name + '">';
-    selem += '<div class="layerSelectGroup">';
-    selem += '<div class="ui compact groupButtons buttons">';
-    selem += '<button class="ui button" name="addAllToGroup">Add All</button>';
-    selem += '<button class="ui button" name="removeAllFromGroup">Remove All</button>';
-    selem += '</div>';
-    selem += '<div class="ui inverted header">Selected Layers</div>';
-    selem += '<table class="ui inverted selectable table"><tbody></tbody></table>';
-    selem += '</div>';
-    selem += '<div class="groupSelectGroup">';
-    selem += '<div class="ui inverted header">Selected Groups</div>';
-    selem += '<table class="ui inverted selectable table"><tbody></tbody></table>';
-    selem += '</div>';
-    selem += '</div>';
-
-    this._secondary.append(selem);
-
     // bindings
     let self = this;
-    $(this.primarySelector + ' .backButton').click(function() {
+    $(this._primary + ' .backButton').click(function() {
       self.hideLayerControl();
     });
 
-    $(this.primarySelector + ' .optionsButton').click(function() {
-      $(self.primarySelector + ' .groupSelectOptions').toggle();
+    $(this._primary + ' .optionsButton').click(function() {
+      $(self._primary + ' .groupSelectOptions').toggle();
     });
 
-    $(this.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown({
+    $(this._primary + ' .groupSelectDropdown div.dropdown').dropdown({
       onChange: function(value, text, $selectedItem) { self.updateGroup(value); }
     });
 
-    $(this.primarySelector + ' .groupSelectDropdown .newGroupButton').click(function() {
+    $(this._primary + ' .groupSelectDropdown .newGroupButton').click(function() {
       self.addNewGroup();
     });
 
-    $(this.secondarySelector).find('.button[name="addAllToGroup"]').click(function() {
+    $(this._secondary).find('.button[name="addAllToGroup"]').click(function() {
       if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
         return;
 
@@ -2607,12 +2573,12 @@ class GroupPanel {
           c.addLayerToGroup(self._selectedLayers[l], self._currentGroup);
         }
       }
-      $(self.secondarySelector).find('tr .checkbox').checkbox('set checked');
+      $(self._secondary).find('tr .checkbox').checkbox('set checked');
       self.updateLayerCards();
       renderImage('Group Membership Change');
     });
 
-    $(this.secondarySelector).find('.button[name="removeAllFromGroup"]').click(function() {
+    $(this._secondary).find('.button[name="removeAllFromGroup"]').click(function() {
       if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
         return;
 
@@ -2621,7 +2587,7 @@ class GroupPanel {
           c.removeLayerFromGroup(self._selectedLayers[l], self._currentGroup);
         }
       }
-      $(self.secondarySelector).find('tr .checkbox').checkbox('set unchecked');
+      $(self._secondary).find('tr .checkbox').checkbox('set unchecked');
       self.updateLayerCards();
       renderImage('Group Membership Change');
     });
@@ -2654,145 +2620,16 @@ class GroupPanel {
   }
 
   initSettingsUI() {
-    var container = '<div class="groupSelectOptions" name="' + this._name + '">'
-    container += '<div class="ui top attached inverted label">Groups Panel Settings</div>';
-    container += '<div class="ui mini icon button backButton"><i class="remove icon"></i></div>';
-    container += '<div class="ui relaxed inverted list"></div></div>';
-    this._primary.find(this.primarySelector).append(container);
-
-    this._settingsList = $(this.primarySelector + ' .groupSelectOptions .list');
-
-    // append stuff 
-    var previewMode = $(`
-    <div class="item">
-      <div class="ui right floated content">
-        <div class="ui right pointing dropdown inverted button" param="_previewMode">
-          <span class="text">[Preview Mode]</span>
-          <div class="menu">
-            <div class="item" data-value="1" param="_previewMode">Layer Pixels (unfiltered)</div>
-            <div class="item" data-value="2" param="_previewMode">Animated Parameters</div>
-            <div class="item" data-value="5" param="_previewMode">Solid Color</div>
-            <div class="item" data-value="8" param="_previewMode">Animated Layer Pixels</div>
-          </div>
-        </div>
-      </div>
-      <div class="content">
-        <div class="header">Layer Preview Mode</div>
-      </div>
-    </div>`);
-    this._settingsList.append(previewMode);
-
-    var lsPreviewMode = $(`
-    <div class="item">
-      <div class="ui right floated content">
-        <div class="ui right pointing dropdown inverted button" param="_layerSelectPreviewMode">
-          <span class="text">[Preview Mode]</span>
-          <div class="menu">
-            <div class="item" data-value="1" param="_layerSelectPreviewMode">Layer Pixels (unfiltered)</div>
-            <div class="item" data-value="2" param="_layerSelectPreviewMode">Animated Parameters</div>
-            <div class="item" data-value="5" param="_layerSelectPreviewMode">Solid Color</div>
-            <div class="item" data-value="8" param="_layerSelectPreviewMode">Animated Layer Pixels</div>
-          </div>
-        </div>
-      </div>
-      <div class="content">
-        <div class="header">Layer Selection Preview Mode</div>
-      </div>
-    </div>`);
-    this._settingsList.append(lsPreviewMode);
-
-    // animation mode
-    var animationMode = $(`
-    <div class="item">
-      <div class="ui right floated content">
-        <div class="ui right pointing dropdown inverted button" param="_animationMode">
-          <span class="text">[Animation Mode]</span>
-          <div class="menu">
-            <div class="item" data-value="1" param="_animationMode">Bounce</div>
-            <div class="item" data-value="2" param="_animationMode">Snap</div>
-          </div>
-        </div>
-      </div>
-      <div class="content">
-        <div class="header">Animation Mode</div>
-      </div>
-    </div>`);
-    this._settingsList.append(animationMode);
-
-    // Loop Size
-    var loopSize = $(`
-      <div class="item">
-          <div class="ui right floated content">
-              <div class="ui input" id="selectThreshold" param="_loopSize">
-                  <input type="number" param="_loopSize"/>
-              </div>
-          </div>
-          <div class="content">
-              <div class="header">Loop Size</div>
-              <div class="description">Number of frames in an animation preview loop.</div>
-          </div>
-      </div>
-    `);
-    this._settingsList.append(loopSize);
-
-    // fps
-    var fps = $(`
-      <div class="item">
-          <div class="ui right floated content">
-              <div class="ui input" param="_fps">
-                  <input type="number" param="_fps"/>
-              </div>
-          </div>
-          <div class="content">
-              <div class="header">FPS</div>
-              <div class="description">Animation Frame Rate</div>
-          </div>
-      </div>
-    `);
-    this._settingsList.append(fps);
-
-    // frame hold
-    var frameHold = $(`
-      <div class="item">
-          <div class="ui right floated content">
-              <div class="ui input" param="_frameHold">
-                  <input type="number" param="_frameHold" />
-              </div>
-          </div>
-          <div class="content">
-              <div class="header">Frame Hold</div>
-              <div class="description">Number of Frames to hold at the end of an animation cycle.</div>
-          </div>
-      </div>
-    `);
-    this._settingsList.append(frameHold);
-
-    // display on main
-    var displayOnMain = $(`
-      <div class="item">
-          <div class="ui right floated content">
-              <div class="ui toggle checkbox" param="_displayOnMain">
-                  <input type="checkbox" param="_displayOnMain" />
-              </div>
-          </div>
-          <div class="content">
-              <div class="header">Display Layer Preview On Main Canvas</div>
-              <div class="description">Shows the preview animation/hover on the main canvas instead of in the thumbnail.</div>
-          </div>
-      </div>
-    `);
-    this._settingsList.append(displayOnMain);
-
     // bindings, try to do them all at once. dropdowns are a bit more difficult
     // input boxes
     var self = this;
-    $(this.primarySelector + ' .groupSelectOptions .list input').change(function () {
+    $(this._primary + ' .groupSelectOptions .list input').change(function () {
       var param = $(this).attr("param");
       self[param] = parseInt($(this).val());
     });
 
     // checkbox
-    $(this.primarySelector + ' .groupSelectOptions .list .checkbox').checkbox({
+    $(this._primary + ' .groupSelectOptions .list .checkbox').checkbox({
       onChecked: function () {
         var param = $(this).attr("param");
         self[param] = true;
@@ -2804,7 +2641,7 @@ class GroupPanel {
     });
 
     // dropdowns
-    $(this.primarySelector + ' .groupSelectOptions .list .dropdown').dropdown({
+    $(this._primary + ' .groupSelectOptions .list .dropdown').dropdown({
       onChange: function (value, text, $selectedItem) {
         // need to debug this a bit
         var param = $selectedItem.attr("param");
@@ -2814,53 +2651,53 @@ class GroupPanel {
     })
 
     // set initial values
-    $(this.primarySelector + ' input[param="_loopSize"]').val(this._loopSize);
-    $(this.primarySelector + ' input[param="_fps"]').val(this._fps);
-    $(this.primarySelector + ' input[param="_frameHold"').val(this._frameHold);
+    $(this._primary + ' input[param="_loopSize"]').val(this._loopSize);
+    $(this._primary + ' input[param="_fps"]').val(this._fps);
+    $(this._primary + ' input[param="_frameHold"').val(this._frameHold);
     let cb = this._displayOnMain;
-    $(this.primarySelector + ' .checkbox[param="_displayOnMain"]').checkbox((cb ? 'set checked' : 'set unchecked'));
+    $(this._primary + ' .checkbox[param="_displayOnMain"]').checkbox((cb ? 'set checked' : 'set unchecked'));
     this._displayOnMain = cb;
-    $(this.primarySelector + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
-    $(this.primarySelector + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
-    $(this.primarySelector + ' .dropdown[param="_layerSelectPreviewMode"]').dropdown('set selected', this._layerSelectPreviewMode);
+    $(this._primary + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
+    $(this._primary + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
+    $(this._primary + ' .dropdown[param="_layerSelectPreviewMode"]').dropdown('set selected', this._layerSelectPreviewMode);
 
     // exit button
     var self = this;
-    $(this.primarySelector + ' .groupSelectOptions .backButton').click(function () {
-      $(self.primarySelector + ' .groupSelectOptions').hide();
+    $(this._primary + ' .groupSelectOptions .backButton').click(function () {
+      $(self._primary + ' .groupSelectOptions').hide();
     });
-    $(self.primarySelector + ' .groupSelectOptions').hide();
+    $(self._primary + ' .groupSelectOptions').hide();
   }
 
   updateGroupDropdown() {
-    let elem = $(this.primarySelector + ' .groupSelectDropdown div.dropdown');
+    //let elem = $(this.primarySelector + ' .groupSelectDropdown div.dropdown');
 
-    // store current selection
-    let selected = elem.dropdown('get value');
-    elem.find('.menu').html('');
+    //// store current selection
+    //let selected = elem.dropdown('get value');
+    //elem.find('.menu').html('');
 
-    // get group list
-    let order = c.getGroupOrder();
-    let useSelected = false;
-    for (let o in order) {
-      let name = order[o].group;
-      if (name === selected)
-        useSelected = true;
-      
-      elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
-    }
+    //// get group list
+    //let order = c.getGroupOrder();
+    //let useSelected = false;
+    //for (let o in order) {
+    //  let name = order[o].group;
+    //  if (name === selected)
+    //    useSelected = true;
+    //  
+    //  elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
+    //}
 
-    elem.find('.menu').prepend('<div class="item" data-value="all">All</div>');
-    elem.dropdown('refresh');
-    if (useSelected) {
-      elem.dropdown('set value', selected);
-      elem.dropdown('set text', selected);
-    }
-    else {
-      elem.dropdown('set value', "");
-      elem.dropdown('set text', "No Group Selected");
-      $(this.primarySelector + ' .groupContents').html('');
-    }
+    //elem.find('.menu').prepend('<div class="item" data-value="all">All</div>');
+    //elem.dropdown('refresh');
+    //if (useSelected) {
+    //  elem.dropdown('set value', selected);
+    //  elem.dropdown('set text', selected);
+    //}
+    //else {
+    //  elem.dropdown('set value', "");
+    //  elem.dropdown('set text', "No Group Selected");
+    //  $(this.primarySelector + ' .groupContents').html('');
+    //}
   }
 
 
@@ -2929,7 +2766,7 @@ class GroupPanel {
     }
     this._activeControls = [];
 
-    this._primary.find(this.primarySelector + ' .groupPanelLayerControls').hide();
+    $(this._primary + ' .groupPanelLayerControls').hide();
   }
 
   // displays the layer control panel and the controls associated with the given layer
@@ -2938,13 +2775,13 @@ class GroupPanel {
     // generate the layer controller
     // TODO: layer control needs to highlight relevant parameters
     var layerControl = new LayerControls(name);
-    layerControl.createUI($(this.primarySelector + ' .groupPanelLayerControls'));
+    layerControl.createUI($(this._primary + ' .groupPanelLayerControls'));
     layerControl.displayThumb = true;
 
     // i am leaving the possibility for multiple layers open but really it's just like 
     // always the one layer for now
     this._activeControls.push(layerControl);
-    $(this.primarySelector + ' .groupPanelLayerControls').show();
+    $(this._primary + ' .groupPanelLayerControls').show();
   }
 
   // simplified version of the general parameter selection window
@@ -2958,14 +2795,14 @@ class GroupPanel {
     for (let l in group.affectedLayers) {
       let layerName = group.affectedLayers[l];
 
-      if ($(this.primarySelector).find('.card[layerName="' + layerName + '"]').length === 0) {
+      if ($(this._primary).find('.card[layerName="' + layerName + '"]').length === 0) {
         let elem = '<div class="column">';
         elem += '<div class="ui card" layerName="' + layerName + '">';
         elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
         elem += '<div class="extra content">' + layerName + '</div>';
         elem += '</div></div>';
 
-        $(this.primarySelector + ' .groupContents').append(elem);
+        $(this._primary + ' .groupContents').append(elem);
         this.bindLayerCard(layerName);
       }
     }
@@ -2980,8 +2817,8 @@ class GroupPanel {
 
   bindLayerCard(name) {
     let l = c.getLayer(name);
-    let canvas = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas');
-    let elem = $(this.primarySelector + ' .groupContents div[layerName="' + name + '"]');
+    let canvas = $(this._primary + ' .groupContents div[layerName="' + name + '"] canvas');
+    let elem = $(this._primary + ' .groupContents div[layerName="' + name + '"]');
     var self = this;
 
     canvas.mouseover(function () {
@@ -3004,8 +2841,8 @@ class GroupPanel {
 
   displaySelectedLayers(layers) {
     // delete existing
-    $(this.secondarySelector).find('.layerSelectGroup tbody').html('');
-    $(this.secondarySelector).find('.groupSelectGroup tbody').html('');
+    $(this._secondary).find('.layerSelectGroup tbody').html('');
+    $(this._secondary).find('.groupSelectGroup tbody').html('');
     this._selectedLayers = layers;
 
     // sticks a table of the selected layers in the secondary view of this object
@@ -3014,10 +2851,11 @@ class GroupPanel {
         // ok so groups also get selected here but function differently
         let elem = '<tr group-name="' + layers[l] + '">';
         elem += '<td class="activeArea" group-name="' + layers[l] + '">' + layers[l] + '</td>';
+        elem += '<td><div class="ui label">Selection Group</div></tr>';
         elem += '</tr>';
 
         // append
-        $(this.secondarySelector).find('.groupSelectGroup tbody').append(elem);
+        $(this._secondary).find('.groupSelectGroup tbody').append(elem);
 
         // bindings done later
       }
@@ -3026,15 +2864,22 @@ class GroupPanel {
         let elem = '<tr layer-name="' + layers[l] + '">';
         elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
         elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
+
+        if (c.getLayer(layers[l]).isPrecomp()) {
+          elem += '<td><div class="ui label">Render Group</div></tr>';
+        }
+        else {
+          elem += '<td><div class="ui label">Layer</div></tr>';
+        }
         elem += '</tr>';
 
         // append
-        $(this.secondarySelector).find('.layerSelectGroup tbody').append(elem);
+        $(this._secondary).find('.layerSelectGroup tbody').append(elem);
 
         // bindings
         let layerName = layers[l];
         let self = this;
-        $(this.secondarySelector).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
+        $(this._secondary).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
           onChecked: function() {
             c.addLayerToGroup(layerName, self._currentGroup);
             renderImage('Group Membership Change');
@@ -3053,36 +2898,36 @@ class GroupPanel {
         });
 
         if (c.layerInGroup(layers[l], this._currentGroup)) {
-          $(this.secondarySelector).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
+          $(this._secondary).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
         }
       }
     }
 
     let self = this;
-    $(this.secondarySelector).find('.layerSelectGroup tr').mouseover(function() {
+    $(this._secondary).find('.layerSelectGroup tr').mouseover(function() {
       self._hoveredLayer = $(this).attr('layer-name');
       self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
     });
-    $(this.secondarySelector).find('.layerSelectGroup tr').mouseout(function() {
+    $(this._secondary).find('.layerSelectGroup tr').mouseout(function() {
       self._hoveredLayer = null;
       self.stopVis($(this).attr('layer-name'));
     });
-    $(this.secondarySelector).find('.layerSelectGroup td.activeArea').click(function() {
+    $(this._secondary).find('.layerSelectGroup td.activeArea').click(function() {
       self.hideLayerControl();
       self.showLayerControl($(this).attr('layer-name'));
     });
 
-    $(this.secondarySelector).find('.groupSelectGroup tr').mouseover(function() {
+    $(this._secondary).find('.groupSelectGroup tr').mouseover(function() {
       self._hoveredLayer = $(this).attr('group-name');
       // i hope this works, groups always use animated params for now since there's not a nice
       // way to get the flat image, and it'd mostly just be uh, all a solid color
       self.startVis($(this).attr('group-name'), { mode: PreviewMode.animatedParams });
     });
-    $(this.secondarySelector).find('.groupSelectGroup tr').mouseout(function() {
+    $(this._secondary).find('.groupSelectGroup tr').mouseout(function() {
       self._hoveredLayer = null;
       self.stopVis($(this).attr('group-name'));
     });
-    $(this.secondarySelector).find('.groupSelectGroup tr').click(function() {
+    $(this._secondary).find('.groupSelectGroup tr').click(function() {
       $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set selected', $(this).attr('group-name'));
     });
   }

@@ -31,7 +31,9 @@ namespace Comp {
     _mask(other._mask),
     _offsetX(other._offsetX),
     _offsetY(other._offsetY),
-    _precompOrder(other._precompOrder)
+    _precompOrder(other._precompOrder),
+    _localAdjOrderOverride(other._localAdjOrderOverride),
+    _localSelectionGroupOverride(other._localSelectionGroupOverride)
   {
   }
 
@@ -53,6 +55,8 @@ namespace Comp {
     _offsetX = other._offsetX;
     _offsetY = other._offsetY;
     _precompOrder = other._precompOrder;
+    _localAdjOrderOverride = other._localAdjOrderOverride;
+    _localSelectionGroupOverride = other._localSelectionGroupOverride;
 
     return *this;
   }
@@ -515,6 +519,56 @@ namespace Comp {
   bool Layer::isPrecomp()
   {
     return _precompOrder.size() > 0;
+  }
+
+  void Layer::setLocalAdjOverride(vector<AdjustmentType> order)
+  {
+    // check for duplicates
+    set<AdjustmentType> tmp;
+    for (auto a : order) {
+      if (tmp.count(a) > 1) {
+        getLogger()->log("Invalid adjustment order. Duplicates are not allowed.", Comp::ERR);
+        return;
+      }
+      tmp.insert(a);
+    }
+
+    _localAdjOrderOverride = order;
+  }
+
+  vector<AdjustmentType> Layer::getLocalAdjOverride()
+  {
+    return _localAdjOrderOverride;
+  }
+
+  bool Layer::hasLocalAdjOverride()
+  {
+    return _localAdjOrderOverride.size() > 0;
+  }
+
+  void Layer::setLocalSelectionGroupOverride(vector<string> order)
+  {
+    // duplicate check
+    set<string> tmp;
+    for (auto g : order) {
+      if (tmp.count(g) > 1) {
+        getLogger()->log("Invalid selection group order. Duplicates are not allowed.");
+        return;
+      }
+      tmp.insert(g);
+    }
+
+    _localSelectionGroupOverride = order;
+  }
+
+  vector<string> Layer::getLocalSelectionGroupOverride()
+  {
+    return _localSelectionGroupOverride;
+  }
+
+  bool Layer::hasLocalSelectionGroupOverride()
+  {
+    return _localSelectionGroupOverride.size() > 0;
   }
 
   void Layer::init(shared_ptr<Image> source)

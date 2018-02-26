@@ -837,7 +837,7 @@ function initUI() {
     $('#colorPicker').removeClass('visible');
   });
 
-  g_groupPanel = new uiTools.GroupPanel('groups', $('#groupControlPanel'), $('#secondaryGroupControlPanel'));
+  g_groupPanel = new uiTools.GroupPanel('groups', '#groupControlPanel', '#secondaryGroupControlPanel');
 
   // place version numbers
   $('#appVersionLabel').html(versionString);
@@ -1290,32 +1290,27 @@ function bindGlobalEvents() {
   });
 
   // group opacity
+  $('.groupSlider[paramName="opacity"]').each(function(idx, elem) {
+    $(this).slider({
+      orientation: "horizontal",
+      range: "min",
+      max: 100,
+      min: 0,
+      step: 0.1,
+      value: c.getLayer($(this).attr('setName')).opacity() * 100,
+      stop: function (event, ui) {
+        // since these are basically just uh, regular layers, we can treat them as such.
+        groupOpacityChange($(this).attr('setName'), ui.value);
+        renderImage(".layerSet opacity slider change callback");
+        $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', ui.value);
+      },
+      slide: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value); },
+      change: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value); }
+    });
 
+    $('.groupInput[setName="' + $(this).attr('setName') + '"] input').val(c.getLayer($(this).attr('setName')).opacity() * 100);
+  });
 
-  let groups = c.getGroupOrder();
-  for (let g in groups) {
-    if (c.getGroup(groups[g].group).readOnly) {
-      $('.groupSlider[setName="' + groups[g].group + '"]').slider({
-        orientation: "horizontal",
-        range: "min",
-        max: 100,
-        min: 0,
-        step: 0.1,
-        value: c.getLayer(groups[g].group).opacity() * 100,
-        stop: function (event, ui) {
-          groupOpacityChange($(this).attr("setName"), ui.value, docTree);
-          renderImage(".layerSet opacity slider change callback");
-          $('.paramSlider[layerName="' + $(this).attr("setName") + '"][paramName="opacity"]').slider('value', ui.value);
-        },
-        slide: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); },
-        change: function (event, ui) { groupOpacityChange($(this).attr("setName"), ui.value, docTree); }
-      });
-
-      // read only groups are part of the photoshop heirarchy
-      $('.groupInput[setName="' + groups[g].group + '"] input').val(c.getLayer(groups[g].group).opacity() * 100);
-    }
-  }
-  
   // input box events
   $('.groupInput input').blur(function () {
     var data = parseFloat($(this).val());

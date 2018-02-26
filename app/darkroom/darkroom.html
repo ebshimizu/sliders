@@ -275,7 +275,7 @@
             <div class="layerWrapper">
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
                     <a class="item active" data-tab="groupPanel">Groups</a>
-                    <a class="item" data-tab="layerSelect">Layer Selection</a>
+                    <!-- <a class="item" data-tab="layerSelect">Layer Selection</a> -->
                     <!-- <a class="item" data-tab="customui">Custom UI</a> -->
                     <!-- <a class="item" data-tab="embedding">2D Map</a> -->
                     <a class="item" data-tab="layers">Photoshop Layers</a>
@@ -283,7 +283,123 @@
                     <a class="item" data-tab="history">History</a>
                 </div>
                 <div class="ui active tab" data-tab="groupPanel" id="groupControlPanel">
-                    
+                    <div class="groupPanel">
+                        <div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>
+                        <div class="ui inverted secondary groupMode menu">
+                            <a class="ui active tab item" data-tab="freeSelectTab">Free Select</a>
+                            <a class="ui tab item" data-tab="savedSelectionsTab">Saved Selections</a>
+                        </div>
+                        <div class="ui active tab freeSelect" data-tab="freeSelectTab">
+                            <div class="groupControls"></div>
+                            <div class="ui inverted horizontal divider">Selected Layers</div>
+                            <div class="ui two column grid groupContents">
+                                
+                            </div>
+                        </div>
+                        <div class="ui tab savedSelections" data-tab="savedSelectionsTab">
+                            <!-- not sure what to put here yet -->
+                        </div>
+                    </div>
+                    <div class="groupPanelLayerControls standardLayerFormat">
+                        <div class="ui top attached inverted label">Layer Controls</div>
+                        <div class="ui mini icon button backButton"><i class="arrow left icon"></i></div>
+                    </div>
+                    <div class="groupSelectOptions">
+                        <div class="ui top attached inverted label">Groups Panel Settings</div>
+                        <div class="ui mini icon button backButton"><i class="remove icon"></i></div>
+                        <div class="ui relaxed inverted list">
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" param="_previewMode">
+                                        <span class="text">[Preview Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="1" param="_previewMode">Layer Pixels (unfiltered)</div>
+                                            <div class="item" data-value="2" param="_previewMode">Animated Parameters</div>
+                                            <div class="item" data-value="5" param="_previewMode">Solid Color</div>
+                                            <div class="item" data-value="8" param="_previewMode">Animated Layer Pixels</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Layer Preview Mode</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" param="_layerSelectPreviewMode">
+                                        <span class="text">[Preview Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="1" param="_layerSelectPreviewMode">Layer Pixels (unfiltered)</div>
+                                            <div class="item" data-value="2" param="_layerSelectPreviewMode">Animated Parameters</div>
+                                            <div class="item" data-value="5" param="_layerSelectPreviewMode">Solid Color</div>
+                                            <div class="item" data-value="8" param="_layerSelectPreviewMode">Animated Layer Pixels</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Layer Selection Preview Mode</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui right pointing dropdown inverted button" param="_animationMode">
+                                        <span class="text">[Animation Mode]</span>
+                                        <div class="menu">
+                                            <div class="item" data-value="1" param="_animationMode">Bounce</div>
+                                            <div class="item" data-value="2" param="_animationMode">Snap</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Animation Mode</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input" id="selectThreshold" param="_loopSize">
+                                        <input type="number" param="_loopSize"/>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Loop Size</div>
+                                    <div class="description">Number of frames in an animation preview loop.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input" param="_fps">
+                                        <input type="number" param="_fps"/>
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">FPS</div>
+                                    <div class="description">Animation Frame Rate</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui input" param="_frameHold">
+                                        <input type="number" param="_frameHold" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Frame Hold</div>
+                                    <div class="description">Number of Frames to hold at the end of an animation cycle.</div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui right floated content">
+                                    <div class="ui toggle checkbox" param="_displayOnMain">
+                                        <input type="checkbox" param="_displayOnMain" />
+                                    </div>
+                                </div>
+                                <div class="content">
+                                    <div class="header">Display Layer Preview On Main Canvas</div>
+                                    <div class="description">Shows the preview animation/hover on the main canvas instead of in the thumbnail.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="ui tab" data-tab="layerSelect" id="layerSelectPanel">
 
@@ -357,7 +473,7 @@
         <div id="sampleControls">
             <div class="ui top attached inverted grey mini menu">
                 <a class="item active" data-tab="selectedLayers">Selected Layers</a>
-                <a class="item" data-tab="myGroups">My Groups</a>
+                <!-- <a class="item" data-tab="myGroups">My Groups</a> -->
                 <a class="item" data-tab="layerSelectOptions">Layer Select Options</a>
                 <a class="item" data-tab="renderQueue">Render Queue</a>
             </div>
@@ -816,11 +932,24 @@
                     </div>
                 </div>
                 <div class="ui active tab" data-tab="selectedLayers" id="secondaryGroupControlPanel">
-                    <table class="ui inverted table">
-                        <tbody>
-                            
-                        </tbody>
-                    </table>
+                    <div class="secondaryGroupPanel">
+                        <div class="ui compact groupButtons buttons">
+                            <button class="ui button" name="addAllToGroup">Select All</button>
+                            <button class="ui button" name="removeAllFromGroup">Remove All</button>
+                        </div>
+                        <div class="ui inverted header">Selected Layers</div>
+                        <table class="ui inverted selectable table layerSelectGroup">
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                        <div class="ui inverted header">Selected Groups</div>
+                        <table class="ui inverted selectable table groupSelectGroup">
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="ui tab" data-tab="renderQueue" id="renderQueueTab">
                     <h3 class="ui inverted header">Render Queue</h3>

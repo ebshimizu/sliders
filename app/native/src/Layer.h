@@ -12,6 +12,7 @@ author: Evan Shimizu
 
 #include <map>
 #include <unordered_map>
+#include <set>
 
 namespace Comp {
   // matches photoshop blend modes and should function the same way
@@ -172,6 +173,16 @@ namespace Comp {
     vector<string> getPrecompOrder();
     bool isPrecomp();
 
+    // note that local overrides don't have to use every single adjustment,
+    // as in they can specify a partial order
+    void setLocalAdjOverride(vector<AdjustmentType> order);
+    vector<AdjustmentType> getLocalAdjOverride();
+    bool hasLocalAdjOverride();
+
+    void setLocalSelectionGroupOverride(vector<string> order);
+    vector<string> getLocalSelectionGroupOverride();
+    bool hasLocalSelectionGroupOverride();
+
   private:
     // initializes default layer settings
     void init(shared_ptr<Image> source);
@@ -186,7 +197,7 @@ namespace Comp {
     // false otherwise
     bool _adjustment;
 
-    // layer adju    // adjustment settings
+    // adjustment settings
     // Note that if adjustment is true, this layer is an adjustment layer and applies to
     // the current composition. If adjustment is false, this layer itself has adjustments
     // and the adjustments apply to only this layer.
@@ -218,6 +229,10 @@ namespace Comp {
     // this is just a recursive render call using the precomposition order
     // stored in this layer (same context)
     vector<string> _precompOrder;
+
+    // local ordering
+    vector<AdjustmentType> _localAdjOrderOverride;
+    vector<string> _localSelectionGroupOverride;
   };
 
   typedef map<string, Layer> Context;

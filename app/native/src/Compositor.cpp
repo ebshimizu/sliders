@@ -1546,7 +1546,8 @@ namespace Comp {
     names.clear();
     scores.clear();
 
-    for (auto& id : _layerOrder) {
+    vector<string> order = getFlatLayerOrder();
+    for (auto& id : order) {
       names.push_back(id);
 
       if (mode == "alpha") {

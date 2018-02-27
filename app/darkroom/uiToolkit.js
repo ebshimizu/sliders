@@ -2496,6 +2496,7 @@ class GroupPanel {
     this._activeControls = [];
     this._groupControl = null;
     this._currentGroup = "";
+    this._freeSelectAdjMode = 'absolute';
 
     this._previewMode = PreviewMode.animatedParams;
     this._layerSelectPreviewMode = PreviewMode.staticSolidColor;
@@ -2590,6 +2591,12 @@ class GroupPanel {
       $(self._secondary).find('tr .checkbox').checkbox('set unchecked');
       self.updateLayerCards();
       renderImage('Group Membership Change');
+    });
+
+    $(this._primary).find('.freeSelect .modebuttons button').click(function() {
+      $(self._primary).find('.freeSelect .modeButtons button').removeClass('green');
+      $(this).addClass('green');
+      self._freeSelectAdjMode = $(this).attr('mode');
     });
 
     this.hideLayerControl();
@@ -2815,10 +2822,10 @@ class GroupPanel {
     });
   }
 
-  bindLayerCard(name) {
+  bindLayerCard(name, container) {
     let l = c.getLayer(name);
-    let canvas = $(this._primary + ' .groupContents div[layerName="' + name + '"] canvas');
-    let elem = $(this._primary + ' .groupContents div[layerName="' + name + '"]');
+    let canvas = $(container + ' div[layerName="' + name + '"] canvas');
+    let elem = $(container + ' div[layerName="' + name + '"]');
     var self = this;
 
     canvas.mouseover(function () {
@@ -2837,6 +2844,133 @@ class GroupPanel {
     canvas.click(function () {
       self.showLayerControl(name);
     });
+  }
+
+  // when a selected layer has the check button clicked, do some stuff
+  handleLayerChecked(layerName) {
+    if (this.groupSelectMode === 'freeSelect') {
+      // yet another redirection
+      this.addToFreeSelect(layerName);
+    }
+  }
+
+  // similarly, a function for unchecking yay
+  handleLayerUnchecked(layerName) {
+    if (this.groupSelectMode === 'freeSelect') {
+      this.removeFromFreeSelect(layerName);
+    }
+  }
+
+  // adds a layer card to the free select window if the card doesn't already exist
+  addToFreeSelect(layerName) {
+    // ok the free select panel is a loose collection of layers and we provide some
+    // transient adjustment controls for them.
+    let dims = c.imageDims(this._renderSize);
+    if ($(this._primary).find('.freeSelect .groupContents .card[layerName="' + layerName + '"]').length === 0) {
+      let elem = '<div class="column">';
+      elem += '<div class="ui card" layerName="' + layerName + '">';
+      elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
+      elem += '<div class="extra content">' + layerName + '</div>';
+      elem += '</div></div>';
+
+      $(this._primary + ' .freeSelect .groupContents').append(elem);
+      this.bindLayerCard(layerName, this._primary + ' .freeSelect .groupContents');
+    }
+    
+    // need to refresh the adjustment controls
+    this.updateFreeSelect();
+  }
+
+  removeFromFreeSelect(layerName) {
+    // if a card exists, delete it
+    $(this._primary).find('.freeSelect .groupContents .card[layerName="' + layerName + '"]').parent().remove();
+    this.updateFreeSelect();
+  }
+
+  // update the adjustment controls given a new layer
+  updateFreeSelect() {
+    // we'll need to go through all the layers, determine what adjustments are present, and then
+    // render controls for each of the adjustments.
+    // recover layer names
+    let names = [];
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+      names.push($(elem).attr('layerName'));
+    });
+
+    // collect adjustments
+    let adjustments = {};
+    for (let n in names) {
+      let layer = c.getLayer(names[n]);
+      let adjs = layer.getAdjustments();
+
+      for (let a in adjs) {
+        if (!(adjs[a] in adjustments)) {
+          adjustments[adjs[a]] = [];
+        }
+
+        adjustments[adjs[a]].push(layer.getAdjustment(adjs[a]));
+      }
+    }
+
+    // keys
+    let akeys = [];
+    for (let a in adjustments) {
+      akeys.push(parseInt(a));
+    }
+
+    // generate controls
+    let html = '';
+    html += generateAdjustmentHTML(akeys, 'freeSelect');
+    $(this._primary).find('.freeSelect .adjustmentControls').html(html);
+
+    // it's all in the bindings
+    // param events
+    // ooooooookay gonna start with just one then add these in to prevent getting overwhelmed.
+    for (var a in adjustments) {
+      var type = parseInt(a);
+
+      // determine the value of the thing
+      // three cases
+      let initVals = {};
+      if (this._freeSelectAdjMode === 'relative') {
+        // relative has initial values set to 0 and the handler reacts accordingly
+        // the first adjustment has to exist
+        for (let p in adjustments[a][0]) {
+          initVals[p] = { val: 0 };
+        }
+      }
+      else if (this._freeSelectAdjMode === 'absolute') {
+        // if all of the values are the same, use that value. Otherwise, set value to 0.5 and put a ? in the box
+        for (let p in adjustments[a][0]) {
+          let val = adjustments[a][0][p];
+          for (let i = 1; i < adjustments[a].length; i++) {
+            if (val !== adjustments[a][i][p]) {
+              // it's nice that js has mixed types?
+              val = 'DIFF';
+              break;
+            }
+          }
+
+          if (val === 'DIFF') {
+            initVals[p] = { val: 0, diff: true };
+          }
+          else {
+            initVals[p] = { val: val, diff: false };
+          }
+        }
+      }
+
+      if (type === 0) {
+        // hue sat
+        var sectionName = "Hue/Saturation";
+        this.bindParam("hue", (initVals.hue.val - 0.5) * 360, sectionName, type,
+          { "range": false, "max": 180, "min": -180, "step": 0.1, "diff": initVals.hue.diff });
+        this.bindParam("saturation", (initVals.sat.val - 0.5) * 200, sectionName, type,
+          { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.sat.diff});
+        this.bindParam("lightness", (initVals.light.val - 0.5) * 200, sectionName, type,
+          { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.light.diff });
+      }
+    }
   }
 
   displaySelectedLayers(layers) {
@@ -2881,20 +3015,18 @@ class GroupPanel {
         let self = this;
         $(this._secondary).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox({
           onChecked: function() {
-            c.addLayerToGroup(layerName, self._currentGroup);
-            renderImage('Group Membership Change');
+            self.handleLayerChecked(layers[l]);
           },
           onUnchecked: function() {
-            c.removeLayerFromGroup(layerName, self._currentGroup);
-            renderImage('Group Membership Change');
+            self.handleLayerUnchecked(layers[l]);
           },
           beforeChecked: function() {
             return !c.getGroup(self._currentGroup).readOnly;
           },
           beforeUnchecked: function() {
             return !c.getGroup(self._currentGroup).readOnly;
-          },
-          onChange: function() { self.updateLayerCards(); }
+          }
+          // onChange: function() { self.updateLayerCards(); } -- i don't know if I want this anymore?
         });
 
         if (c.layerInGroup(layers[l], this._currentGroup)) {
@@ -3123,6 +3255,244 @@ class GroupPanel {
         }
       }
     }
+  }
+
+  bindParam(paramName, initVal, section, type, config) {
+    var s, i;
+    var self = this;
+    let uiElem = $(this._primary).find('.freeSelect .adjustmentControls');
+
+    if (section !== "") {
+      s = uiElem.find('div[sectionName="' + section + '"] .paramSlider[paramName="' + paramName + '"]');
+      i = uiElem.find('div[sectionName="' + section + '"] .paramInput[paramName="' + paramName + '"] input');
+    }
+    else {
+      s = uiElem.find('.paramSlider[paramName="' + paramName + '"]');
+      i = uiElem.find('.paramInput[paramName="' + paramName + '"] input');
+    }
+
+    // defaults
+    if (!("range" in config)) {
+      config.range = "min";
+    }
+    if (!("max" in config)) {
+      config.max = 100;
+    }
+    if (!("min" in config)) {
+      config.min = 0;
+    }
+    if (!("step" in config)) {
+      config.step = 0.1;
+    }
+    if (!("diff" in config)) {
+      config.diff = false;
+    }
+
+    $(s).slider({
+      orientation: "horizontal",
+      range: config.range,
+      max: config.max,
+      min: config.min,
+      step: config.step,
+      value: initVal,
+      stop: function (event, ui) {
+        self.paramHandler(event, ui, paramName, type);
+        renderImage('layer ' + self._name + ' parameter ' + paramName + ' change');
+      },
+      slide: function (event, ui) { self.paramHandler(event, ui, paramName, type) },
+      change: function (event, ui) { self.paramHandler(event, ui, paramName, type) }
+    });
+
+    if (config.diff === true) {
+      $(i).val('?');
+    }
+    else {
+      $(i).val(String(initVal.toFixed(2)));
+    }
+
+    // input box events
+    $(i).blur(function () {
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+    });
+    $(i).keydown(function (event) {
+      if (event.which != 13)
+        return;
+
+      var data = parseFloat($(this).val());
+      $(s).slider("value", data);
+    });
+  }
+
+  bindToggle(sectionName, param, type) {
+    var elem = $(this._primary).find('.freeSelect .adjustmentControls .checkbox[paramName="' + param + '"][sectionName="' + sectionName + '"]');
+    var self = this;
+    elem.checkbox({
+      onChecked: function () {
+        // TODO
+      },
+      onUnchecked: function () {
+        // TODO
+      }
+    });
+
+    // set initial state
+    //var paramVal = this.layer.getAdjustment(type, param);
+    //if (paramVal === 0) {
+    //  elem.checkbox('set unchecked');
+    //}
+    //else {
+    //  elem.checkbox('set checked');
+    //}
+  }
+
+  bindColor(section, type) {
+    var elem = this._uiElem.find('.paramColor[sectionName="' + section + '"]');
+    var self = this;
+
+    elem.click(function () {
+      if ($('#colorPicker').hasClass('hidden')) {
+        // move color picker to spot
+        var offset = elem.offset();
+
+        var adj = self.layer.getAdjustment(type);
+        cp.setColor({ "r": adj.r * 255, "g": adj.g * 255, "b": adj.b * 255 }, 'rgb');
+        cp.startRender();
+
+        $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
+        if (offset.top + elem.height() + $('#colorPicker').height() > $('body').height()) {
+          $('#colorPicker').css({ "right": "10px", top: offset.top - $('#colorPicker').height() });
+        }
+        else {
+          $('#colorPicker').css({ "right": "10px", top: offset.top + elem.height() });
+        }
+
+        // assign callbacks to update proper color
+        cp.color.options.actionCallback = function (e, action) {
+          console.log(action);
+          if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+            var color = cp.color.colors.rgb;
+            self.updateColor(type, color);
+            $(elem).css({ "background-color": "#" + cp.color.colors.HEX });
+
+            if (self.layer.visible()) {
+              // no point rendering an invisible layer
+              renderImage('layer ' + self.name + ' color change');
+            }
+          }
+        };
+
+        $('#colorPicker').addClass('visible');
+        $('#colorPicker').removeClass('hidden');
+      }
+      else {
+        $('#colorPicker').addClass('hidden');
+        $('#colorPicker').removeClass('visible');
+      }
+    });
+
+    var adj = this.layer.getAdjustment(type);
+    var colorStr = "rgb(" + parseInt(adj.r * 255) + "," + parseInt(adj.g * 255) + "," + parseInt(adj.b * 255) + ")";
+    elem.css({ "background-color": colorStr });
+  }
+
+  paramHandler(event, ui, paramName, type) {
+    if (type === adjType["OPACITY"]) {
+      let val = ui.value / 100;
+      //for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {
+      //  val *= g_groupMods[g_groupsByLayer[this.name][i]].groupOpacity / 100;
+      //}
+  
+      this._layer.opacity(val);
+    }
+    else if (type === adjType["HSL"]) {
+      if (paramName === "hue") {
+      }
+      else if (paramName === "saturation") {
+      }
+      else if (paramName === "lightness") {
+      }
+    }
+    else if (type === adjType["LEVELS"]) {
+      if (paramName !== "gamma") {
+        this._layer.addAdjustment(adjType.LEVELS, paramName, ui.value / 255);
+      }
+      else if (paramName === "gamma") {
+        this._layer.addAdjustment(adjType.LEVELS, "gamma", ui.value / 10);
+      }
+    }
+    else if (type === adjType["EXPOSURE"]) {
+      if (paramName === "exposure") {
+        this._layer.addAdjustment(adjType.EXPOSURE, "exposure", (ui.value / 10) + 0.5);
+      }
+      else if (paramName === "offset") {
+        this._layer.addAdjustment(adjType.EXPOSURE, "offset", ui.value + 0.5);
+      }
+      else if (paramName === "gamma") {
+        this._layer.addAdjustment(adjType.EXPOSURE, "gamma", ui.value / 10);
+      }
+    }
+    else if (type === adjType["SELECTIVE_COLOR"]) {
+      var channel = $(ui.handle).parent().parent().parent().find('.text').html();
+
+      this._layer.selectiveColorChannel(channel, paramName, (ui.value / 200) + 0.5);
+    }
+    else if (type === adjType["COLOR_BALANCE"]) {
+      if (paramName === "shadow R") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowR", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "shadow G") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowG", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "shadow B") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowB", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "mid R") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midR", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "mid G") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midG", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "mid B") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midB", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "highlight R") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highR", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "highlight G") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highG", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "highlight B") {
+        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highB", (ui.value / 2) + 0.5);
+      }
+    }
+    else if (type === adjType["PHOTO_FILTER"]) {
+      if (paramName === "density") {
+        this._layer.addAdjustment(adjType.PHOTO_FILTER, "density", ui.value);
+      }
+    }
+    else if (type === adjType["COLORIZE"] || type === adjType["LIGHTER_COLORIZE"] || type == adjType["OVERWRITE_COLOR"]) {
+      if (paramName === "alpha") {
+        this._layer.addAdjustment(type, "a", ui.value);
+      }
+    }
+    else if (type === adjType["BRIGHTNESS"]) {
+      if (paramName === "brightness") {
+        this._layer.addAdjustment(adjType.BRIGHTNESS, "brightness", (ui.value / 2) + 0.5);
+      }
+      else if (paramName === "contrast") {
+        this._layer.addAdjustment(adjType.BRIGHTNESS, "contrast", (ui.value / 2) + 0.5);
+      }
+    }
+
+    // find associated value box and dump the value there
+    $(ui.handle).parent().next().find("input").val(String(ui.value));
+  }
+
+  updateColor(type, color) {
+    this._layer.addAdjustment(type, "r", color.r);
+    this._layer.addAdjustment(type, "g", color.g);
+    this._layer.addAdjustment(type, "b", color.b);
   }
 }
 
@@ -3437,6 +3807,100 @@ class GoalMenu {
   }
 }
 
+function generateAdjustmentHTML(adjustments, layerName) {
+  let html = "";
+
+  for (let i = 0; i < adjustments.length; i++) {
+    let type = adjustments[i];
+
+    if (type === 0) {
+      // hue sat
+      html += startParamSection(layerName, "Hue/Saturation", type);
+      html += addSliders(layerName, "Hue/Saturation", ["hue", "saturation", "lightness"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 1) {
+      // levels
+      // TODO: Turn some of these into range sliders
+      html += startParamSection(layerName, "Levels");
+      html += addSliders(layerName, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 2) {
+      // curves
+      html += startParamSection(layerName, "Curves");
+      html += addCurves(layerName, "Curves");
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 3) {
+      // exposure
+      html += startParamSection(layerName, "Exposure");
+      html += addSliders(layerName, "Exposure", ["exposure", "offset", "gamma"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 4) {
+      // gradient
+      html += startParamSection(layerName, "Gradient Map");
+      html += addGradient(layerName);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 5) {
+      // selective color
+      html += startParamSection(layerName, "Selective Color");
+      html += addTabbedParamSection(layerName, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
+      html += addToggle(layerName, "Selective Color", "relative", "Relative");
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 6) {
+      // color balance
+      html += startParamSection(layerName, "Color Balance");
+      html += addSliders(layerName, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
+      html += addToggle(layerName, "Color Balance", "preserveLuma", "Preserve Luma");
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 7) {
+      // photo filter
+      html += startParamSection(layerName, "Photo Filter");
+      html += addColorSelector(layerName, "Photo Filter");
+      html += addSliders(layerName, "Photo Filter", ["density"]);
+      html += addToggle(layerName, "Photo Filter", "preserveLuma", "Preserve Luma");
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 8) {
+      // colorize
+      html += startParamSection(layerName, "Colorize");
+      html += addColorSelector(layerName, "Colorize");
+      html += addSliders(layerName, "Colorize", ["alpha"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 9) {
+      // lighter colorize
+      // note name conflicts with previous params
+      html += startParamSection(layerName, "Lighter Colorize");
+      html += addColorSelector(layerName, "Lighter Colorize");
+      html += addSliders(layerName, "Lighter Colorize", ["alpha"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 10) {
+      html += startParamSection(layerName, "Overwrite Color");
+      html += addColorSelector(layerName, "Overwrite Color");
+      html += addSliders(layerName, "Overwrite Color", ["alpha"]);
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 11) {
+      html += startParamSection(layerName, "Invert");
+      html += endParamSection(layerName, type);
+    }
+    else if (type === 12) {
+      html += startParamSection(layerName, "Brightness and Contrast");
+      html += addSliders(layerName, "Brightness and Contrast", ["brightness", "contrast"]);
+      html += endParamSection(layerName, type);
+    }
+  }
+
+  return html;
+}
+
 // this class creates a layer control widget, including sliders for every individual
 // control. This is a partial re-write of the spaghetti in the main darkroom.js 
 // and does currently duplicate a lot of code
@@ -3542,94 +4006,7 @@ class LayerControls {
 
     // separate handlers for each adjustment type
     var adjustments = this._layer.getAdjustments();
-
-    for (var i = 0; i < adjustments.length; i++) {
-      var type = adjustments[i];
-
-      if (type === 0) {
-        // hue sat
-        html += startParamSection(this._name, "Hue/Saturation", type);
-        html += addSliders(this._name, "Hue/Saturation", ["hue", "saturation", "lightness"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 1) {
-        // levels
-        // TODO: Turn some of these into range sliders
-        html += startParamSection(this._name, "Levels");
-        html += addSliders(this._name, "Levels", ["inMin", "inMax", "gamma", "outMin", "outMax"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 2) {
-        // curves
-        html += startParamSection(this._name, "Curves");
-        html += addCurves(this._name, "Curves");
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 3) {
-        // exposure
-        html += startParamSection(this._name, "Exposure");
-        html += addSliders(this._name, "Exposure", ["exposure", "offset", "gamma"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 4) {
-        // gradient
-        html += startParamSection(this._name, "Gradient Map");
-        html += addGradient(this._name);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 5) {
-        // selective color
-        html += startParamSection(this._name, "Selective Color");
-        html += addTabbedParamSection(this._name, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
-        html += addToggle(this._name, "Selective Color", "relative", "Relative");
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 6) {
-        // color balance
-        html += startParamSection(this._name, "Color Balance");
-        html += addSliders(this._name, "Color Balance", ["shadow R", "shadow G", "shadow B", "mid R", "mid G", "mid B", "highlight R", "highlight G", "highlight B"]);
-        html += addToggle(this._name, "Color Balance", "preserveLuma", "Preserve Luma");
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 7) {
-        // photo filter
-        html += startParamSection(this._name, "Photo Filter");
-        html += addColorSelector(this._name, "Photo Filter");
-        html += addSliders(this._name, "Photo Filter", ["density"]);
-        html += addToggle(this._name, "Photo Filter", "preserveLuma", "Preserve Luma");
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 8) {
-        // colorize
-        html += startParamSection(this._name, "Colorize");
-        html += addColorSelector(this._name, "Colorize");
-        html += addSliders(this._name, "Colorize", ["alpha"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 9) {
-        // lighter colorize
-        // note name conflicts with previous params
-        html += startParamSection(this._name, "Lighter Colorize");
-        html += addColorSelector(this._name, "Lighter Colorize");
-        html += addSliders(this._name, "Lighter Colorize", ["alpha"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 10) {
-        html += startParamSection(this._name, "Overwrite Color");
-        html += addColorSelector(this._name, "Overwrite Color");
-        html += addSliders(this._name, "Overwrite Color", ["alpha"]);
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 11) {
-        html += startParamSection(this._name, "Invert");
-        html += endParamSection(this._name, type);
-      }
-      else if (type === 12) {
-        html += startParamSection(this._name, "Brightness and Contrast");
-        html += addSliders(this._name, "Brightness and Contrast", ["brightness", "contrast"]);
-        html += endParamSection(this._name, type);
-      }
-    }
+    html += generateAdjustmentHTML(adjustments, this._name);
 
     html += '</div></div>';
 

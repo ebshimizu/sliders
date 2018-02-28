@@ -3262,6 +3262,8 @@ class GroupPanel {
     var self = this;
     let uiElem = $(this._primary).find('.freeSelect .adjustmentControls');
 
+    let rel = this._freeSelectAdjMode === 'relative';
+
     if (section !== "") {
       s = uiElem.find('div[sectionName="' + section + '"] .paramSlider[paramName="' + paramName + '"]');
       i = uiElem.find('div[sectionName="' + section + '"] .paramInput[paramName="' + paramName + '"] input');
@@ -3288,6 +3290,13 @@ class GroupPanel {
       config.diff = false;
     }
 
+    if (rel) {
+      config.min = -1;
+      config.max = 1;
+      config.step = 0.01;
+      initVal = 0;
+    }
+
     $(s).slider({
       orientation: "horizontal",
       range: config.range,
@@ -3298,9 +3307,14 @@ class GroupPanel {
       stop: function (event, ui) {
         self.paramHandler(event, ui, paramName, type);
         renderImage('layer ' + self._name + ' parameter ' + paramName + ' change');
+
+        if (rel) {
+          $(s).slider('value', 0);
+          $(i).val('0');
+        }
       },
-      slide: function (event, ui) { self.paramHandler(event, ui, paramName, type) },
-      change: function (event, ui) { self.paramHandler(event, ui, paramName, type) }
+      slide: function (event, ui) { $(i).val(ui.value) },
+      change: function (event, ui) { $(i).val(ui.value) }
     });
 
     if (config.diff === true) {
@@ -3396,21 +3410,47 @@ class GroupPanel {
     elem.css({ "background-color": colorStr });
   }
 
+  adjustSelection(type, param, val) {
+    var self = this;
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+      let layerName = $(elem).attr('layerName');
+      if (self._freeSelectAdjMode === 'absolute') {
+        if (type === adjType.OPACITY) {
+          c.getLayer(layerName).opacity(val);
+        }
+        else {
+          c.getLayer(layerName).addAdjustment(type, param, val);
+        }
+      }
+      else if (self._freeSelectAdjMode === 'relative') {
+        if (type === adjType.OPACITY) {
+          let current = c.getLayer(layerName).opacity();
+          c.getLayer(layerName).opacity(current + val);
+        }
+        else {
+          let current = c.getLayer(layerName).getAdjustment(type)[param];
+          c.getLayer(layerName).addAdjustment(type, param, current + val);
+        }
+      }
+    });
+  }
+
   paramHandler(event, ui, paramName, type) {
+    let rel = this._freeSelectAdjMode === 'relative';
+
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;
-      //for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {
-      //  val *= g_groupMods[g_groupsByLayer[this.name][i]].groupOpacity / 100;
-      //}
-  
-      this._layer.opacity(val);
+      this.adjustSelection(type, paramName, val);
     }
     else if (type === adjType["HSL"]) {
       if (paramName === "hue") {
+        this.adjustSelection(adjType.HSL, "hue", rel ? ui.value : (ui.value / 360) + 0.5);
       }
       else if (paramName === "saturation") {
+        this.adjustSelection(adjType.HSL, "sat", rel ? ui.value : (ui.value / 360) + 0.5);
       }
       else if (paramName === "lightness") {
+        this.adjustSelection(adjType.HSL, "light", rel ? ui.value : (ui.value / 200) + 0.5);
       }
     }
     else if (type === adjType["LEVELS"]) {

@@ -2597,6 +2597,7 @@ class GroupPanel {
       $(self._primary).find('.freeSelect .modeButtons button').removeClass('green');
       $(this).addClass('green');
       self._freeSelectAdjMode = $(this).attr('mode');
+      self.updateFreeSelect();
     });
 
     this.hideLayerControl();
@@ -2899,9 +2900,19 @@ class GroupPanel {
 
     // collect adjustments
     let adjustments = {};
+    let diffOpacity = false;
+    let opacityVal;
     for (let n in names) {
       let layer = c.getLayer(names[n]);
       let adjs = layer.getAdjustments();
+
+      if (opacityVal === undefined) {
+        opacityVal = layer.opacity();
+      }
+      else {
+        if (diffOpacity === false && opacityVal !== layer.opacity())
+          diffOpacity = true;
+      }
 
       for (let a in adjs) {
         if (!(adjs[a] in adjustments)) {
@@ -2920,8 +2931,11 @@ class GroupPanel {
 
     // generate controls
     let html = '';
+    html += createLayerParam('freeSelect', 'opacity');
     html += generateAdjustmentHTML(akeys, 'freeSelect');
     $(this._primary).find('.freeSelect .adjustmentControls').html(html);
+
+    this.bindParam('opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
 
     // it's all in the bindings
     // param events
@@ -3295,6 +3309,7 @@ class GroupPanel {
       config.max = 1;
       config.step = 0.01;
       initVal = 0;
+      config.range = false;
     }
 
     $(s).slider({
@@ -3440,7 +3455,7 @@ class GroupPanel {
 
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;
-      this.adjustSelection(type, paramName, val);
+      this.adjustSelection(type, paramName, rel ? ui.value : val);
     }
     else if (type === adjType["HSL"]) {
       if (paramName === "hue") {

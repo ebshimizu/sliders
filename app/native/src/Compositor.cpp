@@ -566,6 +566,10 @@ namespace Comp {
         if (l._mode == PASS_THROUGH) {
           // this writes directly to comp
           render(c, comp, l.getPrecompOrder(), l.getOpacity() * co, size);
+
+          // adjustments on a pass through precomp are normal adjustment layers
+          // (except here you can't really modify the strength of them so ...?)
+          adjust(comp, l);
           continue;
         }
         else {
@@ -839,6 +843,11 @@ namespace Comp {
       if (l.isPrecomp()) {
         if (l._mode == PASS_THROUGH) {
           renderPixel(c, compPx, l.getPrecompOrder(), i, l.getOpacity() * co, size);
+          auto a = adjustPixel<float>(*compPx, l);
+          compPx->_r = a._r;
+          compPx->_g = a._g;
+          compPx->_b = a._b;
+          compPx->_a = a._a;
           continue;
         }
         else {

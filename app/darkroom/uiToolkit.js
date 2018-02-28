@@ -2935,6 +2935,10 @@ class GroupPanel {
     html += generateAdjustmentHTML(akeys, 'freeSelect');
     $(this._primary).find('.freeSelect .adjustmentControls').html(html);
 
+    $(this._primary).find('.freeSelect .adjustmentControls .divider').click(function () {
+      $(this).siblings('.paramSection[sectionName="' + $(this).html() + '"]').transition('fade down');
+    });
+
     this.bindParam('opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
 
     // it's all in the bindings
@@ -2983,6 +2987,64 @@ class GroupPanel {
           { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.sat.diff});
         this.bindParam("lightness", (initVals.light.val - 0.5) * 200, sectionName, type,
           { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.light.diff });
+      }
+      else if (type === 1) {
+        // levels
+        // TODO: Turn some of these into range sliders
+        var sectionName = "Levels";
+        this.bindParam("inMin", (initVals.inMin.val * 255), sectionName, type,
+          { "range": "min", "max": 255, "min": 0, "step": 1, "diff": initVals.inMin.diff });
+        this.bindParam("inMax", (initVals.inMax.val * 255), sectionName, type,
+          { "range": "max", "max": 255, "min": 0, "step": 1, "diff": initVals.inMax.diff });
+        this.bindParam("gamma", (initVals.gamma.val * 10), sectionName, type,
+          { "range": false, "max": 10, "min": 0, "step": 0.01, "diff": initVals.gamma.diff });
+        this.bindParam("outMin", (initVals.outMin.val * 255), sectionName, type,
+          { "range": "min", "max": 255, "min": 0, "step": 1, "diff": initVals.outMin.diff });
+        this.bindParam("outMax", (initVals.outMax.val * 255), sectionName, type,
+          { "range": "max", "max": 255, "min": 0, "step": 1, "diff": initVals.outMax.diff });
+      }
+      else if (type === 2) {
+        // curves
+        // we're gonna skip this for now because mass editing of curves doesn't make that much sense here
+      }
+      else if (type === 3) {
+        var sectionName = "Exposure";
+        this.bindParam("exposure", (initVals.exposure.val - 0.5) * 10, sectionName, type,
+          { "range": false, "max": 5, "min": -5, "step": 0.1, "diff": initVals.exposure.diff });
+        this.bindParam("offset", initVals.offset.val - 0.5, sectionName, type,
+          { "range": false, "max": 0.5, "min": -0.5, "step": 0.01, "diff": initVals.offset.diff });
+        this.bindParam("gamma", initVals.gamma.val * 10, sectionName, type,
+          { "range": false, "max": 10, "min": 0.01, "step": 0.01, "diff": initVals.gamma.diff });
+      }
+      else if (type === 4) {
+        // also skipping gradients
+      }
+      else if (type === 5) {
+        // selective color is also skipped here in order to focus
+        // on more commonly used adjustments
+      }
+      else if (type === 6) {
+        var sectionName = "Color Balance";
+        this.bindParam("shadow R", (initVals.shadowR.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowR.diff });
+        this.bindParam("shadow G", (initVals.shadowG.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowG.diff });
+        this.bindParam("shadow B", (initVals.shadowB.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowB.diff });
+        this.bindParam("mid R", (initVals.midR.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midR.diff });
+        this.bindParam("mid G", (initVals.midG.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midG.diff });
+        this.bindParam("mid B", (initVals.midB.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midB.diff });
+        this.bindParam("highlight R", (initVals.highR.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highR.diff });
+        this.bindParam("highlight G", (initVals.highG.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highG.diff });
+        this.bindParam("highlight B", (initVals.highB.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highB.diff });
+
+        this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
       }
     }
   }
@@ -3353,26 +3415,40 @@ class GroupPanel {
     });
   }
 
-  bindToggle(sectionName, param, type) {
+  bindToggle(sectionName, param, type, init) {
     var elem = $(this._primary).find('.freeSelect .adjustmentControls .checkbox[paramName="' + param + '"][sectionName="' + sectionName + '"]');
     var self = this;
     elem.checkbox({
       onChecked: function () {
-        // TODO
+        $(self._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+          let layerName = $(elem).attr('layerName');
+          if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+            addAdjustmentToLayer(layerName, type);
+          }
+
+          c.getLayer(layerName).addAdjustment(type, param, 1);
+        });
       },
       onUnchecked: function () {
-        // TODO
+        $(self._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+          let layerName = $(elem).attr('layerName');
+          if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+            addAdjustmentToLayer(layerName, type);
+          }
+
+          c.getLayer(layerName).addAdjustment(type, param, 0);
+        });
       }
     });
 
     // set initial state
     //var paramVal = this.layer.getAdjustment(type, param);
-    //if (paramVal === 0) {
-    //  elem.checkbox('set unchecked');
-    //}
-    //else {
-    //  elem.checkbox('set checked');
-    //}
+    if (init === 0) {
+      elem.checkbox('set unchecked');
+    }
+    else {
+      elem.checkbox('set checked');
+    }
   }
 
   bindColor(section, type) {
@@ -3429,6 +3505,10 @@ class GroupPanel {
     var self = this;
     $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
       let layerName = $(elem).attr('layerName');
+      if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+        addAdjustmentToLayer(layerName, type);
+      }
+
       if (self._freeSelectAdjMode === 'absolute') {
         if (type === adjType.OPACITY) {
           c.getLayer(layerName).opacity(val);
@@ -3470,55 +3550,50 @@ class GroupPanel {
     }
     else if (type === adjType["LEVELS"]) {
       if (paramName !== "gamma") {
-        this._layer.addAdjustment(adjType.LEVELS, paramName, ui.value / 255);
+        this.adjustSelection(adjType.LEVELS, paramName, rel ? ui.value : ui.value / 255);
       }
       else if (paramName === "gamma") {
-        this._layer.addAdjustment(adjType.LEVELS, "gamma", ui.value / 10);
+        this.adjustSelection(adjType.LEVELS, "gamma", rel ? ui.value : ui.value / 10);
       }
     }
     else if (type === adjType["EXPOSURE"]) {
       if (paramName === "exposure") {
-        this._layer.addAdjustment(adjType.EXPOSURE, "exposure", (ui.value / 10) + 0.5);
+        this.adjustSelection(adjType.EXPOSURE, "exposure", rel ? ui.value : (ui.value / 10) + 0.5);
       }
       else if (paramName === "offset") {
-        this._layer.addAdjustment(adjType.EXPOSURE, "offset", ui.value + 0.5);
+        this.adjustSelection(adjType.EXPOSURE, "offset", rel ? ui.value : ui.value + 0.5);
       }
       else if (paramName === "gamma") {
-        this._layer.addAdjustment(adjType.EXPOSURE, "gamma", ui.value / 10);
+        this.adjustSelection(adjType.EXPOSURE, "gamma", rel ? ui.value : ui.value / 10);
       }
-    }
-    else if (type === adjType["SELECTIVE_COLOR"]) {
-      var channel = $(ui.handle).parent().parent().parent().find('.text').html();
-
-      this._layer.selectiveColorChannel(channel, paramName, (ui.value / 200) + 0.5);
     }
     else if (type === adjType["COLOR_BALANCE"]) {
       if (paramName === "shadow R") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowR", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "shadowR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "shadow G") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowG", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "shadowG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "shadow B") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "shadowB", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "shadowB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid R") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midR", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "midR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid G") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midG", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "midG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid B") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "midB", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "midB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight R") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highR", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "highR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight G") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highG", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "highG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight B") {
-        this._layer.addAdjustment(adjType.COLOR_BALANCE, "highB", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.COLOR_BALANCE, "highB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
     }
     else if (type === adjType["PHOTO_FILTER"]) {
@@ -3883,9 +3958,9 @@ function generateAdjustmentHTML(adjustments, layerName) {
     }
     else if (type === 2) {
       // curves
-      html += startParamSection(layerName, "Curves");
-      html += addCurves(layerName, "Curves");
-      html += endParamSection(layerName, type);
+      //html += startParamSection(layerName, "Curves");
+      //html += addCurves(layerName, "Curves");
+      //html += endParamSection(layerName, type);
     }
     else if (type === 3) {
       // exposure
@@ -3895,16 +3970,16 @@ function generateAdjustmentHTML(adjustments, layerName) {
     }
     else if (type === 4) {
       // gradient
-      html += startParamSection(layerName, "Gradient Map");
-      html += addGradient(layerName);
-      html += endParamSection(layerName, type);
+      //html += startParamSection(layerName, "Gradient Map");
+      //html += addGradient(layerName);
+      //html += endParamSection(layerName, type);
     }
     else if (type === 5) {
       // selective color
-      html += startParamSection(layerName, "Selective Color");
-      html += addTabbedParamSection(layerName, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
-      html += addToggle(layerName, "Selective Color", "relative", "Relative");
-      html += endParamSection(layerName, type);
+      //html += startParamSection(layerName, "Selective Color");
+      //html += addTabbedParamSection(layerName, "Selective Color", "Channel", ["reds", "yellows", "greens", "cyans", "blues", "magentas", "whites", "neutrals", "blacks"], ["cyan", "magenta", "yellow", "black"]);
+      //html += addToggle(layerName, "Selective Color", "relative", "Relative");
+      //html += endParamSection(layerName, type);
     }
     else if (type === 6) {
       // color balance

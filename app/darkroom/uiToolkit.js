@@ -2601,6 +2601,16 @@ class GroupPanel {
       self.updateFreeSelect();
     });
 
+    $(this._primary).find('.freeSelect .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
+    $(this._primary).find('.freeSelect .toolbar .addAdjustment').dropdown({
+      action: 'hide',
+      onChange: function (value, text) {
+        // add the adjustment or something
+        self.addAdjustmentToSelection(parseInt(value));
+        self.updateFreeSelect();
+      }
+    });
+
     this.hideLayerControl();
 
     $(document).keydown(function(event) {
@@ -2941,11 +2951,11 @@ class GroupPanel {
       $(this).siblings('.paramSection[sectionName="' + $(this).html() + '"]').transition('fade down');
     });
 
+
     this.bindParam('opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
 
     // it's all in the bindings
     // param events
-    // ooooooookay gonna start with just one then add these in to prevent getting overwhelmed.
     for (var a in adjustments) {
       var type = parseInt(a);
 
@@ -3489,6 +3499,15 @@ class GroupPanel {
     else {
       elem.checkbox('set checked');
     }
+  }
+
+  addAdjustmentToSelection(type) {
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+      let layerName = $(elem).attr('layerName');
+      if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+        addAdjustmentToLayer(layerName, type);
+      }
+    });
   }
 
   getSelectionColor(type) {

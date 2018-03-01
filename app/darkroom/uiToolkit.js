@@ -2943,6 +2943,7 @@ class GroupPanel {
 
     // generate controls
     let html = '';
+    var self = this;
     html += createLayerParam('freeSelect', 'opacity');
     html += generateAdjustmentHTML(akeys, 'freeSelect');
     $(this._primary).find('.freeSelect .adjustmentControls').html(html);
@@ -2951,6 +2952,10 @@ class GroupPanel {
       $(this).siblings('.paramSection[sectionName="' + $(this).html() + '"]').transition('fade down');
     });
 
+    $(this._primary).find('.freeSelect .adjustmentControls .deleteAdj').click(function() {
+      self.deleteSelectionAdjustment(parseInt($(this).attr('adjType')));
+      self.updateFreeSelect();
+    });
 
     this.bindParam('opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
 
@@ -3508,6 +3513,14 @@ class GroupPanel {
         addAdjustmentToLayer(layerName, type);
       }
     });
+  }
+
+  deleteSelectionAdjustment(type) {
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+      let layerName = $(elem).attr('layerName');
+      c.getLayer(layerName).deleteAdjustment(type);
+    });
+    renderImage('Free select adjustment deleted');
   }
 
   getSelectionColor(type) {

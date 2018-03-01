@@ -3046,6 +3046,16 @@ class GroupPanel {
 
         this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
       }
+      else if (type === 7) {
+        var sectionName = "Photo Filter";
+
+        this.bindColor(sectionName, type);
+
+        this.bindParam("density", initVals.density.val, sectionName, type,
+          { "range": "min", "max": 1, "min": 0, "step": 0.01, "diff": initVals.density.diff });
+
+        this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
+      }
     }
   }
 
@@ -3451,8 +3461,15 @@ class GroupPanel {
     }
   }
 
+  getSelectionColor(type) {
+    let first = $(this._primary).find('.freeSelect .groupContents .card').first().attr('layerName');
+
+    // i feel like not checking this may cause problems
+    return c.getLayer(first).getAdjustment(type);
+  }
+
   bindColor(section, type) {
-    var elem = this._uiElem.find('.paramColor[sectionName="' + section + '"]');
+    var elem = $(this._primary).find('.freeSelect .adjustmentControls .paramColor[sectionName="' + section + '"]');
     var self = this;
 
     elem.click(function () {
@@ -3460,7 +3477,7 @@ class GroupPanel {
         // move color picker to spot
         var offset = elem.offset();
 
-        var adj = self.layer.getAdjustment(type);
+        var adj = self.getSelectionColor(type);
         cp.setColor({ "r": adj.r * 255, "g": adj.g * 255, "b": adj.b * 255 }, 'rgb');
         cp.startRender();
 
@@ -3480,10 +3497,7 @@ class GroupPanel {
             self.updateColor(type, color);
             $(elem).css({ "background-color": "#" + cp.color.colors.HEX });
 
-            if (self.layer.visible()) {
-              // no point rendering an invisible layer
-              renderImage('layer ' + self.name + ' color change');
-            }
+            renderImage('free select color change');
           }
         };
 
@@ -3496,7 +3510,7 @@ class GroupPanel {
       }
     });
 
-    var adj = this.layer.getAdjustment(type);
+    var adj = this.getSelectionColor(type);
     var colorStr = "rgb(" + parseInt(adj.r * 255) + "," + parseInt(adj.g * 255) + "," + parseInt(adj.b * 255) + ")";
     elem.css({ "background-color": colorStr });
   }
@@ -3527,6 +3541,22 @@ class GroupPanel {
           c.getLayer(layerName).addAdjustment(type, param, current + val);
         }
       }
+    });
+  }
+
+  updateColor(type, color) {
+    var self = this;
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+      let layerName = $(elem).attr('layerName');
+      if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+        addAdjustmentToLayer(layerName, type);
+      }
+
+      // color always operates in absolute mode, regardless of adjustment mode
+      // because relative color doesn't make any sense
+      c.getLayer(layerName).addAdjustment(type, 'r', color.r);
+      c.getLayer(layerName).addAdjustment(type, 'g', color.g);
+      c.getLayer(layerName).addAdjustment(type, 'b', color.b);
     });
   }
 
@@ -3598,31 +3628,25 @@ class GroupPanel {
     }
     else if (type === adjType["PHOTO_FILTER"]) {
       if (paramName === "density") {
-        this._layer.addAdjustment(adjType.PHOTO_FILTER, "density", ui.value);
+        this.adjustSelection(adjType.PHOTO_FILTER, "density", ui.value);
       }
     }
     else if (type === adjType["COLORIZE"] || type === adjType["LIGHTER_COLORIZE"] || type == adjType["OVERWRITE_COLOR"]) {
       if (paramName === "alpha") {
-        this._layer.addAdjustment(type, "a", ui.value);
+        this.adjustSelection(type, "a", ui.value);
       }
     }
     else if (type === adjType["BRIGHTNESS"]) {
       if (paramName === "brightness") {
-        this._layer.addAdjustment(adjType.BRIGHTNESS, "brightness", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.BRIGHTNESS, "brightness", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "contrast") {
-        this._layer.addAdjustment(adjType.BRIGHTNESS, "contrast", (ui.value / 2) + 0.5);
+        this.adjustSelection(adjType.BRIGHTNESS, "contrast", rel ? ui.value : (ui.value / 2) + 0.5);
       }
     }
 
     // find associated value box and dump the value there
     $(ui.handle).parent().next().find("input").val(String(ui.value));
-  }
-
-  updateColor(type, color) {
-    this._layer.addAdjustment(type, "r", color.r);
-    this._layer.addAdjustment(type, "g", color.g);
-    this._layer.addAdjustment(type, "b", color.b);
   }
 }
 

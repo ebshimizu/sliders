@@ -1957,7 +1957,7 @@ function genAddAdjustmentButton(name) {
   // curves omitted
   b += '<div class="item" data-value="3">Exposure</div>';
   // gradient map omitted
-  b += '<div class="item" data-value="5">Selective Color</div>';
+  //b += '<div class="item" data-value="5">Selective Color</div>';
   b += '<div class="item" data-value="6">Color Balance</div>';
   b += '<div class="item" data-value="7">Photo Filter</div>';
   b += '<div class="item" data-value="8">Colorize</div>';

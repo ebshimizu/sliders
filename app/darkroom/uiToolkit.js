@@ -2511,6 +2511,7 @@ class GroupPanel {
     this._selectedLayers = [];
     this._intervalID = null;
     this._hoveredLayer = null;
+    this._autoAddAdjustments = false;
 
     // initialize preview canvas
     this.updatePreviewCanvas();
@@ -2668,6 +2669,7 @@ class GroupPanel {
     $(this._primary + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
     $(this._primary + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
     $(this._primary + ' .dropdown[param="_layerSelectPreviewMode"]').dropdown('set selected', this._layerSelectPreviewMode);
+    $(this._primary + ' .checkbox[param="_autoAddAdjustments"]').checkbox((this._autoAddAdjustments ? 'set checked' : 'set unchecked'));
 
     // exit button
     var self = this;
@@ -3055,6 +3057,34 @@ class GroupPanel {
           { "range": "min", "max": 1, "min": 0, "step": 0.01, "diff": initVals.density.diff });
 
         this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
+      }
+      else if (type === 8) {
+        var sectionName = "Colorize";
+        this.bindColor(sectionName, type);
+
+        this.bindParam("alpha", initVals.a.val, sectionName, type,
+          { "range": "min", "max": 1, "min": 0, "step": 0.01, "diff": initVals.a.diff });
+      }
+      else if (type === 9) {
+        // lighter colorize
+        // not name conflicts with previous params
+        var sectionName = "Lighter Colorize";
+        this.bindColor(sectionName, type);
+        this.bindParam("alpha", initVals.a.val, sectionName, type,
+          { "range": "min", "max": 1, "min": 0, "step": 0.01, 'diff': initVals.a.diff });
+      }
+      else if (type === 10) {
+        var sectionName = "Overwrite Color";
+        this.bindColor(sectionName, type);
+        this.bindParam("alpha", initVals.a.val, sectionName, type,
+          { "range": "min", "max": 1, "min": 0, "step": 0.01, 'diff': initVals.a.diff });
+      }
+      else if (type === 12) {
+        var sectionName = "Brightness and Contrast";
+        this.bindParam("brightness", (initVals.brightness.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, 'diff': initVals.brightness.diff});
+        this.bindParam("contrast", (initVals.contrast.val - 0.5) * 2, sectionName, type,
+          { "range": false, "max": 1, "min": -1, "step": 0.01, 'diff': initVals.contrast.diff });
       }
     }
   }
@@ -3462,10 +3492,17 @@ class GroupPanel {
   }
 
   getSelectionColor(type) {
-    let first = $(this._primary).find('.freeSelect .groupContents .card').first().attr('layerName');
+    let layer;
+    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+      let layerName = $(elem).attr('layerName');
+
+      if (c.getLayer(layerName).getAdjustments().indexOf(type) !== -1) {
+        layer = layerName;
+      }
+    });
 
     // i feel like not checking this may cause problems
-    return c.getLayer(first).getAdjustment(type);
+    return c.getLayer(layer).getAdjustment(type);
   }
 
   bindColor(section, type) {
@@ -3519,8 +3556,12 @@ class GroupPanel {
     var self = this;
     $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
       let layerName = $(elem).attr('layerName');
-      if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+      if (self._autoAddAdjustments === true && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
         addAdjustmentToLayer(layerName, type);
+      }
+      else if (self._autoAddAdjustments === false && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+        // exit early if we shouldn't auto create things
+        return;
       }
 
       if (self._freeSelectAdjMode === 'absolute') {
@@ -3548,8 +3589,12 @@ class GroupPanel {
     var self = this;
     $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
       let layerName = $(elem).attr('layerName');
-      if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+      if (self._autoAddAdjustments === true && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
         addAdjustmentToLayer(layerName, type);
+      }
+      else if (self._autoAddAdjustments === false && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+        // exit early if auto add is false
+        return;
       }
 
       // color always operates in absolute mode, regardless of adjustment mode

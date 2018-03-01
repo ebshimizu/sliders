@@ -975,3 +975,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     top: 6px;
     right: 224px;
 }
+
+.groupControls .toolbar {
+    margin-bottom: 10px;
+}

@@ -984,3 +984,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     float: left;
     margin-right: 10px;
 }
+
+.groupControls .addGroup {
+    float: right;
+}

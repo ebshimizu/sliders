@@ -976,15 +976,33 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     right: 224px;
 }
 
-.groupControls .toolbar {
+.toolbar {
     margin-bottom: 10px;
 }
 
-.groupControls .toolbar .addAdjustment {
+.toolbar .addAdjustment {
     float: left;
     margin-right: 10px;
 }
 
 .groupControls .addGroup {
     float: right;
+}
+
+.savedSelectionList table tr {
+    cursor: pointer;
+}
+
+.savedSelections .sectionControls {
+    position: absolute;
+    top: 100px;
+    background-color: #1b1c1d;
+    height: calc(100% - 100px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 14px;
+}
+
+.adjustmentControls .divider {
+    cursor: pointer;
 }

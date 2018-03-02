@@ -2594,26 +2594,49 @@ class GroupPanel {
       renderImage('Group Membership Change');
     });
 
-    $(this._primary).find('.freeSelect .modebuttons button').click(function() {
-      $(self._primary).find('.freeSelect .modeButtons button').removeClass('green');
-      $(this).addClass('green');
+    $(this._primary).find('.modebuttons button').click(function() {
+      $(self._primary).find('.modeButtons button').removeClass('green');
       self._freeSelectAdjMode = $(this).attr('mode');
-      self.updateFreeSelect();
+
+
+      $(self._primary).find('.modeButtons .button[mode="' + self._freeSelectAdjMode + '"]').addClass('green');
+      self.updateSection('.freeSelect');
+      self.updateSection('.sectionControls');
     });
 
+    // add adjustment buttons
     $(this._primary).find('.freeSelect .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
     $(this._primary).find('.freeSelect .toolbar .addAdjustment').dropdown({
       action: 'hide',
       onChange: function (value, text) {
         // add the adjustment or something
-        self.addAdjustmentToSelection(parseInt(value));
-        self.updateFreeSelect();
+        self.addAdjustmentToSelection('.freeSelect', parseInt(value));
+        self.updateSection('.freeSelect');
       }
     });
 
+    $(this._primary).find('.sectionControls .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
+    $(this._primary).find('.sectionControls .toolbar').prepend('<h2 class="ui inverted dividing header"></h2>');
+    $(this._primary).find('.sectionControls .toolbar .addAdjustment').dropdown({
+      action: 'hide',
+      onChange: function (value, text) {
+        // add the adjustment or something
+        self.addAdjustmentToSelection('.sectionControls', parseInt(value));
+        self.updateSection('.sectionControls');
+      }
+    });
+
+    // free select add new group
     $(this._primary).find('.freeSelect .addGroup.button').click(function() {
       self.addNewGroup()
     });
+
+    // section control back button
+    $(this._primary).find('.sectionControls .toolbar .closeGroup').click(function() {
+      $(self._primary).find('.sectionControls').addClass('is-hidden').hide();
+    });
+
+    $(this._primary).find('.savedSelections .sectionControls').hide();
 
     this.hideLayerControl();
 
@@ -2693,42 +2716,6 @@ class GroupPanel {
     $(self._primary + ' .groupSelectOptions').hide();
   }
 
-  updateGroup(value) {
-    // uh, delete the thing
-    if (this._groupControl) {
-      for (let i = 0; i < this._groupControl.length; i++) {
-        this._groupControl[i].deleteUI();
-        delete this._groupControl[i];
-      }
-      this._groupControl = [];
-    }
-
-    // nothing selected
-    if (value === "")
-      return;
-
-
-    if (value === 'all') {
-      this._groupControl = [];
-      let order = c.getGroupOrder();
-      for (let o in order) {
-        let name = order[o].group;
-        let gc = new GroupControls(name);
-        gc.createUI($(this.primarySelector + ' .groupControls'));
-        this._groupControl.push(gc);
-      }
-    }
-    else {
-      // add the group control thing
-      this._groupControl = [ new GroupControls(value) ];
-      this._groupControl[0].createUI($(this.primarySelector + ' .groupControls'));
-      this._currentGroup = value;
-
-      this.displaySelectedLayers(this._selectedLayers);
-      this.updateLayerCards();
-    }
-  }
-
   addNewGroup() {
     var self = this;
     $('#newMetaGroupModal').modal({
@@ -2744,7 +2731,12 @@ class GroupPanel {
         if (c.isGroup(name))
           return false;
         
-        c.addGroup(name, [], 0, false);
+        let layers = [];
+        $(self._primary).find('.freeSelect .groupContents .card').each(function (i, elem) {
+          layers.push($(elem).attr('layerName'));
+        });
+
+        c.addGroup(name, layers, 0, false);
         self.addGroupToList(name);
       }
     }).modal('show');
@@ -2759,11 +2751,17 @@ class GroupPanel {
 
     // other stuff eventually will go here
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
+    elem += '<td><div class="ui mini right floated button showLayers">Show Layers</div></td>';
+    elem += '<td><div class="ui mini right floated button editGroup">Edit Group</div></td>';
     elem += '<td><div class="ui mini red right floated icon button"><i class="remove icon"></div></td>';
     elem += '</tr>';
     list.append(elem);
 
     // bindings
+    var self = this;
+    $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .showLayers.button').click(function() {
+      self.showSavedGroupControls(name);
+    });
   }
 
   hideLayerControl() {
@@ -2791,35 +2789,18 @@ class GroupPanel {
     $(this._primary + ' .groupPanelLayerControls').show();
   }
 
-  // simplified version of the general parameter selection window
-  // can go back later if needed, not really needed now
-  updateLayerCards() {
-    let group = c.getGroup(this._currentGroup);
-    //$(this.primarySelector + ' .groupContents').html('');
-    this._animationCache = {};
+  showSavedGroupControls(name) {
+    $(this._primary).find('.sectionControls .groupContents').html('');
 
-    let dims = c.imageDims(this._renderSize);
-    for (let l in group.affectedLayers) {
-      let layerName = group.affectedLayers[l];
-
-      if ($(this._primary).find('.card[layerName="' + layerName + '"]').length === 0) {
-        let elem = '<div class="column">';
-        elem += '<div class="ui card" layerName="' + layerName + '">';
-        elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
-        elem += '<div class="extra content">' + layerName + '</div>';
-        elem += '</div></div>';
-
-        $(this._primary + ' .groupContents').append(elem);
-        this.bindLayerCard(layerName);
-      }
+    let layers = c.getGroup(name).affectedLayers;
+    for (let l in layers) {
+      this.addCardToSection(layers[l], '.sectionControls');
     }
 
-    // if was removed, delete
-    $(this.primarySelector).find('.card').each(function(i, elem) {
-      if(group.affectedLayers.indexOf($(this).attr('layerName')) < 0) {
-        $(this).parent().remove();
-      }
-    });
+    $(this._primary).find('.sectionControls .toolbar .header').text(name);
+    $(this._primary).find('.sectionControls').show();
+    $(this._primary).find('.sectionControls').attr('groupName', name);
+    $(this._primary).find('.sectionControls').removeClass('is-hidden');
   }
 
   bindLayerCard(name, container) {
@@ -2853,25 +2834,33 @@ class GroupPanel {
 
   // when a selected layer has the check button clicked, do some stuff
   handleLayerChecked(layerName) {
-    if (this.groupSelectMode === 'freeSelect') {
+    if ($('.sectionControls').hasClass('is-hidden')) { 
       // yet another redirection
-      this.addToFreeSelect(layerName);
+      this.addCardToSection(layerName, '.freeSelect');
+    }
+    else {
+      c.addLayerToGroup(layerName, $('.sectionControls').attr('groupName'));
+      this.addCardToSection(layerName, '.sectionControls');
     }
   }
 
   // similarly, a function for unchecking yay
   handleLayerUnchecked(layerName) {
-    if (this.groupSelectMode === 'freeSelect') {
-      this.removeFromFreeSelect(layerName);
+    if ($('.sectionControls').hasClass('is-hidden')) { 
+      this.removeFromSection(layerName, '.freeSelect');
+    }
+    else {
+      c.removeLayerFromGroup(layerName, $('.sectionControls').attr('groupName'));
+      this.removeFromSection(layerName, '.sectionControls');
     }
   }
 
   // adds a layer card to the free select window if the card doesn't already exist
-  addToFreeSelect(layerName) {
+  addCardToSection(layerName, section) {
     // ok the free select panel is a loose collection of layers and we provide some
     // transient adjustment controls for them.
     let dims = c.imageDims(this._renderSize);
-    if ($(this._primary).find('.freeSelect .groupContents .card[layerName="' + layerName + '"]').length === 0) {
+    if ($(this._primary).find(section + ' .groupContents .card[layerName="' + layerName + '"]').length === 0) {
       let elem = '<div class="column">';
       elem += '<div class="ui card" layerName="' + layerName + '">';
       elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
@@ -2879,27 +2868,29 @@ class GroupPanel {
       elem += '<div class="ui mini red icon button"><i class="remove icon"></div>';
       elem += '</div></div>';
 
-      $(this._primary + ' .freeSelect .groupContents').append(elem);
-      this.bindLayerCard(layerName, this._primary + ' .freeSelect .groupContents');
+      $(this._primary + ' ' + section + ' .groupContents').append(elem);
+      this.bindLayerCard(layerName, this._primary + ' ' + section);
     }
     
     // need to refresh the adjustment controls
-    this.updateFreeSelect();
+    this.updateSection(section);
   }
 
-  removeFromFreeSelect(layerName) {
+  removeFromSection(layerName, section) {
     // if a card exists, delete it
-    $(this._primary).find('.freeSelect .groupContents .card[layerName="' + layerName + '"]').parent().remove();
-    this.updateFreeSelect();
+    $(this._primary + ' ' + section).find('.groupContents .card[layerName="' + layerName + '"]').parent().remove();
+    this.updateSection('');
   }
 
   // update the adjustment controls given a new layer
-  updateFreeSelect() {
+  updateSection(section) {
     // we'll need to go through all the layers, determine what adjustments are present, and then
     // render controls for each of the adjustments.
     // recover layer names
+    // .freeSelect .groupContents
     let names = [];
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+    let selector = this._primary + ' ' + section;
+    $(selector).find('.groupContents .card').each(function(num, elem) {
       names.push($(elem).attr('layerName'));
     });
 
@@ -2939,18 +2930,19 @@ class GroupPanel {
     var self = this;
     html += createLayerParam('freeSelect', 'opacity');
     html += generateAdjustmentHTML(akeys, 'freeSelect');
-    $(this._primary).find('.freeSelect .adjustmentControls').html(html);
+    $(selector).find('.adjustmentControls').html(html);
+    $(selector).find('.adjustmentControls .paramSection').addClass('transition hidden');
 
-    $(this._primary).find('.freeSelect .adjustmentControls .divider').click(function () {
+    $(selector).find('.adjustmentControls .divider').click(function () {
       $(this).siblings('.paramSection[sectionName="' + $(this).html() + '"]').transition('fade down');
     });
 
-    $(this._primary).find('.freeSelect .adjustmentControls .deleteAdj').click(function() {
-      self.deleteSelectionAdjustment(parseInt($(this).attr('adjType')));
-      self.updateFreeSelect();
+    $(selector).find('.adjustmentControls .deleteAdj').click(function() {
+      self.deleteSelectionAdjustment('.freeSelect', parseInt($(this).attr('adjType')));
+      self.updateSection(section);
     });
 
-    this.bindParam('opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
+    this.bindParam(section, 'opacity', opacityVal * 100, '', 1000, { diff: diffOpacity });
 
     // it's all in the bindings
     // param events
@@ -2991,26 +2983,26 @@ class GroupPanel {
       if (type === 0) {
         // hue sat
         var sectionName = "Hue/Saturation";
-        this.bindParam("hue", (initVals.hue.val - 0.5) * 360, sectionName, type,
+        this.bindParam(section, "hue", (initVals.hue.val - 0.5) * 360, sectionName, type,
           { "range": false, "max": 180, "min": -180, "step": 0.1, "diff": initVals.hue.diff });
-        this.bindParam("saturation", (initVals.sat.val - 0.5) * 200, sectionName, type,
+        this.bindParam(section, "saturation", (initVals.sat.val - 0.5) * 200, sectionName, type,
           { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.sat.diff});
-        this.bindParam("lightness", (initVals.light.val - 0.5) * 200, sectionName, type,
+        this.bindParam(section, "lightness", (initVals.light.val - 0.5) * 200, sectionName, type,
           { "range": false, "max": 100, "min": -100, "step": 0.1, "diff": initVals.light.diff });
       }
       else if (type === 1) {
         // levels
         // TODO: Turn some of these into range sliders
         var sectionName = "Levels";
-        this.bindParam("inMin", (initVals.inMin.val * 255), sectionName, type,
+        this.bindParam(section, "inMin", (initVals.inMin.val * 255), sectionName, type,
           { "range": "min", "max": 255, "min": 0, "step": 1, "diff": initVals.inMin.diff });
-        this.bindParam("inMax", (initVals.inMax.val * 255), sectionName, type,
+        this.bindParam(section, "inMax", (initVals.inMax.val * 255), sectionName, type,
           { "range": "max", "max": 255, "min": 0, "step": 1, "diff": initVals.inMax.diff });
-        this.bindParam("gamma", (initVals.gamma.val * 10), sectionName, type,
+        this.bindParam(section, "gamma", (initVals.gamma.val * 10), sectionName, type,
           { "range": false, "max": 10, "min": 0, "step": 0.01, "diff": initVals.gamma.diff });
-        this.bindParam("outMin", (initVals.outMin.val * 255), sectionName, type,
+        this.bindParam(section, "outMin", (initVals.outMin.val * 255), sectionName, type,
           { "range": "min", "max": 255, "min": 0, "step": 1, "diff": initVals.outMin.diff });
-        this.bindParam("outMax", (initVals.outMax.val * 255), sectionName, type,
+        this.bindParam(section, "outMax", (initVals.outMax.val * 255), sectionName, type,
           { "range": "max", "max": 255, "min": 0, "step": 1, "diff": initVals.outMax.diff });
       }
       else if (type === 2) {
@@ -3019,11 +3011,11 @@ class GroupPanel {
       }
       else if (type === 3) {
         var sectionName = "Exposure";
-        this.bindParam("exposure", (initVals.exposure.val - 0.5) * 10, sectionName, type,
+        this.bindParam(section, "exposure", (initVals.exposure.val - 0.5) * 10, sectionName, type,
           { "range": false, "max": 5, "min": -5, "step": 0.1, "diff": initVals.exposure.diff });
-        this.bindParam("offset", initVals.offset.val - 0.5, sectionName, type,
+        this.bindParam(section, "offset", initVals.offset.val - 0.5, sectionName, type,
           { "range": false, "max": 0.5, "min": -0.5, "step": 0.01, "diff": initVals.offset.diff });
-        this.bindParam("gamma", initVals.gamma.val * 10, sectionName, type,
+        this.bindParam(section, "gamma", initVals.gamma.val * 10, sectionName, type,
           { "range": false, "max": 10, "min": 0.01, "step": 0.01, "diff": initVals.gamma.diff });
       }
       else if (type === 4) {
@@ -3035,63 +3027,63 @@ class GroupPanel {
       }
       else if (type === 6) {
         var sectionName = "Color Balance";
-        this.bindParam("shadow R", (initVals.shadowR.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "shadow R", (initVals.shadowR.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowR.diff });
-        this.bindParam("shadow G", (initVals.shadowG.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "shadow G", (initVals.shadowG.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowG.diff });
-        this.bindParam("shadow B", (initVals.shadowB.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "shadow B", (initVals.shadowB.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.shadowB.diff });
-        this.bindParam("mid R", (initVals.midR.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "mid R", (initVals.midR.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midR.diff });
-        this.bindParam("mid G", (initVals.midG.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "mid G", (initVals.midG.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midG.diff });
-        this.bindParam("mid B", (initVals.midB.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "mid B", (initVals.midB.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.midB.diff });
-        this.bindParam("highlight R", (initVals.highR.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "highlight R", (initVals.highR.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highR.diff });
-        this.bindParam("highlight G", (initVals.highG.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "highlight G", (initVals.highG.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highG.diff });
-        this.bindParam("highlight B", (initVals.highB.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "highlight B", (initVals.highB.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, "diff": initVals.highB.diff });
 
-        this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
+        this.bindToggle(section, sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
       }
       else if (type === 7) {
         var sectionName = "Photo Filter";
 
-        this.bindColor(sectionName, type);
+        this.bindColor(section, sectionName, type);
 
-        this.bindParam("density", initVals.density.val, sectionName, type,
+        this.bindParam(section, "density", initVals.density.val, sectionName, type,
           { "range": "min", "max": 1, "min": 0, "step": 0.01, "diff": initVals.density.diff });
 
-        this.bindToggle(sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
+        this.bindToggle(section, sectionName, "preserveLuma", type, initVals.preserveLuma.diff ? 0 : initVals.preserveLuma.val);
       }
       else if (type === 8) {
         var sectionName = "Colorize";
-        this.bindColor(sectionName, type);
+        this.bindColor(section, sectionName, type);
 
-        this.bindParam("alpha", initVals.a.val, sectionName, type,
+        this.bindParam(section, "alpha", initVals.a.val, sectionName, type,
           { "range": "min", "max": 1, "min": 0, "step": 0.01, "diff": initVals.a.diff });
       }
       else if (type === 9) {
         // lighter colorize
         // not name conflicts with previous params
         var sectionName = "Lighter Colorize";
-        this.bindColor(sectionName, type);
-        this.bindParam("alpha", initVals.a.val, sectionName, type,
+        this.bindColor(section, sectionName, type);
+        this.bindParam(section, "alpha", initVals.a.val, sectionName, type,
           { "range": "min", "max": 1, "min": 0, "step": 0.01, 'diff': initVals.a.diff });
       }
       else if (type === 10) {
         var sectionName = "Overwrite Color";
-        this.bindColor(sectionName, type);
-        this.bindParam("alpha", initVals.a.val, sectionName, type,
+        this.bindColor(section, sectionName, type);
+        this.bindParam(section, "alpha", initVals.a.val, sectionName, type,
           { "range": "min", "max": 1, "min": 0, "step": 0.01, 'diff': initVals.a.diff });
       }
       else if (type === 12) {
         var sectionName = "Brightness and Contrast";
-        this.bindParam("brightness", (initVals.brightness.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "brightness", (initVals.brightness.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, 'diff': initVals.brightness.diff});
-        this.bindParam("contrast", (initVals.contrast.val - 0.5) * 2, sectionName, type,
+        this.bindParam(section, "contrast", (initVals.contrast.val - 0.5) * 2, sectionName, type,
           { "range": false, "max": 1, "min": -1, "step": 0.01, 'diff': initVals.contrast.diff });
       }
     }
@@ -3381,16 +3373,16 @@ class GroupPanel {
     }
   }
 
-  bindParam(paramName, initVal, section, type, config) {
+  bindParam(section, paramName, initVal, sectionName, type, config) {
     var s, i;
     var self = this;
-    let uiElem = $(this._primary).find('.freeSelect .adjustmentControls');
+    let uiElem = $(this._primary + ' ' + section).find('.adjustmentControls');
 
     let rel = this._freeSelectAdjMode === 'relative';
 
-    if (section !== "") {
-      s = uiElem.find('div[sectionName="' + section + '"] .paramSlider[paramName="' + paramName + '"]');
-      i = uiElem.find('div[sectionName="' + section + '"] .paramInput[paramName="' + paramName + '"] input');
+    if (sectionName !== "") {
+      s = uiElem.find('div[sectionName="' + sectionName + '"] .paramSlider[paramName="' + paramName + '"]');
+      i = uiElem.find('div[sectionName="' + sectionName + '"] .paramInput[paramName="' + paramName + '"] input');
     }
     else {
       s = uiElem.find('.paramSlider[paramName="' + paramName + '"]');
@@ -3430,7 +3422,7 @@ class GroupPanel {
       step: config.step,
       value: initVal,
       stop: function (event, ui) {
-        self.paramHandler(event, ui, paramName, type);
+        self.paramHandler(section, event, ui, paramName, type);
         renderImage('layer ' + self._name + ' parameter ' + paramName + ' change');
 
         if (rel) {
@@ -3463,12 +3455,12 @@ class GroupPanel {
     });
   }
 
-  bindToggle(sectionName, param, type, init) {
-    var elem = $(this._primary).find('.freeSelect .adjustmentControls .checkbox[paramName="' + param + '"][sectionName="' + sectionName + '"]');
+  bindToggle(section, sectionName, param, type, init) {
+    var elem = $(this._primary + ' ' + section).find('.adjustmentControls .checkbox[paramName="' + param + '"][sectionName="' + sectionName + '"]');
     var self = this;
     elem.checkbox({
       onChecked: function () {
-        $(self._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+        $(self._primary + ' ' + section).find('.groupContents .card').each(function(num, elem) {
           let layerName = $(elem).attr('layerName');
           if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
             addAdjustmentToLayer(layerName, type);
@@ -3478,7 +3470,7 @@ class GroupPanel {
         });
       },
       onUnchecked: function () {
-        $(self._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+        $(self._primary + ' ' + section).find('.groupContents .card').each(function(num, elem) {
           let layerName = $(elem).attr('layerName');
           if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
             addAdjustmentToLayer(layerName, type);
@@ -3499,8 +3491,8 @@ class GroupPanel {
     }
   }
 
-  addAdjustmentToSelection(type) {
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+  addAdjustmentToSelection(section, type) {
+    $(this._primary + ' ' + section).find('.groupContents .card').each(function(idx, elem) {
       let layerName = $(elem).attr('layerName');
       if (c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
         addAdjustmentToLayer(layerName, type);
@@ -3508,17 +3500,17 @@ class GroupPanel {
     });
   }
 
-  deleteSelectionAdjustment(type) {
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+  deleteSelectionAdjustment(section, type) {
+    $(this._primary + ' ' + section).find('.groupContents .card').each(function(idx, elem) {
       let layerName = $(elem).attr('layerName');
       c.getLayer(layerName).deleteAdjustment(type);
     });
     renderImage('Free select adjustment deleted');
   }
 
-  getSelectionColor(type) {
+  getSelectionColor(section, type) {
     let layer;
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(idx, elem) {
+    $(this._primary + ' ' + section).find('.groupContents .card').each(function(idx, elem) {
       let layerName = $(elem).attr('layerName');
 
       if (c.getLayer(layerName).getAdjustments().indexOf(type) !== -1) {
@@ -3530,8 +3522,8 @@ class GroupPanel {
     return c.getLayer(layer).getAdjustment(type);
   }
 
-  bindColor(section, type) {
-    var elem = $(this._primary).find('.freeSelect .adjustmentControls .paramColor[sectionName="' + section + '"]');
+  bindColor(section, sectionName, type) {
+    var elem = $(this._primary + ' ' + section).find('.adjustmentControls .paramColor[sectionName="' + sectionName + '"]');
     var self = this;
 
     elem.click(function () {
@@ -3539,7 +3531,7 @@ class GroupPanel {
         // move color picker to spot
         var offset = elem.offset();
 
-        var adj = self.getSelectionColor(type);
+        var adj = self.getSelectionColor(section, type);
         cp.setColor({ "r": adj.r * 255, "g": adj.g * 255, "b": adj.b * 255 }, 'rgb');
         cp.startRender();
 
@@ -3556,7 +3548,7 @@ class GroupPanel {
           console.log(action);
           if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
             var color = cp.color.colors.rgb;
-            self.updateColor(type, color);
+            self.updateColor(section, type, color);
             $(elem).css({ "background-color": "#" + cp.color.colors.HEX });
 
             renderImage('free select color change');
@@ -3572,21 +3564,23 @@ class GroupPanel {
       }
     });
 
-    var adj = this.getSelectionColor(type);
+    var adj = this.getSelectionColor(section, type);
     var colorStr = "rgb(" + parseInt(adj.r * 255) + "," + parseInt(adj.g * 255) + "," + parseInt(adj.b * 255) + ")";
     elem.css({ "background-color": colorStr });
   }
 
-  adjustSelection(type, param, val) {
+  adjustSelection(section, type, param, val) {
     var self = this;
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+    $(this._primary + ' ' + section).find('.groupContents .card').each(function(num, elem) {
       let layerName = $(elem).attr('layerName');
-      if (self._autoAddAdjustments === true && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
-        addAdjustmentToLayer(layerName, type);
-      }
-      else if (self._autoAddAdjustments === false && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
-        // exit early if we shouldn't auto create things
-        return;
+      if (type !== adjType.OPACITY) {
+        if (self._autoAddAdjustments === true && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+          addAdjustmentToLayer(layerName, type);
+        }
+        else if (self._autoAddAdjustments === false && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
+          // exit early if we shouldn't auto create things
+          return;
+        }
       }
 
       if (self._freeSelectAdjMode === 'absolute') {
@@ -3610,9 +3604,9 @@ class GroupPanel {
     });
   }
 
-  updateColor(type, color) {
+  updateColor(section, type, color) {
     var self = this;
-    $(this._primary).find('.freeSelect .groupContents .card').each(function(num, elem) {
+    $(this._primary + ' ' + section).find('.groupContents .card').each(function(num, elem) {
       let layerName = $(elem).attr('layerName');
       if (self._autoAddAdjustments === true && c.getLayer(layerName).getAdjustments().indexOf(type) === -1) {
         addAdjustmentToLayer(layerName, type);
@@ -3630,88 +3624,88 @@ class GroupPanel {
     });
   }
 
-  paramHandler(event, ui, paramName, type) {
+  paramHandler(section, event, ui, paramName, type) {
     let rel = this._freeSelectAdjMode === 'relative';
 
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;
-      this.adjustSelection(type, paramName, rel ? ui.value : val);
+      this.adjustSelection(section, type, paramName, rel ? ui.value : val);
     }
     else if (type === adjType["HSL"]) {
       if (paramName === "hue") {
-        this.adjustSelection(adjType.HSL, "hue", rel ? ui.value : (ui.value / 360) + 0.5);
+        this.adjustSelection(section, adjType.HSL, "hue", rel ? ui.value : (ui.value / 360) + 0.5);
       }
       else if (paramName === "saturation") {
-        this.adjustSelection(adjType.HSL, "sat", rel ? ui.value : (ui.value / 360) + 0.5);
+        this.adjustSelection(section, adjType.HSL, "sat", rel ? ui.value : (ui.value / 360) + 0.5);
       }
       else if (paramName === "lightness") {
-        this.adjustSelection(adjType.HSL, "light", rel ? ui.value : (ui.value / 200) + 0.5);
+        this.adjustSelection(section, adjType.HSL, "light", rel ? ui.value : (ui.value / 200) + 0.5);
       }
     }
     else if (type === adjType["LEVELS"]) {
       if (paramName !== "gamma") {
-        this.adjustSelection(adjType.LEVELS, paramName, rel ? ui.value : ui.value / 255);
+        this.adjustSelection(section, adjType.LEVELS, paramName, rel ? ui.value : ui.value / 255);
       }
       else if (paramName === "gamma") {
-        this.adjustSelection(adjType.LEVELS, "gamma", rel ? ui.value : ui.value / 10);
+        this.adjustSelection(section, adjType.LEVELS, "gamma", rel ? ui.value : ui.value / 10);
       }
     }
     else if (type === adjType["EXPOSURE"]) {
       if (paramName === "exposure") {
-        this.adjustSelection(adjType.EXPOSURE, "exposure", rel ? ui.value : (ui.value / 10) + 0.5);
+        this.adjustSelection(section, adjType.EXPOSURE, "exposure", rel ? ui.value : (ui.value / 10) + 0.5);
       }
       else if (paramName === "offset") {
-        this.adjustSelection(adjType.EXPOSURE, "offset", rel ? ui.value : ui.value + 0.5);
+        this.adjustSelection(section, adjType.EXPOSURE, "offset", rel ? ui.value : ui.value + 0.5);
       }
       else if (paramName === "gamma") {
-        this.adjustSelection(adjType.EXPOSURE, "gamma", rel ? ui.value : ui.value / 10);
+        this.adjustSelection(section, adjType.EXPOSURE, "gamma", rel ? ui.value : ui.value / 10);
       }
     }
     else if (type === adjType["COLOR_BALANCE"]) {
       if (paramName === "shadow R") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "shadowR", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "shadowR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "shadow G") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "shadowG", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "shadowG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "shadow B") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "shadowB", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "shadowB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid R") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "midR", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "midR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid G") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "midG", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "midG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "mid B") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "midB", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "midB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight R") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "highR", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "highR", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight G") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "highG", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "highG", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "highlight B") {
-        this.adjustSelection(adjType.COLOR_BALANCE, "highB", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.COLOR_BALANCE, "highB", rel ? ui.value : (ui.value / 2) + 0.5);
       }
     }
     else if (type === adjType["PHOTO_FILTER"]) {
       if (paramName === "density") {
-        this.adjustSelection(adjType.PHOTO_FILTER, "density", ui.value);
+        this.adjustSelection(section, adjType.PHOTO_FILTER, "density", ui.value);
       }
     }
     else if (type === adjType["COLORIZE"] || type === adjType["LIGHTER_COLORIZE"] || type == adjType["OVERWRITE_COLOR"]) {
       if (paramName === "alpha") {
-        this.adjustSelection(type, "a", ui.value);
+        this.adjustSelection(section, type, "a", ui.value);
       }
     }
     else if (type === adjType["BRIGHTNESS"]) {
       if (paramName === "brightness") {
-        this.adjustSelection(adjType.BRIGHTNESS, "brightness", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.BRIGHTNESS, "brightness", rel ? ui.value : (ui.value / 2) + 0.5);
       }
       else if (paramName === "contrast") {
-        this.adjustSelection(adjType.BRIGHTNESS, "contrast", rel ? ui.value : (ui.value / 2) + 0.5);
+        this.adjustSelection(section, adjType.BRIGHTNESS, "contrast", rel ? ui.value : (ui.value / 2) + 0.5);
       }
     }
 

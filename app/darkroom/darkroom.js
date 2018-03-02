@@ -2544,7 +2544,6 @@ function loadLayers(doc, path, transfer) {
   initCanvas();
   initLayerSelector();
   g_groupPanel.updatePreviewCanvas();
-  g_groupPanel.updateGroupDropdown();
 
   if (ver > 0.23) {
     settings = doc.settings;

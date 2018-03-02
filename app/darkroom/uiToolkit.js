@@ -2611,6 +2611,10 @@ class GroupPanel {
       }
     });
 
+    $(this._primary).find('.freeSelect .addGroup.button').click(function() {
+      self.addNewGroup()
+    });
+
     this.hideLayerControl();
 
     $(document).keydown(function(event) {
@@ -2689,38 +2693,6 @@ class GroupPanel {
     $(self._primary + ' .groupSelectOptions').hide();
   }
 
-  updateGroupDropdown() {
-    //let elem = $(this.primarySelector + ' .groupSelectDropdown div.dropdown');
-
-    //// store current selection
-    //let selected = elem.dropdown('get value');
-    //elem.find('.menu').html('');
-
-    //// get group list
-    //let order = c.getGroupOrder();
-    //let useSelected = false;
-    //for (let o in order) {
-    //  let name = order[o].group;
-    //  if (name === selected)
-    //    useSelected = true;
-    //  
-    //  elem.find('.menu').append('<div class="item" data-value="' + name + '">' + name + '</div>');
-    //}
-
-    //elem.find('.menu').prepend('<div class="item" data-value="all">All</div>');
-    //elem.dropdown('refresh');
-    //if (useSelected) {
-    //  elem.dropdown('set value', selected);
-    //  elem.dropdown('set text', selected);
-    //}
-    //else {
-    //  elem.dropdown('set value', "");
-    //  elem.dropdown('set text', "No Group Selected");
-    //  $(this.primarySelector + ' .groupContents').html('');
-    //}
-  }
-
-
   updateGroup(value) {
     // uh, delete the thing
     if (this._groupControl) {
@@ -2773,10 +2745,25 @@ class GroupPanel {
           return false;
         
         c.addGroup(name, [], 0, false);
-        self.updateGroupDropdown();
-        $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set exactly', name);
+        self.addGroupToList(name);
       }
     }).modal('show');
+  }
+
+  addGroupToList(name) {
+    let list = $(this._primary).find('.savedSelections table');
+    if (list.find('tr[groupName="' + name + '"]').length > 0) {
+      console.log('group with name ' + name + ' already exists. Skipping.');
+      return;
+    }
+
+    // other stuff eventually will go here
+    let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
+    elem += '<td><div class="ui mini red right floated icon button"><i class="remove icon"></div></td>';
+    elem += '</tr>';
+    list.append(elem);
+
+    // bindings
   }
 
   hideLayerControl() {
@@ -2857,6 +2844,11 @@ class GroupPanel {
     canvas.click(function () {
       self.showLayerControl(name);
     });
+
+    elem.find('.mini.red.icon.button').click(function() {
+      // delete this
+      self.removeFromFreeSelect(name);
+    });
   }
 
   // when a selected layer has the check button clicked, do some stuff
@@ -2884,6 +2876,7 @@ class GroupPanel {
       elem += '<div class="ui card" layerName="' + layerName + '">';
       elem += '<canvas width="' + dims.w + '" height="' + dims.h + '"></canvas>';
       elem += '<div class="extra content">' + layerName + '</div>';
+      elem += '<div class="ui mini red icon button"><i class="remove icon"></div>';
       elem += '</div></div>';
 
       $(this._primary + ' .freeSelect .groupContents').append(elem);

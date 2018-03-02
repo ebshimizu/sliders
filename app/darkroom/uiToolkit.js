@@ -2827,8 +2827,15 @@ class GroupPanel {
     });
 
     elem.find('.mini.red.icon.button').click(function() {
-      // delete this
-      self.removeFromFreeSelect(name);
+      // delete this, but also if it's a group like actually delete it for real
+      if ($(self._primary).find('.sectionControls').hasClass('is-hidden')) {
+        self.removeFromSection(name, '.freeSelect');
+      }
+      else {
+        let group = $(self._primary).find('.sectionControls').attr('groupName');
+        c.removeLayerFromGroup(name, group);
+        self.removeFromSection(name, '.sectionControls');
+      }
     });
   }
 

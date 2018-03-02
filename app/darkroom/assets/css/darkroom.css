@@ -989,10 +989,6 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     float: right;
 }
 
-.savedSelectionList table tr {
-    cursor: pointer;
-}
-
 .savedSelections .sectionControls {
     position: absolute;
     top: 100px;

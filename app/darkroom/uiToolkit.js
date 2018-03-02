@@ -2689,10 +2689,8 @@ class GroupPanel {
     // dropdowns
     $(this._primary + ' .groupSelectOptions .list .dropdown').dropdown({
       onChange: function (value, text, $selectedItem) {
-        // need to debug this a bit
         var param = $selectedItem.attr("param");
         self[param] = parseInt(value);
-        console.log($selectedItem);
       }
     })
 
@@ -2751,8 +2749,8 @@ class GroupPanel {
 
     // other stuff eventually will go here
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
-    elem += '<td><div class="ui mini right floated button showLayers">Show Layers</div></td>';
-    elem += '<td><div class="ui mini right floated button editGroup">Edit Group</div></td>';
+    elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Edit Layers</div>';
+    elem += '<div class="ui button editGroup">Group Adjustments</div></div></td>';
     elem += '<td><div class="ui mini red right floated icon button"><i class="remove icon"></div></td>';
     elem += '</tr>';
     list.append(elem);
@@ -2761,6 +2759,10 @@ class GroupPanel {
     var self = this;
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .showLayers.button').click(function() {
       self.showSavedGroupControls(name);
+    });
+
+    $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .editGroup.button').click(function() {
+      self.showLayerControl(name);
     });
   }
 

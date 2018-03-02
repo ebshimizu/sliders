@@ -5108,8 +5108,7 @@ function setupFlatGroups() {
 }
 
 function addGroupUI(name) {
-  g_metaGroupList[name] = new uiTools.GroupControls(name);
-  //g_metaGroupList[name].createUI($('#metaGroupList'));
+  g_groupPanel.addGroupToList(name);
 }
 
 function updateGroupUI() {

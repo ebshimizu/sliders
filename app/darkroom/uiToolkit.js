@@ -2886,7 +2886,7 @@ class GroupPanel {
   removeFromSection(layerName, section) {
     // if a card exists, delete it
     $(this._primary + ' ' + section).find('.groupContents .card[layerName="' + layerName + '"]').parent().remove();
-    this.updateSection('');
+    this.updateSection(section);
   }
 
   // update the adjustment controls given a new layer

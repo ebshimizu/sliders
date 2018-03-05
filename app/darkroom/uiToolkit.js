@@ -2843,6 +2843,21 @@ class GroupPanel {
     });
   }
 
+  // re-draws and resets the animation cache
+  invalidateCardImages() {
+    var self = this;
+    $(this._primary).find('.card').each(function(idx, elem) {
+      let canvas = $(elem).find('canvas');
+      let name = $(elem).attr('layerName');
+
+      c.asyncRenderUpToLayer(c.getContext(), name, 0.1, self._renderSize, function(err, img) {
+        drawImage(img, canvas);
+      });
+    });
+
+    this._animationCache = {};
+  }
+
   // when a selected layer has the check button clicked, do some stuff
   handleLayerChecked(layerName) {
     if ($('.sectionControls').hasClass('is-hidden')) { 

@@ -3177,6 +3177,8 @@ function renderImage(callerName) {
       g_history[myHistoryID].img = img;
       addHistory(myHistoryID);
     });
+
+    g_groupPanel.invalidateCardImages();
   }
 }
 

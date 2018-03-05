@@ -2546,6 +2546,9 @@ class GroupPanel {
     this.initSettingsUI();
 
     $(this._primary).find('.groupPanel .groupMode.menu .item').tab();
+    $(this._primary).find('.groupPanel .groupMode.menu .item').click(function() {
+      self.toggleSelectedLayers();
+    });
 
     // secondary
     // bindings
@@ -2749,8 +2752,8 @@ class GroupPanel {
 
     // other stuff eventually will go here
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
-    elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Edit Layers</div>';
-    elem += '<div class="ui button editGroup">Group Adjustments</div></div></td>';
+    elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Layers</div>';
+    elem += '<div class="ui button editGroup">Adjustments</div></div></td>';
     elem += '<td><div class="ui mini red right floated icon button deleteGroup"><i class="remove icon"></div></td>';
     elem += '</tr>';
     list.append(elem);
@@ -2759,6 +2762,7 @@ class GroupPanel {
     var self = this;
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .showLayers.button').click(function() {
       self.showSavedGroupControls(name);
+      self.toggleSelectedLayers();
     });
 
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .editGroup.button').click(function() {
@@ -2842,11 +2846,13 @@ class GroupPanel {
       // delete this, but also if it's a group like actually delete it for real
       if ($(self._primary).find('.sectionControls').hasClass('is-hidden')) {
         self.removeFromSection(name, '.freeSelect');
+        self.toggleSelectedLayers();
       }
       else {
         let group = $(self._primary).find('.sectionControls').attr('groupName');
         c.removeLayerFromGroup(name, group);
         self.removeFromSection(name, '.sectionControls');
+        self.toggleSelectedLayers();
       }
     });
   }
@@ -3196,6 +3202,35 @@ class GroupPanel {
     });
     $(this._secondary).find('.groupSelectGroup tr').click(function() {
       $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set selected', $(this).attr('group-name'));
+    });
+
+    self.toggleSelectedLayers();
+  }
+
+  // after creating the elements for the selected layers, this will make sure the checkboxes
+  // are in the proper poitions
+  toggleSelectedLayers() {
+    let section;
+
+    // determine which section is visible
+    if (!$(this._primary).find('.savedSelections .sectionControls').hasClass('is-hidden')) {
+      section = this._primary + ' .savedSelections .sectionControls';
+    }
+    else {
+      section = this._primary + ' .freeSelect';
+    }
+
+    if (section === undefined)
+      return;
+
+    // uncheck everything
+    $(this._secondary).find('.layerSelectGroup tr .checkbox').checkbox('set unchecked');
+
+    // check if card exists
+    let self = this;
+    $(section).find('.groupContents .card').each(function(idx, elem) {
+      let layerName = $(elem).attr('layerName'); 
+      $(self._secondary).find('.layerSelectGroup tr[layer-name="' + layerName + '"] .checkbox').checkbox('set checked');
     });
   }
 

@@ -2751,7 +2751,7 @@ class GroupPanel {
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
     elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Edit Layers</div>';
     elem += '<div class="ui button editGroup">Group Adjustments</div></div></td>';
-    elem += '<td><div class="ui mini red right floated icon button"><i class="remove icon"></div></td>';
+    elem += '<td><div class="ui mini red right floated icon button deleteGroup"><i class="remove icon"></div></td>';
     elem += '</tr>';
     list.append(elem);
 
@@ -2764,6 +2764,16 @@ class GroupPanel {
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .editGroup.button').click(function() {
       self.showLayerControl(name);
     });
+
+    $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .deleteGroup.button').click(function() {
+      self.deleteGroup(name);
+    });
+  }
+
+  deleteGroup(name) {
+    c.deleteGroup(name);
+    $(this._primary).find('.savedSelections tr[groupName="' + name + '"]').remove();
+    renderImage('Group Removal');
   }
 
   hideLayerControl() {

@@ -2545,14 +2545,16 @@ class GroupPanel {
   initUI() {
     this.initSettingsUI();
 
+    let self = this;
     $(this._primary).find('.groupPanel .groupMode.menu .item').tab();
     $(this._primary).find('.groupPanel .groupMode.menu .item').click(function() {
+      $(self._primary).find('.sectionControls').hide();
+      $(self._primary).find('.sectionControls').addClass('is-hidden');
       self.toggleSelectedLayers();
     });
 
     // secondary
     // bindings
-    let self = this;
     $(this._primary + ' .backButton').click(function() {
       self.hideLayerControl();
     });
@@ -3202,7 +3204,12 @@ class GroupPanel {
       self.stopVis($(this).attr('group-name'));
     });
     $(this._secondary).find('.groupSelectGroup tr').click(function() {
-      $(self.primarySelector + ' .groupSelectDropdown div.dropdown').dropdown('set selected', $(this).attr('group-name'));
+      $(self._primary).find('.freeSelect').removeClass('active');
+      $(self._primary).find('.savedSelections').addClass('active');
+      $(self._primary).find('.groupMode .item').removeClass('active');
+      $(self._primary).find('.groupMode .item[data-tab="savedSelectionsTab"]').addClass('active');
+
+      self.showSavedGroupControls($(this).attr('group-name'));
     });
 
     self.toggleSelectedLayers();

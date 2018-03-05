@@ -2570,31 +2570,11 @@ class GroupPanel {
     });
 
     $(this._secondary).find('.button[name="addAllToGroup"]').click(function() {
-      if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
-        return;
-
-      for (let l in self._selectedLayers) {
-        if (!c.isGroup(self._selectedLayers[l])) {
-          c.addLayerToGroup(self._selectedLayers[l], self._currentGroup);
-        }
-      }
-      $(self._secondary).find('tr .checkbox').checkbox('set checked');
-      self.updateLayerCards();
-      renderImage('Group Membership Change');
+      $(self._secondary).find('.layerSelectGroup tr .checkbox').checkbox('check');
     });
 
     $(this._secondary).find('.button[name="removeAllFromGroup"]').click(function() {
-      if (!c.isGroup(self._currentGroup) || c.getGroup(self._currentGroup).readOnly)
-        return;
-
-      for (let l in self._selectedLayers) {
-        if (!c.isGroup(self._selectedLayers[l])) {
-          c.removeLayerFromGroup(self._selectedLayers[l], self._currentGroup);
-        }
-      }
-      $(self._secondary).find('tr .checkbox').checkbox('set unchecked');
-      self.updateLayerCards();
-      renderImage('Group Membership Change');
+      $(self._secondary).find('tr .checkbox').checkbox('uncheck');
     });
 
     $(this._primary).find('.modebuttons button').click(function() {
@@ -2637,6 +2617,7 @@ class GroupPanel {
     // section control back button
     $(this._primary).find('.sectionControls .toolbar .closeGroup').click(function() {
       $(self._primary).find('.sectionControls').addClass('is-hidden').hide();
+      self.toggleSelectedLayers();
     });
 
     $(this._primary).find('.savedSelections .sectionControls').hide();
@@ -2753,6 +2734,7 @@ class GroupPanel {
     // other stuff eventually will go here
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
     elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Layers</div>';
+    elem += '<div class="ui button selectGroup">Select</div>';
     elem += '<div class="ui button editGroup">Adjustments</div></div></td>';
     elem += '<td><div class="ui mini red right floated icon button deleteGroup"><i class="remove icon"></div></td>';
     elem += '</tr>';
@@ -2767,6 +2749,10 @@ class GroupPanel {
 
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .editGroup.button').click(function() {
       self.showLayerControl(name);
+    });
+
+    $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .selectGroup.button').click(function() {
+      self.displaySelectedLayers(c.getGroup(name).affectedLayers);
     });
 
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .deleteGroup.button').click(function() {

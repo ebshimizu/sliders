@@ -165,7 +165,7 @@ namespace Comp {
 
   bool Layer::isAdjustmentLayer()
   {
-    return _adjustment;
+    return _adjustment && !isPrecomp();
   }
 
   map<string, float> Layer::getAdjustment(AdjustmentType type)

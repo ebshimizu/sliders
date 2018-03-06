@@ -90,6 +90,7 @@ namespace Comp {
     bool _visible;
 
     // Returns true if this is an adjustment layer
+    // if the layer is a precomp layer, this is automatically false
     bool isAdjustmentLayer();
 
     // adjustment settings

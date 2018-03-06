@@ -1280,6 +1280,13 @@ namespace Comp {
         return _imageData[id][size];
       }
     }
+    else if (_primary[id].isPrecomp()) {
+      // this is kind of sneaky but instead of a cached image we return a render
+      // of the precomp by itself
+      shared_ptr<Image> img = shared_ptr<Image>(render(getNewContext(), nullptr, _primary[id].getPrecompOrder(), 1, size));
+      _imageData[id][size] = img;
+      return img;
+    }
 
     return nullptr;
   }
@@ -2014,7 +2021,7 @@ namespace Comp {
 
         for (auto& s : ptScores) {
           bool counted = true;
-          if (!_primary[s.first].isAdjustmentLayer()) {
+          if (!_primary[s.first].isAdjustmentLayer() && !_primary[s.first].isPrecomp()) {
             auto px = _primary[s.first].getImage()->getPixel(x[i], y[i]);
             if (px._a == 0)
               counted = false;

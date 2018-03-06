@@ -4255,7 +4255,7 @@ class LayerControls {
   // this may need to be updated to handle a number of different modes
   drawThumb() {
     // draw the layer thumbnail
-    if (!this.layer.isAdjustmentLayer()) {
+    if (!this.layer.isAdjustmentLayer() && !this.layer.isPrecomp()) {
       drawImage(this.layer.image(), this._uiElem.find('canvas'));
     }
   }

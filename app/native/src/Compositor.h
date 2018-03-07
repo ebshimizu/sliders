@@ -526,6 +526,7 @@ namespace Comp {
     // cached of scaled images for rendering at different sizes
     map<string, map<string, shared_ptr<Image>>> _imageData;
     map<string, map<string, shared_ptr<Image>>> _layerMasks;
+    map<string, map<string, shared_ptr<Image>>> _precompRenderCache;
 
     bool _searchRunning;
     searchCallback _activeCallback;

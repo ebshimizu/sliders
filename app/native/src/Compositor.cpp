@@ -1281,10 +1281,16 @@ namespace Comp {
       }
     }
     else if (_primary[id].isPrecomp()) {
+      if (_precompRenderCache.count(id) > 0) {
+        if (_precompRenderCache[id].count(size) > 0) {
+          return _precompRenderCache[id][size];
+        }
+      }
+
       // this is kind of sneaky but instead of a cached image we return a render
       // of the precomp by itself
       shared_ptr<Image> img = shared_ptr<Image>(render(getNewContext(), nullptr, _primary[id].getPrecompOrder(), 1, size));
-      _imageData[id][size] = img;
+      _precompRenderCache[id][size] = img;
       return img;
     }
 

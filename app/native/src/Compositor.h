@@ -313,6 +313,12 @@ namespace Comp {
     vector<string> getFlatLayerOrder();
     void getFlatLayerOrder(vector<string> currentOrder, vector<string>& order);
 
+    // given a layer name, returns the things that affect the layer
+    // in order from bottom to top. This should end up being a combination
+    // of selection groups and render groups
+    vector<string> getModifierOrder(string layer);
+    vector<string> findLayerInTree(string target, vector<string> currentOrder);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

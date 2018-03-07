@@ -2330,6 +2330,36 @@ namespace Comp {
     return goalSelect(g, c, xpts, ypts, maxLevel);
   }
 
+  vector<string> Compositor::getModifierOrder(string layer)
+  {
+    // we first need the render group order
+    // this will be in top down order.
+
+    return findLayerInTree(layer, _layerOrder);
+  }
+
+  vector<string> Compositor::findLayerInTree(string target, vector<string> currentOrder)
+  {
+    for (int i = 0; i < currentOrder.size(); i++) {
+      if (currentOrder[i] == target) {
+        vector<string> ret;
+        ret.push_back(target);
+        return ret;
+      }
+
+      if (_primary[currentOrder[i]].isPrecomp()) {
+        vector<string> ret = findLayerInTree(target, _primary[currentOrder[i]].getPrecompOrder());
+        if (ret.size() > 0) {
+          ret.push_back(currentOrder[i]);
+          return ret;
+        }
+      }
+    }
+
+    // not found, etc.
+    return vector<string>();
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

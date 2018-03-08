@@ -2435,7 +2435,7 @@ function loadLayers(doc, path, transfer) {
 
     // add the layer and relevant adjustments if this isn't a transfer
     if (!transfer) {
-      if (layer.isAdjustment) {
+      if (layer.isAdjustment || layer.precompOrder.length > 0) {
         c.addLayer(layerName);
       }
       else {
@@ -2457,8 +2457,8 @@ function loadLayers(doc, path, transfer) {
       cl.visible(layer.visible);
       cl.blendMode(layer.blendMode);
 
-      //if (layer.offset)
-      //  cl.offset(layer.offset.x, layer.offset.y);
+      if (layer.offset)
+        cl.offset(layer.offset.x, layer.offset.y);
 
       // as of 0.36
       if ("conditionalBlend" in layer) {
@@ -2626,7 +2626,7 @@ function save(file) {
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
     layers[layerName].precompOrder = l.getPrecompOrder();
-    //layers[layerName].offset = l.offset();
+    layers[layerName].offset = l.offset();
 
     var mask = l.getMask();
     if (mask) {

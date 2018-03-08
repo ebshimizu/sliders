@@ -169,6 +169,7 @@ namespace Comp {
 
     void setOffset(float x, float y);
     pair<float, float> getOffset();
+    void resetOffset();
 
     void setPrecompOrder(vector<string> order);
     vector<string> getPrecompOrder();

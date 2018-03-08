@@ -1510,7 +1510,7 @@ void LayerRef::offset(const Nan::FunctionCallbackInfo<v8::Value>& info)
   }
   else {
     auto offset = layer->_layer->getOffset();
-    v8::Local<v8::Object> ret;
+    v8::Local<v8::Object> ret = Nan::New<v8::Object>();
     ret->Set(Nan::New("x").ToLocalChecked(), Nan::New(offset.first));
     ret->Set(Nan::New("y").ToLocalChecked(), Nan::New(offset.second));
 
@@ -1751,6 +1751,9 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "renderUpToLayer", renderUpToLayer);
   Nan::SetPrototypeMethod(tpl, "asyncRenderUpToLayer", asyncRenderUpToLayer);
   Nan::SetPrototypeMethod(tpl, "getFlatLayerOrder", getFlatLayerOrder);
+  Nan::SetPrototypeMethod(tpl, "getModifierOrder", getModifierOrder);
+  Nan::SetPrototypeMethod(tpl, "offsetLayer", offsetLayer);
+  Nan::SetPrototypeMethod(tpl, "resetLayerOffset", resetLayerOffset);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3565,6 +3568,57 @@ void CompositorWrapper::getFlatLayerOrder(const Nan::FunctionCallbackInfo<v8::Va
   }
 
   info.GetReturnValue().Set(ret);
+}
+
+void CompositorWrapper::getModifierOrder(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getModifierOrder");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+
+    vector<string> order = c->_compositor->getModifierOrder(string(*i0));
+    v8::Local<v8::Array> ret = Nan::New<v8::Array>();
+
+    for (int i = 0; i < order.size(); i++) {
+      ret->Set(i, Nan::New(order[i]).ToLocalChecked());
+    }
+
+    info.GetReturnValue().Set(ret);
+  }
+  else {
+    Nan::ThrowError("getModifierOrder(string), argument error");
+  }
+
+}
+
+void CompositorWrapper::offsetLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.offsetLayer");
+
+  if (info[0]->IsString() && info[1]->IsNumber() && info[2]->IsNumber()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    c->_compositor->offsetLayer(string(*i0), info[1]->NumberValue(), info[2]->NumberValue());
+  }
+  else {
+    Nan::ThrowError("offsetLayer(string, float, float) argument error");
+  }
+}
+
+void CompositorWrapper::resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.offsetLayer");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    c->_compositor->resetLayerOffset(string(*i0));
+  }
+  else {
+    Nan::ThrowError("resetLayerOffset(string, float, float) argument error");
+  }
 }
 
 RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c) :

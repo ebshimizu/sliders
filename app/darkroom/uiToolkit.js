@@ -1057,7 +1057,7 @@ class LayerSelector {
         </div>
       </div>
     `);
-    $('#imgStatusBar').append(this._mapDisplayMenu);
+    //$('#imgStatusBar').append(this._mapDisplayMenu);
 
     // binding
     $('#mapDisplayMenu').dropdown({
@@ -2557,6 +2557,7 @@ class GroupPanel {
     // bindings
     $(this._primary + ' .backButton').click(function() {
       self.hideLayerControl();
+      stopMoveMode();
     });
 
     $(this._primary + ' .optionsButton').click(function() {
@@ -4368,6 +4369,17 @@ class LayerControls {
       c.getLayer(self.name).deleteAdjustment(adjType);
       self.rebuildUI();
       renderImage('layer ' + self.name + ' adjustment deleted');
+    });
+
+    // layer movement
+    this._uiElem.find('.layerMoveButton').click(function() {
+      if ($(this).hasClass('green')) {
+        stopMoveMode();
+      }
+      else {
+        $(this).addClass('green');
+        startMoveMode(self.name);
+      }
     });
 
     // parameters

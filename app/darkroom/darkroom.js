@@ -35,6 +35,8 @@ var g_searchProcess;
 var g_layerSelector;
 var g_groupPanel;
 var g_metaGroupList = {};
+var g_moveModeLayer = null;
+var g_moveModeInitPoint;
 var settings = {
   "showSampleId": true,
   "sampleRows": 6,
@@ -687,10 +689,12 @@ function initUI() {
     runSearch(this);
   });
 
-  //$("#maskCanvas").mousedown(function (e) { canvasMousedown(e, this); });
-  //$("#maskCanvas").mouseup(function (e) { canvasMouseup(e, this); });
   //$("#maskCanvas").mousemove(function (e) { canvasMousemove(e, this); });
   //$("#maskCanvas").mouseout(function (e) { canvasMouseup(e, this); });
+  $('#exitMoveButton').hide();
+  $('#exitMoveButton').click(function() {
+    stopMoveMode();
+  });
 
   // mask tools
   $('#maskOpacitySlider .slider').slider({
@@ -853,6 +857,9 @@ function initLayerSelector() {
     "rankThreshold": 0,
     "optUI": "#layerSelectOptionsTab"
   });
+
+  $("#maskCanvas").mousedown(function (e) { canvasMousedown(e, this); });
+  $("#maskCanvas").mouseup(function (e) { canvasMouseup(e, this); });
 }
 
 // Loads UI settings from the settings object. Assumes all settings in the object
@@ -2450,6 +2457,9 @@ function loadLayers(doc, path, transfer) {
       cl.visible(layer.visible);
       cl.blendMode(layer.blendMode);
 
+      //if (layer.offset)
+      //  cl.offset(layer.offset.x, layer.offset.y);
+
       // as of 0.36
       if ("conditionalBlend" in layer) {
         cl.conditionalBlend(layer.conditionalBlend.channel, layer.conditionalBlend.params);
@@ -2616,6 +2626,7 @@ function save(file) {
     layers[layerName].conditionalBlend = l.conditionalBlend();
     layers[layerName].adjustments = {};
     layers[layerName].precompOrder = l.getPrecompOrder();
+    //layers[layerName].offset = l.offset();
 
     var mask = l.getMask();
     if (mask) {
@@ -3773,44 +3784,64 @@ function initCanvas() {
   g_drawReady = true;
 }
 
+function startMoveMode(layerName) {
+  g_moveModeLayer = layerName;
+  $('#exitMoveButton').show();
+}
+
+function stopMoveMode() {
+  g_moveModeLayer = null;
+  $('.layerMoveButton').removeClass('green');
+  $('#exitMoveButton').hide();
+}
+
 function canvasMousedown(e, elem) {
-  if (g_ceresDebugPickPoint === true) {
-    g_ceresDebugPickPoint = false;
-    // callback to add ceres point
+  if (g_moveModeLayer !== null) {
+    g_moveModeInitPoint = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top,
+      elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+  }
+  else {
+    // permanent short circuit?
+    return;
+
+    if (g_ceresDebugPickPoint === true) {
+      g_ceresDebugPickPoint = false;
+      // callback to add ceres point
+      var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+      addDebugConstraint(pt.x, pt.y);
+      return;
+    }
+
+    if (g_activeConstraintLayer === null) {
+      showStatusMsg("Create a constraint layer first.", "ERROR", "Cannot Draw Constraint")
+      return;
+    }
+
+    g_isPainting = true;
+    g_pathIndex++;
+
+    // g_paths.push({ id: g_pathIndex, type: settings.maskMode, tool: settings.maskTool });
+
+    // so the canvas is placed using the fit setting and the basic calculation will not work.
     var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
-    addDebugConstraint(pt.x, pt.y);
-    return;
+
+    if (settings.maskTool === "paint") {
+      g_paths[g_pathIndex] = { type: "paint", pts: [], layer: g_activeConstraintLayer, color: g_currentColor };
+      g_paths[g_pathIndex].pts.push(pt);
+    }
+    else if (settings.maskTool == "rect") {
+      g_paths[g_pathIndex] = { type: "rect", pt1: pt, finished: false, layer: g_activeConstraintLayer, color: g_currentColor };
+    }
+
+    g_paths[g_pathIndex].mode = settings.maskMode;
+
+    g_canvasUpdated = false;
   }
-
-  if (g_activeConstraintLayer === null) {
-    showStatusMsg("Create a constraint layer first.", "ERROR", "Cannot Draw Constraint")
-    return;
-  }
-
-  g_isPainting = true;
-  g_pathIndex++;
-
-  // g_paths.push({ id: g_pathIndex, type: settings.maskMode, tool: settings.maskTool });
-
-  // so the canvas is placed using the fit setting and the basic calculation will not work.
-  var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
-
-  if (settings.maskTool === "paint") {
-    g_paths[g_pathIndex] = { type: "paint", pts: [], layer: g_activeConstraintLayer, color: g_currentColor };
-    g_paths[g_pathIndex].pts.push(pt);
-  }
-  else if (settings.maskTool == "rect") {
-    g_paths[g_pathIndex] = { type: "rect", pt1: pt, finished: false, layer: g_activeConstraintLayer, color: g_currentColor };
-  }
-
-  g_paths[g_pathIndex].mode = settings.maskMode;
-
-  g_canvasUpdated = false;
 }
 
 function canvasMousemove(e, elem) {
   if (g_isPainting) {
-    var pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+    var pt = screeToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top, elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
 
     if (settings.maskTool === "paint") {
       g_paths[g_pathIndex].pts.push(pt);
@@ -3824,14 +3855,25 @@ function canvasMousemove(e, elem) {
 }
 
 function canvasMouseup(e, elem) {
-  if (g_isPainting) {
-    if (settings.maskTool === "rect") {
-      g_paths[g_pathIndex].finished = true;
-    }
-  }
+  if (g_moveModeLayer !== null) {
+    let pt = screenToCanvas(e.pageX - $(elem).offset().left, e.pageY - $(elem).offset().top,
+      elem.width, elem.height, elem.offsetWidth, elem.offsetHeight);
+    let offsetX = (g_moveModeInitPoint.x - pt.x) / elem.width;
+    let offsetY = (g_moveModeInitPoint.y - pt.y) / elem.height;
 
-  g_isPainting = false;
-  g_canvasUpdated = false;
+    c.offsetLayer(g_moveModeLayer, offsetX, offsetY);
+    renderImage('Layer Moved');
+  }
+  else {
+    if (g_isPainting) {
+      if (settings.maskTool === "rect") {
+        g_paths[g_pathIndex].finished = true;
+      }
+    }
+
+    g_isPainting = false;
+    g_canvasUpdated = false;
+  }
 }
 
 function clearCanvas() {

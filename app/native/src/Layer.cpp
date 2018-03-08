@@ -506,6 +506,11 @@ namespace Comp {
     return pair<float, float>(_offsetX, _offsetY);
   }
 
+  void Layer::resetOffset()
+  {
+    setOffset(0, 0);
+  }
+
   void Layer::setPrecompOrder(vector<string> order)
   {
     _precompOrder = order;

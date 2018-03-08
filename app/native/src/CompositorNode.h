@@ -260,6 +260,9 @@ private:
   static void renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getFlatLayerOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getModifierOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void offsetLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

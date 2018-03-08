@@ -2340,8 +2340,8 @@ namespace Comp {
   {
     // we first need the render group order
     // this will be in top down order.
-
-    return findLayerInTree(layer, _layerOrder);
+    vector<string> renderOrder = findLayerInTree(layer, _layerOrder);
+    return renderOrder;
   }
 
   vector<string> Compositor::findLayerInTree(string target, vector<string> currentOrder)
@@ -2364,6 +2364,36 @@ namespace Comp {
 
     // not found, etc.
     return vector<string>();
+  }
+
+  void Compositor::offsetLayer(string layer, float dx, float dy)
+  {
+    if (_primary[layer].isPrecomp()) {
+      vector<string> order = _primary[layer].getPrecompOrder();
+      for (auto& l : order) {
+        offsetLayer(l, dx, dy);
+      }
+    }
+    else if (_primary[layer].isAdjustmentLayer()) {
+      return;
+    }
+    else {
+      auto pt = _primary[layer].getOffset();
+      _primary[layer].setOffset(pt.first + dx, pt.second + dy);
+    }
+  }
+
+  void Compositor::resetLayerOffset(string layer)
+  {
+    if (_primary[layer].isPrecomp()) {
+      vector<string> order = _primary[layer].getPrecompOrder();
+      for (auto& l : order) {
+        resetLayerOffset(l);
+      }
+    }
+    else {
+      _primary[layer].resetOffset();
+    }
   }
 
   void Compositor::addLayer(string name)

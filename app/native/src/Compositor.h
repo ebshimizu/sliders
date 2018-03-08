@@ -319,6 +319,11 @@ namespace Comp {
     vector<string> getModifierOrder(string layer);
     vector<string> findLayerInTree(string target, vector<string> currentOrder);
 
+    // applies the specified offset to each layer recusively
+    // as in render groups do not get an offset
+    void offsetLayer(string layer, float dx, float dy);
+    void resetLayerOffset(string layer);
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

@@ -1002,3 +1002,11 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 .adjustmentControls .divider {
     cursor: pointer;
 }
+
+.offset {
+    height: 35px;
+}
+
+.offset .offsetText {
+    float: left;
+}

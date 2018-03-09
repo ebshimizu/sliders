@@ -3617,7 +3617,7 @@ void CompositorWrapper::resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Val
     c->_compositor->resetLayerOffset(string(*i0));
   }
   else {
-    Nan::ThrowError("resetLayerOffset(string, float, float) argument error");
+    Nan::ThrowError("resetLayerOffset(string) argument error");
   }
 }
 

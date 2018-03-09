@@ -3862,6 +3862,13 @@ function canvasMouseup(e, elem) {
     let offsetY = (g_moveModeInitPoint.y - pt.y) / elem.height;
 
     c.offsetLayer(g_moveModeLayer, offsetX, offsetY);
+
+    $('.offset').each(function(idx, elem) {
+      let name = $(elem).attr('layerName');
+      let offset = c.getLayer(name).offset();
+      $(elem).find('.offsetText').text('Offset: ' + offset.x.toFixed(2) + ', ' + offset.y.toFixed(2));
+    });
+
     renderImage('Layer Moved');
   }
   else {

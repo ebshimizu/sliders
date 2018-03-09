@@ -4283,6 +4283,7 @@ class LayerControls {
     html += genBlendModeMenu(this._name);
     html += genAddAdjustmentButton(this._name);
     html += '<div class="ui mini icon button layerMoveButton"><i class="move icon"></i></div>';
+    html += '<div class="offset" layerName="' + this._name + '"><div class="offsetText">Offset: 0, 0</div><div class="ui mini right floated button resetOffset">Reset Offset</div></div>';
     html += createLayerParam(this._name, "opacity");
 
     // separate handlers for each adjustment type
@@ -4334,6 +4335,17 @@ class LayerControls {
       visibleButton.removeClass("white");
       visibleButton.addClass("black");
     }
+
+    // offset 
+    let offset = this.layer.offset();
+    this._uiElem.find('.offsetText').text('Offset: ' + offset.x.toFixed(2) + ', ' + offset.y.toFixed(2));
+
+    this._uiElem.find('.resetOffset').click(function() {
+      c.resetLayerOffset(self.name);
+      let offset = self.layer.offset();
+      self._uiElem.find('.offsetText').text('Offset: ' + offset.x.toFixed(2) + ', ' + offset.y.toFixed(2));
+      renderImage('Layer offset reset');
+    });
 
     // blend mode
     var blendModeMenu = this._uiElem.find('.blendModeMenu');

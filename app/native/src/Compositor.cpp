@@ -1115,7 +1115,7 @@ namespace Comp {
     }
     else if (!isGroup(layer)) {
       // for regular layers, if any of the pixels in the layer is non-zero alpha don't mask
-      shared_ptr<Image> layerImg = _imageData[layer][size];
+      shared_ptr<Image> layerImg = getCachedImage(layer, size);
       vector<unsigned char>& layerPx = layerImg->getData();
       vector<unsigned char>& imgPx = i->getData();
 

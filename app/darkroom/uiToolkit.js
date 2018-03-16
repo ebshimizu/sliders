@@ -1120,6 +1120,7 @@ class LayerSelector {
             <div class="item" data-value="visibilityDelta">Visibility Delta</div>
             <div class="item" data-value="specVisibilityDelta">Speculative Visibility Delta</div>
             <div class="item" data-value="goal">Goal-based Selection</div>
+            <div class="item" data-value="combined">Vis + Alpha Selection</div>
           </div>
         </div>
       </div>
@@ -1441,6 +1442,7 @@ class LayerSelector {
       }
     }
     else {
+      let mode = this._rankMode === 'combined' ? 'alpha' : this._rankMode;
       if (this._selectionMode === "localBox") {
         // find the segments with the most "importance" then display them along with thumbnails
         // in the sidebar
@@ -1450,10 +1452,10 @@ class LayerSelector {
         var h = Math.abs(this._currentRect.pt1.y - this._currentRect.pt2.y);
 
         // returns the layer names and the importance values
-        rank = c.regionalImportance(this._rankMode, { 'x': x, 'y': y, 'w': w, 'h': h });
+        rank = c.regionalImportance(mode, { 'x': x, 'y': y, 'w': w, 'h': h });
       }
       else if (this._selectionMode === "localPoint") {
-        rank = c.pointImportance(this._rankMode, { 'x': this._currentPt.x, 'y': this._currentPt.y }, c.getContext());
+        rank = c.pointImportance(mode, { 'x': this._currentPt.x, 'y': this._currentPt.y }, c.getContext());
       }
 
       rank.sort(function (a, b) {
@@ -1523,6 +1525,24 @@ class LayerSelector {
       }
       g_groupPanel.displaySelectedLayers(layerNames);
       //this._paramSelectPanel.layers = layers;
+    }
+    else if (this._rankMode === 'combined') {
+      // goal select
+      var layers = this.goalSelect();
+
+      let layerNames = [];
+      for (let l in layers) {
+        layerNames.push(l);
+      }
+
+      // alpha select
+      var alphaLayers = this.rankLayers();
+      for (let l in alphaLayers) {
+        if (layerNames.indexOf(alphaLayers[l].name) < 0)
+          layerNames.push(alphaLayers[l].name);
+      }
+
+      g_groupPanel.displaySelectedLayers(layerNames);
     }
     else {
       var displayLayers = this.rankLayers();

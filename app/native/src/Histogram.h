@@ -21,11 +21,11 @@ public:
 
   // if working with image data (common) will automatically convert,
   // and place an 8-bit pixel value in the histogram
-  void add8BitPixel(char x, unsigned int amt = 1);
+  void add8BitPixel(unsigned char x, unsigned int amt = 1);
 
   // remove values from the bins
   void remove(double x, unsigned int amt);
-  void remove8BitPixel(char x, unsigned int amt);
+  void remove8BitPixel(unsigned char x, unsigned int amt);
 
   // get values from the bins
   unsigned int get(unsigned int id);
@@ -56,6 +56,12 @@ public:
 
   // Chi-squared distance
   double chiSq(Histogram& other);
+
+  // intersection
+  double intersection(Histogram& other);
+
+  // is this a useful function?
+  double proportionalIntersection(Histogram& other);
 
   // Earth-Mover's Distance (if needed)
   //double emd(Histogram& other);

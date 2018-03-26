@@ -2396,6 +2396,33 @@ namespace Comp {
     }
   }
 
+  double Compositor::layerHistogramIntersect(Context& c, string layer1, string layer2, float binSize, string size)
+  {
+    // ok these can't be layer groups for now
+    if (c.count(layer1) == 0 || c.count(layer2) == 0) {
+      getLogger()->log("Layers not found in primary context", LogLevel::ERR);
+      return -1;
+    }
+
+    if (c[layer1].isPrecomp() || c[layer2].isPrecomp()) {
+      getLogger()->log("Layers can't be precomps right now.", LogLevel::ERR);
+      return -1;
+    }
+
+    if (c[layer1].isAdjustmentLayer() || c[layer2].isAdjustmentLayer()) {
+      getLogger()->log("Layers can't be adjustment layers right now", LogLevel::ERR);
+      return -1;
+    }
+
+    // adjust the layers
+    shared_ptr<Image> l1Adj = getCachedImage(layer1, size);
+    adjust(l1Adj.get(), c[layer1]);
+    shared_ptr<Image> l2Adj = getCachedImage(layer2, size);
+    adjust(l2Adj.get(), c[layer2]);
+
+    return l1Adj->histogramIntersection(l2Adj.get(), binSize);
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);

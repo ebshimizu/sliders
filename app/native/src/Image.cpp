@@ -1,4 +1,5 @@
 #include "Image.h"
+#include "Histogram.h"
 
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "third_party/stb_image_resize.h"
@@ -537,6 +538,93 @@ namespace Comp {
         bins[i] = Eigen::VectorXd();
       }
     }
+  }
+
+  double Image::histogramIntersection(Image * y, float binSize)
+  {
+    // assert image sizes are the same for this function
+    if (y->_w != _w || y->_h != _h)
+      return -1;
+
+    // compute three separate histograms (1 per channel) for each image
+    // then comput average intersection.
+    // right now: this is premultiplied color, which may have to change later
+    vector<shared_ptr<Histogram>> hx;
+    vector<shared_ptr<Histogram>> hy;
+
+    for (int i = 0; i < 3; i++) {
+      hx.push_back(shared_ptr<Histogram>(new Histogram(binSize)));
+      hy.push_back(shared_ptr<Histogram>(new Histogram(binSize)));
+    }
+
+    // create histograms
+    unsigned char* xPx = _data.data();
+    unsigned char* yPx = y->_data.data();
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      int idx = i * 4;
+      float xa = xPx[idx + 3] / 255.0f;
+      float ya = yPx[idx + 3] / 255.0f;
+
+      hx[0]->add8BitPixel((unsigned char)(xPx[idx] * xa));
+      hy[0]->add8BitPixel((unsigned char)(yPx[idx] * ya));
+      hx[1]->add8BitPixel((unsigned char)(xPx[idx + 1] * xa));
+      hy[1]->add8BitPixel((unsigned char)(yPx[idx + 1] * ya));
+      hx[2]->add8BitPixel((unsigned char)(xPx[idx + 2] * xa));
+      hy[2]->add8BitPixel((unsigned char)(yPx[idx + 2] * ya));
+    }
+
+    // diff
+    double sum = 0;
+    for (int i = 0; i < 3; i++) {
+      sum += hx[i]->intersection(*hy[i]);
+    }
+
+    return sum / 3;
+  }
+
+  double Image::proportionalHistogramIntersection(Image * y, float binSize)
+  {
+    // compute three separate histograms (1 per channel) for each image
+    // then comput average intersection.
+    // right now: this is premultiplied color, which may have to change later
+    vector<shared_ptr<Histogram>> hx;
+    vector<shared_ptr<Histogram>> hy;
+
+    for (int i = 0; i < 3; i++) {
+      hx.push_back(shared_ptr<Histogram>(new Histogram(binSize)));
+      hy.push_back(shared_ptr<Histogram>(new Histogram(binSize)));
+    }
+
+    // create histograms
+    unsigned char* xPx = _data.data();
+    unsigned char* yPx = y->_data.data();
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      int idx = i * 4;
+      float xa = xPx[idx + 3] / 255.0f;
+
+      hx[0]->add8BitPixel((unsigned char)(xPx[idx] * xa));
+      hx[1]->add8BitPixel((unsigned char)(xPx[idx + 1] * xa));
+      hx[2]->add8BitPixel((unsigned char)(xPx[idx + 2] * xa));
+    }
+
+    for (int i = 0; i < y->_data.size() / 4; i++) {
+      int idx = i * 4;
+      float ya = yPx[idx + 3] / 255.0f;
+
+      hy[0]->add8BitPixel((unsigned char)(yPx[idx] * ya));
+      hy[1]->add8BitPixel((unsigned char)(yPx[idx + 1] * ya));
+      hy[2]->add8BitPixel((unsigned char)(yPx[idx + 2] * ya));
+    }
+
+    // diff
+    double sum = 0;
+    for (int i = 0; i < 3; i++) {
+      sum += hx[i]->proportionalIntersection(*hy[i]);
+    }
+
+    return sum / 3;
   }
 
   void Image::analyze()

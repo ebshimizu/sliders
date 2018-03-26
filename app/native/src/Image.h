@@ -120,6 +120,10 @@ namespace Comp {
     void eliminateBinsSSIM(vector<Eigen::VectorXd>& bins, int patchSize, double threshold,
       double a = 0, double b = 0, double g = 1);
 
+    // returns the histogram intersection of the two images
+    double histogramIntersection(Image* y, float binSize = 0.05);
+    double proportionalHistogramIntersection(Image* y, float binSize = 0.05);
+
     // performs an analysis of the image contents and fills in a number of stats
     void analyze();
 

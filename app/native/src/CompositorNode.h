@@ -55,6 +55,8 @@ private:
   static void diff(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void writeToImageData(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void fill(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void histogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void pctHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   Comp::Image* _image;
   bool _deleteOnDestruct;
@@ -263,6 +265,7 @@ private:
   static void getModifierOrder(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void offsetLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void layerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

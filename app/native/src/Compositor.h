@@ -324,6 +324,9 @@ namespace Comp {
     void offsetLayer(string layer, float dx, float dy);
     void resetLayerOffset(string layer);
 
+    // histogram intersection with adjusted layers
+    double layerHistogramIntersect(Context& c, string layer1, string layer2, float binSize = 0.05, string size = "full");
+
   private:
     void addLayer(string name);
     void addLayerMask(string name);

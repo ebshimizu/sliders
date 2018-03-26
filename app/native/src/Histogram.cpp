@@ -1,4 +1,5 @@
 #include "Histogram.h"
+#include <algorithm>
 
 Histogram::Histogram(float binSize) : _binSize(binSize), _count(0)
 {
@@ -18,7 +19,7 @@ void Histogram::add(double x, unsigned int amt)
   _count += amt;
 }
 
-void Histogram::add8BitPixel(char x, unsigned int amt)
+void Histogram::add8BitPixel(unsigned char x, unsigned int amt)
 {
   add(x / 255.0, amt);
 }
@@ -36,14 +37,17 @@ void Histogram::remove(double x, unsigned int amt)
   }
 }
 
-void Histogram::remove8BitPixel(char x, unsigned int amt)
+void Histogram::remove8BitPixel(unsigned char x, unsigned int amt)
 {
   remove(x / 255.0, amt);
 }
 
 unsigned int Histogram::get(unsigned int id)
 {
-  return _data[id];
+  if (_data.count(id) > 0)
+    return _data[id];
+  
+  return 0;
 }
 
 unsigned int Histogram::get(double x)
@@ -188,6 +192,40 @@ double Histogram::chiSq(Histogram & other)
   }
 
   return sqrt(0.5 * sum);
+}
+
+double Histogram::intersection(Histogram & other)
+{
+  // assert same size
+  if (other._count != _count) {
+    return -1;
+  }
+
+  double sum = 0;
+
+  // ok to do single iteration (min of a missing bin is 0)
+  for (auto& bin : _data) {
+    unsigned int val = min(bin.second, other.get(bin.first));
+    sum += val;
+  }
+
+  // normalize
+  return sum / _count;
+}
+
+double Histogram::proportionalIntersection(Histogram & other)
+{
+  // identical size doesn't matter here
+
+  double sum = 0;
+
+  for (auto& bin : _data) {
+    unsigned int val = min(getPercent(bin.first), other.getPercent(bin.first));
+    sum += val;
+  }
+
+  // this should already be normalized (max 1)
+  return sum;
 }
 
 double Histogram::avg()

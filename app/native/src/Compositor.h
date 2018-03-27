@@ -326,6 +326,7 @@ namespace Comp {
 
     // histogram intersection with adjusted layers
     double layerHistogramIntersect(Context& c, string layer1, string layer2, float binSize = 0.05, string size = "full");
+    double propLayerHistogramIntersect(Context& c, string layer1, string layer2, float binSize = 0.05, string size = "full");
 
   private:
     void addLayer(string name);

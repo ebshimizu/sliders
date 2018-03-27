@@ -266,6 +266,7 @@ private:
   static void offsetLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void layerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void propLayerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

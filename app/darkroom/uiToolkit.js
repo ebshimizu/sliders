@@ -2621,16 +2621,16 @@ class GroupPanel {
       }
     });
 
-    $(this._primary).find('.sectionControls .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
-    $(this._primary).find('.sectionControls .toolbar').prepend('<h2 class="ui inverted dividing header"></h2>');
-    $(this._primary).find('.sectionControls .toolbar .addAdjustment').dropdown({
-      action: 'hide',
-      onChange: function (value, text) {
+    //$(this._primary).find('.sectionControls .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
+    //$(this._primary).find('.sectionControls .toolbar').prepend('<h2 class="ui inverted dividing header"></h2>');
+    //$(this._primary).find('.sectionControls .toolbar .addAdjustment').dropdown({
+    //  action: 'hide',
+    //  onChange: function (value, text) {
         // add the adjustment or something
-        self.addAdjustmentToSelection('.sectionControls', parseInt(value));
-        self.updateSection('.sectionControls');
-      }
-    });
+    //    self.addAdjustmentToSelection('.sectionControls', parseInt(value));
+    //    self.updateSection('.sectionControls');
+    //  }
+    //});
 
     // free select add new group
     $(this._primary).find('.freeSelect .addGroup.button').click(function() {
@@ -2756,9 +2756,9 @@ class GroupPanel {
 
     // other stuff eventually will go here
     let elem = '<tr groupName="' + name + '"><td>' + name + '</td>';
-    elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Layers</div>';
-    elem += '<div class="ui button selectGroup">Select</div>';
-    elem += '<div class="ui button editGroup">Adjustments</div></div></td>';
+    elem += '<td><div class="ui mini right floated buttons"><div class="ui button showLayers">Edit List</div>';
+    elem += '<div class="ui button selectGroup">Select List</div>';
+    //elem += '<div class="ui button editGroup">Adjustments</div></div></td>';
     elem += '<td><div class="ui mini red right floated icon button deleteGroup"><i class="remove icon"></div></td>';
     elem += '</tr>';
     list.append(elem);
@@ -2819,8 +2819,17 @@ class GroupPanel {
 
     let layers = c.getGroup(name).affectedLayers;
     for (let l in layers) {
-      this.addCardToSection(layers[l], '.sectionControls');
+      this.addCardToSection(layers[l], '.sectionControls', { refreshControl: false });
     }
+
+    // drop an entire layer card into the thing for the list properties
+    if (this._activeListControl) {
+      this._activeListControl.deleteUI();
+      delete this._activeListControl;
+    }
+
+    this._activeListControl = new LayerControls(name);
+    this._activeListControl.createUI($(this._primary).find('.sectionControls .adjustmentControls'));
 
     $(this._primary).find('.sectionControls .toolbar .header').text(name);
     $(this._primary).find('.sectionControls').show();
@@ -2905,7 +2914,10 @@ class GroupPanel {
   }
 
   // adds a layer card to the free select window if the card doesn't already exist
-  addCardToSection(layerName, section) {
+  addCardToSection(layerName, section, opts) {
+    if (!opts)
+      opts = {};
+
     // ok the free select panel is a loose collection of layers and we provide some
     // transient adjustment controls for them.
     let dims = c.imageDims(this._renderSize);
@@ -2922,7 +2934,9 @@ class GroupPanel {
     }
     
     // need to refresh the adjustment controls
-    this.updateSection(section);
+    if (opts.refreshControl) {
+      this.updateSection(section);
+    }
   }
 
   removeFromSection(layerName, section) {
@@ -4869,6 +4883,9 @@ class LayerControls {
   }
 
   updateGradient() {
+    // unused for now
+    return;
+
     var canvas = this._uiElem.find('.gradientDisplay canvas');
     canvas.attr({ width: canvas.width(), height: canvas.height() });
     var ctx = canvas[0].getContext("2d");

@@ -275,7 +275,7 @@
         <div id="layerContainer">
             <div class="layerWrapper">
                 <div class="ui top attached inverted grey mini menu" id="layerControlsMenu">
-                    <a class="item active" data-tab="groupPanel">Groups</a>
+                    <a class="item active" data-tab="groupPanel">Lists</a>
                     <!-- <a class="item" data-tab="layerSelect">Layer Selection</a> -->
                     <!-- <a class="item" data-tab="customui">Custom UI</a> -->
                     <!-- <a class="item" data-tab="embedding">2D Map</a> -->
@@ -287,8 +287,8 @@
                     <div class="groupPanel">
                         <div class="ui mini icon button optionsButton"><i class="setting icon"></i></div>
                         <div class="ui inverted secondary groupMode menu">
-                            <a class="ui active tab item" data-tab="freeSelectTab">Free Select</a>
-                            <a class="ui tab item" data-tab="savedSelectionsTab">Saved Selections</a>
+                            <a class="ui active tab item" data-tab="freeSelectTab">Current Selection</a>
+                            <a class="ui tab item" data-tab="savedSelectionsTab">Saved Lists</a>
                         </div>
                         <div class="ui active tab freeSelect" data-tab="freeSelectTab">
                             <div class="ui inverted horizontal divider">Selection Controls</div>
@@ -299,7 +299,7 @@
                                         <button class="right attached mini ui button" mode="relative">Relative</button>
                                     </div>
                                     <div class="ui mini button addGroup">
-                                        Save Selection
+                                        New List
                                     </div>
                                 </div>
                                 <div class="adjustmentControls standardLayerFormat">
@@ -319,17 +319,17 @@
                             </div>
                             <div class="sectionControls is-hidden" groupName="">
                                 <div class="toolbar">
-                                    <div class="ui compact buttons modeButtons">
+                                    <!-- <div class="ui compact buttons modeButtons">
                                         <button class="ui left attached mini green button" mode="absolute">Absolute</button>
                                         <button class="right attached mini ui button" mode="relative">Relative</button>
-                                    </div>
+                                    </div> -->
                                     <div class="ui mini right floated button closeGroup">
                                         Back
                                     </div>
                                 </div>
                                 <div class="adjustmentControls standardLayerFormat">
                                 </div>
-                                <div class="ui horizontal inverted divider">Layers</div>
+                                <div class="ui horizontal inverted divider">Layers in List</div>
                                 <div class="ui three column grid groupContents">
 
                                 </div>
@@ -1137,10 +1137,10 @@
             </div>
         </div>
         <div id="newMetaGroupModal" class="ui modal">
-            <div class="ui header">New Meta Group</div>
+            <div class="ui header">New Layer List</div>
             <div class="content">
                 <div class="ui fluid labeled input">
-                    <div class="ui label">Group Name</div>
+                    <div class="ui label">List Name</div>
                     <input type="text" placeholder="Enter a Name" />
                 </div>
             </div>

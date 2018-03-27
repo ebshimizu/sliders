@@ -978,6 +978,7 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 
 .toolbar {
     margin-bottom: 10px;
+    height: 28px;
 }
 
 .toolbar .addAdjustment {

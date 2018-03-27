@@ -1797,6 +1797,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "offsetLayer", offsetLayer);
   Nan::SetPrototypeMethod(tpl, "resetLayerOffset", resetLayerOffset);
   Nan::SetPrototypeMethod(tpl, "layerHistogramIntersect", layerHistogramIntersect);
+  Nan::SetPrototypeMethod(tpl, "propLayerHistogramIntersect", propLayerHistogramIntersect);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3667,7 +3668,7 @@ void CompositorWrapper::resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Val
 void CompositorWrapper::layerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
-  nullcheck(c->_compositor, "compositor.offsetLayer");
+  nullcheck(c->_compositor, "compositor.layerHistogramIntersect");
 
   if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsString()) {
     Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
@@ -3701,6 +3702,46 @@ void CompositorWrapper::layerHistogramIntersect(const Nan::FunctionCallbackInfo<
   }
   else {
     Nan::ThrowError("layerHistogramIntersect(context, string, string[, float, string]) argument error");
+  }
+}
+
+void CompositorWrapper::propLayerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.propLayerHistogramIntersect");
+
+  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsString()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value i0(info[1]->ToString());
+    v8::String::Utf8Value i1(info[2]->ToString());
+
+    float binSize = 0.05;
+    if (info[3]->IsNumber()) {
+      binSize = info[3]->NumberValue();
+    }
+
+    string size = "full";
+    if (info[4]->IsString()) {
+      v8::String::Utf8Value i3(info[4]->ToString());
+      size = string(*i3);
+    }
+
+    double val = c->_compositor->propLayerHistogramIntersect(ctx->_context, string(*i0), string(*i1), binSize, size);
+
+    if (val < 0) {
+      Nan::ThrowError("LayerHistogramIntersect returned invalid result. Check Compositor log");
+    }
+    else {
+      info.GetReturnValue().Set(Nan::New(val));
+    }
+  }
+  else {
+    Nan::ThrowError("propLayerHistogramIntersect(context, string, string[, float, string]) argument error");
   }
 }
 

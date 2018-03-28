@@ -2851,7 +2851,7 @@ class GroupPanel {
     });
 
     // just draw the composition as normal for the first frame
-    c.asyncRenderUpToLayer(c.getContext(), name, 0.1, this._renderSize, function(err, img) {
+    c.asyncRenderUpToLayer(c.getContext(), name, '', 0.1, this._renderSize, function(err, img) {
       drawImage(img, canvas);
     });
     //drawImage(c.renderUpToLayer(c.getContext(), name, 0.2, this._renderSize), canvas);
@@ -2882,7 +2882,7 @@ class GroupPanel {
       let canvas = $(elem).find('canvas');
       let name = $(elem).attr('layerName');
 
-      c.asyncRenderUpToLayer(c.getContext(), name, 0.1, self._renderSize, function(err, img) {
+      c.asyncRenderUpToLayer(c.getContext(), name, '', 0.1, self._renderSize, function(err, img) {
         drawImage(img, canvas);
       });
     });
@@ -2915,8 +2915,10 @@ class GroupPanel {
 
   // adds a layer card to the free select window if the card doesn't already exist
   addCardToSection(layerName, section, opts) {
-    if (!opts)
+    if (!opts) {
       opts = {};
+      opts.refreshControl = true;
+    }
 
     // ok the free select panel is a loose collection of layers and we provide some
     // transient adjustment controls for them.
@@ -3179,15 +3181,25 @@ class GroupPanel {
         elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
 
         if (c.getLayer(layers[l]).isPrecomp()) {
-          elem += '<td><div class="ui label">Render Group</div></tr>';
+          elem += '<td><div class="ui label">Render Group</div></td>';
+        }
+        else if (c.getLayer(layers[l]).isAdjustmentLayer()) {
+          elem += '<td><div class="ui label">Adjustment Layer</div></td>';
         }
         else {
-          elem += '<td><div class="ui label">Layer</div></tr>';
+          elem += '<td><div class="ui label">Layer</div></td>';
         }
+        elem += '<td><div class="thumbCanvas"><canvas></div></td>';
         elem += '</tr>';
 
         // append
         $(this._secondary).find('.layerSelectGroup tbody').append(elem);
+
+        // thumbnail render
+        let canvas = $(this._secondary).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .thumbCanvas canvas');
+        let dims = c.imageDims('thumb');
+        canvas.attr({ width: dims.w, height: dims.h });
+        drawImage(c.getCachedImage(layers[l], 'thumb'), canvas);
 
         // bindings
         let layerName = layers[l];
@@ -3289,14 +3301,12 @@ class GroupPanel {
     }
 
     if (opts.mode === PreviewMode.rawLayer) {
-      if (!c.getLayer(name).isAdjustmentLayer()) {
-        if (this._displayOnMain) {
-          drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
-        }
-        if (opts.canvas) {
-          drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
-        }
-      }      
+      if (this._displayOnMain) {
+        drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
+      }
+      if (opts.canvas) {
+        drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
+      }
     }
     else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {
       if (this._intervalID !== null) {
@@ -3306,7 +3316,7 @@ class GroupPanel {
       this.animateStart(name, opts);
     }
     else if (opts.mode === PreviewMode.staticSolidColor) {
-      if (!c.getLayer(name).isAdjustmentLayer() && !c.isGroup(name)) {
+      if (!c.isGroup(name)) {
         if (this._displayOnMain) {
           drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
           $('#renderCanvas').show();

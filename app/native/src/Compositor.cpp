@@ -1072,7 +1072,7 @@ namespace Comp {
     return renderPixel(c, index, size);
   }
 
-  Image * Compositor::renderUpToLayer(Context & c, string layer, float dim, string size)
+  Image * Compositor::renderUpToLayer(Context & c, string layer, string orderLayer, float dim, string size)
   {
     // set up the context
     Context mod(c);
@@ -1093,7 +1093,14 @@ namespace Comp {
     if (size == "")
       size = "full";
 
-    Image* i = render(mod, size);
+    Image* i;
+    
+    if (orderLayer == "" || !c[orderLayer].isPrecomp()) {
+      i = render(mod, size);
+    }
+    else {
+      i = render(mod, nullptr, c[orderLayer].getPrecompOrder(), 1, size);
+    }
 
     // masking
     if (mod[layer].isAdjustmentLayer()) {
@@ -1280,15 +1287,30 @@ namespace Comp {
         return _imageData[id][size];
       }
     }
-    else if (_primary[id].isPrecomp()) {
-      if (_precompRenderCache.count(id) > 0) {
-        if (_precompRenderCache[id].count(size) > 0) {
-          return _precompRenderCache[id][size];
-        }
+    else if (_primary[id].isAdjustmentLayer()) {
+      // if is in a precomp, return the render of the precomp up to the adjustment layer
+      string parent = getParent(id);
+      if (parent != "" && _primary[parent].isPrecomp()) {
+        _precompRenderCache[id][size] = shared_ptr<Image>(renderUpToLayer(getNewContext(), id, parent, 1, size));
       }
+      // otherwise render the entire composition up to the adjustment
+      else {
+        _precompRenderCache[id][size] = shared_ptr<Image>(renderUpToLayer(getNewContext(), id, "", 1, size));
+      }
+
+      return _precompRenderCache[id][size];
+    }
+    else if (_primary[id].isPrecomp()) {
+      //if (_precompRenderCache.count(id) > 0) {
+      //  if (_precompRenderCache[id].count(size) > 0) {
+      //    return _precompRenderCache[id][size];
+      //  }
+      //}
 
       // this is kind of sneaky but instead of a cached image we return a render
       // of the precomp by itself
+      // need to re-render each time to make sure render is up to date
+      // stuck in render cache to uh, keep the shared ptr active :|
       shared_ptr<Image> img = shared_ptr<Image>(render(getNewContext(), nullptr, _primary[id].getPrecompOrder(), 1, size));
       _precompRenderCache[id][size] = img;
       return img;
@@ -2364,6 +2386,28 @@ namespace Comp {
 
     // not found, etc.
     return vector<string>();
+  }
+
+  string Compositor::getParent(string layer)
+  {
+    // this is a brain dead search for the given layer with a linear search
+    for (string& name : _layerOrder) {
+      if (layer == name) {
+        return "";
+      }
+    }
+
+    // ok otherwise check all precomps and see if the layer is in there
+    for (auto& l : _primary) {
+      for (auto& n : l.second.getPrecompOrder()) {
+        if (n == layer) {
+          return l.first;
+        }
+      }
+    }
+
+    // assume root if not found
+    return "";
   }
 
   void Compositor::offsetLayer(string layer, float dx, float dy)

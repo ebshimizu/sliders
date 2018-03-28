@@ -141,7 +141,7 @@ namespace Comp {
     // renders the composition up to and including the specified layer.
     // additionally, the pixels unaffected by the given layer are dimmed by a maximum specified amount
     // (floor of 20% opacity)
-    Image* renderUpToLayer(Context& c, string layer, float dim, string size = "");
+    Image* renderUpToLayer(Context& c, string layer, string orderLayer, float dim, string size = "");
 
     // computes the local importance centered at the given context
     // returns a list of importance values that are _not_ sorted (since there are
@@ -318,6 +318,10 @@ namespace Comp {
     // of selection groups and render groups
     vector<string> getModifierOrder(string layer);
     vector<string> findLayerInTree(string target, vector<string> currentOrder);
+
+    // returns the parent layer name of the given layer
+    // returns empty string for root.
+    string getParent(string layer);
 
     // applies the specified offset to each layer recusively
     // as in render groups do not get an offset

@@ -388,7 +388,7 @@ public:
   RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx);
  
   // render with the renderUpToLayer function instead
-  RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx, string layer, float dim);
+  RenderWorker(Nan::Callback *callback, string size, Comp::Compositor* c, Comp::Context ctx, string layer, string pc, float dim);
 
   ~RenderWorker() {}
 
@@ -406,6 +406,7 @@ private:
   Comp::Context _ctx;
   float _dim;
   string _layer;
+  string _pc;
 };
 
 class StopSearchWorker : public Nan::AsyncWorker {

@@ -3540,7 +3540,7 @@ void CompositorWrapper::renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Valu
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.renderUpToLayer");
   
-  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsNumber()) {
+  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsString() && info[3]->IsNumber()) {
     Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
     if (maybe1.IsEmpty()) {
       Nan::ThrowError("Object found is empty!");
@@ -3549,16 +3549,18 @@ void CompositorWrapper::renderUpToLayer(const Nan::FunctionCallbackInfo<v8::Valu
 
     v8::String::Utf8Value i1(info[1]->ToString());
     string layer(*i1);
+    v8::String::Utf8Value i2(info[2]->ToString());
+    string precomp(*i2);
 
-    float dim = info[2]->NumberValue();
+    float dim = info[3]->NumberValue();
     
     string size = "full";
-    if (info[3]->IsString()) {
+    if (info[4]->IsString()) {
       v8::String::Utf8Value i3(info[3]->ToString());
       size = string(*i3);
     }
 
-    Comp::Image* img = c->_compositor->renderUpToLayer(ctx->_context, layer, dim, size);
+    Comp::Image* img = c->_compositor->renderUpToLayer(ctx->_context, layer, precomp, dim, size);
 
     v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
     const int argc = 2;
@@ -3576,7 +3578,7 @@ void CompositorWrapper::asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8:
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
   nullcheck(c->_compositor, "compositor.asyncRenderUpToLayer");
 
-  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsNumber() && info[3]->IsString() && info[4]->IsFunction()) {
+  if (info[0]->IsObject() && info[1]->IsString() && info[2]->IsString() && info[3]->IsNumber() && info[4]->IsString() && info[5]->IsFunction()) {
     Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
     if (maybe1.IsEmpty()) {
       Nan::ThrowError("Object found is empty!");
@@ -3585,14 +3587,16 @@ void CompositorWrapper::asyncRenderUpToLayer(const Nan::FunctionCallbackInfo<v8:
 
     v8::String::Utf8Value i1(info[1]->ToString());
     string layer(*i1);
+    v8::String::Utf8Value i2(info[2]->ToString());
+    string pc(*i2);
 
-    float dim = info[2]->NumberValue();
+    float dim = info[3]->NumberValue();
 
-    v8::String::Utf8Value i3(info[3]->ToString());
+    v8::String::Utf8Value i3(info[4]->ToString());
     string size(*i3);
 
-    Nan::Callback* callback = new Nan::Callback(info[4].As<v8::Function>());
-    Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor, ctx->_context, layer, dim));
+    Nan::Callback* callback = new Nan::Callback(info[5].As<v8::Function>());
+    Nan::AsyncQueueWorker(new RenderWorker(callback, size, c->_compositor, ctx->_context, layer, pc, dim));
   }
   else {
     Nan::ThrowError("asyncRenderUpToLayer(context, string, float, string, function(image)) argument error");
@@ -3759,8 +3763,8 @@ RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Composit
   _dim = -1;
 }
 
-RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c, Comp::Context ctx, string layer, float dim) :
-  Nan::AsyncWorker(callback), _size(size), _c(c), _ctx(ctx), _dim(dim), _layer(layer)
+RenderWorker::RenderWorker(Nan::Callback * callback, string size, Comp::Compositor * c, Comp::Context ctx, string layer, string pc, float dim) :
+  Nan::AsyncWorker(callback), _size(size), _c(c), _ctx(ctx), _dim(dim), _layer(layer), _pc(pc)
 {
   _customContext = true;
 }
@@ -3772,7 +3776,7 @@ void RenderWorker::Execute()
       _img = _c->render(_ctx, _size);
     }
     else {
-      _img = _c->renderUpToLayer(_ctx, _layer, _dim, _size);
+      _img = _c->renderUpToLayer(_ctx, _layer, _pc, _dim, _size);
     }
   }
   else

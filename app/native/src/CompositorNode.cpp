@@ -1798,6 +1798,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "resetLayerOffset", resetLayerOffset);
   Nan::SetPrototypeMethod(tpl, "layerHistogramIntersect", layerHistogramIntersect);
   Nan::SetPrototypeMethod(tpl, "propLayerHistogramIntersect", propLayerHistogramIntersect);
+  Nan::SetPrototypeMethod(tpl, "getGroupInclusionMap", getGroupInclusionMap);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3746,6 +3747,34 @@ void CompositorWrapper::propLayerHistogramIntersect(const Nan::FunctionCallbackI
   }
   else {
     Nan::ThrowError("propLayerHistogramIntersect(context, string, string[, float, string]) argument error");
+  }
+}
+
+void CompositorWrapper::getGroupInclusionMap(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.getGroupInclusionMap");
+
+  if (info[0]->IsObject() && info[1]->IsString()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ImageWrapper* ctx = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+
+    Comp::Image* img = c->_compositor->getGroupInclusionMap(ctx->_image, string(*i1));
+
+    // construct the image
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(img), Nan::New(true) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("getGroupInclusionMap(image, string) argument error");
   }
 }
 

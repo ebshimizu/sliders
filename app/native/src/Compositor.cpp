@@ -523,6 +523,7 @@ namespace Comp {
 
     vector<unsigned char>& compPxV = comp->getData();
     unsigned char* compPx = compPxV.data();
+    vector<string>& renderMap = comp->getRenderMap();
 
     // blend the layers
     for (int lOrder = 0; lOrder < order.size(); lOrder++) {
@@ -558,6 +559,7 @@ namespace Comp {
       float dwMin = cbData["destWhiteMin"];
       float dwMax = cbData["destWhiteMax"];
       bool hasMask = l.hasMask();
+      bool isPrecompLayer = false;
 
       // ok so check if the layer is a precomp
       if (l.isPrecomp()) {
@@ -579,6 +581,7 @@ namespace Comp {
           // apply adjustments, continue as normal
           adjust(tmpLayer, l);
           layerPxV = &tmpLayer->getData();
+          isPrecompLayer = true;
         }
       }
       else if (l.isAdjustmentLayer()) {
@@ -652,6 +655,14 @@ namespace Comp {
           // short circuit here if ab == 0
           if (ab == 0)
             continue;
+
+          // mark the pixel as affected by the current layer
+          if (!isPrecompLayer) {
+            renderMap[o] = l.getName();
+          }
+          else {
+            renderMap[o] = tmpLayer->getRenderMap()[o];
+          }
 
           if (shouldConditionalBlend) {
             // i'm unsure if it works literally just on the layer below it or the composition up to this point
@@ -2494,6 +2505,59 @@ namespace Comp {
     return l1Adj->proportionalHistogramIntersection(l2Adj.get(), binSize);
   }
 
+  Image* Compositor::getGroupInclusionMap(Image* img, string group)
+  {
+    // if the group is size 0 (or invalid) return blank
+    if (getGroup(group)._affectedLayers.size() == 0)
+      return new Image();
+
+    Image* mimg = new Image(*img);
+    vector<string>& renderMap = img->getRenderMap();
+
+    vector<unsigned char>& imgPxv = mimg->getData();
+    unsigned char* imgPx = imgPxv.data();
+    set<string> groupLayers = getGroup(group)._affectedLayers;
+
+    for (int i = 0; i < renderMap.size(); i++) {
+      // check group membership
+      // if a render group is in a layer list, we check to see if the given layer
+      // is part of that render group
+      string name = renderMap[i];
+
+      // easy direct check
+      bool acceptPx = false;
+      if (groupLayers.count(name) > 0) {
+        acceptPx = true;
+      }
+      else {
+        vector<string> affects = getModifierOrder(name);
+        
+        // if any of the modifier order layers are in the group, accept
+        for (auto& n : affects) {
+          if (groupLayers.count(n) > 0) {
+            acceptPx = true;
+          }
+        }
+      }
+
+      // green alpha max px
+      if (acceptPx == true) {
+        imgPx[i * 4] = 0;
+        imgPx[i * 4 + 1] = 255;
+        imgPx[i * 4 + 2] = 0;
+        imgPx[i * 4 + 3] = 255;
+      }
+      else {
+        imgPx[i * 4] = 0;
+        imgPx[i * 4 + 1] = 0;
+        imgPx[i * 4 + 2] = 0;
+        imgPx[i * 4 + 3] = 0;
+      }
+    }
+
+    return mimg;
+  }
+
   void Compositor::addLayer(string name)
   {
     _primary[name] = Layer(name, _imageData[name]["full"]);
@@ -3459,5 +3523,17 @@ namespace Comp {
     }
 
     return c;
+  }
+
+  ImageEffect::ImageEffect()
+  {
+    _mode = EffectMode::NONE;
+  }
+
+  void ImageEffect::stroke(RGBColor color, int width)
+  {
+    _mode = EffectMode::STROKE;
+    _color = color;
+    _width = width;
   }
 }

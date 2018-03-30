@@ -141,6 +141,8 @@ namespace Comp {
     float totalLuma() { return _totalLuma; }
     float avgLuma() { return _avgLuma; }
 
+    vector<string>& getRenderMap();
+
   private:
     // loads an image from a file
     void loadFromFile(string filename);
@@ -160,6 +162,9 @@ namespace Comp {
 
     // raw pixel data
     vector<unsigned char> _data;
+    
+    // maps out which layer was the most recent to affect the pixel. mostly used internally
+    vector<string> _renderLayerMap;
 
     // variables for the expression context
     Utils<ExpStep>::RGBAColorT _vars;

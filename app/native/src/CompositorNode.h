@@ -31,6 +31,8 @@ public:
   static void Init(v8::Local<v8::Object> exports);
   static Nan::Persistent<v8::Function> imageConstructor;
 
+  Comp::Image* _image;
+
 private:
   explicit ImageWrapper(unsigned int w = 0, unsigned int h = 0);
   explicit ImageWrapper(string filename);
@@ -58,7 +60,6 @@ private:
   static void histogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void pctHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
-  Comp::Image* _image;
   bool _deleteOnDestruct;
 };
 
@@ -267,6 +268,7 @@ private:
   static void resetLayerOffset(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void layerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void propLayerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void getGroupInclusionMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

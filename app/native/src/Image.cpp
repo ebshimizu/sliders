@@ -8,11 +8,13 @@ namespace Comp {
   Image::Image(unsigned int w, unsigned int h) : _w(w), _h(h), _filename("")
   {
     _data = vector<unsigned char>(w * h * 4, 0);
+    _renderLayerMap = vector<string>(w * h);
   }
 
   Image::Image(string filename)
   {
     loadFromFile(filename);
+    _renderLayerMap = vector<string>(_w * _h);
     analyze();
   }
 
@@ -30,6 +32,8 @@ namespace Comp {
       getLogger()->log("Error interpreting base64 data. Potentitally fatal.", Comp::ERR);
     }
 
+    _renderLayerMap = vector<string>(_w * _h);
+
     analyze();
   }
 
@@ -43,6 +47,7 @@ namespace Comp {
     _totalLuma = other._totalLuma;
     _avgAlpha = other._avgAlpha;
     _avgLuma = other._avgLuma;
+    _renderLayerMap = other._renderLayerMap;
   }
 
   Image & Image::operator=(const Image & other)
@@ -59,6 +64,7 @@ namespace Comp {
     _totalLuma = other._totalLuma;
     _avgAlpha = other._avgAlpha;
     _avgLuma = other._avgLuma;
+    _renderLayerMap = other._renderLayerMap;
     return *this;
   }
 
@@ -705,6 +711,11 @@ namespace Comp {
     }
 
     return ret;
+  }
+
+  vector<string>& Image::getRenderMap()
+  {
+    return _renderLayerMap;
   }
 
   void Image::loadFromFile(string filename)

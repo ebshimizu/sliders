@@ -42,6 +42,11 @@ namespace Comp {
     EFFECTIVE_CHANGE
   };
 
+  enum EffectMode {
+    NONE,
+    STROKE
+  };
+
   // contains importance data for the given layer and parameter
   struct Importance {
     string _layerName;
@@ -55,10 +60,23 @@ namespace Comp {
     float _mssim;
   };
 
+  class ImageEffect {
+  public: 
+    ImageEffect();
+
+    void stroke(RGBColor color, int width);
+
+    EffectMode _mode;
+    RGBColor _color;
+    int _width;
+  };
+
   struct Group {
     string _name;
     bool _readOnly;   // read only groups are in the inherent photoshop strucutre and cannot be removed right now
     set<string> _affectedLayers;
+
+    ImageEffect _effect;
   };
 
   // the compositor for now assumes that every layer it contains have the same dimensions.
@@ -331,6 +349,10 @@ namespace Comp {
     // histogram intersection with adjusted layers
     double layerHistogramIntersect(Context& c, string layer1, string layer2, float binSize = 0.05, string size = "full");
     double propLayerHistogramIntersect(Context& c, string layer1, string layer2, float binSize = 0.05, string size = "full");
+
+    // given an image (with valid render map), return another image that contains
+    // a map of which pixels are part of the given group
+    Image* getGroupInclusionMap(Image* img, string group);
 
   private:
     void addLayer(string name);

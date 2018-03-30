@@ -1799,6 +1799,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "layerHistogramIntersect", layerHistogramIntersect);
   Nan::SetPrototypeMethod(tpl, "propLayerHistogramIntersect", propLayerHistogramIntersect);
   Nan::SetPrototypeMethod(tpl, "getGroupInclusionMap", getGroupInclusionMap);
+  Nan::SetPrototypeMethod(tpl, "addGroupEffect", addGroupEffect);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3312,6 +3313,50 @@ void CompositorWrapper::addGroup(const Nan::FunctionCallbackInfo<v8::Value>& inf
   }
 }
 
+void CompositorWrapper::addGroupEffect(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addGroupEffect");
+
+  if (info[0]->IsString() && info[1]->IsObject()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    string group(*i0);
+
+    // bunch of options here
+    v8::Local<v8::Object> obj = info[1].As<v8::Object>();
+
+    // must have mode
+    if (!obj->HasOwnProperty(Nan::New("mode").ToLocalChecked())) {
+      Nan::ThrowError("Group effect needs a mode");
+    }
+
+    Comp::ImageEffect effect;
+    int mode = obj->Get(Nan::New("mode").ToLocalChecked())->IntegerValue();
+    effect._mode = (Comp::EffectMode)mode;
+
+    if (mode == Comp::EffectMode::STROKE) {
+      if (!obj->HasOwnProperty(Nan::New("width").ToLocalChecked())) {
+        Nan::ThrowError("Stroke effect needs a width");
+      }
+      if (!obj->HasOwnProperty(Nan::New("color").ToLocalChecked())) {
+        Nan::ThrowError("Stroke effect needs a color");
+      }
+
+      effect._width = obj->Get(Nan::New("width").ToLocalChecked())->IntegerValue();
+
+      auto rgb = obj->Get(Nan::New("color").ToLocalChecked()).As<v8::Object>();
+      effect._color._r = rgb->Get(Nan::New("r").ToLocalChecked())->NumberValue();
+      effect._color._g = rgb->Get(Nan::New("g").ToLocalChecked())->NumberValue();
+      effect._color._b = rgb->Get(Nan::New("b").ToLocalChecked())->NumberValue();
+    }
+
+    c->_compositor->setGroupEffect(group, effect);
+  }
+  else {
+    Nan::ThrowError("addGroupEffect(string, object) argument error");
+  }
+}
+
 void CompositorWrapper::addGroupFromExistingLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
 {
   CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
@@ -3473,6 +3518,18 @@ void CompositorWrapper::getGroup(const Nan::FunctionCallbackInfo<v8::Value>& inf
       i++;
     }
     ret->Set(Nan::New("affectedLayers").ToLocalChecked(), layers);
+
+    v8::Local<v8::Object> effect = Nan::New<v8::Object>();
+    effect->Set(Nan::New("mode").ToLocalChecked(), Nan::New(g._effect._mode));
+    effect->Set(Nan::New("width").ToLocalChecked(), Nan::New(g._effect._width));
+
+    v8::Local<v8::Object> rgb = Nan::New<v8::Object>();
+    rgb->Set(Nan::New("r").ToLocalChecked(), Nan::New(g._effect._color._r));
+    rgb->Set(Nan::New("g").ToLocalChecked(), Nan::New(g._effect._color._g));
+    rgb->Set(Nan::New("b").ToLocalChecked(), Nan::New(g._effect._color._b));
+    effect->Set(Nan::New("color").ToLocalChecked(), rgb);
+    ret->Set(Nan::New("effect").ToLocalChecked(), effect);
+
     info.GetReturnValue().Set(ret);
   }
   else {

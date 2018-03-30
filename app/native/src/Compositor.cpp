@@ -401,6 +401,13 @@ namespace Comp {
     return Group();
   }
 
+  void Compositor::setGroupEffect(string name, ImageEffect effect)
+  {
+    if (_groups.count(name) > 0) {
+      _groups[name]._effect = effect;
+    }
+  }
+
   multimap<float, string> Compositor::getGroupOrder()
   {
     return _groupOrder;

@@ -123,6 +123,7 @@ namespace Comp {
     bool layerInGroup(string layer, string group);
     bool isGroup(string group);
     Group getGroup(string name);
+    void setGroupEffect(string name, ImageEffect effect);
 
     multimap<float, string> getGroupOrder();
 

@@ -2539,6 +2539,10 @@ function loadLayers(doc, path, transfer) {
     for (let g in doc.groups) {
       let group = doc.groups[g];
       c.addGroupFromExistingLayer(group.name, group.affectedLayers, group.order, group.readOnly);
+
+      if (group.effect) {
+        c.addGroupEffect(group.name, group.effect);
+      }
     }
 
     updateGroupUI();
@@ -2668,6 +2672,7 @@ function save(file) {
     groupData.order = groupOrder[g].val;
     groupData.affectedLayers = group.affectedLayers;
     groupData.readOnly = group.readOnly;
+    groupData.effect = group.effect;
     groups[groupData.name] = groupData;
   }
 

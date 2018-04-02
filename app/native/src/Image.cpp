@@ -170,6 +170,9 @@ namespace Comp {
 
   void Image::setPixel(int x, int y, float r, float g, float b, float a)
   {
+    if (x < 0 || x >= _w || y < 0 || y >= _h)
+      return;
+
     int index = (x + y * _w )* 4;
     _data[index] = (unsigned char)(r * 255);
     _data[index + 1] = (unsigned char)(g * 255);
@@ -713,6 +716,69 @@ namespace Comp {
     return ret;
   }
 
+  void Image::stroke(Image* inclusionMap, int size, RGBColor color)
+  {
+    // first assert same size
+    if (inclusionMap->_w != _w || inclusionMap->_h != _h) {
+      // caller needs to handle
+      return;
+    }
+    // DEBUG
+    inclusionMap->save("test.png");
+
+    // copy image to return, since we are doing a direct modification
+    //Image* ret = new Image(*this);
+    RGBAColor fill;
+    fill._a = 1;
+    fill._r = color._r;
+    fill._g = color._g;
+    fill._b = color._b;
+
+    // need to duplicate for original lookup
+    Image* original = new Image(*this);
+
+    // basically any pixel that borders an outside pixel gets the effect
+    for (int y = 0; y < _h; y++) {
+      for (int x = 0; x < _w; x++) {
+        // conditions for stroke: current image pixel is non-zero alpha bordering zero-alpha pixel
+        if (original->bordersZeroAlpha(x, y)) {
+          // if true, then add stroke if the pixel also borders the outside of the current group
+          if (original->bordersOutside(inclusionMap, x, y)) {
+            int i = y * _w + x;
+            int px = i * 4;
+
+            // this isn't a complicated effect and is really just to demo this capability,
+            // so we do a stroke in a n x n square aroud the specified pixel.
+            for (int sy = -size; sy <= size; sy++) {
+              for (int sx = -size; sx <= size; sx++) {
+                if (sy == 0 && sx == 0)
+                  continue;
+
+                int dy = sy + y;
+                int dx = sx + x;
+
+                // bounds check
+                if (dx < 0 || dx >= _w || dy < 0 || dy >= _h)
+                  continue;
+
+                // existing pixel check
+                if (getPixel(dx, dy)._a > 0)
+                  continue;
+
+                // inclusion check
+                if (inclusionMap->getPixel(dx, dy)._a < 1) {
+                  setPixel(dx, dy, fill);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    delete original;
+  }
+
   vector<string>& Image::getRenderMap()
   {
     return _renderLayerMap;
@@ -739,6 +805,65 @@ namespace Comp {
 
       _filename = filename.substr(pos + 1);
     }
+  }
+
+  bool Image::bordersOutside(Image * inclusionMap, int x, int y)
+  {
+    vector<int> xd = { -1, 0, 1 };
+    vector<int> yd = { -1, 0, 1 };
+
+    for (int i = 0; i < xd.size(); i++) {
+      for (int j = 0; j < yd.size(); j++) {
+        if (xd[i] == 0 && yd[i] == 0)
+          continue;
+
+        int xp = x + xd[i];
+        int yp = y + yd[j];
+
+        // bounds check
+        if (xp < 0 || xp >= inclusionMap->_w)
+          continue;
+        if (yp < 0 || yp >= inclusionMap->_h)
+          continue;
+
+        // directional check
+        auto pixel = inclusionMap->getPixel(xp, yp);
+        if (pixel._a < 1)
+          return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool Image::bordersZeroAlpha(int x, int y)
+  {
+    // if the pixel itself is zero alpha, return false
+    if (getPixel(x, y)._a == 0)
+      return false;
+
+    vector<int> xd = { -1, 0, 1 };
+    vector<int> yd = { -1, 0, 1 };
+
+    for (int i = 0; i < xd.size(); i++) {
+      for (int j = 0; j < yd.size(); j++) {
+        if (xd[i] == 0 && yd[i] == 0)
+          continue;
+
+        int xp = x + xd[i];
+        int yp = y + yd[j];
+
+        // bounds check
+        if (xp < 0 || xp >= _w || yp < 0 || yp >= _h)
+          continue;
+
+        // directional check
+        if (getPixel(xp, yp)._a == 0)
+          return true;
+      }
+    }
+
+    return false;
   }
 
   ImportanceMap::ImportanceMap(int w, int h) : _w(w), _h(h)

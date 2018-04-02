@@ -136,6 +136,9 @@ namespace Comp {
     // alpha is unaffected
     Image* fill(float r, float g, float b);
 
+    // strokes the current image
+    void stroke(Image* inclusionMap, int size, RGBColor color);
+
     float totalAlpha() { return _totalAlpha; }
     float avgAlpha() { return _avgAlpha; }
     float totalLuma() { return _totalLuma; }
@@ -146,6 +149,12 @@ namespace Comp {
   private:
     // loads an image from a file
     void loadFromFile(string filename);
+
+    // returns true if the given pixel borders an outside pixel (8-way)
+    bool bordersOutside(Image* inclusionMap, int x, int y);
+
+    // returns true if the given pixel borders a zero alpha pixel
+    bool bordersZeroAlpha(int x, int y);
 
     unsigned int _w;
     unsigned int _h;

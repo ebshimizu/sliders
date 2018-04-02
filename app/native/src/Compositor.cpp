@@ -601,8 +601,10 @@ namespace Comp {
       }
       else {
         // a layer may be part of a group, so we will have to run adjustments on it
-        // even if not we'll duplicate it anywat to make the process easier
+        // even if not we'll duplicate it anyway to make the process easier
         tmpLayer = new Image(*_imageData[l.getName()][size].get());
+        // copy render map state for this layer
+        tmpLayer->getRenderMap() = comp->getRenderMap();
         adjust(tmpLayer, l);
         layerPxV = &tmpLayer->getData();
       }
@@ -3066,6 +3068,20 @@ namespace Comp {
 
   void Compositor::adjust(Image * adjLayer, Layer& l)
   {
+    // apply stroke effects if needed
+    for (auto& o : _groupOrder) {
+      if (_groups[o.second]._affectedLayers.count(l.getName()) > 0) {
+        // check for effects
+        if (_groups[o.second]._effect._mode == EffectMode::STROKE) {
+          // adjust is called on duplicated layers so this should be ok and not permanent
+          // stroke the image
+          Image* inclusionMap = getGroupInclusionMap(adjLayer, o.second);
+          adjLayer->stroke(inclusionMap, _groups[o.second]._effect._width, _groups[o.second]._effect._color);
+          delete inclusionMap;
+        }
+      }
+    }
+
     // only certain modes are recognized
     for (auto type : l.getAdjustments()) {
       if (type == AdjustmentType::HSL) {

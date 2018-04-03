@@ -779,6 +779,39 @@ namespace Comp {
     delete original;
   }
 
+  float Image::chamferDistance(Image * y)
+  {
+    // assert same size
+    if (_w != y->_w || _h != y->_h) {
+      return FLT_MAX;
+    }
+
+    // this should probably subsample at some point but for now we'll do the slow thing
+    // create vectors of lab colors for each of the pixels
+    vector<LabColor> xp;
+    vector<LabColor> yp;
+
+    // construct flann index
+    //flann::Matrix<float>
+
+    for (int i = 0; i < _data.size() / 4; i++) {
+      RGBAColor xpixel = getPixel(i);
+      RGBAColor ypixel = y->getPixel(i);
+
+      xp.push_back(Utils<float>::RGBAToLab(xpixel));
+      yp.push_back(Utils<float>::RGBAToLab(ypixel));
+    }
+
+    // sum of closest point diffs
+    float sum = 0;
+    for (int i = 0; i < xp.size(); i++) {
+      float closest = closestLabDist(xp[i], yp);
+      sum += closest;
+    }
+
+    return sum;
+  }
+
   vector<string>& Image::getRenderMap()
   {
     return _renderLayerMap;
@@ -864,6 +897,25 @@ namespace Comp {
     }
 
     return false;
+  }
+
+  float Image::closestLabDist(LabColor & x, vector<LabColor>& y)
+  {
+    // the really dumb implementation first
+    float min = FLT_MAX;
+    int minIdx = -1;
+
+    for (int i = 0; i < y.size(); i++) {
+      float dist = Utils<float>::LabL2Diff(x, y[i]);
+
+      if (dist < min) {
+        minIdx = i;
+        min = dist;
+      }
+    }
+
+    // maybe do something with minIdx, dunno
+    return min;
   }
 
   ImportanceMap::ImportanceMap(int w, int h) : _w(w), _h(h)

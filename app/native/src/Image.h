@@ -19,6 +19,7 @@ author: Evan Shimizu
 #include "third_party/lodepng/lodepng.h"
 #include "third_party/cpp-base64/base64.h"
 #include "third_party/Eigen/Dense"
+#include "third_party/flann/src/cpp/flann/flann.hpp"
 
 #pragma warning(pop)
 
@@ -139,6 +140,9 @@ namespace Comp {
     // strokes the current image
     void stroke(Image* inclusionMap, int size, RGBColor color);
 
+    // returns the chamfer distance (asymmetric for now) between the two images
+    float chamferDistance(Image* y);
+
     float totalAlpha() { return _totalAlpha; }
     float avgAlpha() { return _avgAlpha; }
     float totalLuma() { return _totalLuma; }
@@ -155,6 +159,9 @@ namespace Comp {
 
     // returns true if the given pixel borders a zero alpha pixel
     bool bordersZeroAlpha(int x, int y);
+
+    // returns the distance to the closest point in y
+    float closestLabDist(LabColor& x, vector<LabColor>& y);
 
     unsigned int _w;
     unsigned int _h;

@@ -210,6 +210,7 @@ void ImageWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "fill", fill);
   Nan::SetPrototypeMethod(tpl, "histogramIntersection", histogramIntersect);
   Nan::SetPrototypeMethod(tpl, "proportionalHistogramIntersection", pctHistogramIntersect);
+  Nan::SetPrototypeMethod(tpl, "chamferDistance", chamferDistance);
 
   imageConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Image").ToLocalChecked(), tpl->GetFunction());
@@ -584,6 +585,21 @@ void ImageWrapper::pctHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Val
   }
 
   double d = image->_image->proportionalHistogramIntersection(y->_image, binSize);
+
+  info.GetReturnValue().Set(Nan::New(d));
+}
+
+void ImageWrapper::chamferDistance(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  ImageWrapper* image = ObjectWrap::Unwrap<ImageWrapper>(info.Holder());
+
+  Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+  if (maybe1.IsEmpty()) {
+    Nan::ThrowError("Object found is empty!");
+  }
+  ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
+
+  float d = image->_image->chamferDistance(y->_image);
 
   info.GetReturnValue().Set(Nan::New(d));
 }

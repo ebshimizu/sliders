@@ -59,6 +59,7 @@ private:
   static void fill(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void histogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void pctHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void chamferDistance(const Nan::FunctionCallbackInfo<v8::Value>& info);
 
   bool _deleteOnDestruct;
 };

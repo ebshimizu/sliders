@@ -280,6 +280,7 @@ namespace Comp {
   };
 
   typedef Utils<float>::RGBColorT RGBColor;
+  typedef Utils<float>::LabColorT LabColor;
 
   // very simple linear interpolation of gradients.
   // does not handle the complicated parts of gradient creation in PS

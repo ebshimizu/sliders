@@ -42,10 +42,12 @@
 				"src/ClickMap.h",
 				"src/ClickMap.cpp",
                 "src/Selection.h",
-                "src/Selection.cpp"
+                "src/Selection.cpp",
+                "src/third_party/flann/src/cpp/flann/flann.hpp"
 			],
 			"include_dirs" : [
-			    "<!(node -e \"require('nan')\")"
+			    "<!(node -e \"require('nan')\")",
+			    "src/third_party/flann/src/cpp"
 			],
 			"defines" : [ "NOMINMAX" ]
 		}

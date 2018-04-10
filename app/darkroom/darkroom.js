@@ -5183,3 +5183,27 @@ function removeMetaGroup(name) {
   //g_metaGroupList[name].deleteUI();
   delete g_metaGroupList[name];
 }
+
+// auto grouping functions
+// returns a list of layers with score 
+function getSimilarColorTo(layerName) {
+  // render thumbnail views of all current layers
+  let vals = [];
+  let allLayers = c.getFlatLayerOrder();
+  let current = c.getContext();
+  let cmpImg = c.renderOnlyLayer(current, layerName, 'micro');
+
+  for (let layer of allLayers) {
+    let y = c.renderOnlyLayer(current, layer, 'micro');
+
+    let dist = cmpImg.chamferDistance(y);
+    vals.push({ layer: layer, dist: dist });
+  }
+
+  // sort
+  vals.sort(function(a, b) {
+    return a.dist - b.dist;
+  });
+
+  return vals;
+}

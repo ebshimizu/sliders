@@ -271,6 +271,7 @@ private:
   static void layerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void propLayerHistogramIntersect(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static void getGroupInclusionMap(const Nan::FunctionCallbackInfo<v8::Value>& info);
+  static void renderOnlyLayer(const Nan::FunctionCallbackInfo<v8::Value>& info);
   static Nan::Persistent<v8::Function> compositorConstructor;
 };
 

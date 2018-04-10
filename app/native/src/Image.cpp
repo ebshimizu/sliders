@@ -788,25 +788,37 @@ namespace Comp {
 
     // this should probably subsample at some point but for now we'll do the slow thing
     // create vectors of lab colors for each of the pixels
-    vector<LabColor> xp;
-    vector<LabColor> yp;
-
-    // construct flann index
-    //flann::Matrix<float>
+    flann::Matrix<float> xp(new float[(_data.size() / 4) * 3], _data.size() / 4, 3);
+    flann::Matrix<float> yp(new float[(_data.size() / 4) * 3], _data.size() / 4, 3);
 
     for (int i = 0; i < _data.size() / 4; i++) {
       RGBAColor xpixel = getPixel(i);
       RGBAColor ypixel = y->getPixel(i);
 
-      xp.push_back(Utils<float>::RGBAToLab(xpixel));
-      yp.push_back(Utils<float>::RGBAToLab(ypixel));
+      LabColor xLab = Utils<float>::RGBAToLab(xpixel);
+      LabColor yLab = Utils<float>::RGBAToLab(ypixel);
+
+      xp[i][0] = xLab._L;
+      xp[i][1] = xLab._a;
+      xp[i][2] = xLab._b;
+
+      yp[i][0] = yLab._L;
+      yp[i][1] = yLab._a;
+      yp[i][2] = yLab._b;
     }
+
+    // construct flann index
+    flann::Matrix<int> indices(new int[xp.rows], xp.rows, 1);
+    flann::Matrix<float> dists(new float[xp.rows], xp.rows, 1);
+
+    flann::Index<flann::L2<float>> index(yp, flann::KDTreeIndexParams(4));
+    index.buildIndex();
+    index.knnSearch(xp, indices, dists, 1, flann::SearchParams());
 
     // sum of closest point diffs
     float sum = 0;
-    for (int i = 0; i < xp.size(); i++) {
-      float closest = closestLabDist(xp[i], yp);
-      sum += closest;
+    for (int i = 0; i < dists.rows; i++) {
+      sum += dists[i][0];
     }
 
     return sum;

@@ -3154,6 +3154,17 @@ class GroupPanel {
     }
   }
 
+  selectSimilarColor(layerName) {
+    let layers = getSimilarColorTo(layerName);
+
+    let displayList = [];
+    for (let layer of layers) {
+      displayList.push(layer.layer);
+    }
+
+    this.displaySelectedLayers(displayList);
+  }
+
   displaySelectedLayers(layers) {
     // delete existing
     $(this._secondary).find('.layerSelectGroup tbody').html('');

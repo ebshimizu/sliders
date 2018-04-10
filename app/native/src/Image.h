@@ -19,7 +19,7 @@ author: Evan Shimizu
 #include "third_party/lodepng/lodepng.h"
 #include "third_party/cpp-base64/base64.h"
 #include "third_party/Eigen/Dense"
-#include "third_party/flann/src/cpp/flann/flann.hpp"
+#include <flann/flann.hpp>
 
 #pragma warning(pop)
 

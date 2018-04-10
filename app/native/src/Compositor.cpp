@@ -2585,6 +2585,7 @@ namespace Comp {
     _primary[name].setMask(_layerMasks[name]["full"]);
 
     // rescale
+    _layerMasks[name]["micro"] = _layerMasks[name]["full"]->resize(0.05f);
     _layerMasks[name]["thumb"] = _layerMasks[name]["full"]->resize(0.15f);
     _layerMasks[name]["small"] = _layerMasks[name]["full"]->resize(0.25f);
     _layerMasks[name]["medium"] = _layerMasks[name]["full"]->resize(0.5f);
@@ -2607,6 +2608,7 @@ namespace Comp {
 
   void Compositor::cacheScaled(string name)
   {
+    _imageData[name]["micro"] = _imageData[name]["full"]->resize(0.05f);
     _imageData[name]["thumb"] = _imageData[name]["full"]->resize(0.15f);
     _imageData[name]["small"] = _imageData[name]["full"]->resize(0.25f);
     _imageData[name]["medium"] = _imageData[name]["full"]->resize(0.5f);

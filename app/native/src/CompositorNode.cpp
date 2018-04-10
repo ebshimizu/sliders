@@ -1816,6 +1816,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "propLayerHistogramIntersect", propLayerHistogramIntersect);
   Nan::SetPrototypeMethod(tpl, "getGroupInclusionMap", getGroupInclusionMap);
   Nan::SetPrototypeMethod(tpl, "addGroupEffect", addGroupEffect);
+  Nan::SetPrototypeMethod(tpl, "renderOnlyLayer", renderOnlyLayer);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -3848,6 +3849,44 @@ void CompositorWrapper::getGroupInclusionMap(const Nan::FunctionCallbackInfo<v8:
   }
   else {
     Nan::ThrowError("getGroupInclusionMap(image, string) argument error");
+  }
+}
+
+void CompositorWrapper::renderOnlyLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.renderOnlyLayer");
+
+  if (info[0]->IsObject() && info[1]->IsString()) {
+    Nan::MaybeLocal<v8::Object> maybe1 = Nan::To<v8::Object>(info[0]);
+    if (maybe1.IsEmpty()) {
+      Nan::ThrowError("Object found is empty!");
+    }
+    ContextWrapper* ctx = Nan::ObjectWrap::Unwrap<ContextWrapper>(maybe1.ToLocalChecked());
+
+    v8::String::Utf8Value i1(info[1]->ToString());
+    string layer(*i1);
+
+    string size = "";
+
+    if (info[2]->IsString()) {
+      v8::String::Utf8Value i2(info[2]->ToString());
+      size = string(*i2);
+    }
+
+    vector<string> renderOrder;
+    renderOrder.push_back(layer);
+
+    Comp::Image* r = c->_compositor->render(ctx->_context, nullptr, renderOrder, 1, size);
+
+    v8::Local<v8::Function> cons = Nan::New<v8::Function>(ImageWrapper::imageConstructor);
+    const int argc = 2;
+    v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(r), Nan::New(true) };
+
+    info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+  }
+  else {
+    Nan::ThrowError("renderOnlyLayer(Context, string, string) argument error");
   }
 }
 

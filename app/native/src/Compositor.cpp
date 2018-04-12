@@ -804,8 +804,10 @@ namespace Comp {
       }
     }
 
-    return comp;
+    // delete the mask
+    delete defaultMask;
 
+    return comp;
   }
 
 

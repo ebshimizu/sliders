@@ -3313,10 +3313,12 @@ class GroupPanel {
 
     if (opts.mode === PreviewMode.rawLayer) {
       if (this._displayOnMain) {
-        drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
+        //drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
+        drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize), $('#previewCanvas'));
       }
       if (opts.canvas) {
-        drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
+        //drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
+        drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize), opts.canvas);
       }
     }
     else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {
@@ -3329,11 +3331,13 @@ class GroupPanel {
     else if (opts.mode === PreviewMode.staticSolidColor) {
       if (!c.isGroup(name)) {
         if (this._displayOnMain) {
-          drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
+          //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
+          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
           $('#renderCanvas').show();
         }
         if (opts.canvas) {
-          drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), opts.canvas);
+          //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), opts.canvas);
+          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(1, 0, 0), opts.canvas);
         }
       }
     }

@@ -2523,7 +2523,7 @@ class GroupPanel {
     this._renderSize = "medium";
     this._animationData = {};
     this._animationCache = {};
-    this._loopSize = 15;
+    this._loopSize = 10;
     this._fps = 60;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;
@@ -2708,9 +2708,7 @@ class GroupPanel {
     let cb = this._displayOnMain;
     $(this._primary + ' .checkbox[param="_displayOnMain"]').checkbox((cb ? 'set checked' : 'set unchecked'));
     this._displayOnMain = cb;
-    $(this._primary + ' .dropdown[param="_previewMode"]').dropdown('set selected', this._previewMode);
     $(this._primary + ' .dropdown[param="_animationMode"]').dropdown('set selected', this._animationMode);
-    $(this._primary + ' .dropdown[param="_layerSelectPreviewMode"]').dropdown('set selected', this._layerSelectPreviewMode);
     $(this._primary + ' .checkbox[param="_autoAddAdjustments"]').checkbox((this._autoAddAdjustments ? 'set checked' : 'set unchecked'));
 
     // exit button
@@ -2844,7 +2842,7 @@ class GroupPanel {
     var self = this;
 
     canvas.mouseover(function () {
-      self.startVis(name, { mode: self._previewMode }); //, canvas: $(self.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas') });
+      self.startVis(name, { mode: self._layerSelectPreviewMode }); //, canvas: $(self.primarySelector + ' .groupContents div[layerName="' + name + '"] canvas') });
     });
     canvas.mouseout(function () {
       self.stopVis(name);
@@ -3189,18 +3187,26 @@ class GroupPanel {
         // create the element
         let elem = '<tr layer-name="' + layers[l] + '">';
         elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
-        elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
 
         if (c.getLayer(layers[l]).isPrecomp()) {
           elem += '<td class="activeArea"><div class="ui label">Render Group</div></td>';
         }
         else if (c.getLayer(layers[l]).isAdjustmentLayer()) {
-          elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="ui label">Adjustment Layer</div></td>';
+          elem += '<td class="activeArea" layer-name="' + layers[l] + '">';
+          elem += '<div class="ui label">Adjustment Layer</div></td>';
         }
         else {
           elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="ui label">Layer</div></td>';
         }
+
+        elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
         elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="thumbCanvas"><canvas></div></td>';
+        elem += '<td>';
+        elem += '<div class="ui icon top right pointing dropdown button selectSimilar" layer-name="' + layers[l] + '">';
+        elem += '<i class="object group icon"></i><div class="menu">';
+        elem += '<div class="header">Select Similar Layers</div>';
+        elem += '<div class="item" data-value="color">Color</div></div></div>';
+        elem += '</td>';
         elem += '</tr>';
 
         // append
@@ -3238,6 +3244,7 @@ class GroupPanel {
     }
 
     let self = this;
+    $(this._secondary).find('.layerSelectGroup .selectSimilar.button').dropdown();
     $(this._secondary).find('.layerSelectGroup tr').mouseover(function() {
       self._hoveredLayer = $(this).attr('layer-name');
       self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });

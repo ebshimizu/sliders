@@ -990,6 +990,10 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     float: right;
 }
 
+.groupControls .hideSelection {
+    float: right;
+}
+
 .savedSelections .sectionControls {
     position: absolute;
     top: 100px;

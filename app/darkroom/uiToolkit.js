@@ -3192,15 +3192,15 @@ class GroupPanel {
         elem += '<td class="activeArea" layer-name="' + layers[l] + '">' + layers[l] + '</td>';
 
         if (c.getLayer(layers[l]).isPrecomp()) {
-          elem += '<td><div class="ui label">Render Group</div></td>';
+          elem += '<td class="activeArea"><div class="ui label">Render Group</div></td>';
         }
         else if (c.getLayer(layers[l]).isAdjustmentLayer()) {
-          elem += '<td><div class="ui label">Adjustment Layer</div></td>';
+          elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="ui label">Adjustment Layer</div></td>';
         }
         else {
-          elem += '<td><div class="ui label">Layer</div></td>';
+          elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="ui label">Layer</div></td>';
         }
-        elem += '<td><div class="thumbCanvas"><canvas></div></td>';
+        elem += '<td class="activeArea" layer-name="' + layers[l] + '"><div class="thumbCanvas"><canvas></div></td>';
         elem += '</tr>';
 
         // append
@@ -3246,9 +3246,15 @@ class GroupPanel {
       self._hoveredLayer = null;
       self.stopVis($(this).attr('layer-name'));
     });
-    $(this._secondary).find('.layerSelectGroup td.activeArea').click(function() {
-      self.hideLayerControl();
-      self.showLayerControl($(this).attr('layer-name'));
+
+    $(this._secondary).find('.layerSelectGroup td.activeArea').mousedown(function(event) {
+      if (event.which === 1) {
+        self.hideLayerControl();
+        self.showLayerControl($(this).attr('layer-name'));
+      }
+      else if (event.which === 3) {
+        $(self._secondary).find('.layerSelectGroup tr[layer-name="' + $(this).attr('layer-name') + '"] .checkbox').checkbox('toggle');
+      }
     });
 
     $(this._secondary).find('.groupSelectGroup tr').mouseover(function() {

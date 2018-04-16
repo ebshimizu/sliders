@@ -3178,10 +3178,22 @@ function renderImage(callerName) {
 
     g_historyID++;
     var myHistoryID = g_historyID;
+
+    // context definition
+    let context = c.getContext();
+    if (g_groupPanel._hideSelected === true) {
+      // set all selected layers to visible = false then render
+      for (let l of g_groupPanel.activeLayers) {
+        context.getLayer(l).visible(false);
+      }
+    }
+
     // history time
+    // the history actually uh, uses the current context i think not the modified one?
+    // it's unclear
     g_history[myHistoryID] = { context: c.getContext() };
 
-    c.asyncRender(settings.renderSize, function (err, img) {
+    c.asyncRenderContext(context, settings.renderSize, function (err, img) {
       //var dat = 'data:image/png;base64,';
       //dat += img.base64();
       //$("#render").html('<img src="' + dat + '"" />');

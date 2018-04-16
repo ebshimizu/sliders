@@ -2532,6 +2532,7 @@ class GroupPanel {
     this._intervalID = null;
     this._hoveredLayer = null;
     this._autoAddAdjustments = false;
+    this._hideSelected = false;
 
     // initialize preview canvas
     this.updatePreviewCanvas();
@@ -2608,6 +2609,19 @@ class GroupPanel {
       $(self._primary).find('.modeButtons .button[mode="' + self._freeSelectAdjMode + '"]').addClass('green');
       self.updateSection('.freeSelect');
       self.updateSection('.sectionControls');
+    });
+
+    $(this._primary).find('.hideSelection').click(function() {
+      if ($(this).hasClass('red')) {
+        self._hideSelected = false;
+        $(this).removeClass('red');
+        renderImage('Group Panel Hide Selected Setting Change')
+      }
+      else {
+        self._hideSelected = true;
+        $(this).addClass('red');
+        renderImage('Group Panel Hide Selected Setting Change')
+      }
     });
 
     // add adjustment buttons
@@ -2898,6 +2912,10 @@ class GroupPanel {
       c.addLayerToGroup(layerName, $('.sectionControls').attr('groupName'));
       this.addCardToSection(layerName, '.sectionControls');
     }
+
+    if (this._hideSelected) {
+      renderImage('Group Panel Membership Change');
+    }
   }
 
   // similarly, a function for unchecking yay
@@ -2908,6 +2926,10 @@ class GroupPanel {
     else {
       c.removeLayerFromGroup(layerName, $('.sectionControls').attr('groupName'));
       this.removeFromSection(layerName, '.sectionControls');
+    }
+
+    if (this._hideSelected) {
+      renderImage('Group Panel Membership Change');
     }
   }
 
@@ -3284,6 +3306,24 @@ class GroupPanel {
     });
 
     self.toggleSelectedLayers();
+  }
+
+  get selectedLayers() {
+    let layers = [];
+    $(this._secondary).find('.layerSelectGroup tr').each(function(i, elem) {
+      layers.push($(elem).attr('layer-name'));
+    });
+
+    return layers;
+  }
+
+  get activeLayers() {
+    let layers = [];
+    $(this._primary).find('.freeSelect .card').each(function(i, elem) {
+      layers.push($(elem).attr('layerName'));
+    });
+
+    return layers;
   }
 
   // after creating the elements for the selected layers, this will make sure the checkboxes

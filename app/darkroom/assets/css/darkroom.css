@@ -986,10 +986,8 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     margin-right: 10px;
 }
 
-.groupControls .addGroup {
-    float: right;
-}
-
+.groupControls .clearSelection,
+.groupControls .addGroup,
 .groupControls .hideSelection {
     float: right;
 }

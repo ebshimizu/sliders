@@ -2624,6 +2624,10 @@ class GroupPanel {
       }
     });
 
+    $(this._primary).find('.clearSelection').click(function() {
+      self.removeActiveLayers('.freeSelect');
+    });
+
     // add adjustment buttons
     $(this._primary).find('.freeSelect .toolbar').prepend(genAddAdjustmentButton('freeSelect'));
     $(this._primary).find('.freeSelect .toolbar .addAdjustment').dropdown({
@@ -2745,7 +2749,8 @@ class GroupPanel {
         if (name === "all")
           return false;
 
-        if (c.isGroup(name))
+        // can't have duplicate layer or group names
+        if (c.getFlatOrder().indexOf(name) !== -1)
           return false;
         
         let layers = [];
@@ -2787,7 +2792,11 @@ class GroupPanel {
     });
 
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .selectGroup.button').click(function() {
+      self.removeActiveLayers('.freeSelect');
+      self.addCardsToSection(c.getGroup(name).affectedLayers, '.freeSelect');
       self.displaySelectedLayers(c.getGroup(name).affectedLayers);
+
+      $(self._primary).find('.groupPanel .groupMode.menu .item').tab('change tab', 'freeSelectTab');
     });
 
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"] .deleteGroup.button').click(function() {
@@ -2930,6 +2939,19 @@ class GroupPanel {
 
     if (this._hideSelected) {
       renderImage('Group Panel Membership Change');
+    }
+  }
+
+  // removes layers from the active selection
+  removeActiveLayers(section) {
+    $(this._primary + ' ' + section).find('.groupContents').html('');
+    this.updateSection(section);
+    this.toggleSelectedLayers();
+  }
+
+  addCardsToSection(layerNames, section) {
+    for (let layer of layerNames) {
+      this.addCardToSection(layer, section);
     }
   }
 

@@ -1022,3 +1022,15 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
     height: auto;
     width: 100px;
 }
+
+.vizColorPicker {
+    display: block;
+    width: 180px;
+    height: 25px;
+    border-radius: 2px;
+    background-color: #FF0000;
+}
+
+.vizColorPicker:hover {
+    cursor: pointer;
+}

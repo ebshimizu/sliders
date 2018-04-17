@@ -5206,6 +5206,9 @@ function getSimilarColorTo(layerName) {
   let cmpImg = c.renderOnlyLayer(current, layerName, 'micro');
 
   for (let layer of allLayers) {
+    if (c.getLayer(layer).isAdjustmentLayer())
+      continue;
+
     let y = c.renderOnlyLayer(current, layer, 'micro');
 
     let dist = cmpImg.chamferDistance(y);

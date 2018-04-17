@@ -2533,6 +2533,7 @@ class GroupPanel {
     this._hoveredLayer = null;
     this._autoAddAdjustments = false;
     this._hideSelected = false;
+    this._vizSolidColor = { r: 1, g: 0, b: 0 };
 
     // initialize preview canvas
     this.updatePreviewCanvas();
@@ -2735,6 +2736,43 @@ class GroupPanel {
       $(self._primary + ' .groupSelectOptions').hide();
     });
     $(self._primary + ' .groupSelectOptions').hide();
+
+    // color nonsense
+    let elem = $(this._primary + ' .vizColorPicker');
+    elem.click(function () {
+      if ($('#colorPicker').hasClass('hidden')) {
+        // move color picker to spot
+        var offset = elem.offset();
+
+        cp.setColor({ "r": self._vizSolidColor.r * 255, "g": self._vizSolidColor.g * 255, "b": self._vizSolidColor.b * 255 }, 'rgb');
+        cp.startRender();
+
+        $("#colorPicker").css({ 'left': '', 'right': '', 'top': '', 'bottom': '' });
+        if (offset.top + elem.height() + $('#colorPicker').height() > $('body').height()) {
+          $('#colorPicker').css({ "right": "10px", top: offset.top - $('#colorPicker').height() });
+        }
+        else {
+          $('#colorPicker').css({ "right": "10px", top: offset.top + elem.height() });
+        }
+
+        // assign callbacks to update proper color
+        cp.color.options.actionCallback = function (e, action) {
+          console.log(action);
+          if (action === "changeXYValue" || action === "changeZValue" || action === "changeInputValue") {
+            var color = cp.color.colors.rgb;
+            self._vizSolidColor = color;
+            $(elem).css({ "background-color": "#" + cp.color.colors.HEX });
+          }
+        };
+
+        $('#colorPicker').addClass('visible');
+        $('#colorPicker').removeClass('hidden');
+      }
+      else {
+        $('#colorPicker').addClass('hidden');
+        $('#colorPicker').removeClass('visible');
+      }
+    });
   }
 
   addNewGroup() {
@@ -2750,7 +2788,7 @@ class GroupPanel {
           return false;
 
         // can't have duplicate layer or group names
-        if (c.getFlatOrder().indexOf(name) !== -1)
+        if (c.getFlatLayerOrder().indexOf(name) !== -1)
           return false;
         
         let layers = [];
@@ -3284,11 +3322,14 @@ class GroupPanel {
         if (c.layerInGroup(layers[l], this._currentGroup)) {
           $(this._secondary).find('.layerSelectGroup tr[layer-name="' + layers[l] + '"] .checkbox').checkbox('set checked');
         }
+
+        $(this._secondary).find('.layerSelectGroup .selectSimilar.button[layer-name="' + layers[l] + '"]').dropdown({
+          onChange: (value, text, elem) => self.handleSimilarLayerDropdown(value, layers[l])
+        });
       }
     }
 
     let self = this;
-    $(this._secondary).find('.layerSelectGroup .selectSimilar.button').dropdown();
     $(this._secondary).find('.layerSelectGroup tr').mouseover(function() {
       self._hoveredLayer = $(this).attr('layer-name');
       self.startVis($(this).attr('layer-name'), { mode: self._layerSelectPreviewMode });
@@ -3328,6 +3369,22 @@ class GroupPanel {
     });
 
     self.toggleSelectedLayers();
+  }
+
+  handleSimilarLayerDropdown(value, layer) {
+    if (value == 'color') {
+      this.showSimilarLayers(getSimilarColorTo(layer));
+    }
+  }
+
+  // takes a list of layer similarity pairs and then shows them
+  showSimilarLayers(order) {
+    let layerNames = [];
+    for (let l of order) {
+      layerNames.push(l.layer);
+    }
+
+    this.displaySelectedLayers(layerNames);
   }
 
   get selectedLayers() {
@@ -3407,12 +3464,12 @@ class GroupPanel {
       if (!c.isGroup(name)) {
         if (this._displayOnMain) {
           //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
-          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
+          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(this._vizSolidColor.r, this._vizSolidColor.g, this._vizSolidColor.b), $('#previewCanvas'));
           $('#renderCanvas').show();
         }
         if (opts.canvas) {
           //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), opts.canvas);
-          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(1, 0, 0), opts.canvas);
+          drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize).fill(this._vizSolidColor.r, this._vizSolidColor.g, this._vizSolidColor.b), opts.canvas);
         }
       }
     }

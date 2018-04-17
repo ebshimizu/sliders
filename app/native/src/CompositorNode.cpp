@@ -600,8 +600,9 @@ void ImageWrapper::chamferDistance(const Nan::FunctionCallbackInfo<v8::Value>& i
   ImageWrapper* y = Nan::ObjectWrap::Unwrap<ImageWrapper>(maybe1.ToLocalChecked());
 
   float d = image->_image->chamferDistance(y->_image);
+  float d2 = y->_image->chamferDistance(image->_image);
 
-  info.GetReturnValue().Set(Nan::New(d));
+  info.GetReturnValue().Set(Nan::New(d + d2));
 }
 
 void ImportanceMapWrapper::Init(v8::Local<v8::Object> exports)

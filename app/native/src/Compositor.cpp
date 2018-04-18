@@ -579,6 +579,12 @@ namespace Comp {
           // adjustments on a pass through precomp are normal adjustment layers
           // (except here you can't really modify the strength of them so ...?)
           adjust(comp, l);
+          for (auto& o : _groupOrder) {
+            if (_groups[o.second]._affectedLayers.count(id) > 0) {
+              adjust(comp, c[o.second]);
+            }
+          }
+
           continue;
         }
         else {
@@ -587,6 +593,11 @@ namespace Comp {
           tmpLayer = render(c, nullptr, l.getPrecompOrder(), co, size);
           // apply adjustments, continue as normal
           adjust(tmpLayer, l);
+          for (auto& o : _groupOrder) {
+            if (_groups[o.second]._affectedLayers.count(id) > 0) {
+              adjust(tmpLayer, c[o.second]);
+            }
+          }
           layerPxV = &tmpLayer->getData();
           isPrecompLayer = true;
         }

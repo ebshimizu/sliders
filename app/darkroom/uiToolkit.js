@@ -2954,14 +2954,15 @@ class GroupPanel {
     if ($('.sectionControls').hasClass('is-hidden')) { 
       // yet another redirection
       this.addCardToSection(layerName, '.freeSelect');
+
+      if (this._hideSelected) {
+        renderImage('Group Panel Membership Change');
+      }
     }
     else {
       c.addLayerToGroup(layerName, $('.sectionControls').attr('groupName'));
-      this.addCardToSection(layerName, '.sectionControls');
-    }
-
-    if (this._hideSelected) {
-      renderImage('Group Panel Membership Change');
+      this.showSavedGroupControls($('.sectionControls').attr('groupName'));
+      renderImage('Group Membership Change');
     }
   }
 
@@ -2969,14 +2970,15 @@ class GroupPanel {
   handleLayerUnchecked(layerName) {
     if ($('.sectionControls').hasClass('is-hidden')) { 
       this.removeFromSection(layerName, '.freeSelect');
+
+      if (this._hideSelected) {
+        renderImage('Group Panel Membership Change');
+      }
     }
     else {
       c.removeLayerFromGroup(layerName, $('.sectionControls').attr('groupName'));
-      this.removeFromSection(layerName, '.sectionControls');
-    }
-
-    if (this._hideSelected) {
-      renderImage('Group Panel Membership Change');
+      this.showSavedGroupControls($('.sectionControls').attr('groupName'));
+      renderImage('Group Membership Change');
     }
   }
 

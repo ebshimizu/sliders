@@ -1639,7 +1639,7 @@ namespace Comp {
       string id = kvp.first;
 
       if (mode == "alpha") {
-        if (!_primary[id].isAdjustmentLayer()) {
+        if (!_primary[id].isAdjustmentLayer() && !_primary[id].isPrecomp()) {
           auto img = getCachedImage(id, "full");
 
           scores[id] = (img->getPixel(x, y)._a);
@@ -1700,6 +1700,14 @@ namespace Comp {
 
         // log it 
         getLogger()->log("specVisibilityDelta for " + id + ": " + to_string(diff));
+      }
+    }
+
+    // special alpha case for precomps
+    for (auto& score : scores) {
+      vector<string> modOrder = getModifierOrder(score.first);
+      for (auto& name : modOrder) {
+        scores[name] = max(scores[name], score.second);
       }
     }
   }

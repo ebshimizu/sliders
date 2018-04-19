@@ -1017,6 +1017,7 @@ class LayerSelector {
 
     // goal menu initialization
     this._goalMenu = new GoalMenu();
+    this._layerListPopup = new LayerListPopup();
     this.initCanvas();
     this.initUI();
 
@@ -1655,7 +1656,7 @@ class LayerSelector {
 
   canvasMouseUp(event) {
     // button check
-    if (event.which === 1) {
+    if (event.which === 1 || event.which === 3) {
       if (this._mouseMode === mouseMode.normal) {
         if (this._selectionMode === "localBox") {
           if (this._drawing) {
@@ -1684,10 +1685,15 @@ class LayerSelector {
         this._currentPt = this.screenToLocal(event.pageX, event.pageY);
         this.showLayerSelectPopup(event.pageX, event.pageY);
       }
+
+      this._layerListPopup.hide();
     }
-    else if (event.which === 3) {
+    
+    if (event.which === 3) {
       //this._filterMenu.showAt(event.pageX, event.pageY);
-      this._goalMenu.showAt(event.pageX, event.pageY);
+      //this._goalMenu.showAt(event.pageX, event.pageY);
+      this._layerListPopup.showSelectedLayers(g_groupPanel.selectedLayers, g_groupPanel);
+      this._layerListPopup.showAt(event.pageX, event.pageY);
     }
   }
 
@@ -4373,6 +4379,84 @@ function generateAdjustmentHTML(adjustments, layerName) {
   }
 
   return html;
+}
+
+class LayerListPopup {
+  constructor() {
+    this.initUI();
+    this._layerList = [];
+  }
+
+  initUI() {
+    // most of this is already pre-initialized in the markup
+    this._uiElem = $('#layerListPopup');
+    let self = this;
+    this._uiElem.find('.closeButton').click(function() {
+      self._uiElem.hide();
+    })
+    this._uiElem.hide();
+  }
+
+  showSelectedLayers(layers, callbackTarget) {
+    this._uiElem.find('.tableContainer table').html('');
+    var self = this;
+    for (let layer of layers) {
+      let elem = '<tr layer-name="' + layer + '">';
+      elem += '<td class="collapsing"><div class="ui toggle checkbox"><input type="checkbox"></div></td>';
+      elem += '<td class="activeArea" layer-name="' + layer + '">' + layer + '</td>';
+      elem += '</tr>';
+
+      elem = $(elem);
+      this._uiElem.find('.tableContainer table').append(elem);
+
+      elem.find('.checkbox').checkbox({
+        onChecked: function() {
+          callbackTarget.handleLayerChecked(layer);
+        },
+        onUnchecked: function() {
+          callbackTarget.handleLayerUnchecked(layer);
+        },
+        beforeChecked: function() {
+          return !c.getGroup(callbackTarget._currentGroup).readOnly;
+        },
+        beforeUnchecked: function() {
+          return !c.getGroup(callbackTarget._currentGroup).readOnly;
+        }
+      });
+    }
+
+    this._uiElem.find('tr').mouseover(function() {
+      callbackTarget._hoveredLayer = $(this).attr('layer-name');
+      callbackTarget.startVis($(this).attr('layer-name'), { mode: callbackTarget._layerSelectPreviewMode });
+    });
+    this._uiElem.find('tr').mouseout(function() {
+      callbackTarget._hoveredLayer = null;
+      callbackTarget.stopVis($(this).attr('layer-name'));
+    });
+
+    this._uiElem.find('td.activeArea').mousedown(function(event) {
+      if (event.which === 1) {
+        callbackTarget.hideLayerControl();
+        callbackTarget.showLayerControl($(this).attr('layer-name'));
+      }
+      else if (event.which === 3) {
+        //$(callbackTarget._secondary).find('.layerSelectGroup tr[layer-name="' + $(this).attr('layer-name') + '"] .checkbox').checkbox('toggle');
+        self._uiElem.find('tr[layer-name="' + $(this).attr('layer-name') + '"] .checkbox').checkbox('toggle');
+      }
+    });
+  }
+
+  showAt(x, y) {
+    var maxTop = $('body').height() - this._uiElem.height() - 50;
+    var top = Math.min(maxTop, y);
+
+    this._uiElem.css({ left: x, top: top });
+    this._uiElem.show();
+  }
+
+  hide() {
+    this._uiElem.hide();
+  }
 }
 
 // this class creates a layer control widget, including sliders for every individual

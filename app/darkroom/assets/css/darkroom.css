@@ -789,13 +789,20 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 
 /* tagging popup window, goal popup window */
 #filterMenu,
-#goalMenu
+#goalMenu,
+#layerListPopup
 {
     position: absolute;
     left: 0;
     top: 0;
     z-index: 1000;
     width: 300px;
+}
+
+#layerListPopup .tableContainer {
+    max-height: 250px;
+    margin-top: 26px;
+    overflow-y: auto;
 }
 
 #filterMenu .dropdown,
@@ -805,7 +812,8 @@ div#sampleWrapper.filename .ribbon.label[metadata-key="filename"] {
 }
 
 #filterMenu .closeButton,
-#goalMenu .closeButton
+#goalMenu .closeButton,
+#layerListPopup .closeButton
 {
     position: absolute;
     right: 0px;

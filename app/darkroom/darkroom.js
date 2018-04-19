@@ -394,6 +394,7 @@ function initUI() {
   $('#mapViz canvas').mouseup(mapMouseUp);
   $('#saveUIConfig').click(saveCustomUI);
   $('#openUIConfig').click(openCustomUI);
+  $('#layerListPopup').hide();
 
   // render size options
   $('#renderSize a.item').click(function () {

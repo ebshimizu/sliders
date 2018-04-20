@@ -4412,9 +4412,11 @@ class LayerListPopup {
       elem.find('.checkbox').checkbox({
         onChecked: function() {
           callbackTarget.handleLayerChecked(layer);
+          callbackTarget.toggleSelectedLayers();
         },
         onUnchecked: function() {
           callbackTarget.handleLayerUnchecked(layer);
+          callbackTarget.toggleSelectedLayers();
         },
         beforeChecked: function() {
           return !c.getGroup(callbackTarget._currentGroup).readOnly;

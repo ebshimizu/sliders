@@ -14,7 +14,7 @@ vectors = []
 for f in files:
     # need to convert into list of vectors
     if f.endswith('.npy'):
-        filenames.append(f[:-4])
+        filenames.append(f[:-8])
         data = np.load(src + '/' + f)
         vectors.append(np.reshape(data, (14 * 14, 512)))
 

@@ -53,7 +53,7 @@ with tf.Graph().as_default():
                 slim.get_model_variables('vgg_16'))
             
             #print (slim.get_model_variables('vgg_16'))
-            feature_conv_5_3 = end_points['vgg_16/conv5/conv5_3']
+            feature_conv_5_3 = end_points['vgg_16/conv4/conv4_2']
 
             with tf.Session() as sess:
                 tf.train.start_queue_runners(sess=sess)

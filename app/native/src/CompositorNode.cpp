@@ -1818,6 +1818,7 @@ void CompositorWrapper::Init(v8::Local<v8::Object> exports)
   Nan::SetPrototypeMethod(tpl, "getGroupInclusionMap", getGroupInclusionMap);
   Nan::SetPrototypeMethod(tpl, "addGroupEffect", addGroupEffect);
   Nan::SetPrototypeMethod(tpl, "renderOnlyLayer", renderOnlyLayer);
+  Nan::SetPrototypeMethod(tpl, "isLayer", isLayer);
 
   compositorConstructor.Reset(tpl->GetFunction());
   exports->Set(Nan::New("Compositor").ToLocalChecked(), tpl->GetFunction());
@@ -1872,6 +1873,20 @@ void CompositorWrapper::getLayer(const Nan::FunctionCallbackInfo<v8::Value>& inf
   v8::Local<v8::Value> argv[argc] = { Nan::New<v8::External>(&l) };
 
   info.GetReturnValue().Set(Nan::NewInstance(cons, argc, argv).ToLocalChecked());
+}
+
+void CompositorWrapper::isLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)
+{
+  CompositorWrapper* c = ObjectWrap::Unwrap<CompositorWrapper>(info.Holder());
+  nullcheck(c->_compositor, "compositor.addLayer");
+
+  if (info[0]->IsString()) {
+    v8::String::Utf8Value i0(info[0]->ToString());
+    info.GetReturnValue().Set(Nan::New(c->_compositor->getPrimaryContext().count(string(*i0)) > 0));
+  }
+  else {
+    info.GetReturnValue().Set(Nan::New(false));
+  }
 }
 
 void CompositorWrapper::addLayer(const Nan::FunctionCallbackInfo<v8::Value>& info)

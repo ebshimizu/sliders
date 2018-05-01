@@ -2540,6 +2540,7 @@ class GroupPanel {
     this._autoAddAdjustments = false;
     this._hideSelected = false;
     this._vizSolidColor = { r: 1, g: 0, b: 0 };
+    this._similarityScores = {};
 
     // initialize preview canvas
     this.updatePreviewCanvas();
@@ -3295,7 +3296,9 @@ class GroupPanel {
         elem += '<div class="ui icon top right pointing dropdown button selectSimilar" layer-name="' + layers[l] + '">';
         elem += '<i class="object group icon"></i><div class="menu">';
         elem += '<div class="header">Select Similar Layers</div>';
-        elem += '<div class="item" data-value="color">Color</div></div></div>';
+        elem += '<div class="item" data-value="color">Color</div>';
+        elem += '<div class="item" data-value="similar">Appearance</div>';
+        elem += '</div></div>';
         elem += '</td>';
         elem += '</tr>';
 
@@ -3380,8 +3383,24 @@ class GroupPanel {
   }
 
   handleSimilarLayerDropdown(value, layer) {
-    if (value == 'color') {
+    if (value === 'color') {
       this.showSimilarLayers(getSimilarColorTo(layer));
+    }
+    if (value === 'similar') {
+      let ranking = g_groupPanel._similarityScores[layer];
+
+      if (ranking) {
+        let objects = [];
+        for (let layer in ranking) {
+          if (c.isLayer(layer)) {
+            objects.push({ score: ranking[layer], layer: layer });
+          }
+        }
+        objects = objects.sort(function(a, b) {
+          return a.score - b.score;
+        });
+        this.showSimilarLayers(objects);
+      }
     }
   }
 

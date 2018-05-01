@@ -8,7 +8,7 @@ var chokidar = require('chokidar');
 var child_process = require('child_process');
 var drt = require('./dr');
 const uiTools = require('./uiToolkit');
-const saveVersion = 1.00; // big jump, renderer changed a lot
+const saveVersion = 1.01;
 const versionString = "0.1";
 
 function inherits(target, source) {
@@ -394,6 +394,7 @@ function initUI() {
   $('#mapViz canvas').mouseup(mapMouseUp);
   $('#saveUIConfig').click(saveCustomUI);
   $('#openUIConfig').click(openCustomUI);
+  $('#loadDistsCmd').click(loadDists);
   $('#layerListPopup').hide();
 
   // render size options
@@ -2603,6 +2604,11 @@ function loadLayers(doc, path, transfer) {
       addDebugConstraint(constraint.x, constraint.y, constraint.color, constraint.weight);
     }
   }
+
+  // similarity distance file, added 1.01
+  if (doc.dists !== undefined) {
+    g_groupPanel._similarityScores = doc.dists;
+  }
 }
 
 // saves the document in an easier to load format
@@ -2695,6 +2701,9 @@ function save(file) {
   //settings
   out.settings = settings;
 
+  // similarity scores
+  out.dists = g_groupPanel._similarityScores;
+
   fs.writeFile(file, JSON.stringify(out, null, 2), (err) => {
     if (err) {
       showStatusMsg(err.toString(), "ERROR", "Error Saving File");
@@ -2755,6 +2764,28 @@ function saveImgCmd() {
     var file = filePaths;
 
     c.render().save(file);
+  });
+}
+
+function loadDists() {
+  dialog.showOpenDialog({
+    filters: [{ name: 'Similarity Distance Files', extensions: ['json'] }],
+    title: "Open File"
+  }, function (filePaths) {
+    if (filePaths === undefined) {
+      return;
+    }
+
+    var file = filePaths[0];
+
+    fs.readFile(file, function (err, data) {
+      if (err) {
+        throw err;
+      }
+
+      g_groupPanel._similarityScores = JSON.parse(data);
+      showStatusMsg('', 'OK', 'Loaded Similarity Scores');
+    });
   });
 }
 

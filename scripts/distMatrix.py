@@ -16,7 +16,9 @@ for f in files:
     if f.endswith('.npy'):
         filenames.append(f[:-8])
         data = np.load(src + '/' + f)
-        vectors.append(np.reshape(data, (14 * 14, 512)))
+        # print data.shape
+        #vectors.append(np.reshape(data, (14 * 14, 512)))
+        vectors.append(np.reshape(data, (28 * 28, 512)))
 
 flann = FLANN()
 distMap = {}

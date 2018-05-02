@@ -1516,6 +1516,8 @@ class LayerSelector {
   }
 
   selectLayers() {
+    g_log.logAction('layersSelected');
+
     if (this._rankMode === "goal") {
       // goal-based selection is a bit different
       var layers = this.goalSelect();
@@ -1592,6 +1594,7 @@ class LayerSelector {
   }
 
   showLayerSelectPopup(screenPtX, screenPtY) {
+    g_log.logAction('layerSelectRightClickMenuOpened');
     if (this._layerSelectPopup) {
       this._layerSelectPopup.deleteUI();
     }
@@ -2788,6 +2791,8 @@ class GroupPanel {
       closable: false,
       onDeny: function () { },
       onApprove: function () {
+        g_log.logAction('newGroupCreated');
+
         let name = $('#newMetaGroupModal input').val();
         
         // all is a reserved keyword
@@ -2850,6 +2855,7 @@ class GroupPanel {
   }
 
   deleteGroup(name) {
+    g_log.logAction('groupDeleted');
     c.deleteGroup(name);
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"]').remove();
     renderImage('Group Removal');
@@ -2867,6 +2873,8 @@ class GroupPanel {
 
   // displays the layer control panel and the controls associated with the given layer
   showLayerControl(name) {
+    g_log.logAction('displayLayerControl');
+
     // assumed to be clear
     // generate the layer controller
     // TODO: layer control needs to highlight relevant parameters
@@ -2881,6 +2889,8 @@ class GroupPanel {
   }
 
   showSavedGroupControls(name) {
+    g_log.logAction('displaySavedGroupControl');
+
     $(this._primary).find('.sectionControls .groupContents').html('');
 
     let layers = c.getGroup(name).affectedLayers;
@@ -2965,11 +2975,14 @@ class GroupPanel {
       if (this._hideSelected) {
         renderImage('Group Panel Membership Change');
       }
+
+      g_log.logAction('addLayerToFreeSelect');
     }
     else {
       c.addLayerToGroup(layerName, $('.sectionControls').attr('groupName'));
       this.showSavedGroupControls($('.sectionControls').attr('groupName'));
       renderImage('Group Membership Change');
+      g_log.logAction('addLayerToGroup');
     }
   }
 
@@ -2981,11 +2994,13 @@ class GroupPanel {
       if (this._hideSelected) {
         renderImage('Group Panel Membership Change');
       }
+      g_log.logAction('removeLayerFromFreeSelect');
     }
     else {
       c.removeLayerFromGroup(layerName, $('.sectionControls').attr('groupName'));
       this.showSavedGroupControls($('.sectionControls').attr('groupName'));
       renderImage('Group Membership Change');
+      g_log.logAction('removeLayerFromGroup');
     }
   }
 
@@ -3471,6 +3486,7 @@ class GroupPanel {
     }
 
     if (opts.mode === PreviewMode.rawLayer) {
+      g_log.logAction('rawLayerVizStart');
       if (this._displayOnMain) {
         //drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
         drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize), $('#previewCanvas'));
@@ -3481,6 +3497,7 @@ class GroupPanel {
       }
     }
     else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {
+      g_log.logAction('animatedVizStart');
       if (this._intervalID !== null) {
         this.animateStop(name);
       }
@@ -3488,6 +3505,7 @@ class GroupPanel {
       this.animateStart(name, opts);
     }
     else if (opts.mode === PreviewMode.staticSolidColor) {
+      g_log.logAction('layerAlphaVizStart');
       if (!c.isGroup(name)) {
         if (this._displayOnMain) {
           //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
@@ -3906,6 +3924,9 @@ class GroupPanel {
   }
 
   paramHandler(section, event, ui, paramName, type) {
+    // not logging specific adjustments, just that there was one
+    g_log.logAction('parameterAdjustment');
+
     let rel = this._freeSelectAdjMode === 'relative';
 
     if (type === adjType["OPACITY"]) {
@@ -4603,6 +4624,7 @@ class LayerControls {
     this._uiElem.find('canvas').attr({ width: dims.w, height: dims.h });
 
     visibleButton.on('click', function () {
+      g_log.logAction('visibilityChange');
       // check status of button
       let visible = !visibleButton.find('i').hasClass('unhide');
       self.layer.visible(visible);
@@ -4976,6 +4998,8 @@ class LayerControls {
   }
 
   paramHandler(event, ui, paramName, type) {
+    g_log.logAction('paramChange');
+    
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;
       //for (let i = g_groupsByLayer[this.name].length - 1; i >= 0; i--) {

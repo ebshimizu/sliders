@@ -10,6 +10,7 @@ var drt = require('./dr');
 const uiTools = require('./uiToolkit');
 const saveVersion = 1.01;
 const versionString = "0.1";
+const Inst = require('./instrumentation');
 
 function inherits(target, source) {
   for (var k in source.prototype)
@@ -21,6 +22,7 @@ comp.setLogLevel(1);
 
 // initializes a global compositor object to operate on
 var c, docTree, dr;
+var g_log = new Inst.Instrumentation();
 var g_flatGroups = {};
 var g_groupsByLayer = {};
 var currentFile = "";
@@ -280,6 +282,13 @@ function processFile(filename) {
 // draws the given Compositor.Image on the given canvas element
 // canvas is expected to be a jquery object
 function drawImage(image, canvas) {
+  if (canvas[0].id === 'renderCanvas') {
+    g_log.logAction('mainCanvasRender');
+  }
+  else {
+    g_log.logAction('auxCanvasRender');
+  }
+
   var ctx = canvas[0].getContext("2d");
   var w = canvas[0].width;
   var h = canvas[0].height;
@@ -303,6 +312,22 @@ function eraseCanvas(canvas) {
   ctx.clearRect(0, 0, w, h);
 }
 
+function exportLogData() {
+  dialog.showSaveDialog({
+    filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    title: "Export Log"
+  },
+  function (file) {
+    if (file === undefined) {
+      return;
+    }
+
+    g_log.export(file);
+
+    showStatusMsg('', 'OK', 'Log Data Exported');
+  });
+}
+
 /*===========================================================================*/
 /* Initialization                                                            */
 /*===========================================================================*/
@@ -315,6 +340,7 @@ function init() {
   initCompositor();
   initUI();
   loadSettings();
+  g_log.reset();
 
   // load ceres settings
   fs.readFile('./codegen/ceres_settings.json', function (err, data) {
@@ -395,6 +421,9 @@ function initUI() {
   $('#saveUIConfig').click(saveCustomUI);
   $('#openUIConfig').click(openCustomUI);
   $('#loadDistsCmd').click(loadDists);
+  $('#startTrial').click(() => { g_log.reset(); g_log.start() });
+  $('#endTrial').click(() => { g_log.end() });
+  $('#exportLogData').click(exportLogData);
   $('#layerListPopup').hide();
 
   // render size options
@@ -2964,6 +2993,7 @@ function contextToJSON(ctx) {
 /*===========================================================================*/
 
 function handleParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   // hopefully ui has the name of the param somewhere
   var paramName = $(ui.handle).parent().attr("paramName");
 
@@ -2978,6 +3008,7 @@ function handleParamChange(layerName, ui) {
 }
 
 function handleHSLParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName == "hue") {
@@ -2995,6 +3026,7 @@ function handleHSLParamChange(layerName, ui) {
 }
 
 function handleLevelsParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName == "inMin") {
@@ -3018,6 +3050,7 @@ function handleLevelsParamChange(layerName, ui) {
 }
 
 function handleExposureParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "exposure") {
@@ -3035,6 +3068,7 @@ function handleExposureParamChange(layerName, ui) {
 }
 
 function handleColorBalanceParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "shadow R") {
@@ -3070,6 +3104,7 @@ function handleColorBalanceParamChange(layerName, ui) {
 }
 
 function handlePhotoFilterParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "density") {
@@ -3081,6 +3116,7 @@ function handlePhotoFilterParamChange(layerName, ui) {
 }
 
 function handleColorizeParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "alpha") {
@@ -3092,6 +3128,7 @@ function handleColorizeParamChange(layerName, ui) {
 }
 
 function handleLighterColorizeParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "alpha") {
@@ -3103,6 +3140,7 @@ function handleLighterColorizeParamChange(layerName, ui) {
 }
 
 function handleOverwriteColorizeParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "alpha") {
@@ -3114,6 +3152,7 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
 }
 
 function handleBrightnessParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
 
   if (paramName === "brightness") {
@@ -3128,6 +3167,7 @@ function handleBrightnessParamChange(layerName, ui) {
 }
 
 function handleSelectiveColorParamChange(layerName, ui) {
+  g_log.logAction('paramChange');
   var channel = $(ui.handle).parent().parent().parent().find('.text').html();
   var paramName = $(ui.handle).parent().attr("paramName");
 
@@ -3137,6 +3177,7 @@ function handleSelectiveColorParamChange(layerName, ui) {
 }
 
 function updateColor(layer, adjustment, color) {
+  g_log.logAction('colorParamChange');
   layer.addAdjustment(adjustment, "r", color.r);
   layer.addAdjustment(adjustment, "g", color.g);
   layer.addAdjustment(adjustment, "b", color.b);
@@ -3149,12 +3190,14 @@ function deleteAllControls() {
 }
 
 function toggleGroupVisibility(group, doc) {
+  g_log.logAction('visibilityChange');
   c.getLayer(group).visible(!c.getLayer(group).visible());
 
   return c.getLayer(group).visible();
 }
 
 function groupOpacityChange(group, val, doc) {
+  g_log.logAction('visibilityChange');
   c.getLayer(group).opacity(val / 100);
 
   $('.groupInput[setName="' + group + '"] input').val(String(val));

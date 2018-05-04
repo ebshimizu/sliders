@@ -2945,7 +2945,8 @@ class GroupPanel {
       else {
         let group = $(self._primary).find('.sectionControls').attr('groupName');
         c.removeLayerFromGroup(name, group);
-        self.removeFromSection(name, '.sectionControls');
+        $(this._primary + ' .sectionControls').find('.groupContents .card[layerName="' + name + '"]').parent().remove();
+        self.showSavedGroupControls(group);
         self.toggleSelectedLayers();
       }
     });
@@ -3047,6 +3048,7 @@ class GroupPanel {
 
   removeFromSection(layerName, section) {
     // if a card exists, delete it
+    $(this._primary + ' ' + section).find('.groupContents .card[layerName="' + layerName + '"]').parent().remove();
     $(this._primary + ' ' + section).find('.groupContents .card[layerName="' + layerName + '"]').parent().remove();
     this.updateSection(section);
   }

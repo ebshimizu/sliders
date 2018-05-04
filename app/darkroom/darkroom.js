@@ -1262,12 +1262,16 @@ function generateControlHTML(doc, order, setName = "") {
       continue;
     }
 
-    if (!("html" in doc[key])) {
+    if (c.getLayer(key).isPrecomp()) {
       // element is a set
       html += generateControlHTML(doc[key], order, key);
     }
+    //if (!("html" in doc[key])) {
     else {
-      html += doc[key].html;
+      if (doc[key].html) {
+        html += doc[key].html;
+      }
+
       order.unshift(key);
     }
   }
@@ -1439,6 +1443,7 @@ function bindStandardEvents(name, layer) {
   // visibility
   $('button[layerName="' + name + '"]').on('click', function () {
     // check status of button
+    g_log.logAction('visibilityChange');
     let visible = !$('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
     layer.visible(visible);
 

@@ -1262,7 +1262,7 @@ function generateControlHTML(doc, order, setName = "") {
       continue;
     }
 
-    if (c.getLayer(key).isPrecomp()) {
+    if (c.isLayer(key) && c.getLayer(key).isPrecomp()) {
       // element is a set
       html += generateControlHTML(doc[key], order, key);
     }
@@ -1270,9 +1270,8 @@ function generateControlHTML(doc, order, setName = "") {
     else {
       if (doc[key].html) {
         html += doc[key].html;
+        order.unshift(key);
       }
-
-      order.unshift(key);
     }
   }
 

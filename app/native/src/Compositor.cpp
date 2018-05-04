@@ -2625,6 +2625,7 @@ namespace Comp {
 
   int Compositor::applyIndexedOffset(int i, float dx, float dy, string size)
   {
+    return 0;
   }
 
   void Compositor::cacheScaled(string name)

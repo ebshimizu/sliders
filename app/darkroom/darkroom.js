@@ -28,6 +28,7 @@ var g_groupsByLayer = {};
 var currentFile = "";
 var cp;
 var msgId = 0, sampleId = 0;
+var g_rightClickMenuEnabled = true;
 var g_sampleIndex = {};
 var g_sideboard = {};
 var g_sideboardID = 100001;        // note: this is a huge hack to remove ID conflicts
@@ -425,6 +426,9 @@ function initUI() {
   $('#endTrial').click(() => { g_log.end() });
   $('#exportLogData').click(exportLogData);
   $('#layerListPopup').hide();
+  $('#showAllControls').click(() => { $('.item[data-tab="groupPanel"]').show(); $('.item[data-tab="layers"]').show(); $('.item[data-tab="selectedLayers"]').show(); g_rightClickMenuEnabled = true; });
+  $('#layerSetupMode').click(() => { $('.item[data-tab="groupPanel"]').hide(); $('.item[data-tab="layers"]').show(); $('.item[data-tab="selectedLayers"]').hide(); g_rightClickMenuEnabled = false });
+  $('#hoverSetupMode').click(() => { $('.item[data-tab="groupPanel"]').show(); $('.item[data-tab="layers"]').hide(); $('.item[data-tab="selectedLayers"]').show(); g_rightClickMenuEnabled = true; });
 
   // render size options
   $('#renderSize a.item').click(function () {

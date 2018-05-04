@@ -1686,7 +1686,9 @@ class LayerSelector {
         // with layer thumbnails and names. clicking on one of the popups opens those
         // layer controls on the right (for now, maybe inline?)
         this._currentPt = this.screenToLocal(event.pageX, event.pageY);
-        this.showLayerSelectPopup(event.pageX, event.pageY);
+        if (g_rightClickMenuEnabled) {
+          this.showLayerSelectPopup(event.pageX, event.pageY);
+        }
       }
 
       this._layerListPopup.hide();
@@ -1695,8 +1697,10 @@ class LayerSelector {
     if (event.which === 3) {
       //this._filterMenu.showAt(event.pageX, event.pageY);
       //this._goalMenu.showAt(event.pageX, event.pageY);
-      this._layerListPopup.showSelectedLayers(g_groupPanel.selectedLayers, g_groupPanel);
-      this._layerListPopup.showAt(event.pageX, event.pageY);
+      if (g_rightClickMenuEnabled) {
+        this._layerListPopup.showSelectedLayers(g_groupPanel.selectedLayers, g_groupPanel);
+        this._layerListPopup.showAt(event.pageX, event.pageY);
+      }
     }
   }
 

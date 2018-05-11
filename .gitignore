@@ -90,3 +90,8 @@ app/native/package-lock.json
 app/darkroom/build/config.gypi
 app/darkroom/test.png
 *.npy
+*.pyc
+*.h5
+ceres_harness/paramStats.json
+scripts/test/dists.json
+scripts/test2/dists.json

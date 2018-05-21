@@ -57,7 +57,7 @@ def build():
 
 		if (withElectron):
 			#cmd = cmd + " --target=1.8.4 --arch=x64 --dist-url=https://atom.io/download/electron"
-			cmd = cmd + " --target=1.7.5 --arch=x64 --dist-url=https://atom.io/download/electron"
+			cmd = cmd + " --target=2.0.1 --arch=x64 --dist-url=https://atom.io/download/electron"
 
 		print(cmd)
 		os.system(cmd)

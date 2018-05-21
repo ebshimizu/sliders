@@ -12,7 +12,10 @@
     "darkroom.html"
   ],
   "devDependencies": {
-    "electron": "^1.4.1"
+    "electron": "^2.0.1"
+  },
+  "scripts": {
+    "start": "node_modules/electron/dist/electron ."
   },
   "dependencies": {
     "chokidar": "1.7.0",

@@ -40,6 +40,7 @@ var g_groupPanel;
 var g_metaGroupList = {};
 var g_moveModeLayer = null;
 var g_moveModeInitPoint;
+var g_disableHoverControls = false;
 var settings = {
   "showSampleId": true,
   "sampleRows": 6,
@@ -426,9 +427,34 @@ function initUI() {
   $('#endTrial').click(() => { g_log.end() });
   $('#exportLogData').click(exportLogData);
   $('#layerListPopup').hide();
-  $('#showAllControls').click(() => { $('.item[data-tab="groupPanel"]').show(); $('.item[data-tab="layers"]').show(); $('.item[data-tab="selectedLayers"]').show(); g_rightClickMenuEnabled = true; });
-  $('#layerSetupMode').click(() => { $('.item[data-tab="groupPanel"]').hide(); $('.item[data-tab="layers"]').show(); $('.item[data-tab="selectedLayers"]').hide(); g_rightClickMenuEnabled = false });
-  $('#hoverSetupMode').click(() => { $('.item[data-tab="groupPanel"]').show(); $('.item[data-tab="layers"]').hide(); $('.item[data-tab="selectedLayers"]').show(); g_rightClickMenuEnabled = true; });
+  $('#showAllControls').click(() => {
+    $('.item[data-tab="groupPanel"]').show();
+    $('.item[data-tab="layers"]').show();
+    $('.item[data-tab="selectedLayers"]').show();
+    g_rightClickMenuEnabled = true;
+    g_disableHoverControls = false;
+  });
+  $('#layerSetupMode').click(() => {
+    $('.item[data-tab="groupPanel"]').hide();
+    $('.item[data-tab="layers"]').show();
+    $('.item[data-tab="selectedLayers"]').hide();
+    g_rightClickMenuEnabled = false;
+    g_disableHoverControls = true;
+  });
+  $('#hoverSetupMode').click(() => {
+    $('.item[data-tab="groupPanel"]').show();
+    $('.item[data-tab="layers"]').hide();
+    $('.item[data-tab="selectedLayers"]').show();
+    g_rightClickMenuEnabled = true;
+    g_disableHoverControls = false;
+  });
+  $('#clickSetupMode').click(() => {
+    $('.item[data-tab="groupPanel"]').show();
+    $('.item[data-tab="layers"]').show();
+    $('.item[data-tab="selectedLayers"]').hide();
+    g_rightClickMenuEnabled = true;
+    g_disableHoverControls = true;
+  })
 
   // render size options
   $('#renderSize a.item').click(function () {

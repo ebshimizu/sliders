@@ -2973,6 +2973,9 @@ class GroupPanel {
 
   // when a selected layer has the check button clicked, do some stuff
   handleLayerChecked(layerName) {
+    if (g_disableHoverControls)
+      return;
+
     if ($('.sectionControls').hasClass('is-hidden')) { 
       // yet another redirection
       this.addCardToSection(layerName, '.freeSelect');
@@ -2993,6 +2996,9 @@ class GroupPanel {
 
   // similarly, a function for unchecking yay
   handleLayerUnchecked(layerName) {
+    if (g_disableHoverControls)
+      return;
+
     if ($('.sectionControls').hasClass('is-hidden')) { 
       this.removeFromSection(layerName, '.freeSelect');
 
@@ -3485,6 +3491,9 @@ class GroupPanel {
     // more options may be added later of course
     if (name === null)
       return;
+
+    if (g_disableHoverControls) 
+      return
 
     if (this._displayOnMain) {
       $('#previewCanvas').show();

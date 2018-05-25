@@ -31,7 +31,8 @@ const PreviewMode = {
   "staticSolidColor" : 5,
   "animatedSolidColor" : 6,
   "invertedColor" : 7,
-  "animatedRawLayer" : 8
+  "animatedRawLayer" : 8,
+  "upToLayer" : 9
 }
 
 const AnimationMode = {
@@ -2533,7 +2534,7 @@ class GroupPanel {
 
     this._previewMode = PreviewMode.animatedParams;
     this._layerSelectPreviewMode = PreviewMode.staticSolidColor;
-    this._renderSize = "medium";
+    this._renderSize = "small";
     this._animationData = {};
     this._animationCache = {};
     this._loopSize = 10;
@@ -2682,11 +2683,13 @@ class GroupPanel {
 
     $(document).keydown(function(event) {
       let oldMode = self._layerSelectPreviewMode;
-      // shift
-      if (event.keyCode === 16) {
+      if (event.shiftKey && event.ctrlKey) {
+        self._layerSelectPreviewMode = PreviewMode.upToLayer;
+      }
+      else if (event.shiftKey) {
         self._layerSelectPreviewMode = PreviewMode.rawLayer;
       }
-      else if (event.keyCode === 17) {
+      else if (event.ctrlKey) {
         self._layerSelectPreviewMode = PreviewMode.animatedParams;
       }
 
@@ -3503,12 +3506,25 @@ class GroupPanel {
     if (opts.mode === PreviewMode.rawLayer) {
       g_log.logAction('rawLayerVizStart');
       if (this._displayOnMain) {
-        //drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
-        drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize), $('#previewCanvas'));
+        drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
+        //drawImage(c.renderUpToLayer(c.getContext(), name, '', 0.2, this._renderSize), );
       }
       if (opts.canvas) {
-        //drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
-        drawImage(c.renderOnlyLayer(c.getContext(), name, this._renderSize), opts.canvas);
+        drawImage(c.getCachedImage(name, this._renderSize), opts.canvas);
+        //drawImage(c.renderUpToLayer(c.getContext(), name, '', 0.2, this._renderSize), opts.canvas);
+      }
+    }
+    else if (opts.mode === PreviewMode.upToLayer) {
+      g_log.logAction('upToLayerVizStart');
+      if (this._displayOnMain) {
+        c.asyncRenderUpToLayer(c.getContext(), name, '', 0.1, this._renderSize, function(err, img) {
+          drawImage(img, $('#previewCanvas'));
+        });
+      }
+      if (opts.canvas) {
+        c.asyncRenderUpToLayer(c.getContext(), name, '', 0.1, this._renderSize, function(err, img) {
+          drawImage(img, $('#previewCanvas'));
+        });
       }
     }
     else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {

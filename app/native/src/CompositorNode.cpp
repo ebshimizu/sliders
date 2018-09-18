@@ -162,7 +162,7 @@ void asyncNop(uv_work_t * req)
 
 v8::Local<v8::Value> excGet(v8::Local<v8::Object>& obj, string key)
 {
-  if (obj->HasOwnProperty(Nan::New(key).ToLocalChecked())) {
+  if (Nan::HasOwnProperty(obj, Nan::New(key).ToLocalChecked()).ToChecked()) {
     return obj->Get(Nan::New(key).ToLocalChecked());
   }
   else {
@@ -3359,7 +3359,7 @@ void CompositorWrapper::addGroupEffect(const Nan::FunctionCallbackInfo<v8::Value
     v8::Local<v8::Object> obj = info[1].As<v8::Object>();
 
     // must have mode
-    if (!obj->HasOwnProperty(Nan::New("mode").ToLocalChecked())) {
+    if (!Nan::HasOwnProperty(obj, Nan::New("mode").ToLocalChecked()).ToChecked()) {
       Nan::ThrowError("Group effect needs a mode");
     }
 
@@ -3368,10 +3368,10 @@ void CompositorWrapper::addGroupEffect(const Nan::FunctionCallbackInfo<v8::Value
     effect._mode = (Comp::EffectMode)mode;
 
     if (mode == Comp::EffectMode::STROKE) {
-      if (!obj->HasOwnProperty(Nan::New("width").ToLocalChecked())) {
+      if (!Nan::HasOwnProperty(obj, Nan::New("width").ToLocalChecked()).ToChecked()) {
         Nan::ThrowError("Stroke effect needs a width");
       }
-      if (!obj->HasOwnProperty(Nan::New("color").ToLocalChecked())) {
+      if (!Nan::HasOwnProperty(obj, Nan::New("color").ToLocalChecked()).ToChecked()) {
         Nan::ThrowError("Stroke effect needs a color");
       }
 
@@ -4406,7 +4406,7 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
       Comp::LayerParamInfo param;
 
       // looking for specific params
-      if (objData->HasOwnProperty(Nan::New("layerName").ToLocalChecked())) {
+      if (Nan::HasOwnProperty(objData, Nan::New("layerName").ToLocalChecked()).ToChecked()) {
         v8::String::Utf8Value str(objData->Get(Nan::New("layerName").ToLocalChecked())->ToString());
         param._name = string(*str);
       }
@@ -4414,7 +4414,7 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
         Nan::ThrowError("Parameter objects must have a layerName field");
       }
 
-      if (objData->HasOwnProperty(Nan::New("param").ToLocalChecked())) {
+      if (Nan::HasOwnProperty(objData, Nan::New("param").ToLocalChecked()).ToChecked()) {
         v8::String::Utf8Value str(objData->Get(Nan::New("param").ToLocalChecked())->ToString());
         param._param = string(*str);
       }
@@ -4422,7 +4422,7 @@ void ModelWrapper::addSlider(const Nan::FunctionCallbackInfo<v8::Value>& info)
         Nan::ThrowError("Parameter objects must have a param field");
       }
 
-      if (objData->HasOwnProperty(Nan::New("adjustmentType").ToLocalChecked())) {
+      if (Nan::HasOwnProperty(objData, Nan::New("adjustmentType").ToLocalChecked()).ToChecked()) {
         param._type = (Comp::AdjustmentType)(objData->Get(Nan::New("adjustmentType").ToLocalChecked())->Int32Value());
       }
       else {

@@ -2537,7 +2537,7 @@ class GroupPanel {
     this._renderSize = "small";
     this._animationData = {};
     this._animationCache = {};
-    this._loopSize = 10;
+    this._loopSize = 5;
     this._fps = 60;
     this._animationMode = AnimationMode.bounce;
     this._frameHold = 15;

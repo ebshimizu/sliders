@@ -12,7 +12,7 @@
     "darkroom.html"
   ],
   "devDependencies": {
-    "electron": "2.0.9",
+    "electron": "^2.0.9",
     "eslint": "^4.19.1"
   },
   "scripts": {

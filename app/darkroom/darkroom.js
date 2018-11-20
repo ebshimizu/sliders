@@ -285,10 +285,10 @@ function processFile(filename) {
 // canvas is expected to be a jquery object
 function drawImage(image, canvas) {
   if (canvas[0].id === 'renderCanvas') {
-    g_log.logAction('mainCanvasRender');
+    g_log.logAction('mainCanvasRender', '');
   }
   else {
-    g_log.logAction('auxCanvasRender');
+    g_log.logAction('auxCanvasRender', '');
   }
 
   var ctx = canvas[0].getContext("2d");
@@ -1472,9 +1472,9 @@ function bindStandardEvents(name, layer) {
   // visibility
   $('button[layerName="' + name + '"]').on('click', function () {
     // check status of button
-    g_log.logAction('visibilityChange');
     let visible = !$('.visibleButton[layerName="' + name + '"] i').hasClass('unhide');
     layer.visible(visible);
+    g_log.logAction('visibilityChange', `${name}: ${visible}`);
 
     var button = $('button[layerName="' + name + '"]');
 
@@ -3027,9 +3027,9 @@ function contextToJSON(ctx) {
 /*===========================================================================*/
 
 function handleParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   // hopefully ui has the name of the param somewhere
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName == "opacity") {
     // groups are applied in reverse order
@@ -3042,8 +3042,8 @@ function handleParamChange(layerName, ui) {
 }
 
 function handleHSLParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName == "hue") {
     c.getLayer(layerName).addAdjustment(adjType.HSL, "hue", (ui.value / 360) + 0.5);
@@ -3060,8 +3060,8 @@ function handleHSLParamChange(layerName, ui) {
 }
 
 function handleLevelsParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName == "inMin") {
     c.getLayer(layerName).addAdjustment(adjType.LEVELS, "inMin", ui.value / 255);
@@ -3084,8 +3084,8 @@ function handleLevelsParamChange(layerName, ui) {
 }
 
 function handleExposureParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "exposure") {
     c.getLayer(layerName).addAdjustment(adjType.EXPOSURE, "exposure", (ui.value / 10) + 0.5);
@@ -3102,8 +3102,8 @@ function handleExposureParamChange(layerName, ui) {
 }
 
 function handleColorBalanceParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "shadow R") {
     c.getLayer(layerName).addAdjustment(adjType.COLOR_BALANCE, "shadowR", (ui.value / 2) + 0.5);
@@ -3138,8 +3138,8 @@ function handleColorBalanceParamChange(layerName, ui) {
 }
 
 function handlePhotoFilterParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "density") {
     c.getLayer(layerName).addAdjustment(adjType.PHOTO_FILTER, "density", ui.value);
@@ -3150,8 +3150,8 @@ function handlePhotoFilterParamChange(layerName, ui) {
 }
 
 function handleColorizeParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "alpha") {
     c.getLayer(layerName).addAdjustment(adjType.COLORIZE, "a", ui.value);
@@ -3162,8 +3162,8 @@ function handleColorizeParamChange(layerName, ui) {
 }
 
 function handleLighterColorizeParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "alpha") {
     c.getLayer(layerName).addAdjustment(adjType.LIGHTER_COLORIZE, "a", ui.value);
@@ -3174,8 +3174,8 @@ function handleLighterColorizeParamChange(layerName, ui) {
 }
 
 function handleOverwriteColorizeParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "alpha") {
     c.getLayer(layerName).addAdjustment(adjType.OVERWRITE_COLOR, "a", ui.value);
@@ -3186,8 +3186,8 @@ function handleOverwriteColorizeParamChange(layerName, ui) {
 }
 
 function handleBrightnessParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, val: ${ui.val}`);
 
   if (paramName === "brightness") {
     c.getLayer(layerName).addAdjustment(adjType.BRIGHTNESS, "brightness", (ui.value / 2) + 0.5);
@@ -3201,9 +3201,9 @@ function handleBrightnessParamChange(layerName, ui) {
 }
 
 function handleSelectiveColorParamChange(layerName, ui) {
-  g_log.logAction('paramChange');
   var channel = $(ui.handle).parent().parent().parent().find('.text').html();
   var paramName = $(ui.handle).parent().attr("paramName");
+  g_log.logAction('paramChange', `layer: ${layerName}, param: ${paramName}, channel: ${channel}, val: ${ui.val}`);
 
   c.getLayer(layerName).selectiveColorChannel(channel, paramName, (ui.value / 200) + 0.5);
 
@@ -3211,7 +3211,7 @@ function handleSelectiveColorParamChange(layerName, ui) {
 }
 
 function updateColor(layer, adjustment, color) {
-  g_log.logAction('colorParamChange');
+  g_log.logAction('colorParamChange', `layer: ${layer.name}, adj: ${adjustment}, color: (${color.r}, ${color.g}, ${color.b})`);
   layer.addAdjustment(adjustment, "r", color.r);
   layer.addAdjustment(adjustment, "g", color.g);
   layer.addAdjustment(adjustment, "b", color.b);
@@ -3224,14 +3224,14 @@ function deleteAllControls() {
 }
 
 function toggleGroupVisibility(group, doc) {
-  g_log.logAction('visibilityChange');
+  g_log.logAction('visibilityChange', `${group}: ${!c.getLayer(group).visible()}`);
   c.getLayer(group).visible(!c.getLayer(group).visible());
 
   return c.getLayer(group).visible();
 }
 
 function groupOpacityChange(group, val, doc) {
-  g_log.logAction('visibilityChange');
+  g_log.logAction('visibilityChange', `${group}: ${val}`);
   c.getLayer(group).opacity(val / 100);
 
   $('.groupInput[setName="' + group + '"] input').val(String(val));

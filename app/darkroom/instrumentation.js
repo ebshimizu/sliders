@@ -5,12 +5,17 @@ class Instrumentation {
     this.reset();
   }
 
-  logAction(actionName) {
+  logAction(actionName, detail) {
     if (!(actionName in this._counts)) {
       this._counts[actionName] = 0;
     }
 
     this._counts[actionName] += 1;
+    this._actions.push({
+      type: actionName,
+      message: detail,
+      time: (new Date().getTime() - this._start.getTime()) / 1000;
+    });
   }
 
   start() {
@@ -33,6 +38,7 @@ class Instrumentation {
     this._counts = {};
     this._start = new Date();
     this._end = new Date();
+    this._actions = [];
   }
 
   export(file) {
@@ -40,6 +46,7 @@ class Instrumentation {
     outData._start = this._start;
     outData._end = this._end;
     outData._duration = this.duration;
+    outData._actions = this._actions;
 
     fs.writeFileSync(file, JSON.stringify(outData, null, 2));
   }

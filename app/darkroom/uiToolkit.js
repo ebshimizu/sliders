@@ -1517,7 +1517,7 @@ class LayerSelector {
   }
 
   selectLayers() {
-    g_log.logAction('layersSelected');
+    g_log.logAction('layersSelected', `Displayed ${layerNames.length} layers.`);
 
     if (this._rankMode === "goal") {
       // goal-based selection is a bit different
@@ -1595,7 +1595,7 @@ class LayerSelector {
   }
 
   showLayerSelectPopup(screenPtX, screenPtY) {
-    g_log.logAction('layerSelectRightClickMenuOpened');
+    g_log.logAction('layerSelectRightClickMenuOpened', `Location: (${screenPtX}, ${screenPtY})`);
     if (this._layerSelectPopup) {
       this._layerSelectPopup.deleteUI();
     }
@@ -2798,9 +2798,8 @@ class GroupPanel {
       closable: false,
       onDeny: function () { },
       onApprove: function () {
-        g_log.logAction('newGroupCreated');
-
         let name = $('#newMetaGroupModal input').val();
+        g_log.logAction('newGroupCreated', `Created List ${name}`);
         
         // all is a reserved keyword
         if (name === "all")
@@ -2862,7 +2861,7 @@ class GroupPanel {
   }
 
   deleteGroup(name) {
-    g_log.logAction('groupDeleted');
+    g_log.logAction('groupDeleted', `Deleted list ${name}.`);
     c.deleteGroup(name);
     $(this._primary).find('.savedSelections tr[groupName="' + name + '"]').remove();
     renderImage('Group Removal');
@@ -2880,7 +2879,7 @@ class GroupPanel {
 
   // displays the layer control panel and the controls associated with the given layer
   showLayerControl(name) {
-    g_log.logAction('displayLayerControl');
+    g_log.logAction('displayLayerControl', name);
 
     // assumed to be clear
     // generate the layer controller
@@ -2896,7 +2895,7 @@ class GroupPanel {
   }
 
   showSavedGroupControls(name) {
-    g_log.logAction('displaySavedGroupControl');
+    g_log.logAction('displaySavedGroupControl', `List: ${name}`);
 
     $(this._primary).find('.sectionControls .groupContents').html('');
 
@@ -2987,13 +2986,13 @@ class GroupPanel {
         renderImage('Group Panel Membership Change');
       }
 
-      g_log.logAction('addLayerToFreeSelect');
+      g_log.logAction('addLayerToFreeSelect', `${layerName} added to free select`);
     }
     else {
       c.addLayerToGroup(layerName, $('.sectionControls').attr('groupName'));
       this.showSavedGroupControls($('.sectionControls').attr('groupName'));
       renderImage('Group Membership Change');
-      g_log.logAction('addLayerToGroup');
+      g_log.logAction('addLayerToGroup', `${layerName} added to group ${$('.sectionControls').attr('groupName')}`);
     }
   }
 
@@ -3008,13 +3007,13 @@ class GroupPanel {
       if (this._hideSelected) {
         renderImage('Group Panel Membership Change');
       }
-      g_log.logAction('removeLayerFromFreeSelect');
+      g_log.logAction('removeLayerFromFreeSelect', `${layerName} removed from free select`);
     }
     else {
       c.removeLayerFromGroup(layerName, $('.sectionControls').attr('groupName'));
       this.showSavedGroupControls($('.sectionControls').attr('groupName'));
       renderImage('Group Membership Change');
-      g_log.logAction('removeLayerFromGroup');
+      g_log.logAction('removeLayerFromGroup', `${layerName} removed from group ${$('.sectionControls').attr('groupName')}`);
     }
   }
 
@@ -3292,6 +3291,10 @@ class GroupPanel {
 
     // sticks a table of the selected layers in the secondary view of this object
     for (let l in layers) {
+      if (c.getLayer(layers[l]).isPrecomp()) {
+        continue;
+      }
+
       if (c.isGroup(layers[l])) {
         // ok so groups also get selected here but function differently
         let elem = '<tr group-name="' + layers[l] + '">';
@@ -3504,7 +3507,7 @@ class GroupPanel {
     }
 
     if (opts.mode === PreviewMode.rawLayer) {
-      g_log.logAction('rawLayerVizStart');
+      g_log.logAction('rawLayerVizStart', '');
       if (this._displayOnMain) {
         drawImage(c.getCachedImage(name, this._renderSize), $('#previewCanvas'));
         //drawImage(c.renderUpToLayer(c.getContext(), name, '', 0.2, this._renderSize), );
@@ -3515,7 +3518,7 @@ class GroupPanel {
       }
     }
     else if (opts.mode === PreviewMode.upToLayer) {
-      g_log.logAction('upToLayerVizStart');
+      g_log.logAction('upToLayerVizStart', '');
       if (this._displayOnMain) {
         c.asyncRenderUpToLayer(c.getContext(), name, '', 0.1, this._renderSize, function(err, img) {
           drawImage(img, $('#previewCanvas'));
@@ -3528,7 +3531,7 @@ class GroupPanel {
       }
     }
     else if (opts.mode === PreviewMode.animatedParams || opts.mode === PreviewMode.animatedRawLayer) {
-      g_log.logAction('animatedVizStart');
+      g_log.logAction('animatedVizStart', '');
       if (this._intervalID !== null) {
         this.animateStop(name);
       }
@@ -3536,7 +3539,7 @@ class GroupPanel {
       this.animateStart(name, opts);
     }
     else if (opts.mode === PreviewMode.staticSolidColor) {
-      g_log.logAction('layerAlphaVizStart');
+      g_log.logAction('layerAlphaVizStart', '');
       if (!c.isGroup(name)) {
         if (this._displayOnMain) {
           //drawImage(c.getCachedImage(name, this._renderSize).fill(1, 0, 0), $('#previewCanvas'));
@@ -3956,7 +3959,7 @@ class GroupPanel {
 
   paramHandler(section, event, ui, paramName, type) {
     // not logging specific adjustments, just that there was one
-    g_log.logAction('parameterAdjustment');
+    g_log.logAction('parameterAdjustment', `section: ${section}, param: ${paramName}, type: ${type}, val: ${ui.value}`);
 
     let rel = this._freeSelectAdjMode === 'relative';
 
@@ -4655,10 +4658,11 @@ class LayerControls {
     this._uiElem.find('canvas').attr({ width: dims.w, height: dims.h });
 
     visibleButton.on('click', function () {
-      g_log.logAction('visibilityChange');
       // check status of button
       let visible = !visibleButton.find('i').hasClass('unhide');
       self.layer.visible(visible);
+
+      g_log.logAction('visibilityChange', `${self.name}:  ${visible}`);
 
       if (visible) {
         visibleButton.html('<i class="unhide icon"></i>');
@@ -5029,7 +5033,7 @@ class LayerControls {
   }
 
   paramHandler(event, ui, paramName, type) {
-    g_log.logAction('paramChange');
+    g_log.logAction('paramChange', `layer: ${this.name}, param: ${paramName}, type: ${type}, val: ${ui.value}`);
     
     if (type === adjType["OPACITY"]) {
       let val = ui.value / 100;

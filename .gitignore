@@ -95,3 +95,4 @@ app/darkroom/test.png
 ceres_harness/paramStats.json
 scripts/test/dists.json
 scripts/test2/dists.json
+app/darkroom/logs/*

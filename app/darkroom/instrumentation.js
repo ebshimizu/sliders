@@ -14,7 +14,7 @@ class Instrumentation {
     this._actions.push({
       type: actionName,
       message: detail,
-      time: (new Date().getTime() - this._start.getTime()) / 1000;
+      time: (new Date().getTime() - this._start.getTime()) / 1000
     });
   }
 
@@ -49,6 +49,10 @@ class Instrumentation {
     outData._actions = this._actions;
 
     fs.writeFileSync(file, JSON.stringify(outData, null, 2));
+  }
+
+  fastExport() {
+    this.export(`./logs/log_${new Date().getTime()}.json`);
   }
 }
 

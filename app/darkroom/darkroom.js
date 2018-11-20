@@ -2,7 +2,7 @@
 
 const comp = require('../native/build/Release/compositor');
 var events = require('events');
-var { dialog, app } = require('electron').remote;
+var { dialog, app, globalShortcut } = require('electron').remote;
 var fs = require('fs-extra');
 var chokidar = require('chokidar');
 var child_process = require('child_process');
@@ -343,6 +343,17 @@ function init() {
   initUI();
   loadSettings();
   g_log.reset();
+
+  // keybinds
+  // reset/start log
+  globalShortcut.unregisterAll();
+  globalShortcut.register('CommandOrControl+Shift+Q', () => {
+    g_log.reset();
+  });
+  // end/export
+  globalShortcut.register('CommandOrControl+Shift+Z', () => {
+    g_log.fastExport();
+  });
 
   // load ceres settings
   fs.readFile('./codegen/ceres_settings.json', function (err, data) {
@@ -914,7 +925,7 @@ function initLayerSelector() {
     "selectionCanvas": "#maskCanvas",
     "sidebar": "#layerEditControls",
     "selectionMode": "localPoint",
-    "rankMode": "goal",
+    "rankMode": "combined",
     "rankThreshold": 0,
     "optUI": "#layerSelectOptionsTab"
   });

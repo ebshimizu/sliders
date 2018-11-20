@@ -1517,8 +1517,6 @@ class LayerSelector {
   }
 
   selectLayers() {
-    g_log.logAction('layersSelected', `Displayed ${layerNames.length} layers.`);
-
     if (this._rankMode === "goal") {
       // goal-based selection is a bit different
       var layers = this.goalSelect();
@@ -1528,6 +1526,7 @@ class LayerSelector {
         layerNames.push(l);
       }
       g_groupPanel.displaySelectedLayers(layerNames);
+      g_log.logAction('layersSelected', `Displayed ${layerNames.length} layers.`);
       //this._paramSelectPanel.layers = layers;
     }
     else if (this._rankMode === 'combined') {
@@ -1547,6 +1546,7 @@ class LayerSelector {
       }
 
       g_groupPanel.displaySelectedLayers(layerNames);
+      g_log.logAction('layersSelected', `Displayed ${layerNames.length} layers.`);
     }
     else {
       var displayLayers = this.rankLayers();
@@ -1564,6 +1564,7 @@ class LayerSelector {
       }
 
       g_groupPanel.displaySelectedLayers(layerNames);
+      g_log.logAction('layersSelected', `Displayed ${layerNames.length} layers.`);
       //this._paramSelectPanel.layers = layers;
       //this.showLayers(displayLayers);
     }
@@ -3291,7 +3292,7 @@ class GroupPanel {
 
     // sticks a table of the selected layers in the secondary view of this object
     for (let l in layers) {
-      if (c.getLayer(layers[l]).isPrecomp()) {
+      if (c.getLayer(layers[l]).isPrecomp() || c.getLayer(layers[l]).isAdjustmentLayer()) {
         continue;
       }
 
@@ -5131,6 +5132,7 @@ class LayerControls {
   }
 
   updateColor(type, color) {
+    g_log.logAction('paramChange', `layer: ${this.name}, adj: ${type}, color: (${color.r}, ${color.g}, ${color.b})`);
     this._layer.addAdjustment(type, "r", color.r);
     this._layer.addAdjustment(type, "g", color.g);
     this._layer.addAdjustment(type, "b", color.b);

@@ -2534,6 +2534,7 @@ class GroupPanel {
     this._freeSelectAdjMode = 'absolute';
 
     this._previewMode = PreviewMode.animatedParams;
+    //this._layerSelectPreviewMode = PreviewMode.animatedParams;
     this._layerSelectPreviewMode = PreviewMode.staticSolidColor;
     this._renderSize = "small";
     this._animationData = {};
@@ -2682,6 +2683,7 @@ class GroupPanel {
 
     this.hideLayerControl();
 
+    // unbind to disable keybinds for hover
     $(document).keydown(function(event) {
       let oldMode = self._layerSelectPreviewMode;
       if (event.shiftKey && event.ctrlKey) {
@@ -2702,6 +2704,7 @@ class GroupPanel {
     });
     $(document).keyup(function(event) {
       if (event.keyCode === 16 || event.keyCode === 17) {
+        //self._layerSelectPreviewMode = PreviewMode.animatedParams;
         self._layerSelectPreviewMode = PreviewMode.staticSolidColor;
         self.stopVis();
         self.startVis(self._hoveredLayer, { mode: self._layerSelectPreviewMode });

@@ -1,15 +1,3 @@
-[submodule "app/native/src/third_party/cpp-base64"]
-	path = app/native/src/third_party/cpp-base64
-	url = https://github.com/ReneNyffenegger/cpp-base64.git
-[submodule "app/native/src/third_party/lodepng"]
-	path = app/native/src/third_party/lodepng
-	url = https://github.com/lvandeve/lodepng.git
-[submodule "app/darkroom/assets/semantic-ui-range"]
-	path = app/darkroom/assets/semantic-ui-range
-	url = https://github.com/tyleryasaka/semantic-ui-range.git
-[submodule "app/native/src/third_party/json"]
-	path = app/native/src/third_party/json
-	url = https://github.com/nlohmann/json.git
 [submodule "app/node-compositor"]
 	path = app/node-compositor
 	url = git@github.com:ebshimizu/node-compositor.git

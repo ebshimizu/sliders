@@ -1,6 +1,6 @@
 /* jshint esversion: 6, maxerr: 1000, node: true */
 
-const comp = require('../native/build/Release/compositor');
+const comp = require('../node-compositor/build/Release/compositor');
 var events = require('events');
 var { dialog, app, globalShortcut } = require('electron').remote;
 var fs = require('fs-extra');
